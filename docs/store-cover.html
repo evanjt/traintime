@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .cover {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .accent {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 500px;
+    height: 4px;
+    background: #e63946;
+    z-index: 2;
+  }
+
+  .watch {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: #111;
+    border: 10px solid #333;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .watch-walk {
+    font-size: 9px;
+    color: #aaa;
+    margin-bottom: 3px;
+  }
+
+  .watch-station {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .watch-separator {
+    width: 130px;
+    height: 1px;
+    background: #444;
+    margin-bottom: 7px;
+  }
+
+  .train-row {
+    display: flex;
+    align-items: baseline;
+    width: 180px;
+    margin-bottom: 4px;
+  }
+
+  .train-min {
+    width: 30px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 5px;
+  }
+  .train-min.green { color: #00ff00; }
+  .train-min.yellow { color: #ffff00; }
+
+  .train-delay {
+    width: 22px;
+    color: #ff5500;
+    font-size: 9px;
+  }
+
+  .train-plat {
+    width: 24px;
+    color: #55aaff;
+    font-size: 9px;
+  }
+
+  .train-dest {
+    color: #fff;
+    font-size: 9px;
+    flex: 1;
+  }
+
+  .app-name {
+    font-size: 48px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -1px;
+  }
+
+  .app-name span {
+    color: #e63946;
+  }
+
+  .tagline {
+    font-size: 14px;
+    color: #aaa;
+    font-weight: 300;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="accent"></div>
+    <div class="watch">
+      <div class="watch-walk">3 min walk - 210m  1/3</div>
+      <div class="watch-station">Bern</div>
+      <div class="watch-separator"></div>
+      <div class="train-row">
+        <div class="train-min yellow">2'</div>
+        <div class="train-delay">+1</div>
+        <div class="train-plat">P3</div>
+        <div class="train-dest">Zürich HB</div>
+      </div>
+      <div class="train-row">
+        <div class="train-min green">8'</div>
+        <div class="train-delay"></div>
+        <div class="train-plat">P12</div>
+        <div class="train-dest">Genève</div>
+      </div>
+      <div class="train-row">
+        <div class="train-min green">14'</div>
+        <div class="train-delay"></div>
+        <div class="train-plat">P7</div>
+        <div class="train-dest">Interlaken Ost</div>
+      </div>
+      <div class="train-row">
+        <div class="train-min green">21'</div>
+        <div class="train-delay">+3</div>
+        <div class="train-plat">P4</div>
+        <div class="train-dest">Basel SBB</div>
+      </div>
+    </div>
+    <div class="app-name">Train<span>Time</span></div>
+    <div class="tagline">Swiss departures on your wrist</div>
+  </div>
+</body>
+</html>
