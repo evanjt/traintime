@@ -38,9 +38,9 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onShow() {
-        Position.enableLocationEvents(Position.LOCATION_ONE_SHOT, new Lang.Method(self, :onPosition));
+        Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, new Lang.Method(self, :onPosition));
 
-        // Poll immediately (event-based may not fire in simulator)
+        // Poll immediately (may already have a cached position)
         var info = Position.getInfo();
         if (info != null && info.position != null) {
             onPosition(info);
@@ -160,8 +160,16 @@ class TrainTimeView extends WatchUi.View {
             }
         } else {
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, height / 2 - 10, Graphics.FONT_SMALL,
+            dc.drawText(centerX, height / 2 - 20, Graphics.FONT_SMALL,
                 mStatus, Graphics.TEXT_JUSTIFY_CENTER);
+
+            if (mLocationInfo != null && mLocationInfo.position != null) {
+                var coords = mLocationInfo.position.toDegrees();
+                var coordText = coords[0].format("%.4f") + ", " + coords[1].format("%.4f");
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, height / 2 + 10, Graphics.FONT_XTINY,
+                    coordText, Graphics.TEXT_JUSTIFY_CENTER);
+            }
         }
     }
 
