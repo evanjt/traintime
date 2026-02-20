@@ -1,0 +1,20 @@
+# Build artifacts
+*.prg
+*.prg.debug.xml
+*.iq
+
+# Compiler intermediates
+**/gen/
+**/external-mir/
+**/internal-mir/
+
+# Keys
+developer_key
+*.der
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
