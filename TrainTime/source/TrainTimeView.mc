@@ -6,6 +6,9 @@ using Toybox.Timer;
 using Toybox.Lang;
 using Toybox.Time;
 using Toybox.Math;
+using Toybox.Activity;
+using Toybox.Application;
+using Toybox.Weather;
 
 class TrainTimeView extends WatchUi.View {
 
@@ -19,6 +22,10 @@ class TrainTimeView extends WatchUi.View {
     private var mWalkInfo;
     private var mStations;
     private var mStationIndex;
+    private var mCachedLat;
+    private var mCachedLon;
+    private var mCachedTime;
+    private var mUsingCachedPosition;
 
     function initialize() {
         View.initialize();
@@ -31,6 +38,10 @@ class TrainTimeView extends WatchUi.View {
         mWalkInfo = null;
         mStations = null;
         mStationIndex = 0;
+        mUsingCachedPosition = false;
+        mCachedLat = Application.Storage.getValue("lastLat");
+        mCachedLon = Application.Storage.getValue("lastLon");
+        mCachedTime = Application.Storage.getValue("lastTime");
     }
 
     function onLayout(dc) {
@@ -40,11 +51,9 @@ class TrainTimeView extends WatchUi.View {
     function onShow() {
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, new Lang.Method(self, :onPosition));
 
-        // Poll immediately (may already have a cached position)
+        // Poll immediately (getBestPosition handles fallbacks internally)
         var info = Position.getInfo();
-        if (info != null && info.position != null) {
-            onPosition(info);
-        }
+        onPosition(info);
 
         mTimer = new Timer.Timer();
         mTimer.start(new Lang.Method(self, :onTimerTick), 10000, true);
@@ -92,11 +101,33 @@ class TrainTimeView extends WatchUi.View {
         var centerX = width / 2;
 
         if (mStationName != null) {
-            // Walking info line
-            if (mWalkInfo != null) {
+            // Walking info line / staleness indicator
+            var walkY = height * 12 / 100;
+            var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
+            if (mUsingCachedPosition) {
+                var stalenessText = formatStalenessInfo();
+                var delta = 0;
+                if (mCachedTime != null) {
+                    delta = Time.now().value() - mCachedTime;
+                    if (delta < 0) { delta = 0; }
+                }
+                var color;
+                if (delta <= 3600) {
+                    color = 0xFFFF00;
+                } else {
+                    color = 0xFF5500;
+                }
+                var walkText = truncateToFit(dc, stalenessText, Graphics.FONT_XTINY, walkMaxW - 16);
+                var textDims = dc.getTextDimensions(walkText, Graphics.FONT_XTINY);
+                var textStartX = centerX - textDims[0] / 2;
+                var iconX = textStartX - 10;
+                var iconY = walkY + textDims[1] / 2;
+                drawSatelliteIcon(dc, iconX, iconY, 5, color);
+                dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                    walkText, Graphics.TEXT_JUSTIFY_CENTER);
+            } else if (mWalkInfo != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                var walkY = height * 12 / 100;
-                var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
                 var walkText = truncateToFit(dc, mWalkInfo, Graphics.FONT_XTINY, walkMaxW);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                     walkText, Graphics.TEXT_JUSTIFY_CENTER);
@@ -121,14 +152,6 @@ class TrainTimeView extends WatchUi.View {
                 stationText, Graphics.TEXT_JUSTIFY_CENTER);
 
             if (mTrainData != null && mTrainData.size() > 0) {
-                // Separator arc
-                dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(1);
-                var arcY = height * 32 / 100;
-                var arcR = width * 2;
-                dc.drawArc(centerX, arcY + arcR, arcR,
-                    Graphics.ARC_COUNTER_CLOCKWISE, 83, 97);
-
                 // Train rows
                 var maxTrains = 4;
                 if (height < 240) {
@@ -159,15 +182,50 @@ class TrainTimeView extends WatchUi.View {
                     bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
             }
         } else {
+            // GPS status screen
+            var gpsInfo = Position.getInfo();
+            var qualityText = "No signal";
+            var qualityColor = 0xFF5500;
+            if (gpsInfo != null) {
+                if (gpsInfo.accuracy == Position.QUALITY_GOOD) {
+                    qualityText = "Signal: Good";
+                    qualityColor = 0x00FF00;
+                } else if (gpsInfo.accuracy == Position.QUALITY_USABLE) {
+                    qualityText = "Signal: Usable";
+                    qualityColor = 0x00FF00;
+                } else if (gpsInfo.accuracy == Position.QUALITY_POOR) {
+                    qualityText = "Signal: Poor";
+                    qualityColor = 0xFFFF00;
+                } else if (gpsInfo.accuracy == Position.QUALITY_LAST_KNOWN) {
+                    qualityText = "Last known";
+                    qualityColor = 0xFFFF00;
+                }
+            }
+
+            // Satellite icon
+            drawSatelliteIcon(dc, centerX, height / 2 - 45, 10, qualityColor);
+
+            // Status text
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, height / 2 - 20, Graphics.FONT_SMALL,
+            dc.drawText(centerX, height / 2 - 25, Graphics.FONT_SMALL,
                 mStatus, Graphics.TEXT_JUSTIFY_CENTER);
 
-            if (mLocationInfo != null && mLocationInfo.position != null) {
+            // Quality text
+            dc.setColor(qualityColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, height / 2 + 5, Graphics.FONT_XTINY,
+                qualityText, Graphics.TEXT_JUSTIFY_CENTER);
+
+            // Show known coordinates if available
+            if (mCachedLat != null && mCachedLon != null) {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, height / 2 + 22, Graphics.FONT_XTINY,
+                    mCachedLat.format("%.4f") + ", " + mCachedLon.format("%.4f"),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+            } else if (mLocationInfo != null && mLocationInfo.position != null) {
                 var coords = mLocationInfo.position.toDegrees();
                 var coordText = coords[0].format("%.4f") + ", " + coords[1].format("%.4f");
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, height / 2 + 10, Graphics.FONT_XTINY,
+                dc.drawText(centerX, height / 2 + 22, Graphics.FONT_XTINY,
                     coordText, Graphics.TEXT_JUSTIFY_CENTER);
             }
         }
@@ -287,26 +345,35 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onPosition(info) {
-        mLocationInfo = info;
+        var best = getBestPosition();
 
-        if (info == null || info.position == null) {
+        if (best == null) {
             mStatus = "GPS: Searching...";
+            mUsingCachedPosition = false;
             WatchUi.requestUpdate();
             return;
         }
 
-        var coords = info.position.toDegrees();
-        var lat = coords[0];
-        var lon = coords[1];
+        var lat = best[0];
+        var lon = best[1];
+        var isLive = best[2];
+        mUsingCachedPosition = !isLive;
 
-        // Switzerland bounding box check
-        if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-            mStationName = null;
-            mStationId = null;
-            mStations = null;
-            mTrainData = null;
-            mWalkInfo = null;
-            mStatus = "Not in Switzerland";
+        // Update debug display with valid live position
+        if (isLive && info != null) {
+            mLocationInfo = info;
+        }
+
+        if (!isInSwitzerland(lat, lon)) {
+            if (isLive) {
+                // Only clear stations on valid live GPS outside CH
+                mStationName = null;
+                mStationId = null;
+                mStations = null;
+                mTrainData = null;
+                mWalkInfo = null;
+                mStatus = "Not in Switzerland";
+            }
             WatchUi.requestUpdate();
             return;
         }
@@ -320,23 +387,39 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onTimerTick() {
-        // Always poll for updated position (detects leaving Switzerland)
-        var info = Position.getInfo();
-        if (info != null && info.position != null) {
-            mLocationInfo = info;
-            var coords = info.position.toDegrees();
-            var lat = coords[0];
-            var lon = coords[1];
+        var best = getBestPosition();
 
-            if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-                mStationName = null;
-                mStationId = null;
-                mStations = null;
-                mTrainData = null;
-                mWalkInfo = null;
-                mStatus = "Not in Switzerland";
-                WatchUi.requestUpdate();
+        if (best != null) {
+            var lat = best[0];
+            var lon = best[1];
+            var isLive = best[2];
+            mUsingCachedPosition = !isLive;
+
+            if (!isInSwitzerland(lat, lon)) {
+                if (isLive) {
+                    mStationName = null;
+                    mStationId = null;
+                    mStations = null;
+                    mTrainData = null;
+                    mWalkInfo = null;
+                    mStatus = "Not in Switzerland";
+                    WatchUi.requestUpdate();
+                }
                 return;
+            }
+
+            // Update debug display with valid live position
+            if (isLive) {
+                var info = Position.getInfo();
+                if (info != null) {
+                    mLocationInfo = info;
+                }
+            }
+
+            // Re-enable GPS if using cached position (safety measure)
+            if (!isLive) {
+                Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, new Lang.Method(self, :onPosition));
+                WatchUi.requestUpdate();
             }
         }
 
@@ -347,10 +430,9 @@ class TrainTimeView extends WatchUi.View {
         if (mStationId != null) {
             mRequestInFlight = true;
             fetchStationboard(mStationId);
-        } else if (mLocationInfo != null && mLocationInfo.position != null) {
+        } else if (best != null) {
             mRequestInFlight = true;
-            var coords = mLocationInfo.position.toDegrees();
-            fetchTrainData(coords[0], coords[1]);
+            fetchTrainData(best[0], best[1]);
         }
     }
 
@@ -507,6 +589,142 @@ class TrainTimeView extends WatchUi.View {
             mTrainData = null;
         }
         WatchUi.requestUpdate();
+    }
+
+    function drawSatelliteIcon(dc, x, y, size, color) {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        // Base dot (satellite)
+        dc.fillCircle(x, y, size / 4);
+        // Signal arcs
+        dc.setPenWidth(2);
+        dc.drawArc(x, y, size / 2, Graphics.ARC_COUNTER_CLOCKWISE, 30, 150);
+        dc.drawArc(x, y, size, Graphics.ARC_COUNTER_CLOCKWISE, 35, 145);
+        dc.setPenWidth(1);
+    }
+
+    function isPositionValid(info) {
+        if (info == null || info.position == null) {
+            return false;
+        }
+        if (info.accuracy == Position.QUALITY_NOT_AVAILABLE) {
+            return false;
+        }
+        var coords = info.position.toDegrees();
+        var lat = coords[0];
+        var lon = coords[1];
+        if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) {
+            return false;
+        }
+        if (lat == 0.0 && lon == 0.0) {
+            return false;
+        }
+        return true;
+    }
+
+    function isInSwitzerland(lat, lon) {
+        return (lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5);
+    }
+
+    function saveCachedPosition(lat, lon, isLiveFix) {
+        mCachedLat = lat;
+        mCachedLon = lon;
+        Application.Storage.setValue("lastLat", mCachedLat);
+        Application.Storage.setValue("lastLon", mCachedLon);
+        if (isLiveFix) {
+            mCachedTime = Time.now().value();
+            Application.Storage.setValue("lastTime", mCachedTime);
+        }
+    }
+
+    function getActivityLocation() {
+        try {
+            var actInfo = Activity.getActivityInfo();
+            if (actInfo != null && actInfo.currentLocation != null) {
+                var coords = actInfo.currentLocation.toDegrees();
+                var lat = coords[0];
+                var lon = coords[1];
+                if (lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0
+                    && !(lat == 0.0 && lon == 0.0)) {
+                    return [lat, lon];
+                }
+            }
+        } catch (e) {
+            // Activity API may not be available in all contexts
+        }
+        return null;
+    }
+
+    function getBestPosition() {
+        // Tier 1: GPS position (live or last-known)
+        var info = Position.getInfo();
+        if (isPositionValid(info)) {
+            var coords = info.position.toDegrees();
+            var lat = coords[0];
+            var lon = coords[1];
+            // QUALITY_LAST_KNOWN is usable but not a fresh fix
+            var isLive = (info.accuracy >= Position.QUALITY_POOR);
+            if (isInSwitzerland(lat, lon)) {
+                saveCachedPosition(lat, lon, isLive);
+            }
+            return [lat, lon, isLive];
+        }
+
+        // Tier 2: Activity location
+        var actLoc = getActivityLocation();
+        if (actLoc != null) {
+            if (isInSwitzerland(actLoc[0], actLoc[1])) {
+                saveCachedPosition(actLoc[0], actLoc[1], false);
+            }
+            return [actLoc[0], actLoc[1], false];
+        }
+
+        // Tier 3: Weather observation location (~1km accuracy)
+        try {
+            var conditions = Weather.getCurrentConditions();
+            if (conditions != null && conditions.observationLocationPosition != null) {
+                var wCoords = conditions.observationLocationPosition.toDegrees();
+                var wLat = wCoords[0];
+                var wLon = wCoords[1];
+                if (wLat >= -90.0 && wLat <= 90.0 && wLon >= -180.0 && wLon <= 180.0
+                    && !(wLat == 0.0 && wLon == 0.0)) {
+                    if (isInSwitzerland(wLat, wLon)) {
+                        saveCachedPosition(wLat, wLon, false);
+                    }
+                    return [wLat, wLon, false];
+                }
+            }
+        } catch (e) {
+            // Weather API may crash on some devices
+        }
+
+        // Tier 4: Persistent cache
+        if (mCachedLat != null && mCachedLon != null) {
+            return [mCachedLat, mCachedLon, false];
+        }
+
+        return null;
+    }
+
+    function formatStalenessInfo() {
+        var text = "GPS: cached";
+        if (mCachedTime != null) {
+            var delta = Time.now().value() - mCachedTime;
+            if (delta < 0) { delta = 0; }
+            var minutes = delta / 60;
+            var hours = delta / 3600;
+            var days = delta / 86400;
+            if (days >= 1) {
+                text = days + "d ago";
+            } else if (hours >= 1) {
+                text = hours + "h ago";
+            } else {
+                text = minutes + "m ago";
+            }
+        }
+        if (mStations != null && mStations.size() > 1) {
+            text = text + "  " + (mStationIndex + 1) + "/" + mStations.size();
+        }
+        return text;
     }
 
     function formatWalkInfo(distanceMeters) {

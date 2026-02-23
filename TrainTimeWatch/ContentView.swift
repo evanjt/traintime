@@ -58,7 +58,7 @@ struct ContentView: View {
             location.stop()
             stopTimer()
         }
-        .onChange(of: location.coordinate) { _, coord in
+        .onReceive(location.$coordinate) { coord in
             onLocationUpdate(coord)
         }
     }
