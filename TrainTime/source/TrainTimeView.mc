@@ -19,6 +19,14 @@ class TrainTimeView extends WatchUi.View {
     private var mWalkInfo;
     private var mStations;
     private var mStationIndex;
+    private var mLastSearchLat;
+    private var mLastSearchLon;
+    private var mRequestStartTime;
+    private var mTrainStations;
+    private var mBusStations;
+    private var mTramStations;
+    private var mCurrentMode;
+    private var mAvailableModes;
 
     function initialize() {
         View.initialize();
@@ -31,6 +39,14 @@ class TrainTimeView extends WatchUi.View {
         mWalkInfo = null;
         mStations = null;
         mStationIndex = 0;
+        mLastSearchLat = null;
+        mLastSearchLon = null;
+        mRequestStartTime = null;
+        mTrainStations = null;
+        mBusStations = null;
+        mTramStations = null;
+        mCurrentMode = 0;
+        mAvailableModes = [];
     }
 
     function onLayout(dc) {
@@ -58,6 +74,57 @@ class TrainTimeView extends WatchUi.View {
         Position.enableLocationEvents(Position.LOCATION_DISABLE, new Lang.Method(self, :onPosition));
     }
 
+    function hasMovedSignificantly(lat, lon) {
+        if (mLastSearchLat == null || mLastSearchLon == null) {
+            return true;
+        }
+        var dLat = lat - mLastSearchLat;
+        if (dLat < 0) { dLat = -dLat; }
+        var dLon = lon - mLastSearchLon;
+        if (dLon < 0) { dLon = -dLon; }
+        return (dLat > 0.0045 || dLon > 0.006);
+    }
+
+    function clearStationState() {
+        mStationId = null;
+        mStationName = null;
+        mStations = null;
+        mTrainStations = null;
+        mBusStations = null;
+        mTramStations = null;
+        mTrainData = null;
+        mWalkInfo = null;
+        mStationIndex = 0;
+        mAvailableModes = [];
+    }
+
+    function getStationsForMode(mode) {
+        if (mode == 0) { return mTrainStations; }
+        if (mode == 1) { return mBusStations; }
+        if (mode == 2) { return mTramStations; }
+        return null;
+    }
+
+    function cycleMode() {
+        if (mAvailableModes.size() <= 1) {
+            return;
+        }
+        var idx = 0;
+        for (var i = 0; i < mAvailableModes.size(); i++) {
+            if (mAvailableModes[i] == mCurrentMode) {
+                idx = i;
+                break;
+            }
+        }
+        idx = (idx + 1) % mAvailableModes.size();
+        mCurrentMode = mAvailableModes[idx];
+        mStations = getStationsForMode(mCurrentMode);
+        if (mStations != null && mStations.size() > 0) {
+            mStationIndex = 0;
+            selectStation(0);
+        }
+    }
+
     // Calculate usable width at a given Y on a round display
     function getUsableWidth(y, width, height) {
         var r = width / 2;
@@ -83,6 +150,57 @@ class TrainTimeView extends WatchUi.View {
         return text.substring(0, maxChars - 1) + ".";
     }
 
+    function drawModeIndicators(dc, width, height) {
+        if (mAvailableModes.size() <= 1) {
+            return;
+        }
+
+        var cy = height * 4 / 100;
+        var iconSpacing = 24;
+        var totalWidth = (mAvailableModes.size() - 1) * iconSpacing;
+        var startX = width / 2 - totalWidth / 2;
+
+        for (var i = 0; i < mAvailableModes.size(); i++) {
+            var mode = mAvailableModes[i];
+            var cx = startX + i * iconSpacing;
+            var isActive = (mode == mCurrentMode);
+
+            if (isActive) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            }
+
+            if (mode == 0) {
+                // Train: rectangle body + peaked roof + 2 wheels
+                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
+                dc.fillPolygon([[cx - 3, cy - 1], [cx, cy - 4], [cx + 3, cy - 1]]);
+                dc.fillCircle(cx - 2, cy + 6, 1);
+                dc.fillCircle(cx + 2, cy + 6, 1);
+            } else if (mode == 1) {
+                // Bus: wider rectangle body + 2 wheels
+                dc.fillRectangle(cx - 4, cy, 8, 5);
+                dc.fillCircle(cx - 3, cy + 6, 1);
+                dc.fillCircle(cx + 3, cy + 6, 1);
+            } else {
+                // Tram: rectangle body + pantograph + 2 wheels
+                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
+                dc.setPenWidth(1);
+                dc.drawLine(cx, cy - 1, cx, cy - 5);
+                dc.drawLine(cx - 2, cy - 5, cx + 2, cy - 5);
+                dc.fillCircle(cx - 2, cy + 6, 1);
+                dc.fillCircle(cx + 2, cy + 6, 1);
+            }
+
+            // Active mode ring
+            if (isActive) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.setPenWidth(1);
+                dc.drawCircle(cx, cy + 1, 9);
+            }
+        }
+    }
+
     function onUpdate(dc) {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -92,6 +210,9 @@ class TrainTimeView extends WatchUi.View {
         var centerX = width / 2;
 
         if (mStationName != null) {
+            // Mode indicators (above walk info)
+            drawModeIndicators(dc, width, height);
+
             // Walking info line
             if (mWalkInfo != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -282,6 +403,7 @@ class TrainTimeView extends WatchUi.View {
         mStatus = mStationName;
         mTrainData = null;
         mRequestInFlight = true;
+        mRequestStartTime = Time.now().value();
         fetchStationboard(mStationId);
         WatchUi.requestUpdate();
     }
@@ -299,27 +421,45 @@ class TrainTimeView extends WatchUi.View {
         var lat = coords[0];
         var lon = coords[1];
 
+        // Reject uninitialized GPS (default 180,180)
+        if (lat > 90.0 || lat < -90.0 || lon > 180.0 || lon < -180.0) {
+            mStatus = "GPS: Searching...";
+            WatchUi.requestUpdate();
+            return;
+        }
+
         // Switzerland bounding box check
         if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-            mStationName = null;
-            mStationId = null;
-            mStations = null;
-            mTrainData = null;
-            mWalkInfo = null;
+            clearStationState();
             mStatus = "Not in Switzerland";
             WatchUi.requestUpdate();
             return;
         }
 
+        // Re-search stations if moved >500m from last search
+        if (hasMovedSignificantly(lat, lon)) {
+            clearStationState();
+        }
+
         if (mStationId == null && !mRequestInFlight) {
             mStatus = "Finding stations...";
             mRequestInFlight = true;
+            mRequestStartTime = Time.now().value();
             fetchTrainData(lat, lon);
         }
         WatchUi.requestUpdate();
     }
 
     function onTimerTick() {
+        // Request timeout: if in-flight for >30s, force-reset
+        if (mRequestInFlight && mRequestStartTime != null) {
+            var elapsed = Time.now().value() - mRequestStartTime;
+            if (elapsed > 30) {
+                mRequestInFlight = false;
+                mRequestStartTime = null;
+            }
+        }
+
         // Always poll for updated position (detects leaving Switzerland)
         var info = Position.getInfo();
         if (info != null && info.position != null) {
@@ -328,15 +468,19 @@ class TrainTimeView extends WatchUi.View {
             var lat = coords[0];
             var lon = coords[1];
 
-            if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-                mStationName = null;
-                mStationId = null;
-                mStations = null;
-                mTrainData = null;
-                mWalkInfo = null;
-                mStatus = "Not in Switzerland";
-                WatchUi.requestUpdate();
-                return;
+            // Skip uninitialized GPS (default 180,180)
+            if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
+                if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
+                    clearStationState();
+                    mStatus = "Not in Switzerland";
+                    WatchUi.requestUpdate();
+                    return;
+                }
+
+                // Re-search stations if moved >500m from last search
+                if (hasMovedSignificantly(lat, lon)) {
+                    clearStationState();
+                }
             }
         }
 
@@ -346,15 +490,21 @@ class TrainTimeView extends WatchUi.View {
 
         if (mStationId != null) {
             mRequestInFlight = true;
+            mRequestStartTime = Time.now().value();
             fetchStationboard(mStationId);
         } else if (mLocationInfo != null && mLocationInfo.position != null) {
+            mStatus = "Finding stations...";
             mRequestInFlight = true;
+            mRequestStartTime = Time.now().value();
             var coords = mLocationInfo.position.toDegrees();
             fetchTrainData(coords[0], coords[1]);
         }
     }
 
     function fetchTrainData(lat, lon) {
+        mLastSearchLat = lat;
+        mLastSearchLon = lon;
+
         var url = "https://search.ch/timetable/api/completion.en.json"
             + "?latlon=" + lat + "," + lon
             + "&accuracy=10000&show_ids=1";
@@ -369,6 +519,7 @@ class TrainTimeView extends WatchUi.View {
 
     function onStationsReceived(responseCode, data) {
         mRequestInFlight = false;
+        mRequestStartTime = null;
 
         if (responseCode == 200 && data != null) {
             var stations = null;
@@ -377,19 +528,51 @@ class TrainTimeView extends WatchUi.View {
             }
 
             if (stations != null && stations.size() > 0) {
-                mStations = [];
-                var limit = stations.size();
-                if (limit > 5) {
-                    limit = 5;
-                }
-                for (var i = 0; i < limit; i++) {
+                mTrainStations = [];
+                mBusStations = [];
+                mTramStations = [];
+
+                for (var i = 0; i < stations.size(); i++) {
                     var s = stations[i];
-                    if (s.hasKey("id") && s["id"] != null) {
-                        mStations.add(s);
+                    if (!s.hasKey("id") || s["id"] == null) {
+                        continue;
+                    }
+                    var iconclass = "";
+                    if (s.hasKey("iconclass") && s["iconclass"] != null) {
+                        iconclass = s["iconclass"].toString();
+                    }
+                    if (iconclass.find("type-train") != null || iconclass.find("type-strain") != null) {
+                        if (mTrainStations.size() < 5) {
+                            mTrainStations.add(s);
+                        }
+                    } else if (iconclass.find("type-bus") != null) {
+                        if (mBusStations.size() < 5) {
+                            mBusStations.add(s);
+                        }
+                    } else if (iconclass.find("type-tram") != null) {
+                        if (mTramStations.size() < 5) {
+                            mTramStations.add(s);
+                        }
                     }
                 }
 
-                if (mStations.size() > 0) {
+                // Build available modes from non-empty categories
+                mAvailableModes = [];
+                if (mTrainStations.size() > 0) { mAvailableModes.add(0); }
+                if (mBusStations.size() > 0) { mAvailableModes.add(1); }
+                if (mTramStations.size() > 0) { mAvailableModes.add(2); }
+
+                // If current mode has no stations, switch to first available
+                var currentStations = getStationsForMode(mCurrentMode);
+                if (currentStations == null || currentStations.size() == 0) {
+                    if (mAvailableModes.size() > 0) {
+                        mCurrentMode = mAvailableModes[0];
+                    }
+                }
+
+                mStations = getStationsForMode(mCurrentMode);
+
+                if (mStations != null && mStations.size() > 0) {
                     mStationIndex = 0;
                     var station = mStations[0];
                     mStationId = station["id"];
@@ -400,6 +583,7 @@ class TrainTimeView extends WatchUi.View {
                     WatchUi.requestUpdate();
 
                     mRequestInFlight = true;
+                    mRequestStartTime = Time.now().value();
                     fetchStationboard(mStationId);
                     return;
                 }
@@ -437,6 +621,7 @@ class TrainTimeView extends WatchUi.View {
 
     function onTrainDataReceived(responseCode, data) {
         mRequestInFlight = false;
+        mRequestStartTime = null;
 
         if (responseCode == 200 && data != null && data.hasKey("stationboard")) {
             mTrainData = [];

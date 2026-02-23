@@ -20,6 +20,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() {
+        mView.cycleMode();
         return true;
     }
 
