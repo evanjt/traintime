@@ -1001,39 +1001,17 @@ class TrainTimeView extends WatchUi.View {
                     }
                 }
 
-                // Build available modes from non-empty categories
-                mAvailableModes = [];
-                if (mTrainStations.size() > 0) { mAvailableModes.add(0); }
-                if (mBusStations.size() > 0) { mAvailableModes.add(1); }
-                if (mTramStations.size() > 0) { mAvailableModes.add(2); }
-
-                // If current mode has no stations, switch to first available
-                var currentStations = getStationsForMode(mCurrentMode);
-                if (currentStations == null || currentStations.size() == 0) {
-                    if (mAvailableModes.size() > 0) {
-                        mCurrentMode = mAvailableModes[0];
+                // If no train stations found in coordinate search,
+                // search by name to find the nearest train station
+                if (mTrainStations.size() == 0) {
+                    var cityName = extractCityName();
+                    if (cityName != null) {
+                        fetchTrainStationsByName(cityName);
                     }
                 }
 
-                mStations = getStationsForMode(mCurrentMode);
-
-                if (mStations != null && mStations.size() > 0) {
-                    mStationIndex = 0;
-                    var station = mStations[0];
-                    mStationId = station["id"];
-                    mStationName = station.hasKey("label") ? station["label"] : "Station";
-                    mStationLat = station.hasKey("lat") ? station["lat"] : null;
-                    mStationLon = station.hasKey("lon") ? station["lon"] : null;
-                    var distance = station.hasKey("dist") ? station["dist"] : 0;
-                    mWalkInfo = formatWalkInfo(distance);
-                    mStatus = mStationName;
-                    WatchUi.requestUpdate();
-
-                    mRequestInFlight = true;
-                    mRequestStartTime = Time.now().value();
-                    fetchStationboard(mStationId);
-                    return;
-                }
+                // Build available modes and select station
+                rebuildModesAndSelect();
             }
 
             mStatus = "No stations nearby";
@@ -1045,6 +1023,134 @@ class TrainTimeView extends WatchUi.View {
             mTrainData = null;
         }
         WatchUi.requestUpdate();
+    }
+
+    function rebuildModesAndSelect() {
+        // Build available modes from non-empty categories
+        mAvailableModes = [];
+        if (mTrainStations.size() > 0) { mAvailableModes.add(0); }
+        if (mBusStations.size() > 0) { mAvailableModes.add(1); }
+        if (mTramStations.size() > 0) { mAvailableModes.add(2); }
+
+        // If current mode has no stations, switch to first available
+        var currentStations = getStationsForMode(mCurrentMode);
+        if (currentStations == null || currentStations.size() == 0) {
+            if (mAvailableModes.size() > 0) {
+                mCurrentMode = mAvailableModes[0];
+            }
+        }
+
+        mStations = getStationsForMode(mCurrentMode);
+
+        if (mStations != null && mStations.size() > 0) {
+            mStationIndex = 0;
+            var station = mStations[0];
+            mStationId = station["id"];
+            mStationName = station.hasKey("label") ? station["label"] : "Station";
+            mStationLat = station.hasKey("lat") ? station["lat"] : null;
+            mStationLon = station.hasKey("lon") ? station["lon"] : null;
+            var distance = station.hasKey("dist") ? station["dist"] : 0;
+            mWalkInfo = formatWalkInfo(distance);
+            mStatus = mStationName;
+            WatchUi.requestUpdate();
+
+            mRequestInFlight = true;
+            mRequestStartTime = Time.now().value();
+            fetchStationboard(mStationId);
+        }
+    }
+
+    function extractCityName() {
+        // Swiss stops follow "City, Stop Name" format
+        var stations = mBusStations.size() > 0 ? mBusStations : mTramStations;
+        if (stations.size() == 0) { return null; }
+        var name = stations[0]["label"];
+        var commaIdx = name.find(",");
+        if (commaIdx != null && commaIdx > 0) {
+            return name.substring(0, commaIdx);
+        }
+        return name;
+    }
+
+    function fetchTrainStationsByName(cityName) {
+        var url = "https://transport.opendata.ch/v1/locations"
+            + "?query=" + cityName
+            + "&type=station";
+
+        var params = {
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => {}
+        };
+
+        Communications.makeWebRequest(url, null, params, method(:onTrainStationsReceived));
+    }
+
+    function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
+        if (responseCode != 200 || data == null || !data.hasKey("stations")) {
+            return;
+        }
+
+        var stations = data["stations"];
+        if (stations == null) { return; }
+
+        for (var i = 0; i < stations.size(); i++) {
+            var s = stations[i];
+            if (!s.hasKey("id") || s["id"] == null) { continue; }
+
+            var icon = "";
+            if (s.hasKey("icon") && s["icon"] != null) {
+                icon = s["icon"].toString();
+            }
+            // Only add non-bus, non-tram stations (trains, S-Bahn, etc.)
+            if (icon.equals("bus") || icon.equals("tram")) { continue; }
+
+            var sLat = null;
+            var sLon = null;
+            if (s.hasKey("coordinate") && s["coordinate"] != null) {
+                var coord = s["coordinate"];
+                if (coord.hasKey("x")) { sLat = coord["x"]; }
+                if (coord.hasKey("y")) { sLon = coord["y"]; }
+            }
+
+            // Calculate distance from user position
+            var dist = 0;
+            if (sLat != null && sLon != null
+                    && mLocationInfo != null && mLocationInfo.position != null) {
+                var coords = mLocationInfo.position.toDegrees();
+                dist = calculateDistance(coords[0], coords[1], sLat, sLon);
+            }
+
+            // Only add stations within 5km
+            if (dist > 5000) { continue; }
+
+            var entry = {
+                "id" => s["id"],
+                "label" => s.hasKey("name") ? s["name"] : "Station",
+                "dist" => dist,
+                "lat" => sLat,
+                "lon" => sLon
+            };
+            if (mTrainStations.size() < 5) {
+                mTrainStations.add(entry);
+            }
+        }
+
+        if (mTrainStations.size() > 0) {
+            // Rebuild modes to include trains
+            var hadTrain = false;
+            for (var i = 0; i < mAvailableModes.size(); i++) {
+                if (mAvailableModes[i] == 0) { hadTrain = true; }
+            }
+            if (!hadTrain) {
+                // Insert train at beginning so it appears first
+                var newModes = [0];
+                for (var i = 0; i < mAvailableModes.size(); i++) {
+                    newModes.add(mAvailableModes[i]);
+                }
+                mAvailableModes = newModes;
+            }
+            WatchUi.requestUpdate();
+        }
     }
 
     function fetchStationboard(stationId) {
