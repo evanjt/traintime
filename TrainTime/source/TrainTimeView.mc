@@ -33,6 +33,10 @@ class TrainTimeView extends WatchUi.View {
     private var mStationLat;
     private var mStationLon;
     private var mTickCount;
+    // 0 = station view, 1 = train selection, 2 = focused tracking
+    private var mAppState;
+    private var mCursorIndex;
+    private var mFocusedTrain;
 
     function initialize() {
         View.initialize();
@@ -58,6 +62,9 @@ class TrainTimeView extends WatchUi.View {
         mStationLat = null;
         mStationLon = null;
         mTickCount = 0;
+        mAppState = 0;
+        mCursorIndex = 0;
+        mFocusedTrain = null;
     }
 
     function onLayout(dc) {
@@ -127,6 +134,9 @@ class TrainTimeView extends WatchUi.View {
         mAvailableModes = [];
         mStationLat = null;
         mStationLon = null;
+        mAppState = 0;
+        mCursorIndex = 0;
+        mFocusedTrain = null;
     }
 
     function getStationsForMode(mode) {
@@ -155,6 +165,86 @@ class TrainTimeView extends WatchUi.View {
             selectStation(0);
         }
     }
+
+    // --- State management ---
+
+    function getAppState() {
+        return mAppState;
+    }
+
+    function enterTrainSelection() {
+        if (mTrainData == null || mTrainData.size() == 0) {
+            return;
+        }
+        mAppState = 1;
+        mCursorIndex = 0;
+        WatchUi.requestUpdate();
+    }
+
+    function moveCursorDown() {
+        if (mTrainData == null || mTrainData.size() == 0) { return; }
+        mCursorIndex = (mCursorIndex + 1) % mTrainData.size();
+        WatchUi.requestUpdate();
+    }
+
+    function moveCursorUp() {
+        if (mTrainData == null || mTrainData.size() == 0) { return; }
+        mCursorIndex = mCursorIndex - 1;
+        if (mCursorIndex < 0) {
+            mCursorIndex = mTrainData.size() - 1;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function confirmTrainSelection() {
+        if (mTrainData == null || mCursorIndex >= mTrainData.size()) { return; }
+        var t = mTrainData[mCursorIndex];
+        mFocusedTrain = {
+            "dest" => t["dest"],
+            "min" => t["min"],
+            "delay" => t["delay"],
+            "plat" => t["plat"],
+            "platChg" => t["platChg"]
+        };
+        mAppState = 2;
+        WatchUi.requestUpdate();
+    }
+
+    function exitToStationView() {
+        mAppState = 0;
+        mCursorIndex = 0;
+        mFocusedTrain = null;
+        WatchUi.requestUpdate();
+    }
+
+    function updateFocusedTrain() {
+        if (mAppState != 2 || mFocusedTrain == null || mTrainData == null) { return; }
+        var targetDest = mFocusedTrain["dest"];
+        var lastMin = mFocusedTrain["min"];
+        var bestMatch = null;
+        var bestDiff = 999;
+        for (var i = 0; i < mTrainData.size(); i++) {
+            var t = mTrainData[i];
+            if (t["dest"].equals(targetDest) && t["min"] >= -1) {
+                var diff = t["min"] - lastMin;
+                if (diff < 0) { diff = -diff; }
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestMatch = t;
+                }
+            }
+        }
+        if (bestMatch != null) {
+            mFocusedTrain["min"] = bestMatch["min"];
+            mFocusedTrain["delay"] = bestMatch["delay"];
+            mFocusedTrain["plat"] = bestMatch["plat"];
+            mFocusedTrain["platChg"] = bestMatch["platChg"];
+        } else {
+            exitToStationView();
+        }
+    }
+
+    // --- Helpers ---
 
     // Calculate usable width at a given Y on a round display
     function getUsableWidth(y, width, height) {
@@ -187,6 +277,20 @@ class TrainTimeView extends WatchUi.View {
         return Math.sqrt(dLat * dLat + dLon * dLon).toNumber();
     }
 
+    function getWalkMinutes() {
+        if (mStationLat == null || mStationLon == null) { return null; }
+        if (mLocationInfo == null || mLocationInfo.position == null) { return null; }
+        var coords = mLocationInfo.position.toDegrees();
+        var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+        return dist / 83.0;
+    }
+
+    function clampFloat(val, minVal, maxVal) {
+        if (val < minVal) { return minVal; }
+        if (val > maxVal) { return maxVal; }
+        return val;
+    }
+
     function updateWalkDistance() {
         if (mStationLat == null || mStationLon == null) {
             return;
@@ -198,6 +302,8 @@ class TrainTimeView extends WatchUi.View {
         var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
         mWalkInfo = formatWalkInfo(dist);
     }
+
+    // --- Drawing ---
 
     function drawModeIndicators(dc, width, height) {
         if (mAvailableModes.size() == 0) {
@@ -279,6 +385,12 @@ class TrainTimeView extends WatchUi.View {
         // GPS quality indicator
         drawGpsIndicator(dc, width, height);
 
+        // State 2: focused tracking
+        if (mAppState == 2 && mFocusedTrain != null) {
+            drawFocusedMode(dc, width, height);
+            return;
+        }
+
         if (mStationName != null) {
             // Mode indicators (above walk info)
             drawModeIndicators(dc, width, height);
@@ -333,8 +445,9 @@ class TrainTimeView extends WatchUi.View {
                     count = maxTrains;
                 }
                 for (var i = 0; i < count; i++) {
+                    var highlighted = (mAppState == 1 && i == mCursorIndex);
                     drawTrainRow(dc, mTrainData[i],
-                        startY + i * rowSpacing, width, height);
+                        startY + i * rowSpacing, width, height, highlighted);
                 }
             } else if (mTrainData != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -364,7 +477,7 @@ class TrainTimeView extends WatchUi.View {
         }
     }
 
-    function drawTrainRow(dc, train, y, width, height) {
+    function drawTrainRow(dc, train, y, width, height, highlighted) {
         var minutesUntil = train["min"];
         var delay = train["delay"];
         var platform = train["plat"];
@@ -376,6 +489,15 @@ class TrainTimeView extends WatchUi.View {
         var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
         var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
         var xtinyY = y + (tinyH - xtinyH) / 2;
+
+        // Highlight background for cursor in selection mode
+        if (highlighted) {
+            var rowCenterForBg = y + tinyH / 2;
+            var usableBg = getUsableWidth(rowCenterForBg, width, height);
+            var bgX = (width - usableBg) / 2 + 2;
+            dc.setColor(0x003366, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
+        }
 
         // Fixed column X positions (absolute, so columns align across rows)
         var minRightX = width * 24 / 100;
@@ -447,19 +569,205 @@ class TrainTimeView extends WatchUi.View {
             destText, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    function nextStation() {
-        if (mStations != null && mStations.size() > 1) {
-            mStationIndex = (mStationIndex + 1) % mStations.size();
-            selectStation(mStationIndex);
+    // --- Focused Mode (State 2) ---
+
+    function drawFocusedMode(dc, width, height) {
+        var centerX = width / 2;
+
+        // Station name
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        var stationY = height * 15 / 100;
+        var stationMaxW = getUsableWidth(stationY + 10, width, height) - 10;
+        dc.drawText(centerX, stationY, Graphics.FONT_SMALL,
+            truncateToFit(dc, mStationName, Graphics.FONT_SMALL, stationMaxW),
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Destination + platform
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        var destY = height * 28 / 100;
+        var destStr = mFocusedTrain["dest"];
+        var plat = mFocusedTrain["plat"];
+        if (plat != null && !plat.equals("")) {
+            destStr = destStr + "  P" + plat;
+        }
+        var destMaxW = getUsableWidth(destY + 10, width, height) - 10;
+        dc.drawText(centerX, destY, Graphics.FONT_SMALL,
+            truncateToFit(dc, destStr, Graphics.FONT_SMALL, destMaxW),
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Departure time + delay
+        var minY = height * 40 / 100;
+        var minutesUntil = mFocusedTrain["min"];
+        var delay = mFocusedTrain["delay"];
+        if (delay == null) { delay = 0; }
+
+        var minStr;
+        if (minutesUntil <= 0) {
+            minStr = "now";
+            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+        } else {
+            minStr = minutesUntil + " min";
+            if (minutesUntil <= 2) {
+                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+            }
+        }
+        dc.drawText(centerX, minY, Graphics.FONT_MEDIUM,
+            minStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Delay indicator next to departure time
+        if (delay > 0) {
+            var minDims = dc.getTextDimensions(minStr, Graphics.FONT_MEDIUM);
+            var smallH = dc.getFontHeight(Graphics.FONT_SMALL);
+            var medH = minDims[1];
+            dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX + minDims[0] / 2 + 4, minY + (medH - smallH) / 2,
+                Graphics.FONT_SMALL, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+
+        // Tracking bar
+        drawTrackingBar(dc, width, height);
+
+        // Status text
+        var statusY = height * 66 / 100;
+        var walkMin = getWalkMinutes();
+        if (walkMin == null) {
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, statusY, Graphics.FONT_SMALL,
+                "No GPS", Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            var schedBuf = minutesUntil - walkMin;
+            var effectBuf = schedBuf + delay;
+
+            var statusStr;
+            if (effectBuf > 0.5) {
+                var ahead = effectBuf.toNumber();
+                if (ahead < 1) { ahead = 1; }
+                statusStr = ahead + " min ahead";
+                if (delay > 0) {
+                    statusStr = statusStr + " (+" + delay + " delay)";
+                }
+                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+            } else if (effectBuf < -0.5) {
+                var behind = (-effectBuf).toNumber();
+                if (behind < 1) { behind = 1; }
+                statusStr = behind + " min behind";
+                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
+            } else {
+                statusStr = "On time";
+                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            }
+
+            var statusMaxW = getUsableWidth(statusY + 10, width, height) - 10;
+            dc.drawText(centerX, statusY, Graphics.FONT_SMALL,
+                truncateToFit(dc, statusStr, Graphics.FONT_SMALL, statusMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Walk info at bottom
+        if (mWalkInfo != null) {
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            var walkY = height * 82 / 100;
+            var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
+            dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                truncateToFit(dc, mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
-    function previousStation() {
-        if (mStations != null && mStations.size() > 1) {
-            mStationIndex = mStationIndex - 1;
-            if (mStationIndex < 0) {
-                mStationIndex = mStations.size() - 1;
+    function drawTrackingBar(dc, width, height) {
+        var barWidth = width * 60 / 100;
+        var halfBar = barWidth / 2;
+        var barX = width / 2 - halfBar;
+        var barY = height * 54 / 100;
+        var barH = 10;
+        var midX = width / 2;
+
+        // Background
+        dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(barX, barY, barWidth, barH);
+
+        var walkMin = getWalkMinutes();
+        if (walkMin == null) {
+            // No GPS — fully gray bar
+            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(barX, barY, barWidth, barH);
+            // Midpoint marker
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+            return;
+        }
+
+        var minutesUntil = mFocusedTrain["min"];
+        var delay = mFocusedTrain["delay"];
+        if (delay == null) { delay = 0; }
+
+        var schedBuf = minutesUntil - walkMin;
+        var effectBuf = schedBuf + delay;
+
+        var barScale = 3.0;
+
+        // Clamp to [-1, 1] then scale to pixels
+        var schedFrac = clampFloat(schedBuf / barScale, -1.0, 1.0);
+        var effectFrac = clampFloat(effectBuf / barScale, -1.0, 1.0);
+        var schedPx = (schedFrac * halfBar).toNumber();
+        var effectPx = (effectFrac * halfBar).toNumber();
+
+        // Determine stale GPS for muted colors
+        var isStale = (mLoadedFromCache || mGpsQuality == Position.QUALITY_LAST_KNOWN);
+
+        var darkGreen = isStale ? 0x336633 : 0x00CC00;
+        var lightGreen = isStale ? 0x2A4D2A : 0x009900;
+        var darkRed = isStale ? 0x663333 : 0xFF0000;
+        var lightRed = isStale ? 0x4D2A2A : 0xCC4400;
+
+        // Case 1: Both positive or zero (fully ahead)
+        if (schedPx >= 0 && effectPx >= 0) {
+            // Dark green: guaranteed buffer (0 to scheduledPx)
+            if (schedPx > 0) {
+                dc.setColor(darkGreen, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX, barY, schedPx, barH);
             }
+            // Light green: delay bonus (scheduledPx to effectivePx)
+            if (effectPx > schedPx) {
+                dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
+            }
+        }
+        // Case 3: Both negative (fully behind)
+        else if (schedPx <= 0 && effectPx <= 0) {
+            // Dark red: definite deficit (effectivePx to 0)
+            if (effectPx < 0) {
+                dc.setColor(darkRed, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + effectPx, barY, -effectPx, barH);
+            }
+            // Light red: extra risk if delay shrinks (scheduledPx to effectivePx)
+            if (schedPx < effectPx) {
+                dc.setColor(lightRed, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
+            }
+        }
+        // Case 2: Behind on schedule but saved by delay (schedPx < 0, effectPx > 0)
+        else if (schedPx < 0 && effectPx > 0) {
+            // Dark red: schedule deficit left of midpoint
+            dc.setColor(darkRed, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX + schedPx, barY, -schedPx, barH);
+            // Light green: delay surplus right of midpoint
+            dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX, barY, effectPx, barH);
+        }
+
+        // Midpoint marker
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+    }
+
+    // --- Station navigation ---
+
+    function nextStation() {
+        if (mStations != null && mStations.size() > 1) {
+            mStationIndex = (mStationIndex + 1) % mStations.size();
             selectStation(mStationIndex);
         }
     }
@@ -479,6 +787,8 @@ class TrainTimeView extends WatchUi.View {
         fetchStationboard(mStationId);
         WatchUi.requestUpdate();
     }
+
+    // --- Position & Timer ---
 
     function onPosition(info) {
         // QUALITY_NOT_AVAILABLE means coordinates are garbage
@@ -618,6 +928,8 @@ class TrainTimeView extends WatchUi.View {
 
         WatchUi.requestUpdate();
     }
+
+    // --- Network ---
 
     function fetchTrainData(lat, lon) {
         mLastSearchLat = lat;
@@ -818,6 +1130,18 @@ class TrainTimeView extends WatchUi.View {
             if (mStationName != null) {
                 mStatus = mStationName;
             }
+
+            // Clamp cursor in selection mode
+            if (mAppState == 1) {
+                if (mTrainData.size() == 0) {
+                    exitToStationView();
+                } else if (mCursorIndex >= mTrainData.size()) {
+                    mCursorIndex = mTrainData.size() - 1;
+                }
+            }
+
+            // Update focused train in tracking mode
+            updateFocusedTrain();
         } else {
             if (responseCode == 429) {
                 mStatus = "Rate limited";
@@ -825,6 +1149,11 @@ class TrainTimeView extends WatchUi.View {
                 mStatus = "Error: " + responseCode;
             }
             mTrainData = null;
+
+            // Exit sub-states on error
+            if (mAppState > 0) {
+                exitToStationView();
+            }
         }
         WatchUi.requestUpdate();
     }

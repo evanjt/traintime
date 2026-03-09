@@ -9,22 +9,44 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
         mView = view;
     }
 
-    function onNextPage() {
-        mView.nextStation();
+    function onNextPage() {  // Down button
+        var state = mView.getAppState();
+        if (state == 0) {
+            mView.enterTrainSelection();
+        } else if (state == 1) {
+            mView.moveCursorDown();
+        }
+        // State 2: no-op
         return true;
     }
 
-    function onPreviousPage() {
-        mView.previousStation();
+    function onPreviousPage() {  // Up button
+        var state = mView.getAppState();
+        if (state == 0) {
+            mView.nextStation();
+        } else if (state == 1) {
+            mView.moveCursorUp();
+        }
+        // State 2: no-op
         return true;
     }
 
     function onSelect() {
-        mView.cycleMode();
+        var state = mView.getAppState();
+        if (state == 0) {
+            mView.cycleMode();
+        } else if (state == 1) {
+            mView.confirmTrainSelection();
+        }
+        // State 2: no-op
         return true;
     }
 
     function onBack() {
-        return false;
+        if (mView.getAppState() > 0) {
+            mView.exitToStationView();
+            return true;  // consumed — don't exit app
+        }
+        return false;  // State 0: exit app
     }
 }
