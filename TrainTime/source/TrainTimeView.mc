@@ -76,7 +76,7 @@ class TrainTimeView extends WatchUi.View {
         // because enableLocationEvents can reset the cached position state.
         var info = Position.getInfo();
 
-        Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, new Lang.Method(self, :onPosition));
+        Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
 
         if (info != null && info.position != null) {
             onPosition(info);
@@ -99,7 +99,7 @@ class TrainTimeView extends WatchUi.View {
         }
 
         mTimer = new Timer.Timer();
-        mTimer.start(new Lang.Method(self, :onTimerTick), 5000, true);
+        mTimer.start(method(:onTimerTick), 5000, true);
     }
 
     function onHide() {
@@ -107,7 +107,7 @@ class TrainTimeView extends WatchUi.View {
             mTimer.stop();
             mTimer = null;
         }
-        Position.enableLocationEvents(Position.LOCATION_DISABLE, new Lang.Method(self, :onPosition));
+        Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
     }
 
     function hasMovedSignificantly(lat, lon) {
@@ -790,7 +790,7 @@ class TrainTimeView extends WatchUi.View {
 
     // --- Position & Timer ---
 
-    function onPosition(info) {
+    function onPosition(info as Position.Info) as Void {
         // QUALITY_NOT_AVAILABLE means coordinates are garbage
         // (Fenix 6 bug: returns 0,0 instead of null)
         // QUALITY_LAST_KNOWN and above are valid (cached or live)
@@ -863,7 +863,7 @@ class TrainTimeView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    function onTimerTick() {
+    function onTimerTick() as Void {
         mTickCount = mTickCount + 1;
 
         // Request timeout: if in-flight for >30s, force-reset
@@ -944,10 +944,10 @@ class TrainTimeView extends WatchUi.View {
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, null, params, new Lang.Method(self, :onStationsReceived));
+        Communications.makeWebRequest(url, null, params, method(:onStationsReceived));
     }
 
-    function onStationsReceived(responseCode, data) {
+    function onStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
@@ -1063,10 +1063,10 @@ class TrainTimeView extends WatchUi.View {
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, null, params, new Lang.Method(self, :onTrainDataReceived));
+        Communications.makeWebRequest(url, null, params, method(:onTrainDataReceived));
     }
 
-    function onTrainDataReceived(responseCode, data) {
+    function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
