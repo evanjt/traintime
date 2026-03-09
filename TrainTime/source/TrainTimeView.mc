@@ -54,10 +54,12 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onShow() {
+        // Check for cached last-known position BEFORE enabling continuous GPS,
+        // because enableLocationEvents can reset the cached position state.
+        var info = Position.getInfo();
+
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, new Lang.Method(self, :onPosition));
 
-        // Poll immediately (may already have a cached position)
-        var info = Position.getInfo();
         if (info != null && info.position != null) {
             onPosition(info);
         }
@@ -151,11 +153,11 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function drawModeIndicators(dc, width, height) {
-        if (mAvailableModes.size() <= 1) {
+        if (mAvailableModes.size() == 0) {
             return;
         }
 
-        var cy = height * 4 / 100;
+        var cy = height * 7 / 100;
         var iconSpacing = 24;
         var totalWidth = (mAvailableModes.size() - 1) * iconSpacing;
         var startX = width / 2 - totalWidth / 2;
@@ -192,8 +194,8 @@ class TrainTimeView extends WatchUi.View {
                 dc.fillCircle(cx + 2, cy + 6, 1);
             }
 
-            // Active mode ring
-            if (isActive) {
+            // Active mode ring (only when multiple modes available)
+            if (isActive && mAvailableModes.size() > 1) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.setPenWidth(1);
                 dc.drawCircle(cx, cy + 1, 9);
@@ -409,11 +411,15 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onPosition(info) {
-        mLocationInfo = info;
-
-        if (info == null || info.position == null) {
-            mStatus = "GPS: Searching...";
-            WatchUi.requestUpdate();
+        // QUALITY_NOT_AVAILABLE means coordinates are garbage
+        // (Fenix 6 bug: returns 0,0 instead of null)
+        // QUALITY_LAST_KNOWN and above are valid (cached or live)
+        if (info == null || info.position == null
+                || info.accuracy == Position.QUALITY_NOT_AVAILABLE) {
+            if (mStationId == null) {
+                mStatus = "GPS: Searching...";
+                WatchUi.requestUpdate();
+            }
             return;
         }
 
@@ -421,12 +427,13 @@ class TrainTimeView extends WatchUi.View {
         var lat = coords[0];
         var lon = coords[1];
 
-        // Reject uninitialized GPS (default 180,180)
+        // Belt-and-suspenders: reject obviously invalid coordinates
         if (lat > 90.0 || lat < -90.0 || lon > 180.0 || lon < -180.0) {
-            mStatus = "GPS: Searching...";
-            WatchUi.requestUpdate();
             return;
         }
+
+        // Valid position (LAST_KNOWN or better) — store it
+        mLocationInfo = info;
 
         // Switzerland bounding box check
         if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
@@ -461,15 +468,18 @@ class TrainTimeView extends WatchUi.View {
         }
 
         // Always poll for updated position (detects leaving Switzerland)
+        // Only trust QUALITY_LAST_KNOWN or better — NOT_AVAILABLE gives garbage (0,0 or 180,180)
         var info = Position.getInfo();
-        if (info != null && info.position != null) {
-            mLocationInfo = info;
+        if (info != null && info.position != null
+                && info.accuracy != Position.QUALITY_NOT_AVAILABLE) {
             var coords = info.position.toDegrees();
             var lat = coords[0];
             var lon = coords[1];
 
-            // Skip uninitialized GPS (default 180,180)
+            // Belt-and-suspenders: only use valid coordinates
             if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
+                mLocationInfo = info;
+
                 if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
                     clearStationState();
                     mStatus = "Not in Switzerland";
@@ -505,9 +515,9 @@ class TrainTimeView extends WatchUi.View {
         mLastSearchLat = lat;
         mLastSearchLon = lon;
 
-        var url = "https://search.ch/timetable/api/completion.en.json"
-            + "?latlon=" + lat + "," + lon
-            + "&accuracy=10000&show_ids=1";
+        var url = "https://transport.opendata.ch/v1/locations"
+            + "?x=" + lat + "&y=" + lon
+            + "&type=station";
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -521,11 +531,8 @@ class TrainTimeView extends WatchUi.View {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
-        if (responseCode == 200 && data != null) {
-            var stations = null;
-            if (data instanceof Lang.Array) {
-                stations = data;
-            }
+        if (responseCode == 200 && data != null && data.hasKey("stations")) {
+            var stations = data["stations"];
 
             if (stations != null && stations.size() > 0) {
                 mTrainStations = [];
@@ -537,21 +544,27 @@ class TrainTimeView extends WatchUi.View {
                     if (!s.hasKey("id") || s["id"] == null) {
                         continue;
                     }
-                    var iconclass = "";
-                    if (s.hasKey("iconclass") && s["iconclass"] != null) {
-                        iconclass = s["iconclass"].toString();
+                    // Normalize to common format used by selectStation()
+                    var entry = {
+                        "id" => s["id"],
+                        "label" => s.hasKey("name") ? s["name"] : "Station",
+                        "dist" => s.hasKey("distance") ? s["distance"] : 0
+                    };
+                    var icon = "";
+                    if (s.hasKey("icon") && s["icon"] != null) {
+                        icon = s["icon"].toString();
                     }
-                    if (iconclass.find("type-train") != null || iconclass.find("type-strain") != null) {
+                    if (icon.equals("train")) {
                         if (mTrainStations.size() < 5) {
-                            mTrainStations.add(s);
+                            mTrainStations.add(entry);
                         }
-                    } else if (iconclass.find("type-bus") != null) {
+                    } else if (icon.equals("bus")) {
                         if (mBusStations.size() < 5) {
-                            mBusStations.add(s);
+                            mBusStations.add(entry);
                         }
-                    } else if (iconclass.find("type-tram") != null) {
+                    } else if (icon.equals("tram")) {
                         if (mTramStations.size() < 5) {
-                            mTramStations.add(s);
+                            mTramStations.add(entry);
                         }
                     }
                 }

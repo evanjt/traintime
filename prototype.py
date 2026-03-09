@@ -16,19 +16,21 @@ def fetch_json(url):
         return json.loads(resp.read())
 
 
-def find_stations(lat, lon, radius=2000):
+def find_stations(lat, lon):
     url = (
-        f"https://search.ch/timetable/api/completion.en.json"
-        f"?latlon={lat},{lon}&accuracy={radius}&show_ids=1&show_coordinates=1"
+        f"https://transport.opendata.ch/v1/locations"
+        f"?x={lat}&y={lon}&type=station"
     )
     print(f"\n--- Station search ---")
     print(f"GET {url}\n")
     data = fetch_json(url)
-    print(f"Found {len(data)} stations:")
-    for s in data:
-        dist = s.get("dist", "?")
-        print(f"  {s.get('label', '?'):30s}  id={s.get('id', 'N/A'):10s}  dist={dist}m")
-    return data
+    stations = [s for s in data.get("stations", []) if s.get("id")]
+    print(f"Found {len(stations)} stations:")
+    for s in stations:
+        dist = s.get("distance", "?")
+        icon = s.get("icon", "?")
+        print(f"  {s.get('name', '?'):30s}  id={s.get('id', 'N/A'):10s}  dist={dist}m  type={icon}")
+    return stations
 
 
 def get_stationboard(station_id, station_name, limit=8):
@@ -104,8 +106,8 @@ def main():
     # Use the closest station
     best = stations[0]
     station_id = best.get("id")
-    station_name = best.get("label", "?")
-    dist = best.get("dist", "?")
+    station_name = best.get("name", "?")
+    dist = best.get("distance", "?")
 
     print(f"\nUsing closest: {station_name} ({dist}m away)")
     get_stationboard(station_id, station_name)
