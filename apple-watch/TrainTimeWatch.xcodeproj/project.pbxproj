@@ -29,6 +29,7 @@
 		DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
 		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
 		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
+		444DG8920314253647586B92 /* StationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555EH0A31425364758697CA3 /* StationPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +57,7 @@
 		EEE8B3243546576F81920314 /* DirectionArrowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionArrowView.swift; sourceTree = "<group>"; };
 		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
 		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		555EH0A31425364758697CA3 /* StationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +137,7 @@
 				EEE8B3243546576F81920314 /* DirectionArrowView.swift */,
 				111AD546576F819203142536 /* FocusedTrackingView.swift */,
 				333CF7681920314253647580 /* MapView.swift */,
+				555EH0A31425364758697CA3 /* StationPickerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -235,6 +238,7 @@
 				DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */,
 				FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */,
 				222BE6576F81920314253647 /* MapView.swift in Sources */,
+				444DG8920314253647586B92 /* StationPickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

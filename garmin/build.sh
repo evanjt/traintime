@@ -1,6 +1,7 @@
 #!/bin/bash
 
 APP_NAME="TrainTime"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Check if monkeyc exists
 if ! command -v monkeyc &> /dev/null; then
@@ -24,7 +25,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     exit 0
 fi
 
-cd $APP_NAME
+cd "$SCRIPT_DIR/$APP_NAME"
 
 if [ "$1" = "release" ]; then
     VERSION="$2"
