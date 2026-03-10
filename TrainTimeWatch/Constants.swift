@@ -13,6 +13,25 @@ enum AppColors {
     static let platformChangedText = Color.white
     static let bodyStatus = Color(red: 0xAA/255, green: 0xAA/255, blue: 0xAA/255)
     static let background = Color.black
+
+    // Selection highlight (State 1)
+    static let selectionHighlight = Color(red: 0x00/255, green: 0x44/255, blue: 0x88/255)
+    static let selectionAccent = Color(red: 0x55/255, green: 0xAA/255, blue: 0xFF/255)
+
+    // Platform changed in tracking mode
+    static let platformChangedOrange = Color(red: 0xFF/255, green: 0x44/255, blue: 0x00/255)
+
+    // Tracking bar colors
+    static let darkGreen = Color(red: 0.0, green: 1.0, blue: 0.0)
+    static let lightGreen = Color(red: 0x55/255, green: 0xFF/255, blue: 0x55/255)
+    static let darkRed = Color(red: 1.0, green: 0.0, blue: 0.0)
+    static let amber = Color(red: 1.0, green: 0xAA/255, blue: 0.0)
+    static let barGray = Color(red: 0x44/255, green: 0x44/255, blue: 0x44/255)
+
+    // Status colors
+    static let ahead = Color.green
+    static let onTime = Color.yellow
+    static let behind = Color.red
 }
 
 enum SwissBounds {
@@ -27,5 +46,18 @@ enum SwissBounds {
 }
 
 enum Timing {
-    static let refreshInterval: TimeInterval = 10
+    static let normalRefreshInterval: TimeInterval = 5.0
+    static let trackingRefreshInterval: TimeInterval = 1.0
+    static let fetchCooldown: TimeInterval = 10.0
+    static let requestTimeout: TimeInterval = 30.0
+}
+
+enum Thresholds {
+    static let movementThreshold = 500.0 // meters
+    static let walkSpeed = 83.0 // meters per minute
+    static let barScale = 3.0 // minutes mapped to half bar width
+    static let maxStationsPerMode = 5
+    static let maxDepartures = 5
+    static let fallbackSearchRadius = 5000.0 // meters
+    static let consecutiveErrorLimit = 3
 }

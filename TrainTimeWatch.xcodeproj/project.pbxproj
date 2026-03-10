@@ -16,8 +16,19 @@
 		042568384739493FAD7A09FD /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
 		F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0998708C4748991F75B5 /* DepartureRowView.swift */; };
 		EE8C7576B9CF469E803E4790 /* StationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE45B7B46148455F9A3E37F4 /* StationView.swift */; };
-		20DE83EB20D44661B0619C1E /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FCA7152CAEB4072B558F99C /* StatusView.swift */; };
 		F0DBC95E77AF41B1B71A8425 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07FBBC2455BC4C3696800498 /* Assets.xcassets */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
+		CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
+		EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
+		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */; };
+		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
+		77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
+		99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA47F80910213243546576F /* ModeIndicatorView.swift */; };
+		BBB580910213243546576F81 /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
+		DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
+		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
+		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,9 +42,20 @@
 		57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAPIService.swift; sourceTree = "<group>"; };
 		583F0998708C4748991F75B5 /* DepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureRowView.swift; sourceTree = "<group>"; };
 		BE45B7B46148455F9A3E37F4 /* StationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationView.swift; sourceTree = "<group>"; };
-		8FCA7152CAEB4072B558F99C /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		5B51C424F9264A23AD022694 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		07FBBC2455BC4C3696800498 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoUtils.swift; sourceTree = "<group>"; };
+		DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportMode.swift; sourceTree = "<group>"; };
+		FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSQuality.swift; sourceTree = "<group>"; };
+		228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedDeparture.swift; sourceTree = "<group>"; };
+		44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeViewModel.swift; sourceTree = "<group>"; };
+		66C03B4C5D6E7F8091021324 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		88E25D6E7F80910213243546 /* GPSIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSIndicatorView.swift; sourceTree = "<group>"; };
+		AAA47F80910213243546576F /* ModeIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeIndicatorView.swift; sourceTree = "<group>"; };
+		CCC6910213243546576F8192 /* TrackingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingBarView.swift; sourceTree = "<group>"; };
+		EEE8B3243546576F81920314 /* DirectionArrowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionArrowView.swift; sourceTree = "<group>"; };
+		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
+		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +94,8 @@
 				7834B36382C34E0F950EE05C /* Models */,
 				0648EB2063FE4F54BBABEB55 /* Services */,
 				20B448FDFE5E46FE9295B3F1 /* Views */,
+				444F8A9B1C2D3E4F5A6B7C8D /* Utilities */,
+				555FAB0C2D3E4F5A6B7C8D9E /* ViewModels */,
 				07FBBC2455BC4C3696800498 /* Assets.xcassets */,
 				5B51C424F9264A23AD022694 /* Info.plist */,
 			);
@@ -83,6 +107,9 @@
 			children = (
 				B0776EECB8D2496AA4A29C74 /* Station.swift */,
 				95C41E3FB709401C9161EB46 /* Departure.swift */,
+				DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */,
+				FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */,
+				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -92,6 +119,7 @@
 			children = (
 				C443CDA163B84305AC19B8D3 /* LocationService.swift */,
 				57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */,
+				66C03B4C5D6E7F8091021324 /* HapticService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -101,9 +129,30 @@
 			children = (
 				583F0998708C4748991F75B5 /* DepartureRowView.swift */,
 				BE45B7B46148455F9A3E37F4 /* StationView.swift */,
-				8FCA7152CAEB4072B558F99C /* StatusView.swift */,
+				88E25D6E7F80910213243546 /* GPSIndicatorView.swift */,
+				AAA47F80910213243546576F /* ModeIndicatorView.swift */,
+				CCC6910213243546576F8192 /* TrackingBarView.swift */,
+				EEE8B3243546576F81920314 /* DirectionArrowView.swift */,
+				111AD546576F819203142536 /* FocusedTrackingView.swift */,
+				333CF7681920314253647580 /* MapView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		444F8A9B1C2D3E4F5A6B7C8D /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		555FAB0C2D3E4F5A6B7C8D9E /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -174,7 +223,18 @@
 				042568384739493FAD7A09FD /* TrainAPIService.swift in Sources */,
 				F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */,
 				EE8C7576B9CF469E803E4790 /* StationView.swift in Sources */,
-				20DE83EB20D44661B0619C1E /* StatusView.swift in Sources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* GeoUtils.swift in Sources */,
+				CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */,
+				EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */,
+				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
+				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
+				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
+				77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */,
+				99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */,
+				BBB580910213243546576F81 /* TrackingBarView.swift in Sources */,
+				DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */,
+				FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */,
+				222BE6576F81920314253647 /* MapView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
