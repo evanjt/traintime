@@ -37,8 +37,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
             mView.enterTrainSelection();  // enter cursor selection
         } else if (state == 1) {
             mView.confirmTrainSelection();
+        } else if (state == 2) {
+            mView.enterMapView();
         }
-        // State 2: no-op
         return true;
     }
 
