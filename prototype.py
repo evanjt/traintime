@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick prototype to test the search.ch + transport.opendata.ch API flow."""
+"""Quick prototype to test the transport.opendata.ch API flow."""
 
 import sys
 import json
