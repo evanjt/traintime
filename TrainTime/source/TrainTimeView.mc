@@ -273,20 +273,24 @@ class TrainTimeView extends WatchUi.View {
         if (mStationLat == null || mStationLon == null) { return; }
         if (mMapActive) { return; }
 
-        var mapView = new WatchUi.MapTrackView();
-        var stationLoc = new Position.Location(
-            {:latitude => mStationLat, :longitude => mStationLon, :format => :degrees}
-        );
-        var marker = new WatchUi.MapMarker(stationLoc);
-        marker.setIcon(WatchUi.MAP_MARKER_ICON_PIN, 0, 0);
-        if (mStationName != null) {
-            marker.setLabel(mStationName);
-        }
-        mapView.setMapMarker(marker);
-        mapView.setMapMode(WatchUi.MAP_MODE_BROWSE);
+        try {
+            var mapView = new WatchUi.MapTrackView();
+            var stationLoc = new Position.Location(
+                {:latitude => mStationLat, :longitude => mStationLon, :format => :degrees}
+            );
+            var marker = new WatchUi.MapMarker(stationLoc);
+            marker.setIcon(WatchUi.MAP_MARKER_ICON_PIN, 0, 0);
+            if (mStationName != null) {
+                marker.setLabel(mStationName);
+            }
+            mapView.setMapMarker(marker);
+            mapView.setMapMode(WatchUi.MAP_MODE_BROWSE);
 
-        mMapActive = true;
-        WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
+            mMapActive = true;
+            WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
+        } catch (e instanceof Lang.Exception) {
+            mMapActive = false;
+        }
     }
 
     function exitMapView() {
