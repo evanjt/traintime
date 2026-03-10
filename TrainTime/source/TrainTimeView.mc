@@ -517,9 +517,9 @@ class TrainTimeView extends WatchUi.View {
             dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
             var hint;
             if (mAppState == 0) {
-                hint = "START to track";
+                hint = "Press START";
             } else if (mAppState == 1) {
-                hint = "START=OK  BACK=Cancel";
+                hint = "START=OK  BACK";
             } else {
                 hint = "";
             }
@@ -835,13 +835,8 @@ class TrainTimeView extends WatchUi.View {
         var angle = bearing - mHeading;
 
         var arrowCx = width / 2;
-        var arrowCy = height * 91 / 100;
+        var arrowCy = height * 93 / 100;
         var r = 12.0;
-
-        // Circle outline
-        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawCircle(arrowCx, arrowCy, 16);
 
         // Arrow triangle (pointing up = bearing 0, rotated by relative angle)
         var cosA = Math.cos(angle).toFloat();
