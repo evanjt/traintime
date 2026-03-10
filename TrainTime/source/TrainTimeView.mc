@@ -38,12 +38,13 @@ class TrainTimeView extends WatchUi.View {
     private var mAppState;
     private var mCursorIndex;
     private var mFocusedTrain;
+    private var mHeading;  // GPS heading in radians, null when stationary
 
     function initialize() {
         View.initialize();
         mLocationInfo = null;
         mTrainData = null;
-        mStatus = "GPS: Searching...";
+        mStatus = "Loading...";
         mStationId = null;
         mStationName = null;
         mRequestInFlight = false;
@@ -67,6 +68,7 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
+        mHeading = null;
     }
 
     function onLayout(dc) {
@@ -290,15 +292,33 @@ class TrainTimeView extends WatchUi.View {
         return Math.sqrt(dLat * dLat + dLon * dLon).toNumber();
     }
 
+    // Bearing from point 1 to point 2 in radians (clockwise from north)
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+        var dLon = (lon2 - lon1) * Math.PI / 180.0;
+        var lat1R = lat1 * Math.PI / 180.0;
+        var lat2R = lat2 * Math.PI / 180.0;
+        var y = Math.sin(dLon) * Math.cos(lat2R);
+        var x = Math.cos(lat1R) * Math.sin(lat2R)
+              - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLon);
+        return Math.atan2(y, x);
+    }
+
     function getWalkMinutes() {
-        if (mStationLat != null && mStationLon != null
-                && mLocationInfo != null && mLocationInfo.position != null) {
-            var coords = mLocationInfo.position.toDegrees();
-            var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
-            mLastWalkDist = dist;
-            return dist / 83.0;
+        if (mStationLat != null && mStationLon != null) {
+            if (mLocationInfo != null && mLocationInfo.position != null) {
+                var coords = mLocationInfo.position.toDegrees();
+                var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+                mLastWalkDist = dist;
+                return dist / 83.0;
+            }
+            // Fallback to cached search position
+            if (mLastSearchLat != null && mLastSearchLon != null) {
+                var dist = calculateDistance(mLastSearchLat, mLastSearchLon, mStationLat, mStationLon);
+                mLastWalkDist = dist;
+                return dist / 83.0;
+            }
         }
-        // Fallback to last known distance (from API or previous GPS calc)
+        // Fallback to last known distance (from API or previous calc)
         if (mLastWalkDist != null) {
             return mLastWalkDist / 83.0;
         }
@@ -377,9 +397,10 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function drawGpsIndicator(dc, width, height) {
-        var cx = width - 18;
         var cy = 18;
         var r = 4;
+        var usable = getUsableWidth(cy, width, height);
+        var cx = (width + usable) / 2 - r - 4;
         var color;
         if (mLoadedFromCache || mGpsQuality == Position.QUALITY_LAST_KNOWN) {
             color = 0x888888; // gray
@@ -483,16 +504,29 @@ class TrainTimeView extends WatchUi.View {
                     bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
             }
         } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, height / 2 - 20, Graphics.FONT_SMALL,
-                mStatus, Graphics.TEXT_JUSTIFY_CENTER);
+            // No station yet — show subtle loading text, GPS dot indicates status
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
+                "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+        }
 
-            if (mLocationInfo != null && mLocationInfo.position != null) {
-                var coords = mLocationInfo.position.toDegrees();
-                var coordText = coords[0].format("%.4f") + ", " + coords[1].format("%.4f");
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, height / 2 + 10, Graphics.FONT_XTINY,
-                    coordText, Graphics.TEXT_JUSTIFY_CENTER);
+        // Contextual button hint at bottom
+        if (mStationName != null && mTrainData != null && mTrainData.size() > 0) {
+            var hintY = height * 92 / 100;
+            var hintMaxW = getUsableWidth(hintY + 6, width, height) - 10;
+            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            var hint;
+            if (mAppState == 0) {
+                hint = "START to track";
+            } else if (mAppState == 1) {
+                hint = "START=OK  BACK=Cancel";
+            } else {
+                hint = "";
+            }
+            if (!hint.equals("")) {
+                dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
+                    truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
+                    Graphics.TEXT_JUSTIFY_CENTER);
             }
         }
     }
@@ -594,26 +628,31 @@ class TrainTimeView extends WatchUi.View {
     function drawFocusedMode(dc, width, height) {
         var centerX = width / 2;
 
-        // Station name
+        // Station name (small, secondary)
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         var stationY = height * 15 / 100;
-        var stationMaxW = getUsableWidth(stationY + 10, width, height) - 10;
-        dc.drawText(centerX, stationY, Graphics.FONT_SMALL,
-            truncateToFit(dc, mStationName, Graphics.FONT_SMALL, stationMaxW),
+        var stationMaxW = getUsableWidth(stationY + 8, width, height) - 10;
+        dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
+            truncateToFit(dc, mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Destination + platform
+        // Destination + platform (auto-downsize)
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        var destY = height * 28 / 100;
+        var destY = height * 26 / 100;
         var destStr = mFocusedTrain["dest"];
         var plat = mFocusedTrain["plat"];
         if (plat != null && !plat.equals("")) {
             destStr = destStr + "  P" + plat;
         }
         var destMaxW = getUsableWidth(destY + 10, width, height) - 10;
-        dc.drawText(centerX, destY, Graphics.FONT_SMALL,
-            truncateToFit(dc, destStr, Graphics.FONT_SMALL, destMaxW),
-            Graphics.TEXT_JUSTIFY_CENTER);
+        var destFont = Graphics.FONT_SMALL;
+        var destDims = dc.getTextDimensions(destStr, destFont);
+        if (destDims[0] > destMaxW) {
+            destFont = Graphics.FONT_TINY;
+            destStr = truncateToFit(dc, destStr, destFont, destMaxW);
+        }
+        dc.drawText(centerX, destY, destFont,
+            destStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Departure time + delay
         var minY = height * 40 / 100;
@@ -639,11 +678,9 @@ class TrainTimeView extends WatchUi.View {
         // Delay indicator next to departure time
         if (delay > 0) {
             var minDims = dc.getTextDimensions(minStr, Graphics.FONT_MEDIUM);
-            var smallH = dc.getFontHeight(Graphics.FONT_SMALL);
-            var medH = minDims[1];
             dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX + minDims[0] / 2 + 4, minY + (medH - smallH) / 2,
-                Graphics.FONT_SMALL, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(centerX + minDims[0] / 2 + 4, minY,
+                Graphics.FONT_XTINY, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
         // Tracking bar
@@ -654,7 +691,7 @@ class TrainTimeView extends WatchUi.View {
         var walkMin = getWalkMinutes();
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, statusY, Graphics.FONT_SMALL,
+            dc.drawText(centerX, statusY, Graphics.FONT_TINY,
                 "No GPS", Graphics.TEXT_JUSTIFY_CENTER);
         } else {
             var schedBuf = minutesUntil - walkMin;
@@ -666,7 +703,7 @@ class TrainTimeView extends WatchUi.View {
                 if (ahead < 1) { ahead = 1; }
                 statusStr = ahead + " min ahead";
                 if (delay > 0) {
-                    statusStr = statusStr + " (+" + delay + " delay)";
+                    statusStr = statusStr + " (+" + delay + ")";
                 }
                 dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
             } else if (effectBuf < -0.5) {
@@ -679,21 +716,25 @@ class TrainTimeView extends WatchUi.View {
                 dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
             }
 
-            var statusMaxW = getUsableWidth(statusY + 10, width, height) - 10;
-            dc.drawText(centerX, statusY, Graphics.FONT_SMALL,
-                truncateToFit(dc, statusStr, Graphics.FONT_SMALL, statusMaxW),
+            var statusMaxW = getUsableWidth(statusY + 8, width, height) - 10;
+            var statusFont = Graphics.FONT_TINY;
+            dc.drawText(centerX, statusY, statusFont,
+                truncateToFit(dc, statusStr, statusFont, statusMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
         // Walk info at bottom
         if (mWalkInfo != null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var walkY = height * 82 / 100;
+            var walkY = height * 80 / 100;
             var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
             dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                 truncateToFit(dc, mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
+
+        // Direction arrow (only visible when walking)
+        drawDirectionArrow(dc, width, height);
     }
 
     function drawTrackingBar(dc, width, height) {
@@ -734,13 +775,11 @@ class TrainTimeView extends WatchUi.View {
         var schedPx = (schedFrac * halfBar).toNumber();
         var effectPx = (effectFrac * halfBar).toNumber();
 
-        // Determine stale GPS for muted colors
-        var isStale = (mLoadedFromCache || mGpsQuality == Position.QUALITY_LAST_KNOWN);
-
-        var darkGreen = isStale ? 0x448844 : 0x00CC00;
-        var lightGreen = isStale ? 0x336633 : 0x009900;
-        var darkRed = isStale ? 0x884444 : 0xFF0000;
-        var lightRed = isStale ? 0x663333 : 0xCC4400;
+        // Bright colors — GPS dot already indicates quality
+        var darkGreen = 0x00CC00;
+        var lightGreen = 0x009900;
+        var darkRed = 0xFF0000;
+        var lightRed = 0xCC4400;
 
         // Case 1: Both positive or zero (fully ahead)
         if (schedPx >= 0 && effectPx >= 0) {
@@ -783,6 +822,48 @@ class TrainTimeView extends WatchUi.View {
         dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
     }
 
+    function drawDirectionArrow(dc, width, height) {
+        if (mHeading == null || mStationLat == null || mStationLon == null) {
+            return;
+        }
+        if (mLocationInfo == null || mLocationInfo.position == null) {
+            return;
+        }
+
+        var coords = mLocationInfo.position.toDegrees();
+        var bearing = calculateBearing(coords[0], coords[1], mStationLat, mStationLon);
+        var angle = bearing - mHeading;
+
+        var arrowCx = width / 2;
+        var arrowCy = height * 91 / 100;
+        var r = 12.0;
+
+        // Circle outline
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawCircle(arrowCx, arrowCy, 16);
+
+        // Arrow triangle (pointing up = bearing 0, rotated by relative angle)
+        var cosA = Math.cos(angle).toFloat();
+        var sinA = Math.sin(angle).toFloat();
+
+        // Points relative to center: tip (0,-r), base-left (-0.6r, 0.5r), base-right (0.6r, 0.5r)
+        var tipX = r * sinA;
+        var tipY = -r * cosA;
+        var blX = -r * 0.6 * cosA - r * 0.5 * sinA;
+        var blY = -r * 0.6 * sinA + r * 0.5 * cosA;
+        var brX = r * 0.6 * cosA - r * 0.5 * sinA;
+        var brY = r * 0.6 * sinA + r * 0.5 * cosA;
+
+        var pts = new [3];
+        pts[0] = [(arrowCx + tipX).toNumber(), (arrowCy + tipY).toNumber()];
+        pts[1] = [(arrowCx + blX).toNumber(), (arrowCy + blY).toNumber()];
+        pts[2] = [(arrowCx + brX).toNumber(), (arrowCy + brY).toNumber()];
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon(pts);
+    }
+
     // --- Station navigation ---
 
     function nextStation() {
@@ -817,7 +898,6 @@ class TrainTimeView extends WatchUi.View {
         if (info == null || info.position == null
                 || info.accuracy == Position.QUALITY_NOT_AVAILABLE) {
             if (mStationId == null && !mLoadedFromCache) {
-                mStatus = "GPS: Searching...";
                 WatchUi.requestUpdate();
             }
             return;
@@ -836,6 +916,13 @@ class TrainTimeView extends WatchUi.View {
 
         // Valid position (LAST_KNOWN or better) — store it
         mLocationInfo = info;
+
+        // Store heading only when moving (GPS heading is unreliable when stationary)
+        if (info.speed != null && info.speed > 0.5 && info.heading != null) {
+            mHeading = info.heading;
+        } else {
+            mHeading = null;
+        }
 
         // Persist location to Storage for next app launch
         Storage.setValue("lastLat", lat.toFloat());
@@ -1132,12 +1219,15 @@ class TrainTimeView extends WatchUi.View {
                 if (coord.hasKey("y")) { sLon = coord["y"]; }
             }
 
-            // Calculate distance from user position
+            // Calculate distance from user position (or cached position)
             var dist = 0;
-            if (sLat != null && sLon != null
-                    && mLocationInfo != null && mLocationInfo.position != null) {
-                var coords = mLocationInfo.position.toDegrees();
-                dist = calculateDistance(coords[0], coords[1], sLat, sLon);
+            if (sLat != null && sLon != null) {
+                if (mLocationInfo != null && mLocationInfo.position != null) {
+                    var coords = mLocationInfo.position.toDegrees();
+                    dist = calculateDistance(coords[0], coords[1], sLat, sLon);
+                } else if (mLastSearchLat != null && mLastSearchLon != null) {
+                    dist = calculateDistance(mLastSearchLat, mLastSearchLon, sLat, sLon);
+                }
             }
 
             // Only add stations within 5km
@@ -1169,7 +1259,13 @@ class TrainTimeView extends WatchUi.View {
                 }
                 mAvailableModes = newModes;
             }
-            WatchUi.requestUpdate();
+            // Auto-switch to train mode — this is TrainTime
+            mCurrentMode = 0;
+            mStations = getStationsForMode(0);
+            if (mStations != null && mStations.size() > 0) {
+                mStationIndex = 0;
+                selectStation(0);
+            }
         }
     }
 
