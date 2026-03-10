@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Quick prototype to test the transport.opendata.ch API flow."""
+"""Quick prototype to test the search.ch + transport.opendata.ch API flow."""
 
 import sys
 import json
 import urllib.request
-import urllib.parse
 from datetime import datetime, timezone
 
 DEFAULT_LAT = 46.2312
@@ -22,62 +21,22 @@ def find_stations(lat, lon):
         f"https://transport.opendata.ch/v1/locations"
         f"?x={lat}&y={lon}&type=station"
     )
-    print(f"\n--- Station search (coordinate) ---")
+    print(f"\n--- Station search ---")
     print(f"GET {url}\n")
     data = fetch_json(url)
-    stations = data.get("stations", [])
-
+    stations = [s for s in data.get("stations", []) if s.get("id")]
     print(f"Found {len(stations)} stations:")
     for s in stations:
         dist = s.get("distance", "?")
-        icon = s.get("icon") or "-"
-        sid = s.get("id") or "N/A"
-        print(f"  {s.get('name', '?'):30s}  id={sid:10s}  dist={dist}m  [{icon}]")
-
-    # Filter to train stations only
-    train_stations = [s for s in stations if s.get("icon") == "train"]
-
-    if train_stations:
-        print(f"\n  -> {len(train_stations)} train station(s) found in coordinate results")
-        return train_stations
-
-    # Fallback: text search using city name from nearest station (with an id)
-    named_stations = [s for s in stations if s.get("id")]
-    if not named_stations:
-        return []
-
-    # Station names are typically "City, Stop" — take the city part
-    nearest_name = named_stations[0].get("name", "")
-    city = nearest_name.split(",")[0].strip()
-    if not city:
-        return []
-
-    print(f"\n  -> No train stations in coordinate results, falling back to text search for '{city}'")
-
-    text_url = (
-        f"https://transport.opendata.ch/v1/locations"
-        f"?query={urllib.parse.quote(city)}&type=station"
-    )
-    print(f"GET {text_url}\n")
-    text_data = fetch_json(text_url)
-    text_stations = text_data.get("stations", [])
-
-    print(f"Found {len(text_stations)} stations:")
-    for s in text_stations:
-        icon = s.get("icon") or "-"
-        sid = s.get("id") or "N/A"
-        print(f"  {s.get('name', '?'):30s}  id={sid:10s}  [{icon}]")
-
-    train_stations = [s for s in text_stations if s.get("icon") == "train"]
-    print(f"\n  -> {len(train_stations)} train station(s) found in text results")
-    return train_stations
+        icon = s.get("icon", "?")
+        print(f"  {s.get('name', '?'):30s}  id={s.get('id', 'N/A'):10s}  dist={dist}m  type={icon}")
+    return stations
 
 
 def get_stationboard(station_id, station_name, limit=8):
     url = (
         f"https://transport.opendata.ch/v1/stationboard"
         f"?id={station_id}&limit={limit}"
-        f"&transportations[]=train"
         f"&fields[]=stationboard/to"
         f"&fields[]=stationboard/category"
         f"&fields[]=stationboard/number"
@@ -141,19 +100,16 @@ def main():
     stations = find_stations(lat, lon)
 
     if not stations:
-        print("No train stations found!")
+        print("No stations found!")
         sys.exit(1)
 
-    # Use the first (closest/best) train station
+    # Use the closest station
     best = stations[0]
     station_id = best.get("id")
     station_name = best.get("name", "?")
-    dist = best.get("distance")
+    dist = best.get("distance", "?")
 
-    if dist is not None:
-        print(f"\nUsing: {station_name} ({dist}m away)")
-    else:
-        print(f"\nUsing: {station_name}")
+    print(f"\nUsing closest: {station_name} ({dist}m away)")
     get_stationboard(station_id, station_name)
 
 

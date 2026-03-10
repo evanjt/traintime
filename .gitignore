@@ -34,4 +34,7 @@ xcuserdata/
 
 # OS
 .DS_Store
+
+# Markdown
 *.md
+*.tmp
