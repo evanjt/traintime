@@ -22,7 +22,7 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppColors.background)
+            .background(Color.black)
             .focusable()
             .digitalCrownRotation(
                 $crownAccumulator,
@@ -43,10 +43,8 @@ struct ContentView: View {
         guard viewModel.appState == 0, abs(value) > 1.5 else { return }
 
         if !viewModel.departures.isEmpty {
-            // Departures loaded: crown moves highlight cursor
             viewModel.updateCrownHighlight(value)
         } else {
-            // No departures yet: crown cycles stations
             if value > 0 {
                 viewModel.nextStation()
             } else {

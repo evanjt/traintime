@@ -37,10 +37,12 @@ class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 
     /// Check if user has moved significantly from a reference point
+    /// Uses degree-based thresholds matching Garmin: dLat > 0.0045 || dLon > 0.006
     func hasMovedSignificantly(from coord: CLLocationCoordinate2D) -> Bool {
         guard let current = coordinate else { return false }
-        let dist = GeoUtils.haversineDistance(from: coord, to: current)
-        return dist > Thresholds.movementThreshold
+        let dLat = abs(current.latitude - coord.latitude)
+        let dLon = abs(current.longitude - coord.longitude)
+        return dLat > 0.0045 || dLon > 0.006
     }
 
     /// Save current coordinate to UserDefaults for next launch

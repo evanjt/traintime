@@ -43,6 +43,7 @@ class TrainTimeViewModel: ObservableObject {
     private var consecutiveErrors: Int = 0
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
+    private var loadedFromCache = false
 
     // MARK: - Computed
 
@@ -74,6 +75,11 @@ class TrainTimeViewModel: ObservableObject {
     // MARK: - Init
 
     init() {
+        // If we loaded a cached coordinate, mark it
+        if location.coordinate != nil && location.horizontalAccuracy == -1 {
+            loadedFromCache = true
+        }
+
         locationCancellable = location.$coordinate
             .receive(on: DispatchQueue.main)
             .sink { [weak self] coord in
@@ -142,6 +148,20 @@ class TrainTimeViewModel: ObservableObject {
             return
         }
 
+        // If loaded from stale cache and now have a live GPS fix, re-search
+        if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
+            loadedFromCache = false
+            if let lastSearch = lastSearchCoordinate,
+               location.hasMovedSignificantly(from: lastSearch) {
+                clearStationState()
+            }
+            if !requestInFlight {
+                status = "Updating stations..."
+                fetchStations(lat: coord.latitude, lon: coord.longitude)
+            }
+            return
+        }
+
         if stations.isEmpty && !requestInFlight {
             status = "Finding stations..."
             fetchStations(lat: coord.latitude, lon: coord.longitude)
@@ -192,12 +212,13 @@ class TrainTimeViewModel: ObservableObject {
                     return
                 }
 
-                // Heartbeat when behind schedule
+                // Heartbeat when behind schedule (effective buffer includes delay)
                 let walkMin = GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
-                let schedBuf = minutesLeft - walkMin
-                if schedBuf < -0.5 {
+                let delay = Double(focused.delay)
+                let effectBuf = minutesLeft - walkMin + delay
+                if effectBuf < -0.5 {
                     let now = Int(Date().timeIntervalSince1970)
-                    let interval = schedBuf < -2.0 ? 2 : 4
+                    let interval = effectBuf < -2.0 ? 2 : 4
                     if now - lastVibeTick >= interval {
                         HapticService.heartbeat()
                         lastVibeTick = now
@@ -427,6 +448,10 @@ class TrainTimeViewModel: ObservableObject {
             status = "\(context) error"
         }
         departures = []
+        // Exit sub-states on error (matches Garmin: if mAppState > 0)
+        if crownHighlightIndex != nil {
+            crownHighlightIndex = nil
+        }
     }
 
     // MARK: - Mode Rebuilding
@@ -457,23 +482,28 @@ class TrainTimeViewModel: ObservableObject {
     private func updateFocusedTrain() {
         guard var focused = focusedTrain else { return }
 
-        // Find matching departure by destination + closest minutes
-        let matches = departures.filter { $0.destination == focused.destination }
+        // Find matching departure by destination + closest minutes (only non-departed)
+        let matches = departures.filter {
+            $0.destination == focused.destination && $0.minutesUntil >= -1
+        }
         guard let best = matches.min(by: {
             abs(Double($0.minutesUntil) - focused.minutesUntil) <
             abs(Double($1.minutesUntil) - focused.minutesUntil)
         }) else {
-            // Train no longer in stationboard → may have departed
+            // Train no longer in stationboard → has departed
+            HapticService.shortPulse()
+            exitToStationView()
             return
         }
 
         // Detect platform change
-        if best.platform != focused.platform && !best.platform.isEmpty {
-            if !focused.platformChanged {
+        let oldPlatform = focused.platform
+        if best.platform != oldPlatform && !best.platform.isEmpty {
+            if best.platformChanged {
                 HapticService.doublePulse()
             }
             focused.platform = best.platform
-            focused.platformChanged = true
+            focused.platformChanged = best.platformChanged
         }
 
         focused.delay = best.delay
@@ -517,7 +547,8 @@ class TrainTimeViewModel: ObservableObject {
         if gpsQuality == .unavailable { return "No GPS" }
         let absBuf = abs(buf)
         if absBuf < 0.5 { return "On time" }
-        let unit = absBuf < 1.0 ? "\(Int(absBuf * 60)) sec" : "\(Int(absBuf)) min"
+        // Show seconds when close (< 1.5 min), minutes otherwise (matches Garmin)
+        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
         return buf > 0 ? "\(unit) ahead" : "\(unit) behind"
     }
 
@@ -536,7 +567,7 @@ class TrainTimeViewModel: ObservableObject {
               let stationCoord = station.coordinate,
               let heading = location.heading else { return nil }
         let bearing = GeoUtils.bearing(from: userCoord, to: stationCoord)
-        // Convert to degrees and make relative to heading
-        return (bearing * 180.0 / .pi) - (heading * 180.0 / .pi)
+        // Both bearing and heading are in radians; convert relative angle to degrees
+        return (bearing - heading) * 180.0 / .pi
     }
 }

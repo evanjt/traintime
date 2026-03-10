@@ -7,33 +7,26 @@ struct DepartureRowView: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            HStack(spacing: 0) {
-                // Left accent bar when highlighted
-                if isHighlighted {
-                    AppColors.selectionAccent
-                        .frame(width: 3)
-                        .padding(.vertical, 1)
-                }
-
-                // Minutes column — fixed width, right-aligned
+            HStack(spacing: 6) {
+                // Minutes
                 Text(departure.minutesText)
-                    .font(.system(.body, design: .default, weight: .bold))
-                    .foregroundColor(minutesColor)
-                    .frame(width: 48, alignment: .trailing)
+                    .font(.system(.body, design: .rounded, weight: .bold))
+                    .foregroundStyle(minutesColor)
+                    .frame(width: 42, alignment: .trailing)
 
-                // Delay column
+                // Delay
                 if departure.delay > 0 && !departure.isGone {
                     Text("+\(departure.delay)")
                         .font(.caption2)
-                        .foregroundColor(AppColors.delay)
-                        .frame(width: 24, alignment: .leading)
+                        .foregroundStyle(AppColors.delay)
+                        .frame(width: 22, alignment: .leading)
                 } else {
-                    Spacer().frame(width: 24)
+                    Spacer().frame(width: 22)
                 }
 
-                // Platform column
+                // Platform
                 if !departure.platform.isEmpty {
-                    platformView
+                    platformBadge
                         .frame(width: 30, alignment: .leading)
                 } else {
                     Spacer().frame(width: 30)
@@ -42,39 +35,47 @@ struct DepartureRowView: View {
                 // Destination
                 Text(departure.destination)
                     .font(.caption)
-                    .foregroundColor(departure.isGone ? AppColors.minutesGone : .white)
+                    .foregroundStyle(departure.isGone ? .secondary : .primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+
+                Spacer(minLength: 0)
             }
-            .padding(.vertical, 2)
-            .background(isHighlighted ? AppColors.selectionHighlight : Color.clear)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isHighlighted ? AppColors.selectionHighlight : .clear)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private var minutesColor: Color {
-        if departure.isGone { return AppColors.minutesGone }
+        if departure.isGone { return .secondary }
         if departure.minutesUntil <= 2 { return AppColors.minutesNow }
         return AppColors.minutesSoon
     }
 
     @ViewBuilder
-    private var platformView: some View {
+    private var platformBadge: some View {
         let text = "P\(departure.platform)"
         if departure.isGone {
             Text(text)
                 .font(.caption2)
-                .foregroundColor(AppColors.minutesGone)
+                .foregroundStyle(.secondary)
         } else if departure.platformChanged {
             Text(text)
-                .font(.caption2)
-                .foregroundColor(AppColors.platformChangedText)
-                .padding(.horizontal, 2)
-                .background(AppColors.platformChanged)
+                .font(.system(.caption2, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 3)
+                .padding(.vertical, 1)
+                .background(Capsule().fill(AppColors.platformChanged))
         } else {
             Text(text)
                 .font(.caption2)
-                .foregroundColor(AppColors.platform)
+                .foregroundStyle(AppColors.platform)
         }
     }
 }

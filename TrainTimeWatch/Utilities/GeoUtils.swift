@@ -9,11 +9,14 @@ enum GeoUtils {
         return (dLat * dLat + dLon * dLon).squareRoot()
     }
 
-    /// Bearing in radians from one coordinate to another (matches Garmin's calculateBearing)
+    /// Bearing in radians from one coordinate to another (great-circle, matches Garmin's calculateBearing)
     static func bearing(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> Double {
-        let dLat = (to.latitude - from.latitude) * 111000.0
-        let dLon = (to.longitude - from.longitude) * 75700.0
-        return atan2(dLon, dLat)
+        let dLon = (to.longitude - from.longitude) * .pi / 180.0
+        let lat1R = from.latitude * .pi / 180.0
+        let lat2R = to.latitude * .pi / 180.0
+        let y = sin(dLon) * cos(lat2R)
+        let x = cos(lat1R) * sin(lat2R) - sin(lat1R) * cos(lat2R) * cos(dLon)
+        return atan2(y, x)
     }
 
     /// Walk time in minutes at 83 m/min (matches Garmin's walkSpeed)

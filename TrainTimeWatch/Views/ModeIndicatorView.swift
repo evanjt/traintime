@@ -6,19 +6,22 @@ struct ModeIndicatorView: View {
     let onSelect: (TransportMode) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(availableModes) { mode in
-                Button(action: { onSelect(mode) }) {
-                    Image(systemName: mode.sfSymbol)
-                        .font(.system(size: 12))
-                        .foregroundColor(mode == currentMode ? .white : .gray)
-                        .padding(4)
-                        .background(
-                            Circle()
-                                .stroke(mode == currentMode ? Color.white : Color.clear, lineWidth: 1)
-                        )
+        if availableModes.count > 1 {
+            HStack(spacing: 12) {
+                ForEach(availableModes) { mode in
+                    Button(action: { onSelect(mode) }) {
+                        Image(systemName: mode.sfSymbol)
+                            .font(.system(size: 14))
+                            .foregroundStyle(mode == currentMode ? .white : .secondary)
+                            .frame(width: 28, height: 28)
+                            .background(
+                                mode == currentMode
+                                    ? Circle().fill(.white.opacity(0.15))
+                                    : Circle().fill(.clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }

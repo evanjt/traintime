@@ -7,65 +7,77 @@ struct FocusedTrackingView: View {
     var body: some View {
         let focused = viewModel.focusedTrain
 
-        VStack(spacing: 4) {
-            // Station name (small, gray)
-            Text(viewModel.stationName)
-                .font(.system(size: 11))
-                .foregroundColor(AppColors.walkInfo)
-                .lineLimit(1)
-
-            // Destination + platform
-            HStack(spacing: 4) {
-                Text(focused?.destination ?? "?")
-                    .font(.system(.body, weight: .bold))
-                    .foregroundColor(.white)
+        ScrollView {
+            VStack(spacing: 6) {
+                // Station name
+                Text(viewModel.stationName)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
 
-                if let plat = focused?.platform, !plat.isEmpty {
-                    Text("P\(plat)")
-                        .font(.caption2)
-                        .foregroundColor(
-                            focused?.platformChanged == true
-                                ? AppColors.platformChangedOrange
-                                : AppColors.platform
-                        )
+                // Destination + platform
+                let platChanged = focused?.platformChanged == true
+                HStack(spacing: 4) {
+                    Text(focused?.destination ?? "?")
+                        .font(.system(.headline, weight: .bold))
+                        .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+
+                    if let plat = focused?.platform, !plat.isEmpty {
+                        Text("P\(plat)")
+                            .font(.system(.caption2, weight: .medium))
+                            .foregroundStyle(platChanged ? .white : AppColors.platform)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(
+                                platChanged
+                                    ? Capsule().fill(AppColors.platformChangedOrange)
+                                    : Capsule().fill(.clear)
+                            )
+                    }
+                }
+
+                // Countdown
+                Text(focused?.countdownText ?? "—")
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(countdownColor)
+
+                // Delay badge
+                if let delay = focused?.delay, delay > 0,
+                   let f = focused, f.minutesUntil >= -0.5 {
+                    Text("+\(delay)")
+                        .font(.system(.caption2, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(AppColors.delay))
+                }
+
+                // Tracking bar
+                TrackingBarView(
+                    schedBuf: viewModel.trackingScheduledBuffer,
+                    effectBuf: viewModel.trackingEffectiveBuffer,
+                    hasGPS: viewModel.gpsQuality != .unavailable
+                )
+                .padding(.horizontal, 4)
+
+                // Status
+                Text(viewModel.trackingStatusText)
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(viewModel.trackingStatusColor)
+
+                // Walk info + direction
+                HStack(spacing: 6) {
+                    DirectionArrowView(degrees: viewModel.directionToStation)
+
+                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
-
-            // Countdown
-            Text(focused?.countdownText ?? "—")
-                .font(.system(.title, design: .monospaced, weight: .bold))
-                .foregroundColor(countdownColor)
-
-            // Delay badge
-            if let delay = focused?.delay, delay > 0 {
-                Text("+\(delay) min")
-                    .font(.caption2)
-                    .foregroundColor(AppColors.delay)
-            }
-
-            // Tracking bar
-            TrackingBarView(
-                schedBuf: viewModel.trackingScheduledBuffer,
-                effectBuf: viewModel.trackingEffectiveBuffer,
-                hasGPS: viewModel.gpsQuality != .unavailable
-            )
-            .padding(.horizontal, 8)
-
-            // Status text
-            Text(viewModel.trackingStatusText)
-                .font(.caption)
-                .foregroundColor(viewModel.trackingStatusColor)
-
-            // Walk info + direction arrow
-            HStack(spacing: 6) {
-                DirectionArrowView(degrees: viewModel.directionToStation)
-
-                Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist))
-                    .font(.system(size: 11))
-                    .foregroundColor(AppColors.walkInfo)
-            }
+            .padding(.horizontal, 2)
         }
         .onTapGesture {
             showMap = true
@@ -76,10 +88,10 @@ struct FocusedTrackingView: View {
     }
 
     private var countdownColor: Color {
-        guard let focused = viewModel.focusedTrain else { return .white }
-        let secs = focused.secondsUntil
-        if secs < -30 { return AppColors.minutesGone }
-        if secs < 5 { return AppColors.minutesNow }
-        return .white
+        guard let focused = viewModel.focusedTrain else { return .primary }
+        let minutesUntil = focused.minutesUntil
+        if minutesUntil < -0.5 { return .secondary }
+        if minutesUntil < 2.0 { return AppColors.minutesNow }
+        return AppColors.minutesSoon
     }
 }
