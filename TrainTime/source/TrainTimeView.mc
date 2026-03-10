@@ -33,6 +33,7 @@ class TrainTimeView extends WatchUi.View {
     private var mStationLat;
     private var mStationLon;
     private var mTickCount;
+    private var mLastWalkDist;  // last known walk distance in meters
     // 0 = station view, 1 = train selection, 2 = focused tracking
     private var mAppState;
     private var mCursorIndex;
@@ -62,6 +63,7 @@ class TrainTimeView extends WatchUi.View {
         mStationLat = null;
         mStationLon = null;
         mTickCount = 0;
+        mLastWalkDist = null;
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
@@ -134,6 +136,7 @@ class TrainTimeView extends WatchUi.View {
         mAvailableModes = [];
         mStationLat = null;
         mStationLon = null;
+        mLastWalkDist = null;
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
@@ -207,6 +210,11 @@ class TrainTimeView extends WatchUi.View {
             "platChg" => t["platChg"]
         };
         mAppState = 2;
+        // Faster timer for tracking mode (2s instead of 5s)
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer.start(method(:onTimerTick), 2000, true);
+        }
         WatchUi.requestUpdate();
     }
 
@@ -214,6 +222,11 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
+        // Restore normal timer rate
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer.start(method(:onTimerTick), 5000, true);
+        }
         WatchUi.requestUpdate();
     }
 
@@ -278,11 +291,18 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function getWalkMinutes() {
-        if (mStationLat == null || mStationLon == null) { return null; }
-        if (mLocationInfo == null || mLocationInfo.position == null) { return null; }
-        var coords = mLocationInfo.position.toDegrees();
-        var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
-        return dist / 83.0;
+        if (mStationLat != null && mStationLon != null
+                && mLocationInfo != null && mLocationInfo.position != null) {
+            var coords = mLocationInfo.position.toDegrees();
+            var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+            mLastWalkDist = dist;
+            return dist / 83.0;
+        }
+        // Fallback to last known distance (from API or previous GPS calc)
+        if (mLastWalkDist != null) {
+            return mLastWalkDist / 83.0;
+        }
+        return null;
     }
 
     function clampFloat(val, minVal, maxVal) {
@@ -717,10 +737,10 @@ class TrainTimeView extends WatchUi.View {
         // Determine stale GPS for muted colors
         var isStale = (mLoadedFromCache || mGpsQuality == Position.QUALITY_LAST_KNOWN);
 
-        var darkGreen = isStale ? 0x336633 : 0x00CC00;
-        var lightGreen = isStale ? 0x2A4D2A : 0x009900;
-        var darkRed = isStale ? 0x663333 : 0xFF0000;
-        var lightRed = isStale ? 0x4D2A2A : 0xCC4400;
+        var darkGreen = isStale ? 0x448844 : 0x00CC00;
+        var lightGreen = isStale ? 0x336633 : 0x009900;
+        var darkRed = isStale ? 0x884444 : 0xFF0000;
+        var lightRed = isStale ? 0x663333 : 0xCC4400;
 
         // Case 1: Both positive or zero (fully ahead)
         if (schedPx >= 0 && effectPx >= 0) {
@@ -1266,6 +1286,7 @@ class TrainTimeView extends WatchUi.View {
 
     function formatWalkInfo(distanceMeters) {
         var dist = distanceMeters.toNumber();
+        mLastWalkDist = dist;
         var walkMinutes = dist / 83;
         var timeStr;
         if (walkMinutes < 1) {
