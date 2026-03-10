@@ -28,7 +28,7 @@ class TrainTimeViewModel: ObservableObject {
     @Published var departures: [Departure] = []
 
     // MARK: - Selection & Tracking
-    @Published var crownHighlightIndex: Int? = nil
+    @Published var showStationPicker = false
     @Published var focusedTrain: FocusedDeparture? = nil
 
     // MARK: - GPS
@@ -69,8 +69,6 @@ class TrainTimeViewModel: ObservableObject {
     var stationName: String {
         currentStation?.name ?? "Station"
     }
-
-    var maxVisibleDepartures: Int { 4 }
 
     // MARK: - Init
 
@@ -254,7 +252,6 @@ class TrainTimeViewModel: ObservableObject {
         guard mode != currentMode else { return }
         currentMode = mode
         stationIndex = 0
-        crownHighlightIndex = nil
         departures = []
 
         if let station = currentStation, let id = station.id {
@@ -277,9 +274,18 @@ class TrainTimeViewModel: ObservableObject {
         onStationSelected()
     }
 
+    func selectStation(index: Int) {
+        guard index >= 0, index < stations.count else { return }
+        stationIndex = index
+        departures = []
+        showStationPicker = false
+        if let station = currentStation, let id = station.id {
+            fetchDepartures(stationId: id)
+        }
+    }
+
     private func onStationSelected() {
         departures = []
-        crownHighlightIndex = nil
         if let station = currentStation, let id = station.id {
             fetchDepartures(stationId: id)
         }
@@ -312,36 +318,11 @@ class TrainTimeViewModel: ObservableObject {
     func exitToStationView() {
         appState = 0
         focusedTrain = nil
-        crownHighlightIndex = nil
         consecutiveErrors = 0
 
         // Restore normal timer
         startTimer(interval: Timing.normalRefreshInterval)
         endExtendedSession()
-    }
-
-    // MARK: - Crown Highlight
-
-    func updateCrownHighlight(_ value: Double) {
-        let visibleCount = min(departures.count, maxVisibleDepartures)
-        guard visibleCount > 0 else {
-            crownHighlightIndex = nil
-            return
-        }
-
-        if crownHighlightIndex == nil {
-            // First crown interaction: start highlighting
-            crownHighlightIndex = 0
-            return
-        }
-
-        if value > 1.5 {
-            crownHighlightIndex = ((crownHighlightIndex ?? 0) + 1) % visibleCount
-        } else if value < -1.5 {
-            var idx = (crownHighlightIndex ?? 0) - 1
-            if idx < 0 { idx = visibleCount - 1 }
-            crownHighlightIndex = idx
-        }
     }
 
     // MARK: - API Calls
@@ -393,16 +374,6 @@ class TrainTimeViewModel: ObservableObject {
                     consecutiveErrors = 0
                     departures = result
 
-                    // Clamp crown highlight index
-                    if let idx = crownHighlightIndex {
-                        let visibleCount = min(result.count, maxVisibleDepartures)
-                        if visibleCount == 0 {
-                            crownHighlightIndex = nil
-                        } else if idx >= visibleCount {
-                            crownHighlightIndex = visibleCount - 1
-                        }
-                    }
-
                     // Update focused train if tracking
                     if appState == 2 {
                         updateFocusedTrain()
@@ -448,10 +419,6 @@ class TrainTimeViewModel: ObservableObject {
             status = "\(context) error"
         }
         departures = []
-        // Exit sub-states on error (matches Garmin: if mAppState > 0)
-        if crownHighlightIndex != nil {
-            crownHighlightIndex = nil
-        }
     }
 
     // MARK: - Mode Rebuilding
@@ -469,7 +436,6 @@ class TrainTimeViewModel: ObservableObject {
         }
 
         stationIndex = 0
-        crownHighlightIndex = nil
         departures = []
 
         if let station = currentStation, let id = station.id {
@@ -519,7 +485,6 @@ class TrainTimeViewModel: ObservableObject {
         stationIndex = 0
         departures = []
         availableModes = []
-        crownHighlightIndex = nil
         consecutiveErrors = 0
 
         if appState == 2 {

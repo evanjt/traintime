@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DepartureRowView: View {
     let departure: Departure
-    var isHighlighted: Bool = false
     var onTap: (() -> Void)? = nil
 
     var body: some View {
@@ -43,10 +42,6 @@ struct DepartureRowView: View {
             }
             .padding(.vertical, 4)
             .padding(.horizontal, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isHighlighted ? AppColors.selectionHighlight : .clear)
-            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

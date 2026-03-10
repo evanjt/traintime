@@ -23,12 +23,24 @@ struct StationView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            // Station name
-            Text(viewModel.stationName.uppercased())
-                .font(.system(.headline, weight: .bold))
-                .foregroundStyle(.primary)
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
+            // Station name — tappable to open picker
+            Button {
+                viewModel.showStationPicker = true
+            } label: {
+                HStack(spacing: 4) {
+                    Text(viewModel.stationName.uppercased())
+                        .font(.system(.headline, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                    if viewModel.stations.count > 1 {
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
 
             Divider()
                 .padding(.horizontal, 4)
@@ -47,16 +59,20 @@ struct StationView: View {
                 }
                 Spacer()
             } else {
-                let visible = Array(viewModel.departures.prefix(viewModel.maxVisibleDepartures))
-                ForEach(Array(visible.enumerated()), id: \.element.id) { index, departure in
-                    DepartureRowView(
-                        departure: departure,
-                        isHighlighted: viewModel.crownHighlightIndex == index,
-                        onTap: { viewModel.selectDeparture(index: index) }
-                    )
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
+                            DepartureRowView(
+                                departure: departure,
+                                onTap: { viewModel.selectDeparture(index: index) }
+                            )
+                        }
+                    }
                 }
-                Spacer(minLength: 0)
             }
+        }
+        .sheet(isPresented: $viewModel.showStationPicker) {
+            StationPickerView(viewModel: viewModel)
         }
     }
 }
