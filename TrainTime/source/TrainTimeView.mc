@@ -7,6 +7,7 @@ using Toybox.Lang;
 using Toybox.Time;
 using Toybox.Math;
 using Toybox.Application.Storage;
+using Toybox.Attention;
 
 class TrainTimeView extends WatchUi.View {
 
@@ -39,6 +40,10 @@ class TrainTimeView extends WatchUi.View {
     private var mCursorIndex;
     private var mFocusedTrain;
     private var mHeading;  // GPS heading in radians, null when stationary
+    private var mLastFetchTime;
+    private var mConsecutiveErrors;
+    private var mLastVibeTick;
+    private var mMaxVisibleTrains;
 
     function initialize() {
         View.initialize();
@@ -69,6 +74,10 @@ class TrainTimeView extends WatchUi.View {
         mCursorIndex = 0;
         mFocusedTrain = null;
         mHeading = null;
+        mLastFetchTime = 0;
+        mConsecutiveErrors = 0;
+        mLastVibeTick = 0;
+        mMaxVisibleTrains = 4;
     }
 
     function onLayout(dc) {
@@ -183,26 +192,38 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 1;
         mCursorIndex = 0;
+        var limit = mTrainData.size();
+        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
+        for (var i = 0; i < limit; i++) {
+            if (mTrainData[i]["min"] >= 0) {
+                mCursorIndex = i;
+                break;
+            }
+        }
         WatchUi.requestUpdate();
     }
 
     function moveCursorDown() {
         if (mTrainData == null || mTrainData.size() == 0) { return; }
-        mCursorIndex = (mCursorIndex + 1) % mTrainData.size();
+        var limit = mTrainData.size();
+        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
+        mCursorIndex = (mCursorIndex + 1) % limit;
         WatchUi.requestUpdate();
     }
 
     function moveCursorUp() {
         if (mTrainData == null || mTrainData.size() == 0) { return; }
+        var limit = mTrainData.size();
+        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
         mCursorIndex = mCursorIndex - 1;
         if (mCursorIndex < 0) {
-            mCursorIndex = mTrainData.size() - 1;
+            mCursorIndex = limit - 1;
         }
         WatchUi.requestUpdate();
     }
 
     function confirmTrainSelection() {
-        if (mTrainData == null || mCursorIndex >= mTrainData.size()) { return; }
+        if (mTrainData == null || mCursorIndex >= mTrainData.size() || mCursorIndex >= mMaxVisibleTrains) { return; }
         var t = mTrainData[mCursorIndex];
         mFocusedTrain = {
             "dest" => t["dest"],
@@ -212,11 +233,13 @@ class TrainTimeView extends WatchUi.View {
             "platChg" => t["platChg"]
         };
         mAppState = 2;
+        mConsecutiveErrors = 0;
         // Faster timer for tracking mode (2s instead of 5s)
         if (mTimer != null) {
             mTimer.stop();
             mTimer.start(method(:onTimerTick), 2000, true);
         }
+        vibrateShort();
         WatchUi.requestUpdate();
     }
 
@@ -224,6 +247,7 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
+        mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
             mTimer.stop();
@@ -240,7 +264,7 @@ class TrainTimeView extends WatchUi.View {
         var bestDiff = 999;
         for (var i = 0; i < mTrainData.size(); i++) {
             var t = mTrainData[i];
-            if (t["dest"].equals(targetDest) && t["min"] >= -1) {
+            if (t["dest"] != null && t["dest"].equals(targetDest) && t["min"] >= -1) {
                 var diff = t["min"] - lastMin;
                 if (diff < 0) { diff = -diff; }
                 if (diff < bestDiff) {
@@ -250,11 +274,16 @@ class TrainTimeView extends WatchUi.View {
             }
         }
         if (bestMatch != null) {
+            var oldPlat = mFocusedTrain["plat"];
             mFocusedTrain["min"] = bestMatch["min"];
             mFocusedTrain["delay"] = bestMatch["delay"];
             mFocusedTrain["plat"] = bestMatch["plat"];
             mFocusedTrain["platChg"] = bestMatch["platChg"];
+            if (bestMatch["platChg"] && (oldPlat == null || !oldPlat.equals(bestMatch["plat"]))) {
+                vibrateDouble();
+            }
         } else {
+            vibrateShort();
             exitToStationView();
         }
     }
@@ -423,6 +452,8 @@ class TrainTimeView extends WatchUi.View {
         var height = dc.getHeight();
         var centerX = width / 2;
 
+        mMaxVisibleTrains = (height < 240) ? 3 : 4;
+
         // GPS quality indicator
         drawGpsIndicator(dc, width, height);
 
@@ -466,7 +497,7 @@ class TrainTimeView extends WatchUi.View {
 
             if (mTrainData != null && mTrainData.size() > 0) {
                 // Separator arc
-                dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
                 dc.setPenWidth(1);
                 var arcY = height * 32 / 100;
                 var arcR = width * 2;
@@ -514,7 +545,7 @@ class TrainTimeView extends WatchUi.View {
         if (mStationName != null && mTrainData != null && mTrainData.size() > 0) {
             var hintY = height * 92 / 100;
             var hintMaxW = getUsableWidth(hintY + 6, width, height) - 10;
-            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
             var hint;
             if (mAppState == 0) {
                 hint = "Press START";
@@ -549,8 +580,10 @@ class TrainTimeView extends WatchUi.View {
             var rowCenterForBg = y + tinyH / 2;
             var usableBg = getUsableWidth(rowCenterForBg, width, height);
             var bgX = (width - usableBg) / 2 + 2;
-            dc.setColor(0x003366, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
+            dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bgX, y, 3, tinyH);
         }
 
         // Fixed column X positions (absolute, so columns align across rows)
@@ -584,7 +617,7 @@ class TrainTimeView extends WatchUi.View {
 
         // Delay column (FONT_XTINY, orange)
         if (delay > 0 && !isGone) {
-            dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
             dc.drawText(delayX, xtinyY, Graphics.FONT_XTINY,
                 "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
@@ -628,6 +661,8 @@ class TrainTimeView extends WatchUi.View {
     function drawFocusedMode(dc, width, height) {
         var centerX = width / 2;
 
+        if (mStationName == null) { return; }
+
         // Station name (small, secondary)
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         var stationY = height * 15 / 100;
@@ -636,20 +671,25 @@ class TrainTimeView extends WatchUi.View {
             truncateToFit(dc, mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Destination + platform (auto-downsize)
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        // Destination + platform (auto-downsize, highlight platform change)
         var destY = height * 26 / 100;
         var destStr = mFocusedTrain["dest"];
         var plat = mFocusedTrain["plat"];
+        var platChg = mFocusedTrain["platChg"];
+        var destMaxW = getUsableWidth(destY + 10, width, height) - 10;
+        var destFont = Graphics.FONT_SMALL;
         if (plat != null && !plat.equals("")) {
             destStr = destStr + "  P" + plat;
         }
-        var destMaxW = getUsableWidth(destY + 10, width, height) - 10;
-        var destFont = Graphics.FONT_SMALL;
         var destDims = dc.getTextDimensions(destStr, destFont);
         if (destDims[0] > destMaxW) {
             destFont = Graphics.FONT_TINY;
             destStr = truncateToFit(dc, destStr, destFont, destMaxW);
+        }
+        if (platChg) {
+            dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
+        } else {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         }
         dc.drawText(centerX, destY, destFont,
             destStr, Graphics.TEXT_JUSTIFY_CENTER);
@@ -661,7 +701,10 @@ class TrainTimeView extends WatchUi.View {
         if (delay == null) { delay = 0; }
 
         var minStr;
-        if (minutesUntil <= 0) {
+        if (minutesUntil < 0) {
+            minStr = "Departed";
+            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+        } else if (minutesUntil == 0) {
             minStr = "now";
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
         } else {
@@ -676,9 +719,9 @@ class TrainTimeView extends WatchUi.View {
             minStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Delay indicator next to departure time
-        if (delay > 0) {
+        if (delay > 0 && minutesUntil >= 0) {
             var minDims = dc.getTextDimensions(minStr, Graphics.FONT_MEDIUM);
-            dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
             dc.drawText(centerX + minDims[0] / 2 + 4, minY,
                 Graphics.FONT_XTINY, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
@@ -702,9 +745,6 @@ class TrainTimeView extends WatchUi.View {
                 var ahead = effectBuf.toNumber();
                 if (ahead < 1) { ahead = 1; }
                 statusStr = ahead + " min ahead";
-                if (delay > 0) {
-                    statusStr = statusStr + " (+" + delay + ")";
-                }
                 dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
             } else if (effectBuf < -0.5) {
                 var behind = (-effectBuf).toNumber();
@@ -742,7 +782,7 @@ class TrainTimeView extends WatchUi.View {
         var halfBar = barWidth / 2;
         var barX = width / 2 - halfBar;
         var barY = height * 54 / 100;
-        var barH = 10;
+        var barH = 14;
         var midX = width / 2;
 
         // Background
@@ -777,7 +817,7 @@ class TrainTimeView extends WatchUi.View {
 
         // Bright colors — GPS dot already indicates quality
         var darkGreen = 0x00CC00;
-        var lightGreen = 0x009900;
+        var lightGreen = 0x00AA44;
         var darkRed = 0xFF0000;
         var lightRed = 0xCC4400;
 
@@ -923,11 +963,12 @@ class TrainTimeView extends WatchUi.View {
         Storage.setValue("lastLat", lat.toFloat());
         Storage.setValue("lastLon", lon.toFloat());
 
-        // Switzerland bounding box check
+        // Switzerland bounding box check — don't clear loaded stations (border hysteresis)
         if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-            clearStationState();
-            mStatus = "Not in Switzerland";
-            WatchUi.requestUpdate();
+            if (mStationId == null) {
+                mStatus = "Not in Switzerland";
+                WatchUi.requestUpdate();
+            }
             return;
         }
 
@@ -992,15 +1033,19 @@ class TrainTimeView extends WatchUi.View {
                 mLocationInfo = info;
 
                 if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
-                    clearStationState();
-                    mStatus = "Not in Switzerland";
-                    WatchUi.requestUpdate();
+                    if (mStationId == null) {
+                        mStatus = "Not in Switzerland";
+                        WatchUi.requestUpdate();
+                    }
                     return;
                 }
 
                 // Re-search stations if moved >500m from last search
                 if (hasMovedSignificantly(lat, lon)) {
                     clearStationState();
+                    mRequestInFlight = true;
+                    mRequestStartTime = Time.now().value();
+                    fetchTrainData(lat, lon);
                 }
             }
         }
@@ -1008,18 +1053,40 @@ class TrainTimeView extends WatchUi.View {
         // Update walk distance every tick (5s)
         updateWalkDistance();
 
+        // Heartbeat vibration when behind schedule in tracking mode
+        if (mAppState == 2 && mFocusedTrain != null) {
+            var walkMin = getWalkMinutes();
+            if (walkMin != null) {
+                var minutesUntil = mFocusedTrain["min"];
+                var delay = mFocusedTrain["delay"];
+                if (delay == null) { delay = 0; }
+                var effectBuf = minutesUntil - walkMin + delay;
+                var vibeNow = Time.now().value();
+                if (effectBuf < -0.5) {
+                    var interval = (effectBuf < -2.0) ? 2 : 4;
+                    if (vibeNow - mLastVibeTick >= interval) {
+                        mLastVibeTick = vibeNow;
+                        vibrateHeartbeat();
+                    }
+                }
+            }
+        }
+
         if (mRequestInFlight) {
             WatchUi.requestUpdate();
             return;
         }
 
-        // Fetch stationboard only on even ticks (every 10s)
-        if (mTickCount % 2 == 0) {
+        // Fetch stationboard based on elapsed time (>= 10s since last)
+        var nowFetch = Time.now().value();
+        if (nowFetch - mLastFetchTime >= 10) {
             if (mStationId != null) {
+                mLastFetchTime = nowFetch;
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 fetchStationboard(mStationId);
             } else if (mLocationInfo != null && mLocationInfo.position != null) {
+                mLastFetchTime = nowFetch;
                 mStatus = "Finding stations...";
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
@@ -1053,7 +1120,7 @@ class TrainTimeView extends WatchUi.View {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
-        if (responseCode == 200 && data != null && data.hasKey("stations")) {
+        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("stations")) {
             var stations = data["stations"];
 
             if (stations != null && stations.size() > 0) {
@@ -1066,22 +1133,7 @@ class TrainTimeView extends WatchUi.View {
                     if (!s.hasKey("id") || s["id"] == null) {
                         continue;
                     }
-                    // Extract station coordinates
-                    var sLat = null;
-                    var sLon = null;
-                    if (s.hasKey("coordinate") && s["coordinate"] != null) {
-                        var coord = s["coordinate"];
-                        if (coord.hasKey("x")) { sLat = coord["x"]; }
-                        if (coord.hasKey("y")) { sLon = coord["y"]; }
-                    }
-                    // Normalize to common format used by selectStation()
-                    var entry = {
-                        "id" => s["id"],
-                        "label" => s.hasKey("name") ? s["name"] : "Station",
-                        "dist" => s.hasKey("distance") ? s["distance"] : 0,
-                        "lat" => sLat,
-                        "lon" => sLon
-                    };
+                    var entry = parseStationEntry(s);
                     var icon = "";
                     if (s.hasKey("icon") && s["icon"] != null) {
                         icon = s["icon"].toString();
@@ -1114,10 +1166,10 @@ class TrainTimeView extends WatchUi.View {
 
                 // Build available modes and select station
                 rebuildModesAndSelect();
+            } else {
+                mStatus = "No stations nearby";
+                mTrainData = null;
             }
-
-            mStatus = "No stations nearby";
-            mTrainData = null;
         } else if (responseCode == 429) {
             mStatus = "Rate limited";
         } else {
@@ -1175,20 +1227,18 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function fetchTrainStationsByName(cityName) {
-        var url = "https://transport.opendata.ch/v1/locations"
-            + "?query=" + cityName
-            + "&type=station";
+        var url = "https://transport.opendata.ch/v1/locations";
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, null, params, method(:onTrainStationsReceived));
+        Communications.makeWebRequest(url, {"query" => cityName, "type" => "station"}, params, method(:onTrainStationsReceived));
     }
 
     function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        if (responseCode != 200 || data == null || !data.hasKey("stations")) {
+        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("stations")) {
             return;
         }
 
@@ -1206,13 +1256,9 @@ class TrainTimeView extends WatchUi.View {
             // Only add non-bus, non-tram stations (trains, S-Bahn, etc.)
             if (icon.equals("bus") || icon.equals("tram")) { continue; }
 
-            var sLat = null;
-            var sLon = null;
-            if (s.hasKey("coordinate") && s["coordinate"] != null) {
-                var coord = s["coordinate"];
-                if (coord.hasKey("x")) { sLat = coord["x"]; }
-                if (coord.hasKey("y")) { sLon = coord["y"]; }
-            }
+            var entry = parseStationEntry(s);
+            var sLat = entry["lat"];
+            var sLon = entry["lon"];
 
             // Calculate distance from user position (or cached position)
             var dist = 0;
@@ -1227,14 +1273,7 @@ class TrainTimeView extends WatchUi.View {
 
             // Only add stations within 5km
             if (dist > 5000) { continue; }
-
-            var entry = {
-                "id" => s["id"],
-                "label" => s.hasKey("name") ? s["name"] : "Station",
-                "dist" => dist,
-                "lat" => sLat,
-                "lon" => sLon
-            };
+            entry["dist"] = dist;
             if (mTrainStations.size() < 5) {
                 mTrainStations.add(entry);
             }
@@ -1254,12 +1293,14 @@ class TrainTimeView extends WatchUi.View {
                 }
                 mAvailableModes = newModes;
             }
-            // Auto-switch to train mode — this is TrainTime
-            mCurrentMode = 0;
-            mStations = getStationsForMode(0);
-            if (mStations != null && mStations.size() > 0) {
-                mStationIndex = 0;
-                selectStation(0);
+            // Only auto-switch if in station view — don't disrupt active tracking
+            if (mAppState == 0) {
+                mCurrentMode = 0;
+                mStations = getStationsForMode(0);
+                if (mStations != null && mStations.size() > 0) {
+                    mStationIndex = 0;
+                    selectStation(0);
+                }
             }
         }
     }
@@ -1287,14 +1328,15 @@ class TrainTimeView extends WatchUi.View {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
-        if (responseCode == 200 && data != null && data.hasKey("stationboard")) {
+        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("stationboard")) {
+            mConsecutiveErrors = 0;
             mTrainData = [];
             var departures = data["stationboard"];
             var nowSeconds = Time.now().value();
 
             for (var i = 0; i < departures.size() && i < 5; i++) {
                 var departure = departures[i];
-                var destination = departure.hasKey("to") ? departure["to"] : "?";
+                var destination = (departure.hasKey("to") && departure["to"] != null) ? departure["to"] : "?";
                 // Platform: prefer prognosis (changed platform) over scheduled
                 var platform = "";
                 var platformChanged = false;
@@ -1350,26 +1392,40 @@ class TrainTimeView extends WatchUi.View {
 
             // Clamp cursor in selection mode
             if (mAppState == 1) {
-                if (mTrainData.size() == 0) {
+                var limit = mTrainData.size();
+                if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
+                if (limit == 0) {
                     exitToStationView();
-                } else if (mCursorIndex >= mTrainData.size()) {
-                    mCursorIndex = mTrainData.size() - 1;
+                } else if (mCursorIndex >= limit) {
+                    mCursorIndex = limit - 1;
                 }
             }
 
             // Update focused train in tracking mode
             updateFocusedTrain();
         } else {
-            if (responseCode == 429) {
-                mStatus = "Rate limited";
+            if (mAppState == 2) {
+                // Tolerate transient errors in tracking mode
+                mConsecutiveErrors = mConsecutiveErrors + 1;
+                if (mConsecutiveErrors >= 3) {
+                    mTrainData = null;
+                    if (responseCode == 429) {
+                        mStatus = "Rate limited";
+                    } else {
+                        mStatus = "Error: " + responseCode;
+                    }
+                    exitToStationView();
+                }
             } else {
-                mStatus = "Error: " + responseCode;
-            }
-            mTrainData = null;
-
-            // Exit sub-states on error
-            if (mAppState > 0) {
-                exitToStationView();
+                if (responseCode == 429) {
+                    mStatus = "Rate limited";
+                } else {
+                    mStatus = "Error: " + responseCode;
+                }
+                mTrainData = null;
+                if (mAppState > 0) {
+                    exitToStationView();
+                }
             }
         }
         WatchUi.requestUpdate();
@@ -1378,7 +1434,7 @@ class TrainTimeView extends WatchUi.View {
     function formatWalkInfo(distanceMeters) {
         var dist = distanceMeters.toNumber();
         mLastWalkDist = dist;
-        var walkMinutes = dist / 83;
+        var walkMinutes = (dist / 83.0).toNumber();
         var timeStr;
         if (walkMinutes < 1) {
             timeStr = "<1 min";
@@ -1393,5 +1449,48 @@ class TrainTimeView extends WatchUi.View {
         }
 
         return info;
+    }
+
+    function parseStationEntry(s) {
+        var sLat = null;
+        var sLon = null;
+        if (s.hasKey("coordinate") && s["coordinate"] != null) {
+            var coord = s["coordinate"];
+            if (coord.hasKey("x")) { sLat = coord["x"]; }
+            if (coord.hasKey("y")) { sLon = coord["y"]; }
+        }
+        return {
+            "id" => s["id"],
+            "label" => s.hasKey("name") ? s["name"] : "Station",
+            "dist" => (s.hasKey("distance") && s["distance"] != null) ? s["distance"] : 0,
+            "lat" => sLat,
+            "lon" => sLon
+        };
+    }
+
+    function vibrateShort() {
+        if (Attention has :vibrate) {
+            Attention.vibrate([new Attention.VibeProfile(50, 50)]);
+        }
+    }
+
+    function vibrateDouble() {
+        if (Attention has :vibrate) {
+            Attention.vibrate([
+                new Attention.VibeProfile(100, 50),
+                new Attention.VibeProfile(0, 100),
+                new Attention.VibeProfile(100, 50)
+            ]);
+        }
+    }
+
+    function vibrateHeartbeat() {
+        if (Attention has :vibrate) {
+            Attention.vibrate([
+                new Attention.VibeProfile(50, 50),
+                new Attention.VibeProfile(0, 100),
+                new Attention.VibeProfile(50, 50)
+            ]);
+        }
     }
 }
