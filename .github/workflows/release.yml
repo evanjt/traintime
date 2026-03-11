@@ -215,6 +215,11 @@ jobs:
     runs-on: macos-26
     if: needs.release.outputs.ipa_path != ''
     steps:
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
       - name: Check for TestFlight credentials
         id: check_creds
         env:
@@ -229,18 +234,6 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Checkout
-        if: steps.check_creds.outputs.skip != 'true'
-        uses: actions/checkout@v4
-
-      - name: Setup Ruby
-        if: steps.check_creds.outputs.skip != 'true'
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          working-directory: apple-watch/fastlane
-          bundler-cache: true
-
       - name: Download IPA
         if: steps.check_creds.outputs.skip != 'true'
         uses: actions/download-artifact@v4
@@ -250,7 +243,6 @@ jobs:
 
       - name: Upload to TestFlight
         if: steps.check_creds.outputs.skip != 'true'
-        working-directory: apple-watch/fastlane
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -262,7 +254,40 @@ jobs:
             ls -la "${{ github.workspace }}/release/" || echo "Directory not found"
             exit 1
           fi
-          bundle exec fastlane ios beta ipa:"$IPA_PATH"
+
+          # Setup API key for altool
+          mkdir -p ~/private_keys
+          echo "$ASC_API_KEY" | base64 -d > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+          # Extract metadata from IPA
+          EXTRACT_DIR=$(mktemp -d)
+          unzip -q "$IPA_PATH" -d "$EXTRACT_DIR"
+          APP_PATH=$(find "$EXTRACT_DIR" -name "*.app" -type d | head -1)
+
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist")
+          BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP_PATH/Info.plist")
+          SHORT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Info.plist")
+          rm -rf "$EXTRACT_DIR"
+
+          echo "Uploading: bundle=$BUNDLE_ID version=$SHORT_VERSION build=$BUILD_NUMBER"
+
+          # Use altool --upload-package with explicit metadata
+          # This bypasses platform auto-detection that fails for standalone watchOS IPAs
+          # Standalone watchOS apps are submitted as --type ios
+          # Note: Xcode 26 altool may exit 0 on failure, so check output for errors
+          ALTOOL_OUTPUT=$(xcrun altool --upload-package "$IPA_PATH" \
+            --type ios \
+            --apple-id "6760388620" \
+            --bundle-id "$BUNDLE_ID" \
+            --bundle-version "$BUILD_NUMBER" \
+            --bundle-short-version-string "$SHORT_VERSION" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" 2>&1) || true
+          echo "$ALTOOL_OUTPUT"
+          if echo "$ALTOOL_OUTPUT" | grep -q "UPLOAD FAILED"; then
+            echo "::error::altool upload failed"
+            exit 1
+          fi
 
       - name: Summary
         if: steps.check_creds.outputs.skip != 'true'
