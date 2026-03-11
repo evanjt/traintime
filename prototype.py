@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick prototype to test the transport.opendata.ch API flow."""
+"""Quick prototype to test the traintime-api Cloudflare Worker."""
 
 import sys
 import json
@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 DEFAULT_LAT = 46.2312
 DEFAULT_LON = 7.3577
+BASE_URL = "http://localhost:8787"
 
 
 def fetch_json(url):
@@ -17,67 +18,49 @@ def fetch_json(url):
 
 
 def find_stations(lat, lon):
-    url = (
-        f"https://transport.opendata.ch/v1/locations"
-        f"?x={lat}&y={lon}&type=station"
-    )
-    print(f"\n--- Station search ---")
-    print(f"GET {url}\n")
-    data = fetch_json(url)
-    stations = [s for s in data.get("stations", []) if s.get("id")]
-    print(f"Found {len(stations)} stations:")
-    for s in stations:
-        dist = s.get("distance", "?")
-        icon = s.get("icon", "?")
-        print(f"  {s.get('name', '?'):30s}  id={s.get('id', 'N/A'):10s}  dist={dist}m  type={icon}")
-    return stations
-
-
-def get_stationboard(station_id, station_name, limit=8):
-    url = (
-        f"https://transport.opendata.ch/v1/stationboard"
-        f"?id={station_id}&limit={limit}"
-        f"&fields[]=stationboard/to"
-        f"&fields[]=stationboard/category"
-        f"&fields[]=stationboard/number"
-        f"&fields[]=stationboard/stop/departureTimestamp"
-        f"&fields[]=stationboard/stop/delay"
-        f"&fields[]=stationboard/stop/platform"
-        f"&fields[]=stationboard/stop/prognosis/platform"
-        f"&fields[]=stationboard/stop/prognosis/departure"
-    )
-    print(f"\n--- Stationboard: {station_name} ---")
+    url = f"{BASE_URL}/v1/nearby?lat={lat}&lon={lon}"
+    print(f"\n--- Nearby stations ---")
     print(f"GET {url}\n")
     data = fetch_json(url)
 
+    all_stations = {}
+    for mode in ("train", "bus", "tram"):
+        stations = data.get(mode, [])
+        if stations:
+            all_stations[mode] = stations
+            print(f"  {mode.upper()} ({len(stations)}):")
+            for s in stations:
+                has_deps = " [departures]" if s.get("departures") else ""
+                print(f"    {s.get('name', '?'):30s}  id={s.get('id', 'N/A'):10s}  dist={s.get('dist', '?')}m{has_deps}")
+            print()
+
+    if not all_stations:
+        print("  No stations found.")
+
+    return all_stations
+
+
+def show_departures(departures, station_name):
+    print(f"\n--- Departures: {station_name} ---\n")
     now_ts = datetime.now(timezone.utc).timestamp()
-    departures = data.get("stationboard", [])
 
     if not departures:
         print("  No departures found.")
         return
 
-    print(f"  {'MIN':>5}  {'DELAY':>5}  {'PL':>4}  {'CAT':>4}  DESTINATION")
-    print(f"  {'---':>5}  {'-----':>5}  {'--':>4}  {'---':>4}  -----------")
+    print(f"  {'MIN':>5}  {'DELAY':>5}  {'PL':>4}  DESTINATION")
+    print(f"  {'---':>5}  {'-----':>5}  {'--':>4}  -----------")
 
     for dep in departures:
         dest = dep.get("to", "?")
-        category = dep.get("category", "")
-        number = dep.get("number", "")
-        stop = dep.get("stop", {})
+        dep_ts = dep.get("departure")
+        delay = dep.get("delay", 0) or 0
+        platform = dep.get("platform", "")
+        pl_changed = dep.get("platformChanged", False)
 
-        dep_ts = stop.get("departureTimestamp")
-        delay = stop.get("delay", 0) or 0
-        platform = stop.get("platform", "")
+        if pl_changed and platform:
+            platform = f"{platform}!"
 
-        # Check for platform change
-        prognosis = stop.get("prognosis") or {}
-        prog_platform = prognosis.get("platform")
-        pl_changed = prog_platform and platform and prog_platform != platform
-        if pl_changed:
-            platform = f"{prog_platform}!"
-
-        # Minutes until departure (scheduled)
         if dep_ts:
             mins = int((dep_ts - now_ts) / 60)
             min_str = f"{mins}'"
@@ -86,7 +69,16 @@ def get_stationboard(station_id, station_name, limit=8):
 
         delay_str = f"+{delay}" if delay > 0 else ""
 
-        print(f"  {min_str:>5}  {delay_str:>5}  {platform:>4}  {category+number:>4}  {dest}")
+        print(f"  {min_str:>5}  {delay_str:>5}  {platform:>4}  {dest}")
+
+
+def get_departures(station_id, station_name, limit=8):
+    url = f"{BASE_URL}/v1/departures?id={station_id}&limit={limit}"
+    print(f"\nGET {url}")
+    data = fetch_json(url)
+    departures = data.get("departures", [])
+    show_departures(departures, station_name)
+    return departures
 
 
 def main():
@@ -97,20 +89,30 @@ def main():
         print(f"Usage: {sys.argv[0]} <lat> <lon>")
         print(f"Using default: EPFL Valais/Sion (Alpole) @ {lat}, {lon}")
 
-    stations = find_stations(lat, lon)
+    all_stations = find_stations(lat, lon)
 
-    if not stations:
+    if not all_stations:
         print("No stations found!")
         sys.exit(1)
 
-    # Use the closest station
-    best = stations[0]
-    station_id = best.get("id")
-    station_name = best.get("name", "?")
-    dist = best.get("distance", "?")
+    # Show embedded departures from each mode's closest station
+    for mode, stations in all_stations.items():
+        closest = stations[0]
+        embedded = closest.get("departures")
+        if embedded:
+            print(f"\n=== Embedded departures ({mode}) ===")
+            show_departures(embedded, closest.get("name", "?"))
 
-    print(f"\nUsing closest: {station_name} ({dist}m away)")
-    get_stationboard(station_id, station_name)
+    # Find the overall closest station across all modes and poll its departures
+    overall_closest = None
+    for stations in all_stations.values():
+        for s in stations:
+            if overall_closest is None or s.get("dist", float("inf")) < overall_closest.get("dist", float("inf")):
+                overall_closest = s
+
+    if overall_closest:
+        print(f"\n=== Polling closest station: {overall_closest.get('name', '?')} ({overall_closest.get('dist', '?')}m) ===")
+        get_departures(overall_closest["id"], overall_closest.get("name", "?"))
 
 
 if __name__ == "__main__":

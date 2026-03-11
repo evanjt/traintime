@@ -438,8 +438,11 @@ class TrainTimeViewModel: ObservableObject {
         stationIndex = 0
         departures = []
 
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
+        if let station = stations.first, let embedded = station.embeddedDepartures {
+            departures = embedded
+            lastFetchTime = Date()
+        } else if let stationId = stations.first?.id {
+            fetchDepartures(stationId: stationId)
         }
     }
 

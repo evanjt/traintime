@@ -1171,9 +1171,8 @@ class TrainTimeView extends WatchUi.View {
         mLastSearchLat = lat;
         mLastSearchLon = lon;
 
-        var url = "https://transport.opendata.ch/v1/locations"
-            + "?x=" + lat + "&y=" + lon
-            + "&type=station";
+        var url = "http://localhost:8787/v1/nearby"
+            + "?lat=" + lat + "&lon=" + lon;
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -1187,56 +1186,51 @@ class TrainTimeView extends WatchUi.View {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
-        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("stations")) {
-            var stations = data["stations"];
+        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary) {
+            mTrainStations = [];
+            mBusStations = [];
+            mTramStations = [];
 
-            if (stations != null && stations.size() > 0) {
-                mTrainStations = [];
-                mBusStations = [];
-                mTramStations = [];
-
-                for (var i = 0; i < stations.size(); i++) {
-                    var s = stations[i];
-                    if (!s.hasKey("id") || s["id"] == null) {
-                        continue;
-                    }
-                    var entry = parseStationEntry(s);
-                    var icon = "";
-                    if (s.hasKey("icon") && s["icon"] != null) {
-                        icon = s["icon"].toString();
-                    }
-                    if (icon.equals("bus")) {
-                        if (mBusStations.size() < 5) {
-                            mBusStations.add(entry);
-                        }
-                    } else if (icon.equals("tram")) {
-                        if (mTramStations.size() < 5) {
-                            mTramStations.add(entry);
-                        }
-                    } else {
-                        // Default: treat null/empty/unknown icons as train
-                        // The API consistently labels bus/tram stops; null icons are railway stations
-                        if (mTrainStations.size() < 5) {
-                            mTrainStations.add(entry);
-                        }
+            // Parse grouped response: train, bus, tram arrays
+            if (data.hasKey("train") && data["train"] != null) {
+                var arr = data["train"];
+                for (var i = 0; i < arr.size() && mTrainStations.size() < 5; i++) {
+                    var s = arr[i];
+                    if (s.hasKey("id") && s["id"] != null) {
+                        mTrainStations.add(parseStationEntry(s));
                     }
                 }
-
-                // If no train stations found in coordinate search,
-                // search by name to find the nearest train station
-                if (mTrainStations.size() == 0) {
-                    var cityName = extractCityName();
-                    if (cityName != null) {
-                        fetchTrainStationsByName(cityName);
-                    }
-                }
-
-                // Build available modes and select station
-                rebuildModesAndSelect();
-            } else {
-                mStatus = "No stations nearby";
-                mTrainData = null;
             }
+            if (data.hasKey("bus") && data["bus"] != null) {
+                var arr = data["bus"];
+                for (var i = 0; i < arr.size() && mBusStations.size() < 5; i++) {
+                    var s = arr[i];
+                    if (s.hasKey("id") && s["id"] != null) {
+                        mBusStations.add(parseStationEntry(s));
+                    }
+                }
+            }
+            if (data.hasKey("tram") && data["tram"] != null) {
+                var arr = data["tram"];
+                for (var i = 0; i < arr.size() && mTramStations.size() < 5; i++) {
+                    var s = arr[i];
+                    if (s.hasKey("id") && s["id"] != null) {
+                        mTramStations.add(parseStationEntry(s));
+                    }
+                }
+            }
+
+            // If no train stations found in coordinate search,
+            // search by name to find the nearest train station
+            if (mTrainStations.size() == 0) {
+                var cityName = extractCityName();
+                if (cityName != null) {
+                    fetchTrainStationsByName(cityName);
+                }
+            }
+
+            // Build available modes and select station
+            rebuildModesAndSelect();
         } else if (responseCode == 429) {
             mStatus = "Rate limited";
         } else {
@@ -1294,53 +1288,31 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function fetchTrainStationsByName(cityName) {
-        var url = "https://transport.opendata.ch/v1/locations";
+        var url = "http://localhost:8787/v1/nearby"
+            + "?lat=" + mLastSearchLat + "&lon=" + mLastSearchLon
+            + "&query=" + cityName;
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, {"query" => cityName, "type" => "station"}, params, method(:onTrainStationsReceived));
+        Communications.makeWebRequest(url, null, params, method(:onTrainStationsReceived));
     }
 
     function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("stations")) {
+        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary)) {
             return;
         }
 
-        var stations = data["stations"];
-        if (stations == null) { return; }
+        if (!data.hasKey("train") || data["train"] == null) { return; }
+        var stations = data["train"];
 
         for (var i = 0; i < stations.size(); i++) {
             var s = stations[i];
             if (!s.hasKey("id") || s["id"] == null) { continue; }
 
-            var icon = "";
-            if (s.hasKey("icon") && s["icon"] != null) {
-                icon = s["icon"].toString();
-            }
-            // Only add non-bus, non-tram stations (trains, S-Bahn, etc.)
-            if (icon.equals("bus") || icon.equals("tram")) { continue; }
-
             var entry = parseStationEntry(s);
-            var sLat = entry["lat"];
-            var sLon = entry["lon"];
-
-            // Calculate distance from user position (or cached position)
-            var dist = 0;
-            if (sLat != null && sLon != null) {
-                if (mLocationInfo != null && mLocationInfo.position != null) {
-                    var coords = mLocationInfo.position.toDegrees();
-                    dist = calculateDistance(coords[0], coords[1], sLat, sLon);
-                } else if (mLastSearchLat != null && mLastSearchLon != null) {
-                    dist = calculateDistance(mLastSearchLat, mLastSearchLon, sLat, sLon);
-                }
-            }
-
-            // Only add stations within 5km
-            if (dist > 5000) { continue; }
-            entry["dist"] = dist;
             if (mTrainStations.size() < 5) {
                 mTrainStations.add(entry);
             }
@@ -1373,15 +1345,9 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function fetchStationboard(stationId) {
-        var url = "https://transport.opendata.ch/v1/stationboard"
+        var url = "http://localhost:8787/v1/departures"
             + "?id=" + stationId
-            + "&limit=5"
-            + "&fields[]=stationboard/to"
-            + "&fields[]=stationboard/category"
-            + "&fields[]=stationboard/stop/departureTimestamp"
-            + "&fields[]=stationboard/stop/delay"
-            + "&fields[]=stationboard/stop/platform"
-            + "&fields[]=stationboard/stop/prognosis/platform";
+            + "&limit=5";
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -1395,58 +1361,43 @@ class TrainTimeView extends WatchUi.View {
         mRequestInFlight = false;
         mRequestStartTime = null;
 
-        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("stationboard")) {
+        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("departures")) {
             mConsecutiveErrors = 0;
             mTrainData = [];
-            var departures = data["stationboard"];
+            var departures = data["departures"];
             var nowSeconds = Time.now().value();
 
             for (var i = 0; i < departures.size() && i < 5; i++) {
-                var departure = departures[i];
-                var destination = (departure.hasKey("to") && departure["to"] != null) ? departure["to"] : "?";
-                // Platform: prefer prognosis (changed platform) over scheduled
+                var dep = departures[i];
+                var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
+
+                // Platform (already resolved by server)
                 var platform = "";
                 var platformChanged = false;
-                if (departure.hasKey("stop")) {
-                    var stop = departure["stop"];
-                    var progPlatform = null;
-                    if (stop.hasKey("prognosis") && stop["prognosis"] != null
-                        && stop["prognosis"].hasKey("platform")) {
-                        progPlatform = stop["prognosis"]["platform"];
-                    }
-                    var schedPlatform = stop.hasKey("platform") ? stop["platform"] : null;
-
-                    if (progPlatform != null) {
-                        platform = progPlatform.toString();
-                        if (schedPlatform != null && !schedPlatform.toString().equals(platform)) {
-                            platformChanged = true;
-                        }
-                    } else if (schedPlatform != null) {
-                        platform = schedPlatform.toString();
-                    }
+                if (dep.hasKey("platform") && dep["platform"] != null) {
+                    platform = dep["platform"].toString();
+                }
+                if (dep.hasKey("platformChanged") && dep["platformChanged"] == true) {
+                    platformChanged = true;
                 }
 
                 // Minutes until departure
                 var minutesUntil = -1;
-                if (departure.hasKey("stop") && departure["stop"].hasKey("departureTimestamp")) {
-                    var depTs = departure["stop"]["departureTimestamp"];
-                    if (depTs != null) {
-                        minutesUntil = (depTs - nowSeconds) / 60;
-                    }
+                var depTs = null;
+                if (dep.hasKey("departure") && dep["departure"] != null) {
+                    depTs = dep["departure"];
+                    minutesUntil = (depTs - nowSeconds) / 60;
                 }
 
                 // Delay
                 var delay = 0;
-                if (departure.hasKey("stop") && departure["stop"].hasKey("delay")) {
-                    var rawDelay = departure["stop"]["delay"];
-                    if (rawDelay != null && rawDelay > 0) {
-                        delay = rawDelay;
-                    }
+                if (dep.hasKey("delay") && dep["delay"] != null && dep["delay"] > 0) {
+                    delay = dep["delay"];
                 }
 
                 mTrainData.add({
                     "min" => minutesUntil,
-                    "depTs" => (departure.hasKey("stop") && departure["stop"].hasKey("departureTimestamp")) ? departure["stop"]["departureTimestamp"] : null,
+                    "depTs" => depTs,
                     "delay" => delay,
                     "plat" => platform,
                     "platChg" => platformChanged,
@@ -1520,19 +1471,12 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function parseStationEntry(s) {
-        var sLat = null;
-        var sLon = null;
-        if (s.hasKey("coordinate") && s["coordinate"] != null) {
-            var coord = s["coordinate"];
-            if (coord.hasKey("x")) { sLat = coord["x"]; }
-            if (coord.hasKey("y")) { sLon = coord["y"]; }
-        }
         return {
             "id" => s["id"],
             "label" => s.hasKey("name") ? s["name"] : "Station",
-            "dist" => (s.hasKey("distance") && s["distance"] != null) ? s["distance"] : 0,
-            "lat" => sLat,
-            "lon" => sLon
+            "dist" => (s.hasKey("dist") && s["dist"] != null) ? s["dist"] : 0,
+            "lat" => s.hasKey("lat") ? s["lat"] : null,
+            "lon" => s.hasKey("lon") ? s["lon"] : null
         };
     }
 
