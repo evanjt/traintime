@@ -1,0 +1,275 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  # ============================================
+  # Find and wait for watchOS build
+  # ============================================
+  find-and-wait:
+    name: Find watchOS Build
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+    steps:
+      - name: Find or wait for main build
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COMMIT_SHA="${{ github.sha }}"
+          MAX_WAIT=3600
+          POLL_INTERVAL=30
+          WAITED=0
+
+          while [ $WAITED -lt $MAX_WAIT ]; do
+            RESULT=$(gh api repos/${{ github.repository }}/actions/workflows/build.yml/runs \
+              --jq ".workflow_runs[] | select(.head_sha==\"$COMMIT_SHA\") | {id, status, conclusion}" \
+              | head -1)
+
+            if [ -z "$RESULT" ]; then
+              echo "::error::No build found for commit $COMMIT_SHA"
+              exit 1
+            fi
+
+            STATUS=$(echo "$RESULT" | jq -r '.status')
+            CONCLUSION=$(echo "$RESULT" | jq -r '.conclusion')
+            RUN_ID=$(echo "$RESULT" | jq -r '.id')
+
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+                echo "Found successful build: $RUN_ID"
+                exit 0
+              else
+                echo "::error::Build $RUN_ID failed: $CONCLUSION"
+                exit 1
+              fi
+            fi
+
+            echo "Build $RUN_ID still running ($STATUS). Waiting ${POLL_INTERVAL}s..."
+            sleep $POLL_INTERVAL
+            WAITED=$((WAITED + POLL_INTERVAL))
+          done
+
+          echo "::error::Timeout waiting for build"
+          exit 1
+
+  # ============================================
+  # Build Garmin .iq package
+  # ============================================
+  build-garmin:
+    name: Build Garmin App
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/matco/connectiq-tester:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for Garmin credentials
+        id: check_creds
+        env:
+          GARMIN_DEVELOPER_KEY: ${{ secrets.GARMIN_DEVELOPER_KEY }}
+        run: |
+          if [ -z "$GARMIN_DEVELOPER_KEY" ]; then
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "::notice::GARMIN_DEVELOPER_KEY not configured - skipping Garmin build"
+          else
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install developer key
+        if: steps.check_creds.outputs.has_creds == 'true'
+        env:
+          GARMIN_DEVELOPER_KEY: ${{ secrets.GARMIN_DEVELOPER_KEY }}
+        run: |
+          mkdir -p ~/.Garmin
+          echo "$GARMIN_DEVELOPER_KEY" | base64 -d > ~/.Garmin/developer_key.der
+
+      - name: Set version from tag
+        if: steps.check_creds.outputs.has_creds == 'true'
+        run: |
+          VERSION="${{ github.ref_name }}"
+          sed -i "s/version=\"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/version=\"$VERSION\"/" garmin/TrainTime/manifest.xml
+          echo "Set Garmin app version to $VERSION"
+          grep 'version=' garmin/TrainTime/manifest.xml
+
+      - name: Build .iq package
+        if: steps.check_creds.outputs.has_creds == 'true'
+        working-directory: garmin/TrainTime
+        run: |
+          monkeyc -e -f monkey.jungle -o ../TrainTime.iq -y ~/.Garmin/developer_key.der -r
+          echo "Built TrainTime.iq ($(stat -c%s ../TrainTime.iq) bytes)"
+
+      - name: Upload Garmin artifact
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: garmin-iq
+          path: garmin/TrainTime.iq
+          retention-days: 30
+
+  # ============================================
+  # Create Release
+  # ============================================
+  release:
+    name: Create Release
+    needs: [find-and-wait, build-garmin]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      ipa_path: ${{ steps.prepare.outputs.ipa_path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+
+      - name: Download watchOS artifacts from main build
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ needs.find-and-wait.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: artifacts
+
+      - name: Download Garmin artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: garmin-iq
+          path: artifacts/garmin
+
+      - name: Prepare release artifacts
+        id: prepare
+        run: |
+          mkdir -p release
+          VERSION="${{ steps.version.outputs.version }}"
+
+          echo "=== Downloaded artifacts ==="
+          find artifacts -type f
+          echo "============================="
+
+          IPA=$(find artifacts -name "*.ipa" | head -1)
+          if [ -n "$IPA" ]; then
+            IPA_DEST="release/traintime-${VERSION}.ipa"
+            cp "$IPA" "$IPA_DEST"
+            echo "ipa_path=$IPA_DEST" >> $GITHUB_OUTPUT
+            echo "IPA: traintime-${VERSION}.ipa"
+          else
+            echo "::warning::No IPA found in artifacts"
+          fi
+
+          IQ=$(find artifacts -name "*.iq" | head -1)
+          if [ -n "$IQ" ]; then
+            cp "$IQ" "release/TrainTime-${VERSION}.iq"
+            echo "Garmin: TrainTime-${VERSION}.iq"
+          else
+            echo "::notice::No Garmin .iq found"
+          fi
+
+          echo ""
+          echo "=== Release artifacts ==="
+          ls -la release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TrainTime v${{ steps.version.outputs.version }}
+          body: |
+            ## TrainTime v${{ steps.version.outputs.version }}
+
+            ## Downloads
+            - **watchOS IPA**: For TestFlight / App Store
+            - **Garmin .iq**: Upload to [Connect IQ Store](https://apps.garmin.com/developer/dashboard)
+
+            ---
+            Built from commit: ${{ github.sha }}
+          files: release/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload IPA for deployment
+        if: steps.prepare.outputs.ipa_path != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: ${{ steps.prepare.outputs.ipa_path }}
+          retention-days: 1
+
+  # ============================================
+  # Deploy to TestFlight
+  # ============================================
+  deploy-testflight:
+    name: Deploy to TestFlight
+    needs: release
+    runs-on: macos-26
+    if: needs.release.outputs.ipa_path != ''
+    steps:
+      - name: Check for TestFlight credentials
+        id: check_creds
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_API_KEY" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping TestFlight - credentials not configured"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout
+        if: steps.check_creds.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        if: steps.check_creds.outputs.skip != 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          working-directory: apple-watch/fastlane
+          bundler-cache: true
+
+      - name: Download IPA
+        if: steps.check_creds.outputs.skip != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-ipa
+          path: release/
+
+      - name: Upload to TestFlight
+        if: steps.check_creds.outputs.skip != 'true'
+        working-directory: apple-watch/fastlane
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+          IPA_PATH: ${{ github.workspace }}/release/traintime-${{ needs.release.outputs.version }}.ipa
+        run: |
+          if [ ! -f "$IPA_PATH" ]; then
+            echo "Error: IPA not found at $IPA_PATH"
+            ls -la "${{ github.workspace }}/release/" || echo "Directory not found"
+            exit 1
+          fi
+          bundle exec fastlane ios beta ipa:"$IPA_PATH"
+
+      - name: Summary
+        if: steps.check_creds.outputs.skip != 'true'
+        run: |
+          echo "## TestFlight Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ needs.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Track:** Internal TestFlight" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Build will be available in [App Store Connect](https://appstoreconnect.apple.com) shortly." >> $GITHUB_STEP_SUMMARY

@@ -191,6 +191,13 @@
 				en,
 				Base,
 			);
+			attributes = {
+				TargetAttributes = {
+					6E9FC3E3B0BB4BA189C3C6A1 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
 			mainGroup = 8B1A4211B1894783A138DD95;
 			productRefGroup = 620CC025859F476183B6BC85 /* Products */;
 			projectDirPath = "";
@@ -300,6 +307,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = true;
@@ -308,7 +316,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.traintime.watch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -325,6 +333,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = true;
@@ -333,7 +342,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.traintime.watch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;

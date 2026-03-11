@@ -1,0 +1,223 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build watchOS App
+    runs-on: macos-26
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      filename: ${{ steps.version.outputs.filename }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION=$(grep 'MARKETING_VERSION' apple-watch/TrainTimeWatch.xcodeproj/project.pbxproj | head -1 | sed 's/.*= *\(.*\);/\1/' | tr -d ' ')
+          BUILD=$(grep 'CURRENT_PROJECT_VERSION' apple-watch/TrainTimeWatch.xcodeproj/project.pbxproj | head -1 | sed 's/.*= *\(.*\);/\1/' | tr -d ' ')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD" >> $GITHUB_OUTPUT
+
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "filename=traintime-${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "filename=traintime-${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Version: $VERSION ($BUILD) | SHA: $SHORT_SHA"
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          working-directory: apple-watch/fastlane
+          bundler-cache: true
+
+      # ============================================
+      # Signing (main branch & dispatch only)
+      # ============================================
+      - name: Check for signing credentials
+        id: check_signing
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          IOS_DISTRIBUTION_CERT_P12: ${{ secrets.IOS_DISTRIBUTION_CERT_P12 }}
+        run: |
+          if [ -n "$MATCH_GIT_URL" ] && [ -n "$MATCH_PASSWORD" ] && [ -n "$IOS_DISTRIBUTION_CERT_P12" ]; then
+            echo "has_signing=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_signing=false" >> $GITHUB_OUTPUT
+            echo "::notice::Signing not configured - skipping IPA build"
+          fi
+
+      # Import certificate directly (fixes codesign timestamp server hang)
+      - name: Import code signing certificate
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DISTRIBUTION_CERT_P12 }}
+          p12-password: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+
+      - name: Setup SSH for Match
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      # Match in readonly mode - only fetches provisioning profile (cert already imported above)
+      - name: Sync provisioning profiles via Match
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+        working-directory: apple-watch/fastlane
+        run: bundle exec fastlane match appstore --readonly
+
+      # ============================================
+      # Build
+      # ============================================
+      - name: Build unsigned (PR validation)
+        if: steps.check_signing.outputs.has_signing != 'true' || (github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch')
+        working-directory: apple-watch
+        run: |
+          xcodebuild build \
+            -project TrainTimeWatch.xcodeproj \
+            -scheme TrainTimeWatch \
+            -configuration Release \
+            -destination "generic/platform=watchOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | tail -20
+
+      - name: Build signed IPA
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        timeout-minutes: 20
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+        working-directory: apple-watch/fastlane
+        run: bundle exec fastlane ios build_release
+
+      - name: Rename IPA
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        run: |
+          mkdir -p artifacts
+          IPA_PATH=$(find apple-watch -name "*.ipa" -type f | head -1)
+          if [ -n "$IPA_PATH" ]; then
+            cp "$IPA_PATH" "artifacts/${{ steps.version.outputs.filename }}.ipa"
+            echo "IPA: ${{ steps.version.outputs.filename }}.ipa"
+          fi
+
+      - name: Verify IPA signature
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        env:
+          EXPECTED_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+        run: |
+          IPA_FILE="artifacts/${{ steps.version.outputs.filename }}.ipa"
+          [ ! -f "$IPA_FILE" ] && echo "::error::IPA not found" && exit 1
+
+          rm -rf /tmp/ipa_verify && mkdir -p /tmp/ipa_verify
+          unzip -q "$IPA_FILE" -d /tmp/ipa_verify
+
+          APP_PATH=$(find /tmp/ipa_verify -name "*.app" -type d | head -1)
+          [ -z "$APP_PATH" ] && echo "::error::No .app in IPA" && exit 1
+
+          ACTUAL_TEAM=$(codesign -dv --verbose=2 "$APP_PATH" 2>&1 | grep "TeamIdentifier=" | cut -d= -f2)
+          echo "Team ID: $ACTUAL_TEAM (expected: $EXPECTED_TEAM_ID)"
+          [ "$ACTUAL_TEAM" != "$EXPECTED_TEAM_ID" ] && echo "::error::Team ID mismatch" && exit 1
+
+          codesign --verify --deep --strict "$APP_PATH" 2>&1
+          rm -rf /tmp/ipa_verify
+          echo "IPA verified"
+
+      - name: Upload IPA
+        if: steps.check_signing.outputs.has_signing == 'true' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v4
+        with:
+          name: watchos-ipa-${{ steps.version.outputs.filename }}
+          path: artifacts/*.ipa
+          retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            apple-watch/fastlane/artifacts/*.log
+            ~/Library/Logs/gym/*.log
+          retention-days: 7
+
+  # ============================================
+  # Garmin Connect IQ build
+  # ============================================
+  build-garmin:
+    name: Build Garmin App
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/matco/connectiq-tester:latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Garmin credentials
+        id: check_creds
+        env:
+          GARMIN_DEVELOPER_KEY: ${{ secrets.GARMIN_DEVELOPER_KEY }}
+        run: |
+          if [ -z "$GARMIN_DEVELOPER_KEY" ]; then
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "::notice::GARMIN_DEVELOPER_KEY not configured - skipping Garmin build"
+          else
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install developer key
+        if: steps.check_creds.outputs.has_creds == 'true'
+        env:
+          GARMIN_DEVELOPER_KEY: ${{ secrets.GARMIN_DEVELOPER_KEY }}
+        run: |
+          mkdir -p ~/.Garmin
+          echo "$GARMIN_DEVELOPER_KEY" | base64 -d > ~/.Garmin/developer_key.der
+
+      - name: Build .prg for multiple devices
+        if: steps.check_creds.outputs.has_creds == 'true'
+        working-directory: garmin/TrainTime
+        run: |
+          mkdir -p ../builds
+          DEVICES="fenix6pro fenix7pro epix2pro47mm fr965 venu3 fenix847mm"
+          for device in $DEVICES; do
+            echo "Building for $device..."
+            monkeyc -d "$device" -f monkey.jungle -o "../builds/TrainTime-${device}.prg" -y ~/.Garmin/developer_key.der
+            echo "  $(stat -c%s "../builds/TrainTime-${device}.prg") bytes"
+          done
+          echo ""
+          ls -la ../builds/
+
+      - name: Upload Garmin builds
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: garmin-prg
+          path: garmin/builds/*.prg
+          retention-days: 30

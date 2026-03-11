@@ -38,3 +38,7 @@ xcuserdata/
 # Markdown
 *.md
 *.tmp
+
+# Fastlane
+apple-watch/fastlane/vendor/
+apple-watch/fastlane/.bundle/
