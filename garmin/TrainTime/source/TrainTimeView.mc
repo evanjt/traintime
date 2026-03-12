@@ -1374,9 +1374,7 @@ class TrainTimeView extends WatchUi.View {
 
     function fetchStationboard(stationId) {
         var url = "https://transport.opendata.ch/v1/stationboard"
-            + "?id=" + stationId
-            + "&limit=5"
-            + "&fields[]=stationboard/to"
+            + "?fields[]=stationboard/to"
             + "&fields[]=stationboard/category"
             + "&fields[]=stationboard/stop/departureTimestamp"
             + "&fields[]=stationboard/stop/delay"
@@ -1388,7 +1386,7 @@ class TrainTimeView extends WatchUi.View {
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, null, params, method(:onTrainDataReceived));
+        Communications.makeWebRequest(url, {"id" => stationId, "limit" => "5"}, params, method(:onTrainDataReceived));
     }
 
     function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
