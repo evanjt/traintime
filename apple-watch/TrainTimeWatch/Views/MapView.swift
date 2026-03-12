@@ -19,6 +19,19 @@ struct MapView: View {
             .mapControls {
                 MapUserLocationButton()
             }
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        let destination = MKMapItem(placemark: MKPlacemark(coordinate: stationCoord))
+                        destination.name = station.name ?? "Station"
+                        destination.openInMaps(launchOptions: [
+                            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking
+                        ])
+                    } label: {
+                        Label("Navigate", systemImage: "figure.walk")
+                    }
+                }
+            }
         } else {
             Text("No station selected")
                 .foregroundColor(AppColors.bodyStatus)

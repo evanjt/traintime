@@ -8,7 +8,7 @@ struct FocusedTrackingView: View {
         let focused = viewModel.focusedTrain
 
         ScrollView {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 // Station name
                 Text(viewModel.stationName)
                     .font(.footnote)
@@ -40,7 +40,7 @@ struct FocusedTrackingView: View {
 
                 // Countdown
                 Text(focused?.countdownText ?? "—")
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .font(.system(.title2, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(countdownColor)
 
@@ -65,14 +65,14 @@ struct FocusedTrackingView: View {
 
                 // Status
                 Text(viewModel.trackingStatusText)
-                    .font(.system(.body, weight: .semibold))
+                    .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(viewModel.trackingStatusColor)
 
                 // Walk info + direction
                 HStack(spacing: 6) {
                     DirectionArrowView(degrees: viewModel.directionToStation)
 
-                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist))
+                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

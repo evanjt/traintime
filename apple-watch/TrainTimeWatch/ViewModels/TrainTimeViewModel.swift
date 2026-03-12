@@ -34,8 +34,10 @@ class TrainTimeViewModel: ObservableObject {
     // MARK: - GPS
     @Published var gpsQuality: GPSQuality = .unavailable
     @Published var lastWalkDist: Double = 0
+    @Published var lastWalkTime: Double? = nil
 
     // MARK: - Internal State
+    private let routing = RoutingService.shared
     private var requestInFlight = false
     private var requestStartTime: Date?
     private var lastFetchTime: Date = .distantPast
@@ -197,7 +199,21 @@ class TrainTimeViewModel: ObservableObject {
 
         // Update walk distance to current station
         if let station = currentStation, let stationCoord = station.coordinate {
-            lastWalkDist = GeoUtils.haversineDistance(from: coord, to: stationCoord)
+            let haversine = GeoUtils.haversineDistance(from: coord, to: stationCoord)
+            lastWalkDist = haversine
+            lastWalkTime = nil
+
+            if let stationId = station.id {
+                if let interpolated = routing.interpolate(stationId: stationId, currentHaversine: haversine) {
+                    lastWalkDist = interpolated.distance
+                    lastWalkTime = interpolated.time
+                }
+                if routing.shouldRefetch(stationId: stationId, currentCoord: coord, currentHaversine: haversine) {
+                    Task {
+                        await routing.fetchRoute(from: coord, to: stationCoord, stationId: stationId, currentHaversine: haversine)
+                    }
+                }
+            }
         }
 
         // State 2: auto-exit check and heartbeat
@@ -211,7 +227,7 @@ class TrainTimeViewModel: ObservableObject {
                 }
 
                 // Heartbeat when behind schedule (effective buffer includes delay)
-                let walkMin = GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
+                let walkMin = lastWalkTime.map { $0 / 60.0 } ?? GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
                 let delay = Double(focused.delay)
                 let effectBuf = minutesLeft - walkMin + delay
                 if effectBuf < -0.5 {
@@ -491,6 +507,7 @@ class TrainTimeViewModel: ObservableObject {
             exitToStationView()
         }
 
+        routing.clearCache()
         status = "Finding stations..."
     }
 
@@ -498,7 +515,7 @@ class TrainTimeViewModel: ObservableObject {
 
     var trackingScheduledBuffer: Double {
         guard let focused = focusedTrain else { return 0 }
-        let walkMin = GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
+        let walkMin = lastWalkTime.map { $0 / 60.0 } ?? GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
         return focused.minutesUntil - walkMin
     }
 

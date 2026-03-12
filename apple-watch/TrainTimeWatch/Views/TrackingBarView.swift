@@ -5,7 +5,7 @@ struct TrackingBarView: View {
     let effectBuf: Double // effective buffer with delay (minutes)
     let hasGPS: Bool
 
-    private let barHeight: CGFloat = 14
+    private let barHeight: CGFloat = 12
     private let scale = Thresholds.barScale // ±3 minutes maps to half bar
 
     var body: some View {

@@ -25,8 +25,14 @@ enum GeoUtils {
     }
 
     /// Format walk info string matching Garmin's display
-    static func formatWalkInfo(distanceMeters: Double) -> String {
-        let walkMin = Int(walkMinutes(distanceMeters: distanceMeters))
+    /// When walkTimeSeconds is provided (from MKDirections), uses that instead of the 83 m/min estimate
+    static func formatWalkInfo(distanceMeters: Double, walkTimeSeconds: Double? = nil) -> String {
+        let walkMin: Int
+        if let walkTime = walkTimeSeconds {
+            walkMin = Int(walkTime / 60.0)
+        } else {
+            walkMin = Int(walkMinutes(distanceMeters: distanceMeters))
+        }
         let timeStr = walkMin < 1 ? "<1 min" : "\(walkMin) min"
         return "\(timeStr) walk - \(Int(distanceMeters))m"
     }

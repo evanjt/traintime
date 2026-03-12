@@ -23,6 +23,7 @@
 		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
 		339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */; };
 		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
+		9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDB27D479A403E916113BF /* RoutingService.swift */; };
 		77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
 		99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA47F80910213243546576F /* ModeIndicatorView.swift */; };
 		BBB580910213243546576F81 /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
@@ -51,6 +52,7 @@
 		228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedDeparture.swift; sourceTree = "<group>"; };
 		44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeViewModel.swift; sourceTree = "<group>"; };
 		66C03B4C5D6E7F8091021324 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		5EFDB27D479A403E916113BF /* RoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingService.swift; sourceTree = "<group>"; };
 		88E25D6E7F80910213243546 /* GPSIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSIndicatorView.swift; sourceTree = "<group>"; };
 		AAA47F80910213243546576F /* ModeIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeIndicatorView.swift; sourceTree = "<group>"; };
 		CCC6910213243546576F8192 /* TrackingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingBarView.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				C443CDA163B84305AC19B8D3 /* LocationService.swift */,
 				57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */,
 				66C03B4C5D6E7F8091021324 /* HapticService.swift */,
+				5EFDB27D479A403E916113BF /* RoutingService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -239,6 +242,7 @@
 				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
 				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
 				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
+				9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */,
 				77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */,
 				99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */,
 				BBB580910213243546576F81 /* TrackingBarView.swift in Sources */,
