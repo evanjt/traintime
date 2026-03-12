@@ -233,6 +233,8 @@ platform :ios do
                 </array>
               </dict>
             </dict>
+            <key>ITSAppUsesNonExemptEncryption</key>
+            <false/>
           </dict>
           </plist>
         PLIST
