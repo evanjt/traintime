@@ -7,21 +7,9 @@ struct DepartureRowView: View {
     var body: some View {
         Button(action: { onTap?() }) {
             HStack(spacing: 4) {
-                // Minutes
-                Text(departure.minutesText)
-                    .font(.system(.body, design: .rounded, weight: .bold))
-                    .foregroundStyle(minutesColor)
-                    .frame(width: 38, alignment: .trailing)
-
-                // Delay
-                if departure.delay > 0 && !departure.isGone {
-                    Text("+\(departure.delay)")
-                        .font(.caption2)
-                        .foregroundStyle(AppColors.delay)
-                        .frame(width: 20, alignment: .leading)
-                } else {
-                    Spacer().frame(width: 20)
-                }
+                // Minutes with delay as superscript
+                minutesWithDelay
+                    .frame(width: 40, alignment: .trailing)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
@@ -44,10 +32,25 @@ struct DepartureRowView: View {
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 4)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var minutesWithDelay: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(departure.minutesText)
+                .font(.system(.callout, design: .rounded, weight: .bold))
+                .foregroundStyle(minutesColor)
+            if departure.delay > 0 && !departure.isGone {
+                Text("+\(departure.delay)")
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppColors.delay)
+                    .baselineOffset(6)
+            }
+        }
     }
 
     private var minutesColor: Color {
