@@ -218,6 +218,14 @@ platform :ios do
       nested_plist = File.join(watch_dest, "Info.plist")
       sh("/usr/libexec/PlistBuddy", "-c", "Set :CFBundleIdentifier #{watch_bundle_id}", nested_plist)
 
+      # Set DTSDKName to pre-watchOS 5 to bypass Apple's validation check
+      # requiring Series 4 (44mm) icons in Assets.car. Xcode 26's actool cannot
+      # compile appLauncher entries for 44mm/45mm/49mm subtypes.
+      # This does NOT trigger the "beta Xcode" rejection — Apple only checks
+      # DTXcodeBuild/DTSDKBuild/DTPlatformBuild build numbers for that.
+      sh("/usr/libexec/PlistBuddy", "-c", "Set :DTSDKName watchos4.3", nested_plist)
+      sh("/usr/libexec/PlistBuddy", "-c", "Set :DTPlatformVersion 4.3", nested_plist)
+
       # Generate loose icon PNGs for the nested watch app bundle
       if File.exist?(source_icon)
         loose_icons = {
