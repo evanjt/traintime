@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy - TrainTime</title>
+    <meta
+      name="description"
+      content="TrainTime privacy policy. No accounts, no tracking, no data collection."
+    />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/png" href="../favicon.png" />
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+      :root {
+        --bg: #000000;
+        --bg-elevated: #0a0a0a;
+        --surface: #141414;
+        --text: #f0f0f0;
+        --text-secondary: #888888;
+        --text-muted: #555555;
+        --green: #00e352;
+        --blue: #5ac8fa;
+        --red: #ff3b30;
+        --swiss-red: #ff0000;
+        --border: #222222;
+        --card: #0e0e0e;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f5f5f0;
+          --bg-elevated: #ffffff;
+          --surface: #ffffff;
+          --text: #111111;
+          --text-secondary: #666666;
+          --text-muted: #999999;
+          --border: #e0e0dc;
+          --card: #ffffff;
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 0 32px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      @media (prefers-color-scheme: light) {
+        nav {
+          background: rgba(245, 245, 240, 0.85);
+        }
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--text);
+      }
+
+      .nav-logo-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .nav-logo-mark img {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .nav-title {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        font-weight: 400;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 28px;
+        align-items: center;
+      }
+
+      .nav-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+
+      main {
+        padding: 120px 0 80px;
+      }
+
+      h1 {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .last-updated {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-bottom: 48px;
+      }
+
+      .highlight-box {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--green);
+        padding: 24px 28px;
+        border-radius: 8px;
+        margin-bottom: 48px;
+      }
+
+      .highlight-box p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.6;
+      }
+
+      h2 {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 400;
+        letter-spacing: 0.06em;
+        color: var(--swiss-red);
+        margin-top: 48px;
+        margin-bottom: 16px;
+      }
+
+      p {
+        margin-bottom: 16px;
+        color: var(--text-secondary);
+        font-size: 15px;
+      }
+
+      ul {
+        margin-bottom: 16px;
+        padding-left: 20px;
+      }
+
+      li {
+        margin-bottom: 10px;
+        color: var(--text-secondary);
+        font-size: 15px;
+      }
+
+      li strong {
+        color: var(--text);
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        padding: 40px 32px;
+        border-top: 1px solid var(--border);
+      }
+
+      .footer-inner {
+        max-width: 720px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .footer-left {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 24px;
+      }
+
+      .footer-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 13px;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        color: var(--text);
+      }
+
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 20px;
+        }
+
+        .container {
+          padding: 0 20px;
+        }
+
+        main {
+          padding: 100px 0 60px;
+        }
+
+        .footer-inner {
+          flex-direction: column;
+          gap: 16px;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-mark"><img src="../icon.png" alt="TrainTime" /></div>
+        <span class="nav-title">TRAINTIME</span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
+      </div>
+    </nav>
+
+    <main>
+      <div class="container">
+        <h1>PRIVACY POLICY</h1>
+        <p class="last-updated">Last updated: 13 March 2026</p>
+
+        <div class="highlight-box">
+          <p>
+            TrainTime does not collect, store, or share any personal data. There are no accounts,
+            no analytics, and no tracking. Everything stays on your watch.
+          </p>
+        </div>
+
+        <h2>LOCATION DATA</h2>
+        <p>
+          TrainTime uses your device's GPS to find nearby stations. Your location is:
+        </p>
+        <ul>
+          <li>Processed entirely on your device to determine nearby stations</li>
+          <li>Sent to the Swiss public transport API as coordinates to search for stations (see Third-Party Services below)</li>
+          <li>Cached locally on your device as a fallback for faster startup</li>
+          <li>Never sent to the developer or any other party</li>
+        </ul>
+
+        <h2>DATA STORED ON YOUR DEVICE</h2>
+        <ul>
+          <li><strong>Last known position</strong> &mdash; cached for faster startup when GPS is unavailable</li>
+          <li><strong>Transport mode preference</strong> &mdash; your last selected mode (train, bus, or tram)</li>
+        </ul>
+        <p>No other data is persisted. Departure information is fetched fresh and held only in memory.</p>
+
+        <h2>THIRD-PARTY SERVICES</h2>
+
+        <p><strong>Swiss Public Transport API</strong> (transport.opendata.ch)</p>
+        <ul>
+          <li>Used to search for nearby stations and fetch departure information</li>
+          <li>Receives your approximate coordinates for station search and station IDs for departures</li>
+          <li>This is a public, open-data API operated under Swiss open data principles</li>
+          <li>See <a href="https://transport.opendata.ch" target="_blank">transport.opendata.ch</a> for details</li>
+        </ul>
+
+        <p>No other third-party services, SDKs, or APIs are used. No analytics, advertising, crash reporting, or tracking of any kind.</p>
+
+        <h2>DATA SHARING</h2>
+        <p>
+          None. The developer has no access to your data. All data flows directly between your
+          device and the Swiss public transport API.
+        </p>
+
+        <h2>CHILDREN'S PRIVACY</h2>
+        <p>
+          TrainTime does not collect data from any user, including children under 13.
+        </p>
+
+        <h2>YOUR RIGHTS</h2>
+        <ul>
+          <li><strong>View your data:</strong> All data is visible within the app</li>
+          <li><strong>Delete your data:</strong> Uninstall the app to remove all locally stored data</li>
+          <li><strong>Revoke location access:</strong> Disable location permission in your device settings at any time</li>
+        </ul>
+
+        <h2>CHANGES</h2>
+        <p>
+          This policy may be updated. Check the "Last updated" date above. Continued use after
+          changes constitutes acceptance.
+        </p>
+
+        <h2>CONTACT</h2>
+        <p>
+          <a href="https://github.com/evanjt/traintime/issues">GitHub Issues</a>
+        </p>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-left">&copy; 2026 Evan Thomas</div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/privacy">Privacy</a>
+          <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
