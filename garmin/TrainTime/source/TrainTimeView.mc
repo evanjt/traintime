@@ -563,14 +563,6 @@ class TrainTimeView extends WatchUi.View {
                 stationText, Graphics.TEXT_JUSTIFY_CENTER);
 
             if (mTrainData != null && mTrainData.size() > 0) {
-                // Separator arc
-                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(1);
-                var arcY = height * 32 / 100;
-                var arcR = width * 2;
-                dc.drawArc(centerX, arcY + arcR, arcR,
-                    Graphics.ARC_COUNTER_CLOCKWISE, 83, 97);
-
                 // Train rows
                 var maxTrains = 4;
                 if (height < 240) {

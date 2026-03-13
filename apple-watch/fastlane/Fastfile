@@ -10,6 +10,19 @@ platform :ios do
         key_content: ENV["ASC_API_KEY"],
         is_key_content_base64: true
       )
+      # Ensure .watchkitapp App ID exists (needed for iOS stub wrapper)
+      watch_id = "com.evanjt.traintime.watchkitapp"
+      Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(**api_key)
+      existing = Spaceship::ConnectAPI::BundleId.find(watch_id)
+      unless existing
+        UI.message("Creating App ID: #{watch_id}")
+        Spaceship::ConnectAPI::BundleId.create(
+          name: "TrainTime WatchKit",
+          identifier: watch_id,
+          platform: "IOS"
+        )
+        UI.success("Created App ID: #{watch_id}")
+      end
       match(type: "appstore", api_key: api_key)
     else
       match(type: "appstore", readonly: true)
@@ -31,7 +44,9 @@ platform :ios do
 
     FileUtils.mkdir_p("artifacts")
 
-    # Archive only — fastlane doesn't support Xcode 26's "release-testing" export method
+    # Archive only — Xcode 26 has no App Store export method for standalone watchOS
+    # (only release-testing/enterprise/debugging are available, none suitable for App Store)
+    # We construct the iOS stub wrapper manually with proper metadata instead
     build_app(
       project: xcodeproj,
       scheme: "TrainTimeWatch",
@@ -48,41 +63,261 @@ platform :ios do
     archive_path = lane_context[SharedValues::XCODEBUILD_ARCHIVE]
     ipa_path = File.expand_path(File.join("artifacts", "traintime.ipa"))
 
-    # Export via xcodebuild directly with "release-testing" method
-    # This is the Xcode 26 equivalent of "app-store" for standalone watchOS apps
-    export_options_path = File.join(project_root, "ExportOptions.plist")
-    File.write(export_options_path, <<~PLIST)
-      <?xml version="1.0" encoding="UTF-8"?>
-      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-      <plist version="1.0">
-      <dict>
-        <key>method</key>
-        <string>release-testing</string>
-        <key>teamID</key>
-        <string>#{ENV["FASTLANE_TEAM_ID"]}</string>
-        <key>signingStyle</key>
-        <string>manual</string>
-        <key>provisioningProfiles</key>
+    watch_app_path = Dir["#{archive_path}/Products/Applications/*.app"].first
+    UI.user_error!("No .app found in archive") unless watch_app_path
+
+    watch_plist = File.join(watch_app_path, "Info.plist")
+    bundle_id = sh("/usr/libexec/PlistBuddy", "-c", "Print :CFBundleIdentifier", watch_plist).strip
+    bundle_version = sh("/usr/libexec/PlistBuddy", "-c", "Print :CFBundleVersion", watch_plist).strip
+    short_version = sh("/usr/libexec/PlistBuddy", "-c", "Print :CFBundleShortVersionString", watch_plist).strip
+    app_name = File.basename(watch_app_path, ".app")
+    team_id = ENV["FASTLANE_TEAM_ID"]
+    watch_bundle_id = "#{bundle_id}.watchkitapp"
+
+    # Query Xcode/SDK metadata for DT* keys (required for App Store acceptance)
+    sdk_version = sh("xcrun", "--sdk", "iphoneos", "--show-sdk-version").strip
+    sdk_build = sh("xcrun", "--sdk", "iphoneos", "--show-sdk-build-version").strip
+    xcode_build = sh("defaults", "read",
+      "#{sh("xcode-select", "-p").strip}/../Info.plist", "DTXcodeBuild").strip
+    xcode_version_raw = sh("defaults", "read",
+      "#{sh("xcode-select", "-p").strip}/../Info.plist", "CFBundleShortVersionString").strip
+    # DTXcode format: MMmm (e.g., "26.3" -> "2630", "26.3.1" -> "2631")
+    xcode_parts = xcode_version_raw.split(".")
+    dt_xcode = format("%d%d%s", xcode_parts[0].to_i, xcode_parts[1].to_i,
+      xcode_parts[2] ? xcode_parts[2] : "0")
+    build_machine_os = sh("sw_vers", "-buildVersion").strip
+
+    Dir.mktmpdir do |tmpdir|
+      ios_app_dir = File.join(tmpdir, "Payload", "#{app_name}.app")
+      FileUtils.mkdir_p(ios_app_dir)
+
+      # 1. Compile minimal iOS stub binary
+      stub_src = File.join(tmpdir, "stub.c")
+      File.write(stub_src, "int main(void) { return 0; }\n")
+      sdk_path = sh("xcrun", "--sdk", "iphoneos", "--show-sdk-path").strip
+      sh("xcrun", "clang",
+         "-target", "arm64-apple-ios16.0",
+         "-isysroot", sdk_path,
+         stub_src, "-o", File.join(ios_app_dir, app_name))
+
+      # 2. Generate iOS stub icons from project source
+      source_icon = File.join(project_root, "TrainTimeWatch", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-1024.png")
+      if File.exist?(source_icon)
+        sh("sips", "-z", "120", "120", source_icon, "--out", File.join(ios_app_dir, "AppIcon60x60@2x.png"))
+        sh("sips", "-z", "180", "180", source_icon, "--out", File.join(ios_app_dir, "AppIcon60x60@3x.png"))
+
+        ios_icon_dir = File.join(tmpdir, "ios_icon_assets", "Assets.xcassets", "AppIcon.appiconset")
+        FileUtils.mkdir_p(ios_icon_dir)
+        FileUtils.cp(source_icon, File.join(ios_icon_dir, "AppIcon1024x1024.png"))
+        sh("sips", "-z", "120", "120", source_icon, "--out", File.join(ios_icon_dir, "AppIcon60x60@2x.png"))
+        sh("sips", "-z", "180", "180", source_icon, "--out", File.join(ios_icon_dir, "AppIcon60x60@3x.png"))
+        File.write(File.join(ios_icon_dir, "Contents.json"), <<~CJSON)
+          {"images":[
+            {"filename":"AppIcon60x60@2x.png","idiom":"iphone","scale":"2x","size":"60x60"},
+            {"filename":"AppIcon60x60@3x.png","idiom":"iphone","scale":"3x","size":"60x60"},
+            {"filename":"AppIcon1024x1024.png","idiom":"ios-marketing","scale":"1x","size":"1024x1024"}
+          ],"info":{"author":"xcode","version":1}}
+        CJSON
+
+        ios_actool_out = File.join(tmpdir, "ios_actool_out")
+        FileUtils.mkdir_p(ios_actool_out)
+        sh("xcrun", "actool", "--compile", ios_actool_out,
+           "--platform", "iphoneos",
+           "--minimum-deployment-target", "16.0",
+           "--app-icon", "AppIcon",
+           "--output-partial-info-plist", File.join(tmpdir, "ios_partial.plist"),
+           File.join(tmpdir, "ios_icon_assets", "Assets.xcassets"))
+
+        ios_car = File.join(ios_actool_out, "Assets.car")
+        FileUtils.cp(ios_car, File.join(ios_app_dir, "Assets.car")) if File.exist?(ios_car)
+      end
+
+      # 3. Create iOS stub Info.plist with proper DT* metadata
+      File.write(File.join(ios_app_dir, "Info.plist"), <<~PLIST)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
         <dict>
-          <key>com.evanjt.traintime</key>
-          <string>match AppStore com.evanjt.traintime</string>
+          <key>CFBundleIdentifier</key>
+          <string>#{bundle_id}</string>
+          <key>CFBundleExecutable</key>
+          <string>#{app_name}</string>
+          <key>CFBundleName</key>
+          <string>#{app_name}</string>
+          <key>CFBundleVersion</key>
+          <string>#{bundle_version}</string>
+          <key>CFBundleShortVersionString</key>
+          <string>#{short_version}</string>
+          <key>CFBundleInfoDictionaryVersion</key>
+          <string>6.0</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleSupportedPlatforms</key>
+          <array>
+            <string>iPhoneOS</string>
+          </array>
+          <key>UIDeviceFamily</key>
+          <array>
+            <integer>1</integer>
+          </array>
+          <key>MinimumOSVersion</key>
+          <string>16.0</string>
+          <key>LSRequiresIPhoneOS</key>
+          <true/>
+          <key>LSApplicationLaunchProhibited</key>
+          <true/>
+          <key>ITSWatchOnlyContainer</key>
+          <true/>
+          <key>WKWatchOnly</key>
+          <true/>
+          <key>UIRequiredDeviceCapabilities</key>
+          <array>
+            <string>arm64</string>
+          </array>
+          <key>CFBundleIconName</key>
+          <string>AppIcon</string>
+          <key>CFBundleIcons</key>
+          <dict>
+            <key>CFBundlePrimaryIcon</key>
+            <dict>
+              <key>CFBundleIconFiles</key>
+              <array>
+                <string>AppIcon60x60</string>
+              </array>
+            </dict>
+          </dict>
+          <key>ITSAppUsesNonExemptEncryption</key>
+          <false/>
+          <key>DTPlatformName</key>
+          <string>iphoneos</string>
+          <key>DTSDKName</key>
+          <string>iphoneos#{sdk_version}</string>
+          <key>DTPlatformVersion</key>
+          <string>#{sdk_version}</string>
+          <key>DTXcode</key>
+          <string>#{dt_xcode}</string>
+          <key>DTXcodeBuild</key>
+          <string>#{xcode_build}</string>
+          <key>DTSDKBuild</key>
+          <string>#{sdk_build}</string>
+          <key>DTPlatformBuild</key>
+          <string>#{sdk_build}</string>
+          <key>DTCompiler</key>
+          <string>com.apple.compilers.llvm.clang.1_0</string>
+          <key>BuildMachineOSBuild</key>
+          <string>#{build_machine_os}</string>
         </dict>
-        <key>manageAppVersionAndBuildNumber</key>
-        <false/>
-      </dict>
-      </plist>
-    PLIST
+        </plist>
+      PLIST
 
-    export_dir = File.join(project_root, "export_output")
-    sh("xcodebuild", "-exportArchive",
-       "-archivePath", archive_path,
-       "-exportOptionsPlist", export_options_path,
-       "-exportPath", export_dir)
+      # 4. Copy watchOS app into Watch/, change bundle ID to extend the stub's
+      watch_dest = File.join(ios_app_dir, "Watch", "#{app_name}.app")
+      FileUtils.mkdir_p(File.dirname(watch_dest))
+      FileUtils.cp_r(watch_app_path, watch_dest)
 
-    exported_ipa = Dir["#{export_dir}/*.ipa"].first
-    UI.user_error!("No IPA found in export output") unless exported_ipa
+      nested_plist = File.join(watch_dest, "Info.plist")
+      sh("/usr/libexec/PlistBuddy", "-c", "Set :CFBundleIdentifier #{watch_bundle_id}", nested_plist)
 
-    FileUtils.cp(exported_ipa, ipa_path)
+      # Generate loose icon PNGs for the nested watch app bundle
+      if File.exist?(source_icon)
+        loose_icons = {
+          "AppIcon24x24@2x.png" => 48, "AppIcon27.5x27.5@2x.png" => 55,
+          "AppIcon29x29@2x.png" => 58, "AppIcon29x29@3x.png" => 87,
+          "AppIcon33x33@2x.png" => 66, "AppIcon40x40@2x.png" => 80,
+          "AppIcon44x44@2x.png" => 88, "AppIcon46x46@2x.png" => 92,
+          "AppIcon50x50@2x.png" => 100, "AppIcon51x51@2x.png" => 102,
+          "AppIcon86x86@2x.png" => 172, "AppIcon98x98@2x.png" => 196,
+          "AppIcon108x108@2x.png" => 216, "AppIcon117x117@2x.png" => 234,
+          "AppIcon129x129@2x.png" => 258, "AppIcon1024x1024.png" => 1024
+        }
+        loose_icons.each do |name, px|
+          sh("sips", "-z", px.to_s, px.to_s, source_icon, "--out", File.join(watch_dest, name))
+        end
+      end
+
+      # Icon plist entries for watchOS
+      sh("/usr/libexec/PlistBuddy", "-c", "Delete :CFBundleIconName", nested_plist) rescue nil
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIconName string AppIcon", nested_plist)
+      sh("/usr/libexec/PlistBuddy", "-c", "Delete :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles", nested_plist) rescue nil
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles array", nested_plist)
+      %w[AppIcon24x24 AppIcon27.5x27.5 AppIcon29x29 AppIcon33x33 AppIcon40x40
+         AppIcon44x44 AppIcon46x46 AppIcon50x50 AppIcon51x51
+         AppIcon86x86 AppIcon98x98 AppIcon108x108 AppIcon117x117 AppIcon129x129].each_with_index do |name, i|
+        sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:#{i} string #{name}", nested_plist)
+      end
+
+      # 5. Embed provisioning profiles
+      profile_dirs = [
+        File.expand_path("~/Library/MobileDevice/Provisioning Profiles"),
+        File.expand_path("~/Library/Developer/Xcode/UserData/Provisioning Profiles")
+      ]
+      all_profiles = profile_dirs.flat_map { |d| Dir["#{d}/*.mobileprovision"] }
+
+      stub_profile = all_profiles.find do |p|
+        content = sh("security", "cms", "-D", "-i", p, log: false) rescue ""
+        content.include?(bundle_id) && !content.include?(watch_bundle_id)
+      end
+      if stub_profile
+        FileUtils.cp(stub_profile, File.join(ios_app_dir, "embedded.mobileprovision"))
+      else
+        UI.important("No matching provisioning profile found for #{bundle_id}")
+      end
+
+      watch_app_profile = all_profiles.find do |p|
+        content = sh("security", "cms", "-D", "-i", p, log: false) rescue ""
+        content.include?(watch_bundle_id)
+      end
+      if watch_app_profile
+        FileUtils.cp(watch_app_profile, File.join(watch_dest, "embedded.mobileprovision"))
+      else
+        UI.important("No matching provisioning profile found for #{watch_bundle_id}")
+      end
+
+      # 6. Re-sign watch app
+      watch_entitlements = File.join(tmpdir, "watch_entitlements.plist")
+      File.write(watch_entitlements, <<~PLIST)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>application-identifier</key>
+          <string>#{team_id}.#{watch_bundle_id}</string>
+          <key>com.apple.developer.team-identifier</key>
+          <string>#{team_id}</string>
+        </dict>
+        </plist>
+      PLIST
+
+      sh("codesign", "--force", "--sign", "Apple Distribution",
+         "--entitlements", watch_entitlements,
+         "--timestamp=none",
+         watch_dest)
+
+      # 7. Sign iOS stub
+      entitlements_path = File.join(tmpdir, "entitlements.plist")
+      File.write(entitlements_path, <<~PLIST)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>application-identifier</key>
+          <string>#{team_id}.#{bundle_id}</string>
+          <key>com.apple.developer.team-identifier</key>
+          <string>#{team_id}</string>
+        </dict>
+        </plist>
+      PLIST
+
+      sh("codesign", "--force", "--sign", "Apple Distribution",
+         "--entitlements", entitlements_path,
+         "--timestamp=none",
+         ios_app_dir)
+
+      # 8. Package IPA
+      sh("bash", "-c", "cd '#{tmpdir}' && zip -r -q '#{ipa_path}' Payload")
+    end
+
+    UI.user_error!("IPA not created at #{ipa_path}") unless File.exist?(ipa_path)
     UI.success("Created IPA: #{ipa_path} (#{File.size(ipa_path)} bytes)")
   end
 
