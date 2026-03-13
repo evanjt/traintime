@@ -6,10 +6,25 @@ struct DepartureRowView: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            HStack(spacing: 4) {
-                // Minutes with delay as superscript
-                minutesWithDelay
-                    .frame(width: 52, alignment: .trailing)
+            HStack(spacing: 0) {
+                // Minutes (fixed width, right-aligned)
+                Text(departure.minutesText)
+                    .font(.system(.callout, design: .rounded, weight: .bold))
+                    .foregroundStyle(minutesColor)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .frame(width: 32, alignment: .trailing)
+
+                // Delay superscript (fixed width, left-aligned)
+                Group {
+                    if departure.delay > 0 && !departure.isGone {
+                        Text("+\(departure.delay)")
+                            .font(.system(size: 9, weight: .medium, design: .rounded))
+                            .foregroundStyle(AppColors.delay)
+                            .baselineOffset(6)
+                    }
+                }
+                .frame(width: 18, alignment: .leading)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
@@ -36,21 +51,6 @@ struct DepartureRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var minutesWithDelay: some View {
-        Text(departure.minutesText)
-            .font(.system(.callout, design: .rounded, weight: .bold))
-            .foregroundStyle(minutesColor)
-            .overlay(alignment: .topTrailing) {
-                if departure.delay > 0 && !departure.isGone {
-                    Text("+\(departure.delay)")
-                        .font(.system(size: 9, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppColors.delay)
-                        .offset(x: 16, y: -2)
-                }
-            }
     }
 
     private var minutesColor: Color {
