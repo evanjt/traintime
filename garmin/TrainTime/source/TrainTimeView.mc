@@ -44,6 +44,7 @@ class TrainTimeView extends WatchUi.View {
     private var mConsecutiveErrors;
     private var mLastVibeTick;
     private var mMaxVisibleTrains;
+    private var mScrollOffset;  // first visible row index for scrolling in State 1
     private var mMapActive;  // true when MapTrackView is pushed
 
     function initialize() {
@@ -79,6 +80,7 @@ class TrainTimeView extends WatchUi.View {
         mConsecutiveErrors = 0;
         mLastVibeTick = 0;
         mMaxVisibleTrains = 4;
+        mScrollOffset = 0;
         mMapActive = false;
     }
 
@@ -156,6 +158,7 @@ class TrainTimeView extends WatchUi.View {
         mLastWalkDist = null;
         mAppState = 0;
         mCursorIndex = 0;
+        mScrollOffset = 0;
         mFocusedTrain = null;
     }
 
@@ -198,8 +201,8 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 1;
         mCursorIndex = 0;
+        mScrollOffset = 0;
         var limit = mTrainData.size();
-        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
         for (var i = 0; i < limit; i++) {
             if (mTrainData[i]["min"] >= 0) {
                 mCursorIndex = i;
@@ -211,25 +214,38 @@ class TrainTimeView extends WatchUi.View {
 
     function moveCursorDown() {
         if (mTrainData == null || mTrainData.size() == 0) { return; }
-        var limit = mTrainData.size();
-        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
-        mCursorIndex = (mCursorIndex + 1) % limit;
+        var total = mTrainData.size();
+        mCursorIndex = (mCursorIndex + 1) % total;
+        // Scroll down if cursor goes past visible window
+        if (mCursorIndex >= mScrollOffset + mMaxVisibleTrains) {
+            mScrollOffset = mCursorIndex - mMaxVisibleTrains + 1;
+        }
+        // Wrap to top
+        if (mCursorIndex < mScrollOffset) {
+            mScrollOffset = 0;
+        }
         WatchUi.requestUpdate();
     }
 
     function moveCursorUp() {
         if (mTrainData == null || mTrainData.size() == 0) { return; }
-        var limit = mTrainData.size();
-        if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
+        var total = mTrainData.size();
         mCursorIndex = mCursorIndex - 1;
         if (mCursorIndex < 0) {
-            mCursorIndex = limit - 1;
+            mCursorIndex = total - 1;
+            // Scroll to show last items
+            mScrollOffset = total - mMaxVisibleTrains;
+            if (mScrollOffset < 0) { mScrollOffset = 0; }
+        }
+        // Scroll up if cursor goes above visible window
+        if (mCursorIndex < mScrollOffset) {
+            mScrollOffset = mCursorIndex;
         }
         WatchUi.requestUpdate();
     }
 
     function confirmTrainSelection() {
-        if (mTrainData == null || mCursorIndex >= mTrainData.size() || mCursorIndex >= mMaxVisibleTrains) { return; }
+        if (mTrainData == null || mCursorIndex >= mTrainData.size()) { return; }
         var t = mTrainData[mCursorIndex];
         mFocusedTrain = {
             "dest" => t["dest"],
@@ -258,6 +274,7 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 0;
         mCursorIndex = 0;
+        mScrollOffset = 0;
         mFocusedTrain = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
@@ -563,14 +580,16 @@ class TrainTimeView extends WatchUi.View {
                 var startY = height * 36 / 100;
                 var rowSpacing = height * 14 / 100;
 
-                var count = mTrainData.size();
-                if (count > maxTrains) {
-                    count = maxTrains;
+                var startIdx = (mAppState == 1) ? mScrollOffset : 0;
+                var endIdx = mTrainData.size();
+                if (endIdx > startIdx + maxTrains) {
+                    endIdx = startIdx + maxTrains;
                 }
-                for (var i = 0; i < count; i++) {
+                for (var i = startIdx; i < endIdx; i++) {
+                    var row = i - startIdx;
                     var highlighted = (mAppState == 1 && i == mCursorIndex);
                     drawTrainRow(dc, mTrainData[i],
-                        startY + i * rowSpacing, width, height, highlighted);
+                        startY + row * rowSpacing, width, height, highlighted);
                 }
             } else if (mTrainData != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -619,6 +638,7 @@ class TrainTimeView extends WatchUi.View {
         var platform = train["plat"];
         var platformChanged = train["platChg"];
         var destination = train["dest"];
+        var lineNumber = train["line"];
         var isGone = (minutesUntil < 0);
 
         // Vertical alignment: FONT_TINY for minutes, FONT_XTINY for rest
@@ -673,8 +693,12 @@ class TrainTimeView extends WatchUi.View {
                 "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
-        // Platform column (FONT_XTINY)
-        if (platform.length() > 0) {
+        // Line number (bus/tram) or Platform column (FONT_XTINY)
+        if (lineNumber != null && lineNumber.length() > 0) {
+            dc.setColor(isGone ? 0x666666 : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
+                lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
+        } else if (platform.length() > 0) {
             var platText = "P" + platform;
             if (isGone) {
                 dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
@@ -1376,6 +1400,7 @@ class TrainTimeView extends WatchUi.View {
         var url = "https://transport.opendata.ch/v1/stationboard"
             + "?fields[]=stationboard/to"
             + "&fields[]=stationboard/category"
+            + "&fields[]=stationboard/number"
             + "&fields[]=stationboard/stop/departureTimestamp"
             + "&fields[]=stationboard/stop/delay"
             + "&fields[]=stationboard/stop/platform"
@@ -1386,7 +1411,7 @@ class TrainTimeView extends WatchUi.View {
             :headers => {}
         };
 
-        Communications.makeWebRequest(url, {"id" => stationId, "limit" => "5"}, params, method(:onTrainDataReceived));
+        Communications.makeWebRequest(url, {"id" => stationId, "limit" => "10"}, params, method(:onTrainDataReceived));
     }
 
     function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
@@ -1399,9 +1424,16 @@ class TrainTimeView extends WatchUi.View {
             var departures = data["stationboard"];
             var nowSeconds = Time.now().value();
 
-            for (var i = 0; i < departures.size() && i < 5; i++) {
+            for (var i = 0; i < departures.size() && i < 10; i++) {
                 var departure = departures[i];
                 var destination = (departure.hasKey("to") && departure["to"] != null) ? departure["to"] : "?";
+                // Line number for bus/tram modes
+                var category = (departure.hasKey("category") && departure["category"] != null) ? departure["category"] : "";
+                var number = (departure.hasKey("number") && departure["number"] != null) ? departure["number"] : "";
+                var lineNumber = "";
+                if (category.equals("B") || category.equals("T") || category.equals("NFB") || category.equals("NFT") || category.equals("M")) {
+                    lineNumber = number;
+                }
                 // Platform: prefer prognosis (changed platform) over scheduled
                 var platform = "";
                 var platformChanged = false;
@@ -1448,7 +1480,8 @@ class TrainTimeView extends WatchUi.View {
                     "delay" => delay,
                     "plat" => platform,
                     "platChg" => platformChanged,
-                    "dest" => destination
+                    "dest" => destination,
+                    "line" => lineNumber
                 });
             }
 
@@ -1458,12 +1491,16 @@ class TrainTimeView extends WatchUi.View {
 
             // Clamp cursor in selection mode
             if (mAppState == 1) {
-                var limit = mTrainData.size();
-                if (limit > mMaxVisibleTrains) { limit = mMaxVisibleTrains; }
-                if (limit == 0) {
+                var total = mTrainData.size();
+                if (total == 0) {
                     exitToStationView();
-                } else if (mCursorIndex >= limit) {
-                    mCursorIndex = limit - 1;
+                } else if (mCursorIndex >= total) {
+                    mCursorIndex = total - 1;
+                }
+                // Clamp scroll offset
+                if (mScrollOffset > total - mMaxVisibleTrains) {
+                    mScrollOffset = total - mMaxVisibleTrains;
+                    if (mScrollOffset < 0) { mScrollOffset = 0; }
                 }
             }
 
