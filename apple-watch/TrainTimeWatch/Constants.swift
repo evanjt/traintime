@@ -57,7 +57,7 @@ enum Thresholds {
     static let walkSpeed = 83.0 // meters per minute
     static let barScale = 3.0 // minutes mapped to half bar width
     static let maxStationsPerMode = 5
-    static let maxDepartures = 5
+    static let maxDepartures = 10
     static let fallbackSearchRadius = 5000.0 // meters
     static let consecutiveErrorLimit = 3
 }
