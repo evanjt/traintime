@@ -6,17 +6,14 @@ struct DepartureRowView: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            HStack(spacing: 0) {
-                // Minutes (fixed width, right-aligned)
-                Text(departure.minutesText)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
-                    .foregroundStyle(minutesColor)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .frame(width: 32, alignment: .trailing)
-
-                // Delay superscript (fixed width, left-aligned)
-                Group {
+            HStack(spacing: 2) {
+                // Minutes + delay (fixed width)
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    Spacer(minLength: 0)
+                    Text(departure.minutesText)
+                        .font(.system(.callout, design: .rounded, weight: .bold))
+                        .foregroundStyle(minutesColor)
+                        .lineLimit(1)
                     if departure.delay > 0 && !departure.isGone {
                         Text("+\(departure.delay)")
                             .font(.system(size: 9, weight: .medium, design: .rounded))
@@ -24,7 +21,7 @@ struct DepartureRowView: View {
                             .baselineOffset(6)
                     }
                 }
-                .frame(width: 18, alignment: .leading)
+                .frame(width: 46)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
