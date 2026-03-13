@@ -9,159 +9,92 @@ enum TrainAPIError: Error {
 }
 
 struct TrainAPIService {
-    private static let baseURL = "https://transport.opendata.ch/v1"
+    private static let baseURL = "https://api.traintime.ch"
+    private static let apiKey = "***REDACTED***"
 
     // MARK: - Station Search by Coordinates
 
-    /// Two-phase station discovery: coordinate search, then name fallback for trains
     static func fetchStations(
         lat: Double, lon: Double
     ) async throws -> (train: [Station], bus: [Station], tram: [Station], special: [Station]) {
-        let userCoord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-
-        // Phase 1: coordinate search
-        let urlString = "\(baseURL)/locations?x=\(lat)&y=\(lon)&type=station"
-        let allStations = try await fetchStationList(urlString: urlString, userCoord: userCoord)
-
-        var trainStations: [Station] = []
-        var busStations: [Station] = []
-        var tramStations: [Station] = []
-
-        for station in allStations {
-            switch station.mode {
-            case .train:
-                if trainStations.count < Thresholds.maxStationsPerMode {
-                    trainStations.append(station)
-                }
-            case .bus:
-                if busStations.count < Thresholds.maxStationsPerMode {
-                    busStations.append(station)
-                }
-            case .tram:
-                if tramStations.count < Thresholds.maxStationsPerMode {
-                    tramStations.append(station)
-                }
-            case .special:
-                break
-            }
-        }
-
-        // Phase 2: name fallback if no train stations found
-        if trainStations.isEmpty, let firstBus = (busStations.first ?? tramStations.first) {
-            if let cityName = extractCityName(from: firstBus.name) {
-                let fallbackTrains = try await fetchTrainStationsByName(
-                    city: cityName, userCoord: userCoord
-                )
-                trainStations = fallbackTrains
-            }
-        }
-
-        return (trainStations, busStations, tramStations, [])
-    }
-
-    // MARK: - Station Search by Name (Fallback)
-
-    private static func fetchTrainStationsByName(
-        city: String, userCoord: CLLocationCoordinate2D
-    ) async throws -> [Station] {
-        let encoded = city.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? city
-        let urlString = "\(baseURL)/locations?query=\(encoded)&type=station"
-        let stations = try await fetchStationList(urlString: urlString, userCoord: userCoord)
-
-        return stations.filter { station in
-            // Exclude bus and tram
-            guard station.mode == .train else { return false }
-            // Must be within 5km
-            guard let coord = station.coordinate else { return false }
-            let dist = GeoUtils.haversineDistance(from: userCoord, to: coord)
-            return dist <= Thresholds.fallbackSearchRadius
-        }.prefix(Thresholds.maxStationsPerMode).map { $0 }
-    }
-
-    // MARK: - Shared Station Fetch
-
-    private static func fetchStationList(
-        urlString: String, userCoord: CLLocationCoordinate2D?
-    ) async throws -> [Station] {
+        let urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)"
         guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
         let (data, response) = try await makeRequest(url: url)
         try checkHTTPResponse(response)
 
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let stationArray = json?["stations"] as? [[String: Any]] else {
-            return []
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+
+        let trainStations = parseStationGroup(json["train"], mode: .train)
+        let busStations = parseStationGroup(json["bus"], mode: .bus)
+        let tramStations = parseStationGroup(json["tram"], mode: .tram)
+        let specialStations = parseStationGroup(json["special"], mode: .special)
+
+        // Name fallback: if no train stations, search by city name
+        if trainStations.isEmpty, let firstBus = (busStations.first ?? tramStations.first) {
+            if let cityName = extractCityName(from: firstBus.name) {
+                let fallbackTrains = try await fetchTrainStationsByName(
+                    city: cityName, lat: lat, lon: lon
+                )
+                return (fallbackTrains, busStations, tramStations, specialStations)
+            }
         }
 
-        return stationArray.compactMap { Station.from(json: $0, userCoord: userCoord) }
+        return (trainStations, busStations, tramStations, specialStations)
+    }
+
+    // MARK: - Station Search by Name (Fallback)
+
+    private static func fetchTrainStationsByName(
+        city: String, lat: Double, lon: Double
+    ) async throws -> [Station] {
+        let encoded = city.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? city
+        let urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)&query=\(encoded)"
+        guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
+
+        let (data, response) = try await makeRequest(url: url)
+        try checkHTTPResponse(response)
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return parseStationGroup(json["train"], mode: .train)
     }
 
     // MARK: - Departures
 
     static func fetchDepartures(stationId: String) async throws -> [Departure] {
         let encoded = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
-        let urlString = "\(baseURL)/stationboard"
-            + "?id=\(encoded)"
-            + "&limit=\(Thresholds.maxDepartures)"
-            + "&fields[]=stationboard/to"
-            + "&fields[]=stationboard/category"
-            + "&fields[]=stationboard/number"
-            + "&fields[]=stationboard/stop/departureTimestamp"
-            + "&fields[]=stationboard/stop/delay"
-            + "&fields[]=stationboard/stop/platform"
-            + "&fields[]=stationboard/stop/prognosis/platform"
-
+        let urlString = "\(baseURL)/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
         guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
         let (data, response) = try await makeRequest(url: url)
         try checkHTTPResponse(response)
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let stationboard = json?["stationboard"] as? [[String: Any]] else {
+        guard let departureArray = json?["departures"] as? [[String: Any]] else {
             return []
         }
 
         let now = Int(Date().timeIntervalSince1970)
         var departures: [Departure] = []
 
-        for entry in stationboard.prefix(Thresholds.maxDepartures) {
+        for entry in departureArray.prefix(Thresholds.maxDepartures) {
             let destination = entry["to"] as? String ?? "?"
             let category = entry["category"] as? String ?? ""
             let number = entry["number"] as? String ?? ""
             let lineNumber = (category == "B" || category == "T" || category == "NFB" || category == "NFT" || category == "M") ? number : ""
-            let stop = entry["stop"] as? [String: Any] ?? [:]
 
-            // Platform logic: prognosis overrides scheduled
-            var platform = ""
-            var platformChanged = false
-            let prognosis = stop["prognosis"] as? [String: Any]
-            let progPlatform = prognosis?["platform"] as? String
-            let schedPlatform: String? = {
-                if let s = stop["platform"] as? String { return s }
-                if let n = stop["platform"] as? Int { return String(n) }
-                return nil
-            }()
+            let platform = entry["platform"] as? String ?? ""
+            let platformChanged = entry["platformChanged"] as? Bool ?? false
 
-            if let prog = progPlatform {
-                platform = prog
-                if let sched = schedPlatform, sched != prog {
-                    platformChanged = true
-                }
-            } else if let sched = schedPlatform {
-                platform = sched
-            }
-
-            // Departure timestamp and minutes
             var minutesUntil = -1
             var depTimestamp: Int?
-            if let depTs = stop["departureTimestamp"] as? Int {
+            if let depTs = entry["departure"] as? Int {
                 depTimestamp = depTs
                 minutesUntil = (depTs - now) / 60
             }
 
-            // Delay
             var delay = 0
-            if let rawDelay = stop["delay"] as? Int, rawDelay > 0 {
+            if let rawDelay = entry["delay"] as? Int, rawDelay > 0 {
                 delay = rawDelay
             }
 
@@ -191,9 +124,16 @@ struct TrainAPIService {
         return name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name
     }
 
+    private static func parseStationGroup(_ raw: Any?, mode: TransportMode) -> [Station] {
+        guard let array = raw as? [[String: Any]] else { return [] }
+        return array.compactMap { Station.from(json: $0, mode: mode) }
+    }
+
     private static func makeRequest(url: URL) async throws -> (Data, URLResponse) {
+        var request = URLRequest(url: url)
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         do {
-            return try await URLSession.shared.data(from: url)
+            return try await URLSession.shared.data(for: request)
         } catch {
             throw TrainAPIError.networkError
         }

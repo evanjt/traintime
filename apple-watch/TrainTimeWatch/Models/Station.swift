@@ -6,7 +6,7 @@ struct Station: Identifiable {
     let name: String?
     let lat: Double?
     let lon: Double?
-    let icon: String?
+    let mode: TransportMode
     var dist: Double?
 
     var coordinate: CLLocationCoordinate2D? {
@@ -14,38 +14,17 @@ struct Station: Identifiable {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    var mode: TransportMode {
-        TransportMode.from(icon: icon)
-    }
-
-    /// Parse a station entry from transport.opendata.ch locations response
-    static func from(json: [String: Any], userCoord: CLLocationCoordinate2D?) -> Station? {
+    /// Parse a station entry from the worker API grouped response
+    static func from(json: [String: Any], mode: TransportMode) -> Station? {
         let id = json["id"] as? String
         guard id != nil else { return nil }
 
         let name = json["name"] as? String
-        let icon = json["icon"] as? String
+        let lat = json["lat"] as? Double
+        let lon = json["lon"] as? Double
+        let dist = json["dist"] as? Double
 
-        var lat: Double?
-        var lon: Double?
-        if let coordinate = json["coordinate"] as? [String: Any] {
-            // API uses x=lat, y=lon
-            lat = coordinate["x"] as? Double
-            lon = coordinate["y"] as? Double
-        }
-
-        var dist: Double?
-        // Use distance from API if available
-        if let apiDist = json["distance"] as? Double {
-            dist = apiDist
-        } else if let userCoord = userCoord, let lat = lat, let lon = lon {
-            dist = GeoUtils.haversineDistance(
-                from: userCoord,
-                to: CLLocationCoordinate2D(latitude: lat, longitude: lon)
-            )
-        }
-
-        return Station(id: id, name: name, lat: lat, lon: lon, icon: icon, dist: dist)
+        return Station(id: id, name: name, lat: lat, lon: lon, mode: mode, dist: dist)
     }
 
     func walkInfo(index: Int, total: Int) -> String {
