@@ -12,6 +12,10 @@
 developer_key
 *.der
 
+# Secrets (API keys — copy from .example and fill in your key)
+apple-watch/TrainTimeWatch/Secrets.swift
+garmin/TrainTime/source/Secrets.mc
+
 # Python
 __pycache__/
 *.pyc

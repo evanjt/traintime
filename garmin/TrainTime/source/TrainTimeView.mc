@@ -1206,7 +1206,7 @@ class TrainTimeView extends WatchUi.View {
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => "***REDACTED***" }
+            :headers => { "X-API-Key" => Secrets.API_KEY }
         };
 
         Communications.makeWebRequest(url, null, params, method(:onStationsReceived));
@@ -1319,7 +1319,7 @@ class TrainTimeView extends WatchUi.View {
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => "***REDACTED***" }
+            :headers => { "X-API-Key" => Secrets.API_KEY }
         };
 
         Communications.makeWebRequest(url, null, params, method(:onTrainStationsReceived));
@@ -1365,7 +1365,7 @@ class TrainTimeView extends WatchUi.View {
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => "***REDACTED***" }
+            :headers => { "X-API-Key" => Secrets.API_KEY }
         };
 
         Communications.makeWebRequest(url, null, params, method(:onTrainDataReceived));

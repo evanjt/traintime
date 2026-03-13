@@ -31,6 +31,7 @@
 		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
 		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
 		444DG8920314253647586B92 /* StationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555EH0A31425364758697CA3 /* StationPickerView.swift */; };
+		A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
 		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 		555EH0A31425364758697CA3 /* StationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPickerView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F678901234567890 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 				2D9FC67E77924B2C8818045F /* TrainTimeWatchApp.swift */,
 				1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */,
 				126C5CC247C946DFB19AA5E7 /* Constants.swift */,
+				B2C3D4E5F678901234567890 /* Secrets.swift */,
 				7834B36382C34E0F950EE05C /* Models */,
 				0648EB2063FE4F54BBABEB55 /* Services */,
 				20B448FDFE5E46FE9295B3F1 /* Views */,
@@ -250,6 +253,7 @@
 				FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */,
 				222BE6576F81920314253647 /* MapView.swift in Sources */,
 				444DG8920314253647586B92 /* StationPickerView.swift in Sources */,
+				A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
