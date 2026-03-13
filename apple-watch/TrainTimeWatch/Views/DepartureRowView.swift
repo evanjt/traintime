@@ -6,29 +6,32 @@ struct DepartureRowView: View {
 
     var body: some View {
         Button(action: { onTap?() }) {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 // Minutes
                 Text(departure.minutesText)
                     .font(.system(.body, design: .rounded, weight: .bold))
                     .foregroundStyle(minutesColor)
-                    .frame(width: 42, alignment: .trailing)
+                    .frame(width: 38, alignment: .trailing)
 
                 // Delay
                 if departure.delay > 0 && !departure.isGone {
                     Text("+\(departure.delay)")
                         .font(.caption2)
                         .foregroundStyle(AppColors.delay)
-                        .frame(width: 22, alignment: .leading)
+                        .frame(width: 20, alignment: .leading)
                 } else {
-                    Spacer().frame(width: 22)
+                    Spacer().frame(width: 20)
                 }
 
-                // Platform
-                if !departure.platform.isEmpty {
+                // Line number (bus/tram) or Platform
+                if !departure.lineNumber.isEmpty {
+                    lineBadge
+                        .frame(width: 28, alignment: .leading)
+                } else if !departure.platform.isEmpty {
                     platformBadge
-                        .frame(width: 30, alignment: .leading)
+                        .frame(width: 28, alignment: .leading)
                 } else {
-                    Spacer().frame(width: 30)
+                    Spacer().frame(width: 28)
                 }
 
                 // Destination
@@ -51,6 +54,13 @@ struct DepartureRowView: View {
         if departure.isGone { return .secondary }
         if departure.minutesUntil <= 2 { return AppColors.minutesNow }
         return AppColors.minutesSoon
+    }
+
+    @ViewBuilder
+    private var lineBadge: some View {
+        Text(departure.lineNumber)
+            .font(.system(.caption2, weight: .medium))
+            .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
     }
 
     @ViewBuilder

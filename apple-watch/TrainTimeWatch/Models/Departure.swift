@@ -8,6 +8,7 @@ struct Departure: Identifiable {
     let delay: Int
     let platform: String
     let platformChanged: Bool
+    let lineNumber: String
 
     var isGone: Bool { minutesUntil < 0 }
 

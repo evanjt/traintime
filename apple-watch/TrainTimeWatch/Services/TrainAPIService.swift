@@ -103,6 +103,7 @@ struct TrainAPIService {
             + "&limit=\(Thresholds.maxDepartures)"
             + "&fields[]=stationboard/to"
             + "&fields[]=stationboard/category"
+            + "&fields[]=stationboard/number"
             + "&fields[]=stationboard/stop/departureTimestamp"
             + "&fields[]=stationboard/stop/delay"
             + "&fields[]=stationboard/stop/platform"
@@ -123,6 +124,9 @@ struct TrainAPIService {
 
         for entry in stationboard.prefix(Thresholds.maxDepartures) {
             let destination = entry["to"] as? String ?? "?"
+            let category = entry["category"] as? String ?? ""
+            let number = entry["number"] as? String ?? ""
+            let lineNumber = (category == "B" || category == "T" || category == "NFB" || category == "NFT" || category == "M") ? number : ""
             let stop = entry["stop"] as? [String: Any] ?? [:]
 
             // Platform logic: prognosis overrides scheduled
@@ -165,7 +169,8 @@ struct TrainAPIService {
                 departureTimestamp: depTimestamp,
                 delay: delay,
                 platform: platform,
-                platformChanged: platformChanged
+                platformChanged: platformChanged,
+                lineNumber: lineNumber
             ))
         }
 
