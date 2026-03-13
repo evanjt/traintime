@@ -7,23 +7,23 @@ struct DepartureRowView: View {
     var body: some View {
         Button(action: { onTap?() }) {
             HStack(spacing: 2) {
-                // Minutes + delay (fixed width)
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Spacer(minLength: 0)
-                    Text(departure.minutesText)
-                        .font(departure.minutesUntil <= 0
-                            ? .system(.caption, design: .rounded, weight: .bold)
-                            : .system(.callout, design: .rounded, weight: .bold))
-                        .foregroundStyle(minutesColor)
-                        .lineLimit(1)
-                    if departure.delay > 0 && !departure.isGone {
-                        Text("+\(departure.delay)")
-                            .font(.system(size: 9, weight: .medium, design: .rounded))
-                            .foregroundStyle(AppColors.delay)
-                            .baselineOffset(6)
+                // Minutes (fixed width, right-aligned)
+                Text(departure.minutesText)
+                    .font(departure.minutesUntil <= 0
+                        ? .system(.caption, design: .rounded, weight: .bold)
+                        : .system(.callout, design: .rounded, weight: .bold))
+                    .foregroundStyle(minutesColor)
+                    .lineLimit(1)
+                    .frame(width: 36, alignment: .trailing)
+                    .overlay(alignment: .trailing) {
+                        if departure.delay > 0 && !departure.isGone {
+                            Text("+\(departure.delay)")
+                                .font(.system(size: 8, weight: .medium, design: .rounded))
+                                .foregroundStyle(AppColors.delay)
+                                .offset(x: 16, y: -6)
+                                .fixedSize()
+                        }
                     }
-                }
-                .frame(width: 46)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
