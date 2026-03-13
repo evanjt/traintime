@@ -18,6 +18,7 @@ class TrainTimeViewModel: ObservableObject {
     @Published var trainStations: [Station] = []
     @Published var busStations: [Station] = []
     @Published var tramStations: [Station] = []
+    @Published var specialStations: [Station] = []
     @Published var stationIndex: Int = 0
 
     // MARK: - Transport Modes
@@ -54,6 +55,7 @@ class TrainTimeViewModel: ObservableObject {
         case .train: return trainStations
         case .bus: return busStations
         case .tram: return tramStations
+        case .special: return specialStations
         }
     }
 
@@ -357,6 +359,7 @@ class TrainTimeViewModel: ObservableObject {
                     trainStations = result.train
                     busStations = result.bus
                     tramStations = result.tram
+                    specialStations = result.special
                     lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                     location.saveLastKnownCoordinate()
                     rebuildModesAndSelect()
@@ -444,6 +447,7 @@ class TrainTimeViewModel: ObservableObject {
         if !trainStations.isEmpty { modes.append(.train) }
         if !busStations.isEmpty { modes.append(.bus) }
         if !tramStations.isEmpty { modes.append(.tram) }
+        if !specialStations.isEmpty { modes.append(.special) }
         availableModes = modes
 
         // If current mode has no stations, switch to first available
@@ -498,6 +502,7 @@ class TrainTimeViewModel: ObservableObject {
         trainStations = []
         busStations = []
         tramStations = []
+        specialStations = []
         stationIndex = 0
         departures = []
         availableModes = []

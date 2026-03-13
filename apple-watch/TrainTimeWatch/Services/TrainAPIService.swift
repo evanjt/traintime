@@ -16,7 +16,7 @@ struct TrainAPIService {
     /// Two-phase station discovery: coordinate search, then name fallback for trains
     static func fetchStations(
         lat: Double, lon: Double
-    ) async throws -> (train: [Station], bus: [Station], tram: [Station]) {
+    ) async throws -> (train: [Station], bus: [Station], tram: [Station], special: [Station]) {
         let userCoord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
 
         // Phase 1: coordinate search
@@ -41,6 +41,8 @@ struct TrainAPIService {
                 if tramStations.count < Thresholds.maxStationsPerMode {
                     tramStations.append(station)
                 }
+            case .special:
+                break
             }
         }
 
@@ -54,7 +56,7 @@ struct TrainAPIService {
             }
         }
 
-        return (trainStations, busStations, tramStations)
+        return (trainStations, busStations, tramStations, [])
     }
 
     // MARK: - Station Search by Name (Fallback)
