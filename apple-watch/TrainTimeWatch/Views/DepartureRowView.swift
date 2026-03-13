@@ -9,7 +9,7 @@ struct DepartureRowView: View {
             HStack(spacing: 4) {
                 // Minutes with delay as superscript
                 minutesWithDelay
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 52, alignment: .trailing)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
@@ -40,17 +40,17 @@ struct DepartureRowView: View {
 
     @ViewBuilder
     private var minutesWithDelay: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(departure.minutesText)
-                .font(.system(.callout, design: .rounded, weight: .bold))
-                .foregroundStyle(minutesColor)
-            if departure.delay > 0 && !departure.isGone {
-                Text("+\(departure.delay)")
-                    .font(.system(size: 9, weight: .medium, design: .rounded))
-                    .foregroundStyle(AppColors.delay)
-                    .baselineOffset(6)
+        Text(departure.minutesText)
+            .font(.system(.callout, design: .rounded, weight: .bold))
+            .foregroundStyle(minutesColor)
+            .overlay(alignment: .topTrailing) {
+                if departure.delay > 0 && !departure.isGone {
+                    Text("+\(departure.delay)")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(AppColors.delay)
+                        .offset(x: 16, y: -2)
+                }
             }
-        }
     }
 
     private var minutesColor: Color {
