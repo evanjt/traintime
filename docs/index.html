@@ -6,14 +6,14 @@
     <title>TrainTime - Swiss Departures on Your Wrist</title>
     <meta
       name="description"
-      content="Real-time Swiss public transport departures on your Apple Watch. Walk times, delays, platforms — glance and go."
+      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms — glance and go."
     />
     <meta name="theme-color" content="#000000" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <meta property="og:title" content="TrainTime - Swiss Departures on Your Wrist" />
     <meta
       property="og:description"
-      content="Real-time Swiss public transport departures on your Apple Watch. Walk times, delays, platforms — glance and go."
+      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms — glance and go."
     />
     <meta property="og:type" content="website" />
 
@@ -258,6 +258,61 @@
         animation: fadeInUp 0.6s ease-out 0.3s both;
       }
 
+      .gallery-switcher {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 32px;
+      }
+
+      .gallery-toggle {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        padding: 4px;
+        gap: 2px;
+      }
+
+      .gallery-toggle button {
+        font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        padding: 8px 20px;
+        border: none;
+        border-radius: 100px;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.3s, background 0.3s;
+      }
+
+      .gallery-toggle button.active {
+        background: var(--border-light);
+        color: var(--text);
+      }
+
+      .gallery-toggle button:hover:not(.active) {
+        color: var(--text-secondary);
+      }
+
+      .gallery-viewport {
+        position: relative;
+      }
+
+      .gallery-band {
+        transition: opacity 0.25s ease;
+      }
+
+      .gallery-band.hidden {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
       .gallery-track {
         display: flex;
         gap: 32px;
@@ -276,11 +331,24 @@
         transform: translateY(-8px);
       }
 
+      .watch-img-wrap {
+        height: 314px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .watch-device img {
         width: 200px;
         height: auto;
         display: block;
         filter: drop-shadow(0 0 1px rgba(0,0,0,0.8)) drop-shadow(0 0 2px rgba(0,0,0,0.4));
+      }
+
+      .watch-device.garmin img {
+        width: 200px;
+        display: block;
+        filter: drop-shadow(0 4px 16px rgba(0,0,0,0.3));
       }
 
       .watch-label {
@@ -520,7 +588,15 @@
           padding: 0 20px;
         }
 
+        .watch-img-wrap {
+          height: 252px;
+        }
+
         .watch-device img {
+          width: 160px;
+        }
+
+        .watch-device.garmin img {
           width: 160px;
         }
 
@@ -561,7 +637,15 @@
           gap: 12px;
         }
 
+        .watch-img-wrap {
+          height: 204px;
+        }
+
         .watch-device img {
+          width: 130px;
+        }
+
+        .watch-device.garmin img {
           width: 130px;
         }
       }
@@ -599,18 +683,44 @@
     </section>
 
     <section class="gallery-section">
-      <div class="gallery-track">
-        <div class="watch-device">
-          <img src="screenshots/01-station-view-framed.png" alt="Station departures view showing trains from Sion to Brig and Geneva" />
-          <div class="watch-label">Departures</div>
+      <div class="gallery-switcher">
+        <div class="gallery-toggle" id="gallery-toggle">
+          <button class="active" data-platform="apple">Apple Watch</button>
+          <button data-platform="garmin">Garmin</button>
         </div>
-        <div class="watch-device">
-          <img src="screenshots/02-focused-tracking-framed.png" alt="Focused tracking mode showing countdown and walk distance" />
-          <div class="watch-label">Tracking</div>
+      </div>
+      <div class="gallery-viewport">
+        <div class="gallery-band" id="band-apple">
+          <div class="gallery-track">
+            <div class="watch-device">
+              <div class="watch-img-wrap"><img src="screenshots/apple/01-station-view.png" alt="Station departures view showing trains from Sion to Brig and Geneva" /></div>
+              <div class="watch-label">Departures</div>
+            </div>
+            <div class="watch-device">
+              <div class="watch-img-wrap"><img src="screenshots/apple/02-focused-tracking.png" alt="Focused tracking mode showing countdown and walk distance" /></div>
+              <div class="watch-label">Tracking</div>
+            </div>
+            <div class="watch-device">
+              <div class="watch-img-wrap"><img src="screenshots/apple/03-station-picker.png" alt="Station picker showing nearby stations with walk times" /></div>
+              <div class="watch-label">Stations</div>
+            </div>
+          </div>
         </div>
-        <div class="watch-device">
-          <img src="screenshots/03-station-picker-framed.png" alt="Station picker showing nearby stations with walk times" />
-          <div class="watch-label">Stations</div>
+        <div class="gallery-band hidden" id="band-garmin">
+          <div class="gallery-track">
+            <div class="watch-device garmin">
+              <div class="watch-img-wrap"><img src="screenshots/garmin/01-station-view-framed.png" alt="Garmin station departures showing trains from Sion" /></div>
+              <div class="watch-label">Departures</div>
+            </div>
+            <div class="watch-device garmin">
+              <div class="watch-img-wrap"><img src="screenshots/garmin/03-focused-tracking-framed.png" alt="Garmin focused tracking mode with countdown" /></div>
+              <div class="watch-label">Tracking</div>
+            </div>
+            <div class="watch-device garmin">
+              <div class="watch-img-wrap"><img src="screenshots/garmin/04-station-picker-framed.png" alt="Garmin station picker showing nearby bus stops" /></div>
+              <div class="watch-label">Stations</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -683,7 +793,7 @@
           <div class="platform-name">Apple Watch</div>
           <div class="platform-status available">Available now</div>
         </div>
-        <div class="platform-card coming-soon">
+        <div class="platform-card">
           <div class="platform-icon">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2.5"/>
@@ -694,7 +804,7 @@
             </svg>
           </div>
           <div class="platform-name">Garmin</div>
-          <div class="platform-status">Coming soon</div>
+          <div class="platform-status">Available soon</div>
         </div>
       </div>
     </section>
@@ -710,6 +820,7 @@
     </footer>
     <script>
       (function() {
+        // Theme toggle
         const toggle = document.getElementById('theme-toggle');
         const stored = localStorage.getItem('traintime-theme');
         if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -724,6 +835,81 @@
             localStorage.setItem('traintime-theme', 'light');
           }
         });
+
+        // Gallery platform switcher
+        var platforms = ['apple', 'garmin'];
+        var current = 0;
+        var switching = false;
+        var autoTimer = null;
+        var viewport = document.querySelector('.gallery-viewport');
+
+        // Set viewport to tallest band height so switching doesn't shift layout
+        function setViewportHeight() {
+          var maxH = 0;
+          platforms.forEach(function(p) {
+            var band = document.getElementById('band-' + p);
+            var wasHidden = band.classList.contains('hidden');
+            band.classList.remove('hidden');
+            band.style.position = 'absolute';
+            band.style.visibility = 'hidden';
+            maxH = Math.max(maxH, band.offsetHeight);
+            band.style.position = '';
+            band.style.visibility = '';
+            if (wasHidden) band.classList.add('hidden');
+          });
+          viewport.style.minHeight = maxH + 'px';
+        }
+
+        // Measure after images load
+        window.addEventListener('load', setViewportHeight);
+        window.addEventListener('resize', setViewportHeight);
+
+        function switchTo(index) {
+          if (switching || index === current) return;
+          switching = true;
+
+          var fromBand = document.getElementById('band-' + platforms[current]);
+          var toBand = document.getElementById('band-' + platforms[index]);
+          var buttons = document.querySelectorAll('#gallery-toggle button');
+
+          buttons.forEach(function(b) { b.classList.remove('active'); });
+          buttons[index].classList.add('active');
+
+          // Fade out current
+          fromBand.style.opacity = '0';
+
+          setTimeout(function() {
+            // Swap: hide old, show new (still invisible)
+            fromBand.classList.add('hidden');
+            fromBand.style.opacity = '';
+            toBand.classList.remove('hidden');
+            toBand.style.opacity = '0';
+            toBand.offsetHeight; // force reflow
+
+            // Fade in new
+            toBand.style.opacity = '1';
+
+            setTimeout(function() {
+              toBand.style.opacity = '';
+              current = index;
+              switching = false;
+            }, 250);
+          }, 250);
+        }
+
+        document.querySelectorAll('#gallery-toggle button').forEach(function(btn, i) {
+          btn.addEventListener('click', function() {
+            switchTo(i);
+            clearInterval(autoTimer);
+            autoTimer = setInterval(function() {
+              switchTo((current + 1) % platforms.length);
+            }, 5000);
+          });
+        });
+
+        autoTimer = setInterval(function() {
+          switchTo((current + 1) % platforms.length);
+        }, 5000);
       })();
     </script>
   </body>
