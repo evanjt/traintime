@@ -27,6 +27,7 @@ class TrainTimeView extends WatchUi.View {
     private var mTrainStations;
     private var mBusStations;
     private var mTramStations;
+    private var mSpecialStations;
     private var mCurrentMode;
     private var mAvailableModes;
     private var mGpsQuality;
@@ -64,6 +65,7 @@ class TrainTimeView extends WatchUi.View {
         mTrainStations = null;
         mBusStations = null;
         mTramStations = null;
+        mSpecialStations = null;
         mCurrentMode = 0;
         mAvailableModes = [];
         mGpsQuality = Position.QUALITY_NOT_AVAILABLE;
@@ -149,6 +151,7 @@ class TrainTimeView extends WatchUi.View {
         mTrainStations = null;
         mBusStations = null;
         mTramStations = null;
+        mSpecialStations = null;
         mTrainData = null;
         mWalkInfo = null;
         mStationIndex = 0;
@@ -166,6 +169,7 @@ class TrainTimeView extends WatchUi.View {
         if (mode == 0) { return mTrainStations; }
         if (mode == 1) { return mBusStations; }
         if (mode == 2) { return mTramStations; }
+        if (mode == 3) { return mSpecialStations; }
         return null;
     }
 
@@ -473,7 +477,7 @@ class TrainTimeView extends WatchUi.View {
                 dc.fillRectangle(cx - 4, cy, 8, 5);
                 dc.fillCircle(cx - 3, cy + 6, 1);
                 dc.fillCircle(cx + 3, cy + 6, 1);
-            } else {
+            } else if (mode == 2) {
                 // Tram: rectangle body + pantograph + 2 wheels
                 dc.fillRectangle(cx - 3, cy - 1, 6, 6);
                 dc.setPenWidth(1);
@@ -481,6 +485,17 @@ class TrainTimeView extends WatchUi.View {
                 dc.drawLine(cx - 2, cy - 5, cx + 2, cy - 5);
                 dc.fillCircle(cx - 2, cy + 6, 1);
                 dc.fillCircle(cx + 2, cy + 6, 1);
+            } else if (mode == 3) {
+                // Special (boats/funiculars/cable cars): wave icon
+                dc.setPenWidth(2);
+                dc.drawLine(cx - 4, cy, cx - 2, cy - 3);
+                dc.drawLine(cx - 2, cy - 3, cx, cy);
+                dc.drawLine(cx, cy, cx + 2, cy + 3);
+                dc.drawLine(cx + 2, cy + 3, cx + 4, cy);
+                dc.drawLine(cx - 4, cy + 4, cx - 2, cy + 1);
+                dc.drawLine(cx - 2, cy + 1, cx, cy + 4);
+                dc.drawLine(cx, cy + 4, cx + 2, cy + 7);
+                dc.drawLine(cx + 2, cy + 7, cx + 4, cy + 4);
             }
 
             // Active mode ring (only when multiple modes available)
@@ -1267,6 +1282,7 @@ class TrainTimeView extends WatchUi.View {
         if (mTrainStations.size() > 0) { mAvailableModes.add(0); }
         if (mBusStations.size() > 0) { mAvailableModes.add(1); }
         if (mTramStations.size() > 0) { mAvailableModes.add(2); }
+        if (mSpecialStations != null && mSpecialStations.size() > 0) { mAvailableModes.add(3); }
 
         // If current mode has no stations, switch to first available
         var currentStations = getStationsForMode(mCurrentMode);
