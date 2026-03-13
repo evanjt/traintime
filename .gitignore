@@ -32,6 +32,10 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 
+# Fastlane
+apple-watch/fastlane/vendor/
+apple-watch/fastlane/.bundle/
+
 # OS
 .DS_Store
 

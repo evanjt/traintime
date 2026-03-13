@@ -4,6 +4,7 @@ enum TransportMode: Int, CaseIterable, Identifiable {
     case train = 0
     case bus = 1
     case tram = 2
+    case special = 3
 
     var id: Int { rawValue }
 
@@ -12,6 +13,7 @@ enum TransportMode: Int, CaseIterable, Identifiable {
         case .train: return "train.side.front.car"
         case .bus: return "bus.fill"
         case .tram: return "tram.fill"
+        case .special: return "cablecar"
         }
     }
 
@@ -20,6 +22,7 @@ enum TransportMode: Int, CaseIterable, Identifiable {
         case .train: return "Train"
         case .bus: return "Bus"
         case .tram: return "Tram"
+        case .special: return "Special"
         }
     }
 
@@ -29,6 +32,7 @@ enum TransportMode: Int, CaseIterable, Identifiable {
         switch icon {
         case "bus": return .bus
         case "tram": return .tram
+        case "special": return .special
         default: return .train
         }
     }

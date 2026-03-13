@@ -16,7 +16,7 @@ struct TrainAPIService {
     /// Fetch nearby stations grouped by mode, with departures pre-fetched for closest per mode
     static func fetchStations(
         lat: Double, lon: Double
-    ) async throws -> (train: [Station], bus: [Station], tram: [Station]) {
+    ) async throws -> (train: [Station], bus: [Station], tram: [Station], special: [Station]) {
         let urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)"
         guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
@@ -28,6 +28,7 @@ struct TrainAPIService {
         let trainStations = parseStationArray(json["train"], mode: .train)
         let busStations = parseStationArray(json["bus"], mode: .bus)
         let tramStations = parseStationArray(json["tram"], mode: .tram)
+        let specialStations = parseStationArray(json["special"], mode: .special)
 
         // Phase 2: name fallback if no train stations found
         if trainStations.isEmpty, let firstBus = (busStations.first ?? tramStations.first) {
@@ -35,11 +36,11 @@ struct TrainAPIService {
                 let fallbackTrains = try await fetchTrainStationsByName(
                     city: cityName, lat: lat, lon: lon
                 )
-                return (fallbackTrains, busStations, tramStations)
+                return (fallbackTrains, busStations, tramStations, specialStations)
             }
         }
 
-        return (trainStations, busStations, tramStations)
+        return (trainStations, busStations, tramStations, specialStations)
     }
 
     // MARK: - Station Search by Name (Fallback)
