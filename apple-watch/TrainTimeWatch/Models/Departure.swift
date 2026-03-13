@@ -19,8 +19,8 @@ struct Departure: Identifiable {
     }
 
     var minutesText: String {
-        if isGone { return "--" }
-        if minutesUntil == 0 { return "0'" }
+        if isGone { return "gone" }
+        if minutesUntil == 0 { return "now" }
         return "\(minutesUntil)'"
     }
 }

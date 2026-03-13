@@ -11,7 +11,9 @@ struct DepartureRowView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
                     Spacer(minLength: 0)
                     Text(departure.minutesText)
-                        .font(.system(.callout, design: .rounded, weight: .bold))
+                        .font(departure.minutesUntil <= 0
+                            ? .system(.caption, design: .rounded, weight: .bold)
+                            : .system(.callout, design: .rounded, weight: .bold))
                         .foregroundStyle(minutesColor)
                         .lineLimit(1)
                     if departure.delay > 0 && !departure.isGone {
