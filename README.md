@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apple-watch/TrainTimeWatch/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="120" style="border-radius:50%" alt="TrainTime" />
+  <img src="docs/favicon.png" width="120" alt="TrainTime" />
 </p>
 
 <h1 align="center">TrainTime</h1>
@@ -16,9 +16,9 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/01-station-view.png" width="160" alt="Station departures" />&nbsp;&nbsp;
-  <img src="docs/screenshots/02-focused-tracking.png" width="160" alt="Focused tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/03-station-picker.png" width="160" alt="Station picker" />
+  <img src="docs/screenshots/01-station-view-framed.png" width="180" alt="Station departures" />&nbsp;&nbsp;
+  <img src="docs/screenshots/02-focused-tracking-framed.png" width="180" alt="Focused tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/03-station-picker-framed.png" width="180" alt="Station picker" />
 </p>
 
 ---

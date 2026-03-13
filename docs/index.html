@@ -36,8 +36,6 @@
         --swiss-red: #ff0000;
         --border: #222222;
         --border-light: #2a2a2a;
-        --watch-frame: #1c1c1e;
-        --watch-glass: rgba(255, 255, 255, 0.03);
       }
 
       @media (prefers-color-scheme: light) {
@@ -51,8 +49,6 @@
           --text-muted: #999999;
           --border: #e0e0dc;
           --border-light: #ebebeb;
-          --watch-frame: #2c2c2e;
-          --watch-glass: rgba(255, 255, 255, 0.06);
         }
       }
 
@@ -244,15 +240,15 @@
 
       .gallery-track {
         display: flex;
-        gap: 40px;
+        gap: 32px;
         justify-content: center;
         flex-wrap: wrap;
         padding: 0 32px;
       }
 
       .watch-device {
-        position: relative;
         flex-shrink: 0;
+        text-align: center;
         transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
       }
 
@@ -260,79 +256,13 @@
         transform: translateY(-8px);
       }
 
-      .watch-frame {
+      .watch-device img {
         width: 200px;
-        height: 244px;
-        background: var(--watch-frame);
-        border-radius: 44px;
-        padding: 10px;
-        position: relative;
-        box-shadow:
-          0 0 0 1px rgba(255, 255, 255, 0.06),
-          0 20px 60px rgba(0, 0, 0, 0.5),
-          0 4px 16px rgba(0, 0, 0, 0.3);
-      }
-
-      @media (prefers-color-scheme: light) {
-        .watch-frame {
-          box-shadow:
-            0 0 0 1px rgba(0, 0, 0, 0.08),
-            0 20px 60px rgba(0, 0, 0, 0.15),
-            0 4px 16px rgba(0, 0, 0, 0.08);
-        }
-      }
-
-      .watch-crown {
-        position: absolute;
-        right: -6px;
-        top: 50%;
-        transform: translateY(-60%);
-        width: 6px;
-        height: 32px;
-        background: #2c2c2e;
-        border-radius: 0 3px 3px 0;
-        box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
-      }
-
-      .watch-button {
-        position: absolute;
-        right: -5px;
-        top: 50%;
-        transform: translateY(20px);
-        width: 5px;
-        height: 16px;
-        background: #2c2c2e;
-        border-radius: 0 2px 2px 0;
-        box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
-      }
-
-      .watch-screen {
-        width: 100%;
-        height: 100%;
-        border-radius: 36px;
-        overflow: hidden;
-        position: relative;
-        background: #000;
-      }
-
-      .watch-screen img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        height: auto;
         display: block;
       }
 
-      .watch-screen::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 36px;
-        background: var(--watch-glass);
-        pointer-events: none;
-      }
-
       .watch-label {
-        text-align: center;
         margin-top: 16px;
         font-size: 13px;
         color: var(--text-muted);
@@ -565,33 +495,12 @@
         }
 
         .gallery-track {
-          gap: 24px;
+          gap: 20px;
           padding: 0 20px;
         }
 
-        .watch-frame {
+        .watch-device img {
           width: 160px;
-          height: 195px;
-          border-radius: 36px;
-          padding: 8px;
-        }
-
-        .watch-screen {
-          border-radius: 29px;
-        }
-
-        .watch-screen::after {
-          border-radius: 29px;
-        }
-
-        .watch-crown {
-          height: 26px;
-          right: -5px;
-        }
-
-        .watch-button {
-          right: -4px;
-          height: 13px;
         }
 
         .features {
@@ -628,22 +537,11 @@
 
       @media (max-width: 480px) {
         .gallery-track {
-          gap: 16px;
+          gap: 12px;
         }
 
-        .watch-frame {
-          width: 140px;
-          height: 171px;
-          border-radius: 32px;
-          padding: 7px;
-        }
-
-        .watch-screen {
-          border-radius: 26px;
-        }
-
-        .watch-screen::after {
-          border-radius: 26px;
+        .watch-device img {
+          width: 130px;
         }
       }
     </style>
@@ -678,33 +576,15 @@
     <section class="gallery-section">
       <div class="gallery-track">
         <div class="watch-device">
-          <div class="watch-frame">
-            <div class="watch-crown"></div>
-            <div class="watch-button"></div>
-            <div class="watch-screen">
-              <img src="screenshots/01-station-view.png" alt="Station departures view showing trains from Sion to Brig and Geneva" />
-            </div>
-          </div>
+          <img src="screenshots/01-station-view-framed.png" alt="Station departures view showing trains from Sion to Brig and Geneva" />
           <div class="watch-label">Departures</div>
         </div>
         <div class="watch-device">
-          <div class="watch-frame">
-            <div class="watch-crown"></div>
-            <div class="watch-button"></div>
-            <div class="watch-screen">
-              <img src="screenshots/02-focused-tracking.png" alt="Focused tracking mode showing countdown and walk distance" />
-            </div>
-          </div>
+          <img src="screenshots/02-focused-tracking-framed.png" alt="Focused tracking mode showing countdown and walk distance" />
           <div class="watch-label">Tracking</div>
         </div>
         <div class="watch-device">
-          <div class="watch-frame">
-            <div class="watch-crown"></div>
-            <div class="watch-button"></div>
-            <div class="watch-screen">
-              <img src="screenshots/03-station-picker.png" alt="Station picker showing nearby stations with walk times" />
-            </div>
-          </div>
+          <img src="screenshots/03-station-picker-framed.png" alt="Station picker showing nearby stations with walk times" />
           <div class="watch-label">Stations</div>
         </div>
       </div>
