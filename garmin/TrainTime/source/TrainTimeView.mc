@@ -263,7 +263,6 @@ class TrainTimeView extends WatchUi.View {
             mTimer.start(method(:onTimerTick), 1000, true);
         }
         vibrateShort();
-        enterMapView();
         WatchUi.requestUpdate();
     }
 
@@ -658,10 +657,10 @@ class TrainTimeView extends WatchUi.View {
         }
 
         // Fixed column X positions (absolute, so columns align across rows)
-        var minRightX = width * 24 / 100;
-        var delayX = width * 26 / 100;
-        var platX = width * 38 / 100;
-        var destX = width * 50 / 100;
+        var minRightX = width * 20 / 100;
+        var delayX = width * 21 / 100;
+        var platX = width * 32 / 100;
+        var destX = width * 44 / 100;
 
         // Right edge for this row on round display (for destination truncation)
         var rowCenterY = y + tinyH / 2;
@@ -686,10 +685,10 @@ class TrainTimeView extends WatchUi.View {
         dc.drawText(minRightX, y, Graphics.FONT_TINY,
             minText, Graphics.TEXT_JUSTIFY_RIGHT);
 
-        // Delay column (FONT_XTINY, orange)
+        // Delay column (superscript, orange)
         if (delay > 0 && !isGone) {
             dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(delayX, xtinyY, Graphics.FONT_XTINY,
+            dc.drawText(delayX, y - 2, Graphics.FONT_XTINY,
                 "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
@@ -1441,6 +1440,7 @@ class TrainTimeView extends WatchUi.View {
                     var stop = departure["stop"];
                     var progPlatform = null;
                     if (stop.hasKey("prognosis") && stop["prognosis"] != null
+                        && stop["prognosis"] instanceof Lang.Dictionary
                         && stop["prognosis"].hasKey("platform")) {
                         progPlatform = stop["prognosis"]["platform"];
                     }

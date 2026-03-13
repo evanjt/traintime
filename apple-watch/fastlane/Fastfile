@@ -31,19 +31,59 @@ platform :ios do
 
     FileUtils.mkdir_p("artifacts")
 
+    # Archive only — fastlane doesn't support Xcode 26's "release-testing" export method
     build_app(
       project: xcodeproj,
       scheme: "TrainTimeWatch",
       configuration: "Release",
       destination: "generic/platform=watchOS",
-      export_method: "release-testing",
+      skip_package_ipa: true,
       output_directory: "artifacts",
-      output_name: "traintime.ipa",
       clean: true,
       include_bitcode: false,
       buildlog_path: "artifacts",
       xcargs: 'OTHER_CODE_SIGN_FLAGS="--timestamp=none"'
     )
+
+    archive_path = lane_context[SharedValues::XCODEBUILD_ARCHIVE]
+    ipa_path = File.expand_path(File.join("artifacts", "traintime.ipa"))
+
+    # Export via xcodebuild directly with "release-testing" method
+    # This is the Xcode 26 equivalent of "app-store" for standalone watchOS apps
+    export_options_path = File.join(project_root, "ExportOptions.plist")
+    File.write(export_options_path, <<~PLIST)
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>method</key>
+        <string>release-testing</string>
+        <key>teamID</key>
+        <string>#{ENV["FASTLANE_TEAM_ID"]}</string>
+        <key>signingStyle</key>
+        <string>manual</string>
+        <key>provisioningProfiles</key>
+        <dict>
+          <key>com.evanjt.traintime</key>
+          <string>match AppStore com.evanjt.traintime</string>
+        </dict>
+        <key>manageAppVersionAndBuildNumber</key>
+        <false/>
+      </dict>
+      </plist>
+    PLIST
+
+    export_dir = File.join(project_root, "export_output")
+    sh("xcodebuild", "-exportArchive",
+       "-archivePath", archive_path,
+       "-exportOptionsPlist", export_options_path,
+       "-exportPath", export_dir)
+
+    exported_ipa = Dir["#{export_dir}/*.ipa"].first
+    UI.user_error!("No IPA found in export output") unless exported_ipa
+
+    FileUtils.cp(exported_ipa, ipa_path)
+    UI.success("Created IPA: #{ipa_path} (#{File.size(ipa_path)} bytes)")
   end
 
   desc "Upload to TestFlight (internal track)"
