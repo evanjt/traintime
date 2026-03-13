@@ -14,16 +14,14 @@ struct DepartureRowView: View {
                         : .system(.callout, design: .rounded, weight: .bold))
                     .foregroundStyle(minutesColor)
                     .lineLimit(1)
-                    .frame(width: 36, alignment: .trailing)
-                    .overlay(alignment: .trailing) {
-                        if departure.delay > 0 && !departure.isGone {
-                            Text("+\(departure.delay)")
-                                .font(.system(size: 8, weight: .medium, design: .rounded))
-                                .foregroundStyle(AppColors.delay)
-                                .offset(x: 16, y: -6)
-                                .fixedSize()
-                        }
-                    }
+                    .frame(width: 34, alignment: .trailing)
+
+                // Delay (fixed width, always reserved)
+                Text(departure.delay > 0 && !departure.isGone ? "+\(departure.delay)" : "")
+                    .font(.system(size: 8, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppColors.delay)
+                    .baselineOffset(4)
+                    .frame(width: 14, alignment: .leading)
 
                 // Line number (bus/tram) or Platform
                 if !departure.lineNumber.isEmpty {
