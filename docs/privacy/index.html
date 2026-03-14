@@ -199,6 +199,13 @@
         margin-bottom: 16px;
       }
 
+      code {
+        font-size: 0.85em;
+        background: var(--surface);
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+
       p {
         margin-bottom: 16px;
         color: var(--text-secondary);
@@ -308,7 +315,7 @@
         <div class="highlight-box">
           <p>
             TrainTime does not collect, store, or share any personal data. There are no accounts,
-            no analytics, and no tracking. Everything stays on your watch.
+            no analytics, and no tracking. Your coordinates are never stored or shared with third parties.
           </p>
         </div>
 
@@ -317,10 +324,10 @@
           TrainTime uses your device's GPS to find nearby stations. Your location is:
         </p>
         <ul>
-          <li>Processed entirely on your device to determine nearby stations</li>
-          <li>Sent to our API server (<code>api.traintime.ch</code>), which forwards coordinates to the Swiss transport data provider to find nearby stations (see Third-Party Services below)</li>
-          <li>Cached locally on your device as a fallback for faster startup</li>
-          <li>Never sent to the developer or any other party</li>
+          <li>Sent to our API server (<code>api.traintime.ch</code>), which finds nearby stations from an embedded database - your coordinates are processed in-memory and immediately discarded</li>
+          <li>Your coordinates are never forwarded to any third party, logged, or stored</li>
+          <li>Departure times are fetched using station identifiers only</li>
+          <li>Your last known position is cached locally on your device for faster startup</li>
         </ul>
 
         <h2>DATA STORED ON YOUR DEVICE</h2>
@@ -334,18 +341,19 @@
 
         <p><strong>TrainTime API</strong> (<code>api.traintime.ch</code>)</p>
         <ul>
-          <li>Our server that forwards station and departure requests to the upstream data provider</li>
-          <li>Receives your approximate coordinates and station IDs &mdash; no user accounts or personal data is stored</li>
+          <li>Finds nearby stations by matching your coordinates against an embedded database at the network edge</li>
+          <li>Your coordinates are processed in-memory and never forwarded, logged, or stored</li>
+          <li>Fetches live departure data from the upstream provider using station identifiers only</li>
+          <li>Departure results are cached briefly (60 seconds) to reduce upstream requests - no user data is included in the cache</li>
           <li>Hosted on <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Cloudflare Workers</a> with all logging and observability disabled</li>
           <li>Source code: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a></li>
         </ul>
 
         <p><strong>Open Transport Data Switzerland</strong> (<code>opentransportdata.swiss</code>)</p>
         <ul>
-          <li>Upstream data source operated by SBB (Swiss Federal Railways)</li>
-          <li>Provides station locations and live departure data via the OJP 2.0 API</li>
-          <li>Our API forwards your coordinates and station IDs to this service</li>
-          <li>Data published under Swiss open data principles &mdash; see <a href="https://opentransportdata.swiss/en/terms-of-use/" target="_blank">opentransportdata.swiss/en/terms-of-use</a></li>
+          <li>Provides live departure data, operated by Swiss Federal Railways (SBB)</li>
+          <li>Receives station identifiers only - your coordinates are never sent to this service</li>
+          <li><a href="https://opentransportdata.swiss/en/terms-of-use/" target="_blank">Terms of use</a></li>
         </ul>
 
         <p>No other third-party services, SDKs, or APIs are used. No analytics, advertising, crash reporting, or tracking of any kind.</p>
@@ -360,9 +368,7 @@
 
         <h2>DATA SHARING</h2>
         <p>
-          Your station search coordinates and departure requests pass through our API server
-          (<code>api.traintime.ch</code>), which forwards them to the upstream data provider.
-          We do not store or share any personally identifiable information.
+          Your coordinates are sent to our API server to find nearby stations, but are processed in-memory and immediately discarded. Departure data is fetched using station identifiers only. No coordinates, personal data, or request logs are stored at any point.
         </p>
 
         <h2>CHILDREN'S PRIVACY</h2>
