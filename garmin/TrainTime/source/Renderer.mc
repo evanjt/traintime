@@ -18,6 +18,17 @@ module Renderer {
         // GPS quality indicator
         drawGpsIndicator(dc, view, width, height);
 
+        // State 3: inactive
+        if (view.mAppState == 3) {
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, height * 40 / 100, Graphics.FONT_MEDIUM,
+                "Inactive", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, height * 55 / 100, Graphics.FONT_TINY,
+                "Press to resume", Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+
         // State 2: focused tracking
         if (view.mAppState == 2 && view.mFocusedTrain != null) {
             drawFocusedMode(dc, view, width, height);

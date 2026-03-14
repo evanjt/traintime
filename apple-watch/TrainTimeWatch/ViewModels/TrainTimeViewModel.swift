@@ -11,7 +11,7 @@ class TrainTimeViewModel: ObservableObject {
     private var extendedSession: WKExtendedRuntimeSession?
 
     // MARK: - App State
-    @Published var appState: Int = 0 // 0=station view, 2=focused tracking
+    @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
     @Published var status: String = "GPS: Searching..."
 
     // MARK: - Station Data (per mode)
@@ -41,7 +41,7 @@ class TrainTimeViewModel: ObservableObject {
     let routing = RoutingService.shared
     private var requestInFlight = false
     private var requestStartTime: Date?
-    private var lastFetchTime: Date = .distantPast
+    var lastFetchTime: Date = .distantPast
     private var lastSearchCoordinate: CLLocationCoordinate2D?
     var consecutiveErrors: Int = 0
     private var lastVibeTick: Int = 0
@@ -224,7 +224,7 @@ class TrainTimeViewModel: ObservableObject {
                 let minutesLeft = focused.minutesUntil
                 if minutesLeft < -1.0 {
                     HapticService.shortPulse()
-                    exitToStationView()
+                    enterInactiveState()
                     return
                 }
 
@@ -243,9 +243,12 @@ class TrainTimeViewModel: ObservableObject {
             }
         }
 
+        // Skip API fetches in inactive state
+        if appState == 3 { return }
+
         // Fetch departures if cooldown elapsed
         if !requestInFlight,
-           Date().timeIntervalSince(lastFetchTime) >= Timing.fetchCooldown {
+           Date().timeIntervalSince(lastFetchTime) >= (appState == 2 ? Timing.fetchCooldownTracking : Timing.fetchCooldownNormal) {
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             } else if !stations.isEmpty {
@@ -273,11 +276,24 @@ class TrainTimeViewModel: ObservableObject {
         appState = 2
         consecutiveErrors = 0
         lastVibeTick = 0
+        lastFetchTime = .distantPast  // Force immediate fetch on tracking entry
 
         // Switch to faster timer for tracking
         startTimer(interval: Timing.trackingRefreshInterval)
         startExtendedSession()
         HapticService.shortPulse()
+    }
+
+    func enterInactiveState() {
+        appState = 3
+        focusedTrain = nil
+        consecutiveErrors = 0
+        startTimer(interval: Timing.normalRefreshInterval)
+        endExtendedSession()
+    }
+
+    func resumeFromInactive() {
+        appState = 0
     }
 
     func exitToStationView() {

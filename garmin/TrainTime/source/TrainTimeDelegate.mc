@@ -11,7 +11,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
 
     function onNextPage() {  // Down button
         var state = mView.getAppState();
-        if (state == 0) {
+        if (state == 3) {
+            mView.exitToStationView();
+        } else if (state == 0) {
             mView.cycleMode();            // cycle modes forward
         } else if (state == 1) {
             mView.moveCursorDown();
@@ -22,7 +24,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
 
     function onPreviousPage() {  // Up button
         var state = mView.getAppState();
-        if (state == 0) {
+        if (state == 3) {
+            mView.exitToStationView();
+        } else if (state == 0) {
             mView.cycleModeReverse();     // cycle modes backward
         } else if (state == 1) {
             mView.moveCursorUp();
@@ -33,7 +37,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
 
     function onSelect() {
         var state = mView.getAppState();
-        if (state == 0) {
+        if (state == 3) {
+            mView.exitToStationView();
+        } else if (state == 0) {
             mView.enterTrainSelection();  // enter cursor list on station indicator
         } else if (state == 1) {
             if (mView.mCursorIndex == -1) {
@@ -48,10 +54,12 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
-        if (mView.getAppState() > 0) {
+        var state = mView.getAppState();
+        if (state == 1 || state == 2) {
             mView.exitToStationView();
             return true;  // consumed — don't exit app
         }
-        return false;  // State 0: exit app
+        // State 0 and 3: exit app
+        return false;
     }
 }

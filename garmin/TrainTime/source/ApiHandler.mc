@@ -35,13 +35,6 @@ module ApiHandler {
                 view.mStatus = "No stations nearby";
                 view.mTrainData = null;
             } else {
-                // Name fallback for trains
-                if (view.mTrainStations.size() == 0) {
-                    var cityName = extractCityName(view);
-                    if (cityName != null) {
-                        fetchStationsByName(view, cityName);
-                    }
-                }
                 rebuildModesAndSelect(view);
             }
         } else if (responseCode == 429) {
@@ -61,13 +54,18 @@ module ApiHandler {
         for (var i = 0; i < arr.size(); i++) {
             var s = arr[i];
             if (!s.hasKey("id") || s["id"] == null) { continue; }
-            result.add({
+            var station = {
                 "id" => s["id"],
                 "label" => s.hasKey("name") ? s["name"] : "Station",
                 "dist" => s.hasKey("dist") ? s["dist"] : 0,
                 "lat" => s.hasKey("lat") ? s["lat"] : null,
                 "lon" => s.hasKey("lon") ? s["lon"] : null
-            });
+            };
+            // Embed departures for closest station (first entry per mode)
+            if (result.size() == 0 && s.hasKey("departures") && s["departures"] != null) {
+                station["departures"] = s["departures"];
+            }
+            result.add(station);
         }
         return result;
     }
@@ -102,66 +100,15 @@ module ApiHandler {
             view.mStatus = view.mStationName;
             WatchUi.requestUpdate();
 
-            view.mRequestInFlight = true;
-            view.mRequestStartTime = Time.now().value();
-            fetchDepartures(view, view.mStationId);
-        }
-    }
-
-    function extractCityName(view) {
-        // Swiss stops follow "City, Stop Name" format
-        var stations = view.mBusStations.size() > 0 ? view.mBusStations : view.mTramStations;
-        if (stations.size() == 0) { return null; }
-        var name = stations[0]["label"];
-        var commaIdx = name.find(",");
-        if (commaIdx != null && commaIdx > 0) {
-            return name.substring(0, commaIdx);
-        }
-        return name;
-    }
-
-    function fetchStationsByName(view, cityName) {
-        var url = "https://api.traintime.ch/v1/nearby"
-            + "?lat=" + view.mLastSearchLat + "&lon=" + view.mLastSearchLon
-            + "&query=" + cityName;
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, view.method(:onTrainStationsReceived));
-    }
-
-    function handleTrainStationsResponse(view, responseCode, data) {
-        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary)) {
-            return;
-        }
-
-        view.mTrainStations = parseStationGroup(data, "train");
-
-        if (view.mTrainStations.size() > 0) {
-            // Rebuild modes to include trains
-            var hadTrain = false;
-            for (var i = 0; i < view.mAvailableModes.size(); i++) {
-                if (view.mAvailableModes[i] == 0) { hadTrain = true; }
-            }
-            if (!hadTrain) {
-                // Insert train at beginning so it appears first
-                var newModes = [0];
-                for (var i = 0; i < view.mAvailableModes.size(); i++) {
-                    newModes.add(view.mAvailableModes[i]);
-                }
-                view.mAvailableModes = newModes;
-            }
-            // Only auto-switch if in station view — don't disrupt active tracking
-            if (view.mAppState == 0) {
-                view.mCurrentMode = 0;
-                view.mStations = view.getStationsForMode(0);
-                if (view.mStations != null && view.mStations.size() > 0) {
-                    view.mStationIndex = 0;
-                    view.selectStation(0);
-                }
+            // Use embedded departures if available (closest station per mode)
+            if (station.hasKey("departures") && station["departures"] != null
+                    && station["departures"].size() > 0) {
+                view.mTrainData = parseDepartureArray(station["departures"]);
+                view.mLastFetchTime = Time.now().value();
+            } else {
+                view.mRequestInFlight = true;
+                view.mRequestStartTime = Time.now().value();
+                fetchDepartures(view, view.mStationId);
             }
         }
     }
@@ -179,51 +126,55 @@ module ApiHandler {
         Communications.makeWebRequest(url, null, params, view.method(:onTrainDataReceived));
     }
 
+    function parseDepartureArray(departures) {
+        var result = [];
+        var nowSeconds = Time.now().value();
+
+        for (var i = 0; i < departures.size() && i < 10; i++) {
+            var dep = departures[i];
+            var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
+            var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";
+            var number = (dep.hasKey("number") && dep["number"] != null) ? dep["number"] : "";
+            var lineNumber = "";
+            if (category.equals("B") || category.equals("T") || category.equals("NFB") || category.equals("NFT") || category.equals("M")) {
+                lineNumber = number;
+            }
+
+            var platform = (dep.hasKey("platform") && dep["platform"] != null) ? dep["platform"].toString() : "";
+            var platformChanged = (dep.hasKey("platformChanged") && dep["platformChanged"] != null) ? dep["platformChanged"] : false;
+
+            var minutesUntil = -1;
+            var depTs = null;
+            if (dep.hasKey("departure") && dep["departure"] != null) {
+                depTs = dep["departure"];
+                minutesUntil = (depTs - nowSeconds) / 60;
+            }
+
+            var delay = 0;
+            if (dep.hasKey("delay") && dep["delay"] != null && dep["delay"] > 0) {
+                delay = dep["delay"];
+            }
+
+            result.add({
+                "min" => minutesUntil,
+                "depTs" => depTs,
+                "delay" => delay,
+                "plat" => platform,
+                "platChg" => platformChanged,
+                "dest" => destination,
+                "line" => lineNumber
+            });
+        }
+        return result;
+    }
+
     function handleDeparturesResponse(view, responseCode, data) {
         view.mRequestInFlight = false;
         view.mRequestStartTime = null;
 
         if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("departures")) {
             view.mConsecutiveErrors = 0;
-            view.mTrainData = [];
-            var departures = data["departures"];
-            var nowSeconds = Time.now().value();
-
-            for (var i = 0; i < departures.size() && i < 10; i++) {
-                var dep = departures[i];
-                var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
-                var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";
-                var number = (dep.hasKey("number") && dep["number"] != null) ? dep["number"] : "";
-                var lineNumber = "";
-                if (category.equals("B") || category.equals("T") || category.equals("NFB") || category.equals("NFT") || category.equals("M")) {
-                    lineNumber = number;
-                }
-
-                var platform = (dep.hasKey("platform") && dep["platform"] != null) ? dep["platform"].toString() : "";
-                var platformChanged = (dep.hasKey("platformChanged") && dep["platformChanged"] != null) ? dep["platformChanged"] : false;
-
-                var minutesUntil = -1;
-                var depTs = null;
-                if (dep.hasKey("departure") && dep["departure"] != null) {
-                    depTs = dep["departure"];
-                    minutesUntil = (depTs - nowSeconds) / 60;
-                }
-
-                var delay = 0;
-                if (dep.hasKey("delay") && dep["delay"] != null && dep["delay"] > 0) {
-                    delay = dep["delay"];
-                }
-
-                view.mTrainData.add({
-                    "min" => minutesUntil,
-                    "depTs" => depTs,
-                    "delay" => delay,
-                    "plat" => platform,
-                    "platChg" => platformChanged,
-                    "dest" => destination,
-                    "line" => lineNumber
-                });
-            }
+            view.mTrainData = parseDepartureArray(data["departures"]);
 
             if (view.mStationName != null) {
                 view.mStatus = view.mStationName;

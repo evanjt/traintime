@@ -16,10 +16,16 @@ extension TrainTimeViewModel {
         guard mode != currentMode else { return }
         currentMode = mode
         stationIndex = 0
-        departures = []
 
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
+        // Use embedded departures if available (closest station per mode)
+        if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
+            departures = deps
+            lastFetchTime = Date()
+        } else {
+            departures = []
+            if let station = currentStation, let id = station.id {
+                fetchDepartures(stationId: id)
+            }
         }
     }
 
@@ -43,10 +49,17 @@ extension TrainTimeViewModel {
     func selectStation(index: Int) {
         guard index >= 0, index < stations.count else { return }
         stationIndex = index
-        departures = []
         showStationPicker = false
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
+
+        // Use embedded departures if available (closest station per mode)
+        if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
+            departures = deps
+            lastFetchTime = Date()
+        } else {
+            departures = []
+            if let station = currentStation, let id = station.id {
+                fetchDepartures(stationId: id)
+            }
         }
     }
 
@@ -73,10 +86,16 @@ extension TrainTimeViewModel {
         }
 
         stationIndex = 0
-        departures = []
 
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
+        // Use embedded departures if available (closest station per mode)
+        if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
+            departures = deps
+            lastFetchTime = Date()
+        } else {
+            departures = []
+            if let station = currentStation, let id = station.id {
+                fetchDepartures(stationId: id)
+            }
         }
     }
 

@@ -16,6 +16,22 @@ struct ContentView: View {
                                 }
                             }
                         }
+                case 3:
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Text("Inactive")
+                            .font(.system(.title3, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text("Tap to resume")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.resumeFromInactive()
+                    }
                 default:
                     StationView(viewModel: viewModel)
                 }

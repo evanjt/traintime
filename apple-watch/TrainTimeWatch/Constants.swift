@@ -48,7 +48,8 @@ enum SwissBounds {
 enum Timing {
     static let normalRefreshInterval: TimeInterval = 5.0
     static let trackingRefreshInterval: TimeInterval = 1.0
-    static let fetchCooldown: TimeInterval = 10.0
+    static let fetchCooldownNormal: TimeInterval = 30.0
+    static let fetchCooldownTracking: TimeInterval = 10.0
     static let requestTimeout: TimeInterval = 30.0
 }
 

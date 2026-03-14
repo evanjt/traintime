@@ -30,33 +30,7 @@ struct TrainAPIService {
         let tramStations = parseStationGroup(json["tram"], mode: .tram)
         let specialStations = parseStationGroup(json["special"], mode: .special)
 
-        // Name fallback: if no train stations, search by city name
-        if trainStations.isEmpty, let firstBus = (busStations.first ?? tramStations.first) {
-            if let cityName = extractCityName(from: firstBus.name) {
-                let fallbackTrains = try await fetchTrainStationsByName(
-                    city: cityName, lat: lat, lon: lon
-                )
-                return (fallbackTrains, busStations, tramStations, specialStations)
-            }
-        }
-
         return (trainStations, busStations, tramStations, specialStations)
-    }
-
-    // MARK: - Station Search by Name (Fallback)
-
-    private static func fetchTrainStationsByName(
-        city: String, lat: Double, lon: Double
-    ) async throws -> [Station] {
-        let encoded = city.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? city
-        let urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)&query=\(encoded)"
-        guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
-
-        let (data, response) = try await makeRequest(url: url)
-        try checkHTTPResponse(response)
-
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        return parseStationGroup(json["train"], mode: .train)
     }
 
     // MARK: - Departures
@@ -74,55 +48,10 @@ struct TrainAPIService {
             return []
         }
 
-        let now = Int(Date().timeIntervalSince1970)
-        var departures: [Departure] = []
-
-        for entry in departureArray.prefix(Thresholds.maxDepartures) {
-            let destination = entry["to"] as? String ?? "?"
-            let category = entry["category"] as? String ?? ""
-            let number = entry["number"] as? String ?? ""
-            let lineNumber = (category == "B" || category == "T" || category == "NFB" || category == "NFT" || category == "M") ? number : ""
-
-            let platform = entry["platform"] as? String ?? ""
-            let platformChanged = entry["platformChanged"] as? Bool ?? false
-
-            var minutesUntil = -1
-            var depTimestamp: Int?
-            if let depTs = entry["departure"] as? Int {
-                depTimestamp = depTs
-                minutesUntil = (depTs - now) / 60
-            }
-
-            var delay = 0
-            if let rawDelay = entry["delay"] as? Int, rawDelay > 0 {
-                delay = rawDelay
-            }
-
-            departures.append(Departure(
-                destination: destination,
-                minutesUntil: minutesUntil,
-                departureTimestamp: depTimestamp,
-                delay: delay,
-                platform: platform,
-                platformChanged: platformChanged,
-                lineNumber: lineNumber
-            ))
-        }
-
-        return departures
+        return departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
     }
 
     // MARK: - Helpers
-
-    /// Extract city name from station name (e.g., "Sion, Place du Midi" → "Sion")
-    static func extractCityName(from name: String?) -> String? {
-        guard let name = name else { return nil }
-        if let commaIndex = name.firstIndex(of: ",") {
-            let city = String(name[name.startIndex..<commaIndex]).trimmingCharacters(in: .whitespaces)
-            return city.isEmpty ? nil : city
-        }
-        return name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name
-    }
 
     private static func parseStationGroup(_ raw: Any?, mode: TransportMode) -> [Station] {
         guard let array = raw as? [[String: Any]] else { return [] }

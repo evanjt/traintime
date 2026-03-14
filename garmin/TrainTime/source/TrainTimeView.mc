@@ -32,7 +32,7 @@ class TrainTimeView extends WatchUi.View {
     var mStationLon;
     var mTickCount;
     var mLastWalkDist;  // last known walk distance in meters
-    // 0 = station view, 1 = train selection, 2 = focused tracking
+    // 0 = station view, 1 = train selection, 2 = focused tracking, 3 = inactive
     var mAppState;
     var mCursorIndex;
     var mFocusedTrain;
@@ -133,10 +133,6 @@ class TrainTimeView extends WatchUi.View {
 
     function onStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
         ApiHandler.handleStationsResponse(self, responseCode, data);
-    }
-
-    function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        ApiHandler.handleTrainStationsResponse(self, responseCode, data);
     }
 
     function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
@@ -300,6 +296,7 @@ class TrainTimeView extends WatchUi.View {
         };
         mAppState = 2;
         mConsecutiveErrors = 0;
+        mLastFetchTime = 0;  // Force immediate fetch on tracking entry
         // Faster timer for tracking mode (1s for seconds-precision countdown)
         if (mTimer != null) {
             mTimer.stop();
@@ -317,6 +314,22 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 0;
         mCursorIndex = 0;
         mScrollOffset = 0;
+        mFocusedTrain = null;
+        mConsecutiveErrors = 0;
+        // Restore normal timer rate
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer.start(method(:onTimerTick), 5000, true);
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function enterInactiveState() {
+        if (mMapActive) {
+            mMapActive = false;
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        }
+        mAppState = 3;
         mFocusedTrain = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
@@ -385,7 +398,7 @@ class TrainTimeView extends WatchUi.View {
             }
         } else {
             Haptics.vibrateShort();
-            exitToStationView();
+            enterInactiveState();
         }
     }
 
@@ -477,9 +490,17 @@ class TrainTimeView extends WatchUi.View {
         mWalkInfo = formatWalkInfo(distance);
         mStatus = mStationName;
         mTrainData = null;
-        mRequestInFlight = true;
-        mRequestStartTime = Time.now().value();
-        ApiHandler.fetchDepartures(self, mStationId);
+
+        // Use embedded departures if available (closest station per mode)
+        if (station.hasKey("departures") && station["departures"] != null
+                && station["departures"].size() > 0) {
+            mTrainData = ApiHandler.parseDepartureArray(station["departures"]);
+            mLastFetchTime = Time.now().value();
+        } else {
+            mRequestInFlight = true;
+            mRequestStartTime = Time.now().value();
+            ApiHandler.fetchDepartures(self, mStationId);
+        }
         WatchUi.requestUpdate();
     }
 
@@ -616,7 +637,7 @@ class TrainTimeView extends WatchUi.View {
             // Auto-exit when train has departed for >1 minute
             if (focusedMin < -1.0) {
                 Haptics.vibrateShort();
-                exitToStationView();
+                enterInactiveState();
             } else {
                 var walkMin = getWalkMinutes();
                 if (walkMin != null) {
@@ -640,9 +661,16 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
-        // Fetch stationboard based on elapsed time (>= 10s since last)
+        // Skip API fetches in inactive state
+        if (mAppState == 3) {
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        // Fetch stationboard based on elapsed time
         var nowFetch = Time.now().value();
-        if (nowFetch - mLastFetchTime >= 10) {
+        var fetchCooldown = mAppState == 2 ? 10 : 30;
+        if (nowFetch - mLastFetchTime >= fetchCooldown) {
             if (mStationId != null) {
                 mLastFetchTime = nowFetch;
                 mRequestInFlight = true;

@@ -8,6 +8,7 @@ struct Station: Identifiable {
     let lon: Double?
     let mode: TransportMode
     var dist: Double?
+    var embeddedDepartures: [Departure]?
 
     var coordinate: CLLocationCoordinate2D? {
         guard let lat = lat, let lon = lon else { return nil }
@@ -24,7 +25,12 @@ struct Station: Identifiable {
         let lon = json["lon"] as? Double
         let dist = json["dist"] as? Double
 
-        return Station(id: id, name: name, lat: lat, lon: lon, mode: mode, dist: dist)
+        var embeddedDeps: [Departure]?
+        if let depsArray = json["departures"] as? [[String: Any]], !depsArray.isEmpty {
+            embeddedDeps = depsArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
+        }
+
+        return Station(id: id, name: name, lat: lat, lon: lon, mode: mode, dist: dist, embeddedDepartures: embeddedDeps)
     }
 
     func walkInfo(index: Int, total: Int) -> String {
