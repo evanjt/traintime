@@ -16,9 +16,9 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/01-station-view-framed.png" width="180" alt="Station departures" />&nbsp;&nbsp;
-  <img src="docs/screenshots/02-focused-tracking-framed.png" width="180" alt="Focused tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/03-station-picker-framed.png" width="180" alt="Station picker" />
+  <img src="docs/screenshots/apple/01-station-view.png" width="180" alt="Station departures" />&nbsp;&nbsp;
+  <img src="docs/screenshots/apple/02-focused-tracking.png" width="180" alt="Focused tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/apple/03-station-picker.png" width="180" alt="Station picker" />
 </p>
 
 ---
@@ -28,14 +28,14 @@
 - **Nearby stations** - GPS-based discovery with live walk time and distance
 - **Live departures** - Platform numbers, destinations, real-time delays
 - **Focused tracking** - Tap a departure to track it with a live countdown
-- **Train, bus, tram** - Switch between transport modes
+- **Train, bus, tram & more** - Switch between transport modes including boats, funiculars, and cable cars
 
 ## Platforms
 
 | Platform | Status |
 |----------|--------|
 | Apple Watch | Available |
-| Garmin | Coming soon |
+| Garmin | Available |
 
 ## Build
 
@@ -54,7 +54,7 @@ cd garmin
 
 ## API
 
-Uses the [Swiss public transport API](https://transport.opendata.ch) (open data, no key required).
+Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https://opentransportdata.swiss). Copy `Secrets.swift.example` / `Secrets.mc.example` to `Secrets.swift` / `Secrets.mc` and fill in your API key.
 
 ## License
 
