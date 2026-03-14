@@ -42,7 +42,7 @@ module Renderer {
             // Walking info line / station indicator
             var walkY = height * 13 / 100;
             if (view.mAppState == 1 && view.mCursorIndex == -1) {
-                // Highlighted station indicator
+                // Highlighted station indicator (shows walk info + counter)
                 var walkTextH = dc.getFontHeight(Graphics.FONT_XTINY);
                 var rowCenterForBg = walkY + walkTextH / 2;
                 var usableBg = DrawUtils.getUsableWidth(rowCenterForBg, width, height);
@@ -51,11 +51,12 @@ module Renderer {
                 dc.fillRectangle(bgX, walkY, usableBg - 4, walkTextH);
                 dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
                 dc.fillRectangle(bgX, walkY, 3, walkTextH);
-                var stationCount = (view.mStations != null) ? view.mStations.size() : 1;
-                var siText = (view.mStationIndex + 1) + "/" + stationCount;
+                var siText = view.mWalkInfo != null ? view.mWalkInfo : ((view.mStationIndex + 1) + "/" + ((view.mStations != null) ? view.mStations.size() : 1));
+                var walkMaxW = usableBg - 10;
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
-                    siText, Graphics.TEXT_JUSTIFY_CENTER);
+                    DrawUtils.truncateToFit(dc, siText, Graphics.FONT_XTINY, walkMaxW),
+                    Graphics.TEXT_JUSTIFY_CENTER);
             } else if (view.mWalkInfo != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
@@ -222,7 +223,7 @@ module Renderer {
         var totalW = 3 * barW + 2 * gap;  // 15px
 
         // Position: top-right (same area as former dot)
-        var midY = 18;
+        var midY = height * 14 / 100;
         var usable = DrawUtils.getUsableWidth(midY, width, height);
         var rightEdge = (width + usable) / 2 - 4;
         var startX = rightEdge - totalW;

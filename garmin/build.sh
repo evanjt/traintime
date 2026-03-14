@@ -68,7 +68,7 @@ else
 fi
 
 if [ "$1" = "release" ]; then
-    VERSION=$(grep -oP 'version="\K[^"]+' manifest.xml | head -1)
+    VERSION=$(grep -oP 'iq:application.*version="\K[^"]+' manifest.xml)
     echo "Version: $VERSION (from manifest.xml)"
 
     echo "Building $APP_NAME release package for all devices..."
@@ -85,11 +85,12 @@ if [ "$1" = "release" ]; then
     fi
 else
     DEVICE="${1:-fenix6pro}"
-    echo "Building $APP_NAME for $DEVICE..."
+    VERSION=$(grep -oP 'iq:application.*version="\K[^"]+' manifest.xml)
+    echo "Building $APP_NAME v$VERSION for $DEVICE..."
     monkeyc -d $DEVICE -f monkey.jungle -o ../$APP_NAME.prg -y ~/.Garmin/developer_key.der
 
     if [ $? -eq 0 ]; then
-        echo "Build successful! Output: $APP_NAME.prg"
+        echo "Build successful! Output: $APP_NAME.prg (v$VERSION)"
     else
         echo "Build failed!"
         exit 1
