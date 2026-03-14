@@ -15,13 +15,12 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "Commands:"
     echo "  (none)              Build for fenix6pro (default device)"
     echo "  <device>            Build for a specific device (e.g. fenix7pro)"
-    echo "  release <version>   Build .iq package for all devices and set version"
-    echo "                      Version is written to manifest.xml (e.g. 0.2.0)"
+    echo "  release             Build .iq package for all devices (version from manifest.xml)"
     echo ""
     echo "Examples:"
     echo "  ./build.sh                  Build debug .prg for fenix6pro"
     echo "  ./build.sh epix2pro47mm     Build debug .prg for epix2pro47mm"
-    echo "  ./build.sh release 0.2.0    Build release .iq with version 0.2.0"
+    echo "  ./build.sh release          Build release .iq for all devices"
     exit 0
 fi
 
@@ -69,17 +68,8 @@ else
 fi
 
 if [ "$1" = "release" ]; then
-    VERSION="$2"
-    if [ -z "$VERSION" ]; then
-        CURRENT=$(grep -oP 'version="\K[^"]+' manifest.xml | head -1)
-        echo "Error: version required. Usage: ./build.sh release <version>"
-        echo "Current version: $CURRENT"
-        exit 1
-    fi
-
-    # Update version in manifest.xml
-    sed -i "s/version=\"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\"/version=\"$VERSION\"/" manifest.xml
-    echo "Version set to $VERSION"
+    VERSION=$(grep -oP 'version="\K[^"]+' manifest.xml | head -1)
+    echo "Version: $VERSION (from manifest.xml)"
 
     echo "Building $APP_NAME release package for all devices..."
     monkeyc -e -f monkey.jungle -o ../$APP_NAME.iq -y ~/.Garmin/developer_key.der -r

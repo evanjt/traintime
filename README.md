@@ -54,7 +54,7 @@ cd garmin
 
 ## API
 
-Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https://opentransportdata.swiss). Copy `Secrets.swift.example` / `Secrets.mc.example` to `Secrets.swift` / `Secrets.mc` and fill in your API key.
+Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https://opentransportdata.swiss). Source: [evanjt/traintime-api](https://github.com/evanjt/traintime-api). Copy `Secrets.swift.example` / `Secrets.mc.example` to `Secrets.swift` / `Secrets.mc` and fill in your API key.
 
 ## License
 

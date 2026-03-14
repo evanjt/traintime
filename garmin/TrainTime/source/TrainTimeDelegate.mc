@@ -12,7 +12,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     function onNextPage() {  // Down button
         var state = mView.getAppState();
         if (state == 0) {
-            mView.cycleMode();            // cycle train/bus/tram
+            mView.cycleMode();            // cycle modes forward
         } else if (state == 1) {
             mView.moveCursorDown();
         }
@@ -23,7 +23,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     function onPreviousPage() {  // Up button
         var state = mView.getAppState();
         if (state == 0) {
-            mView.nextStation();          // cycle stations within mode
+            mView.cycleModeReverse();     // cycle modes backward
         } else if (state == 1) {
             mView.moveCursorUp();
         }
@@ -34,9 +34,13 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     function onSelect() {
         var state = mView.getAppState();
         if (state == 0) {
-            mView.enterTrainSelection();  // enter cursor selection
+            mView.enterTrainSelection();  // enter cursor list on station indicator
         } else if (state == 1) {
-            mView.confirmTrainSelection();
+            if (mView.mCursorIndex == -1) {
+                mView.cycleStation();     // cycle station when on station indicator
+            } else {
+                mView.confirmTrainSelection();
+            }
         } else if (state == 2) {
             mView.enterMapView();
         }

@@ -209,61 +209,86 @@ class TrainTimeView extends WatchUi.View {
         }
     }
 
+    function cycleModeReverse() {
+        if (mAvailableModes.size() <= 1) {
+            return;
+        }
+        var idx = 0;
+        for (var i = 0; i < mAvailableModes.size(); i++) {
+            if (mAvailableModes[i] == mCurrentMode) {
+                idx = i;
+                break;
+            }
+        }
+        idx = idx - 1;
+        if (idx < 0) { idx = mAvailableModes.size() - 1; }
+        mCurrentMode = mAvailableModes[idx];
+        mStations = getStationsForMode(mCurrentMode);
+        if (mStations != null && mStations.size() > 0) {
+            mStationIndex = 0;
+            selectStation(0);
+        }
+    }
+
     function getAppState() {
         return mAppState;
     }
 
     function enterTrainSelection() {
-        if (mTrainData == null || mTrainData.size() == 0) {
+        if (mStationName == null) {
             return;
         }
         mAppState = 1;
-        mCursorIndex = 0;
+        mCursorIndex = -1;  // start on station indicator
         mScrollOffset = 0;
-        var limit = mTrainData.size();
-        for (var i = 0; i < limit; i++) {
-            if (mTrainData[i]["min"] >= 0) {
-                mCursorIndex = i;
-                break;
-            }
-        }
         WatchUi.requestUpdate();
     }
 
     function moveCursorDown() {
-        if (mTrainData == null || mTrainData.size() == 0) { return; }
-        var total = mTrainData.size();
-        mCursorIndex = (mCursorIndex + 1) % total;
-        // Scroll down if cursor goes past visible window
-        if (mCursorIndex >= mScrollOffset + mMaxVisibleTrains) {
-            mScrollOffset = mCursorIndex - mMaxVisibleTrains + 1;
+        if (mTrainData == null || mTrainData.size() == 0) {
+            // No departures — only station indicator navigable
+            return;
         }
-        // Wrap to top
-        if (mCursorIndex < mScrollOffset) {
+        var total = mTrainData.size();
+        if (mCursorIndex == -1) {
+            // Move from station indicator to first departure row
+            mCursorIndex = 0;
             mScrollOffset = 0;
+        } else {
+            mCursorIndex = mCursorIndex + 1;
+            if (mCursorIndex >= total) {
+                // Wrap to station indicator
+                mCursorIndex = -1;
+            }
+        }
+        // Scroll adjustment (only for departure rows)
+        if (mCursorIndex >= 0) {
+            if (mCursorIndex >= mScrollOffset + mMaxVisibleTrains) {
+                mScrollOffset = mCursorIndex - mMaxVisibleTrains + 1;
+            }
+            if (mCursorIndex < mScrollOffset) {
+                mScrollOffset = 0;
+            }
         }
         WatchUi.requestUpdate();
     }
 
     function moveCursorUp() {
         if (mTrainData == null || mTrainData.size() == 0) { return; }
-        var total = mTrainData.size();
-        mCursorIndex = mCursorIndex - 1;
-        if (mCursorIndex < 0) {
-            mCursorIndex = total - 1;
-            // Scroll to show last items
-            mScrollOffset = total - mMaxVisibleTrains;
-            if (mScrollOffset < 0) { mScrollOffset = 0; }
+        if (mCursorIndex == -1) {
+            // Already at top (station indicator), no-op
+            return;
         }
-        // Scroll up if cursor goes above visible window
-        if (mCursorIndex < mScrollOffset) {
+        mCursorIndex = mCursorIndex - 1;
+        // mCursorIndex can be -1 here (station indicator)
+        if (mCursorIndex >= 0 && mCursorIndex < mScrollOffset) {
             mScrollOffset = mCursorIndex;
         }
         WatchUi.requestUpdate();
     }
 
     function confirmTrainSelection() {
-        if (mTrainData == null || mCursorIndex >= mTrainData.size()) { return; }
+        if (mTrainData == null || mCursorIndex < 0 || mCursorIndex >= mTrainData.size()) { return; }
         var t = mTrainData[mCursorIndex];
         mFocusedTrain = {
             "dest" => t["dest"],
@@ -436,6 +461,10 @@ class TrainTimeView extends WatchUi.View {
             mStationIndex = (mStationIndex + 1) % mStations.size();
             selectStation(mStationIndex);
         }
+    }
+
+    function cycleStation() {
+        nextStation();
     }
 
     function selectStation(index) {

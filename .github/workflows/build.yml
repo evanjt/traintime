@@ -97,6 +97,16 @@ jobs:
       # ============================================
       # Build
       # ============================================
+      - name: Generate Apple Watch secrets
+        env:
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+        run: |
+          cat > apple-watch/TrainTimeWatch/Secrets.swift <<EOF
+          enum Secrets {
+              static let apiKey = "$TRAINTIME_API_KEY"
+          }
+          EOF
+
       - name: Build unsigned (PR validation)
         if: steps.check_signing.outputs.has_signing != 'true' || (github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch')
         working-directory: apple-watch
@@ -193,6 +203,17 @@ jobs:
         run: |
           mkdir -p ~/.Garmin
           echo "$GARMIN_DEVELOPER_KEY" | base64 -d > ~/.Garmin/developer_key.der
+
+      - name: Generate Garmin secrets
+        if: steps.check_creds.outputs.has_creds == 'true'
+        env:
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+        run: |
+          cat > garmin/TrainTime/source/Secrets.mc <<EOF
+          module Secrets {
+              const API_KEY = "$TRAINTIME_API_KEY";
+          }
+          EOF
 
       - name: Build .prg for multiple devices
         if: steps.check_creds.outputs.has_creds == 'true'

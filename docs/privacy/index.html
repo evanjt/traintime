@@ -303,7 +303,7 @@
     <main>
       <div class="container">
         <h1>PRIVACY POLICY</h1>
-        <p class="last-updated">Last updated: 13 March 2026</p>
+        <p class="last-updated">Last updated: 14 March 2026</p>
 
         <div class="highlight-box">
           <p>
@@ -318,7 +318,7 @@
         </p>
         <ul>
           <li>Processed entirely on your device to determine nearby stations</li>
-          <li>Sent to the Swiss public transport API as coordinates to search for stations (see Third-Party Services below)</li>
+          <li>Sent to our API server (<code>api.traintime.ch</code>), which forwards coordinates to the Swiss transport data provider to find nearby stations (see Third-Party Services below)</li>
           <li>Cached locally on your device as a fallback for faster startup</li>
           <li>Never sent to the developer or any other party</li>
         </ul>
@@ -332,20 +332,37 @@
 
         <h2>THIRD-PARTY SERVICES</h2>
 
-        <p><strong>Swiss Public Transport API</strong> (transport.opendata.ch)</p>
+        <p><strong>TrainTime API</strong> (<code>api.traintime.ch</code>)</p>
         <ul>
-          <li>Used to search for nearby stations and fetch departure information</li>
-          <li>Receives your approximate coordinates for station search and station IDs for departures</li>
-          <li>This is a public, open-data API operated under Swiss open data principles</li>
-          <li>See <a href="https://transport.opendata.ch" target="_blank">transport.opendata.ch</a> for details</li>
+          <li>Our server that forwards station and departure requests to the upstream data provider</li>
+          <li>Receives your approximate coordinates and station IDs &mdash; no user accounts or personal data is stored</li>
+          <li>Hosted on <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Cloudflare Workers</a> with all logging and observability disabled</li>
+          <li>Source code: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a></li>
+        </ul>
+
+        <p><strong>Open Transport Data Switzerland</strong> (<code>opentransportdata.swiss</code>)</p>
+        <ul>
+          <li>Upstream data source operated by SBB (Swiss Federal Railways)</li>
+          <li>Provides station locations and live departure data via the OJP 2.0 API</li>
+          <li>Our API forwards your coordinates and station IDs to this service</li>
+          <li>Data published under Swiss open data principles &mdash; see <a href="https://opentransportdata.swiss/en/terms-of-use/" target="_blank">opentransportdata.swiss/en/terms-of-use</a></li>
         </ul>
 
         <p>No other third-party services, SDKs, or APIs are used. No analytics, advertising, crash reporting, or tracking of any kind.</p>
 
+        <h2>EXTERNAL DATA</h2>
+        <ul>
+          <li>Transit information (stations, departures, delays, platforms) is sourced from opentransportdata.swiss and provided as-is</li>
+          <li>We do not control or guarantee the accuracy, completeness, or availability of this external data</li>
+          <li>Service interruptions or data inaccuracies from upstream providers are outside our control</li>
+          <li>Data source: <a href="https://opentransportdata.swiss" target="_blank">opentransportdata.swiss</a> (attribution required by their terms of use)</li>
+        </ul>
+
         <h2>DATA SHARING</h2>
         <p>
-          None. The developer has no access to your data. All data flows directly between your
-          device and the Swiss public transport API.
+          Your station search coordinates and departure requests pass through our API server
+          (<code>api.traintime.ch</code>), which forwards them to the upstream data provider.
+          We do not store or share any personally identifiable information.
         </p>
 
         <h2>CHILDREN'S PRIVACY</h2>

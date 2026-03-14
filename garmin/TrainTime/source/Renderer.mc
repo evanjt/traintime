@@ -28,10 +28,25 @@ module Renderer {
             // Mode indicators (above walk info)
             drawModeIndicators(dc, view, width, height);
 
-            // Walking info line
-            if (view.mWalkInfo != null) {
+            // Walking info line / station indicator
+            var walkY = height * 13 / 100;
+            if (view.mAppState == 1 && view.mCursorIndex == -1) {
+                // Highlighted station indicator
+                var walkTextH = dc.getFontHeight(Graphics.FONT_XTINY);
+                var rowCenterForBg = walkY + walkTextH / 2;
+                var usableBg = DrawUtils.getUsableWidth(rowCenterForBg, width, height);
+                var bgX = (width - usableBg) / 2 + 2;
+                dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(bgX, walkY, usableBg - 4, walkTextH);
+                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(bgX, walkY, 3, walkTextH);
+                var stationCount = (view.mStations != null) ? view.mStations.size() : 1;
+                var siText = (view.mStationIndex + 1) + "/" + stationCount;
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                    siText, Graphics.TEXT_JUSTIFY_CENTER);
+            } else if (view.mWalkInfo != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                var walkY = height * 12 / 100;
                 var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
                 var walkText = DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
@@ -97,7 +112,7 @@ module Renderer {
         }
 
         // Contextual button hint at bottom
-        if (view.mStationName != null && view.mTrainData != null && view.mTrainData.size() > 0) {
+        if (view.mStationName != null && (view.mAppState == 1 || (view.mTrainData != null && view.mTrainData.size() > 0))) {
             var hintY = height * 92 / 100;
             var hintMaxW = DrawUtils.getUsableWidth(hintY + 6, width, height) - 10;
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
@@ -105,7 +120,11 @@ module Renderer {
             if (view.mAppState == 0) {
                 hint = "Press START";
             } else if (view.mAppState == 1) {
-                hint = "START=OK  BACK";
+                if (view.mCursorIndex == -1) {
+                    hint = "START=Next  DOWN";
+                } else {
+                    hint = "START=OK  BACK";
+                }
             } else {
                 hint = (WatchUi has :MapTrackView && view.mStationLat != null && view.mStationLon != null) ? "START=Map" : "";
             }
@@ -117,85 +136,120 @@ module Renderer {
         }
     }
 
-    function drawModeIndicators(dc, view, width, height) {
-        if (view.mAvailableModes.size() == 0) {
-            return;
+    function isModeAvailable(view, mode) {
+        for (var i = 0; i < view.mAvailableModes.size(); i++) {
+            if (view.mAvailableModes[i] == mode) {
+                return true;
+            }
         }
+        return false;
+    }
 
+    function drawModeIndicators(dc, view, width, height) {
         var cy = height * 7 / 100;
-        var iconSpacing = 24;
-        var totalWidth = (view.mAvailableModes.size() - 1) * iconSpacing;
+        var iconSpacing = 36;
+        var totalWidth = 3 * iconSpacing;  // 4 icons, 3 gaps
         var startX = width / 2 - totalWidth / 2;
 
-        for (var i = 0; i < view.mAvailableModes.size(); i++) {
-            var mode = view.mAvailableModes[i];
+        for (var i = 0; i < 4; i++) {
             var cx = startX + i * iconSpacing;
-            var isActive = (mode == view.mCurrentMode);
+            var isActive = (i == view.mCurrentMode);
+            var available = isModeAvailable(view, i);
 
-            if (isActive) {
+            if (isActive && available) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            } else if (available) {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             } else {
-                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
             }
 
-            if (mode == 0) {
+            if (i == 0) {
                 // Train: rectangle body + peaked roof + 2 wheels
-                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
-                dc.fillPolygon([[cx - 3, cy - 1], [cx, cy - 4], [cx + 3, cy - 1]]);
-                dc.fillCircle(cx - 2, cy + 6, 1);
-                dc.fillCircle(cx + 2, cy + 6, 1);
-            } else if (mode == 1) {
+                dc.fillRectangle(cx - 4, cy - 1, 8, 7);
+                dc.fillPolygon([[cx - 4, cy - 1], [cx, cy - 4], [cx + 4, cy - 1]]);
+                dc.fillCircle(cx - 3, cy + 8, 2);
+                dc.fillCircle(cx + 3, cy + 8, 2);
+            } else if (i == 1) {
                 // Bus: wider rectangle body + 2 wheels
-                dc.fillRectangle(cx - 4, cy, 8, 5);
-                dc.fillCircle(cx - 3, cy + 6, 1);
-                dc.fillCircle(cx + 3, cy + 6, 1);
-            } else if (mode == 2) {
+                dc.fillRectangle(cx - 5, cy, 10, 6);
+                dc.fillCircle(cx - 3, cy + 8, 2);
+                dc.fillCircle(cx + 3, cy + 8, 2);
+            } else if (i == 2) {
                 // Tram: rectangle body + pantograph + 2 wheels
-                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
+                dc.fillRectangle(cx - 4, cy - 1, 8, 7);
                 dc.setPenWidth(1);
-                dc.drawLine(cx, cy - 1, cx, cy - 5);
-                dc.drawLine(cx - 2, cy - 5, cx + 2, cy - 5);
-                dc.fillCircle(cx - 2, cy + 6, 1);
-                dc.fillCircle(cx + 2, cy + 6, 1);
-            } else if (mode == 3) {
+                dc.drawLine(cx, cy - 1, cx, cy - 6);
+                dc.drawLine(cx - 3, cy - 6, cx + 3, cy - 6);
+                dc.fillCircle(cx - 3, cy + 8, 2);
+                dc.fillCircle(cx + 3, cy + 8, 2);
+            } else if (i == 3) {
                 // Special (boats/funiculars/cable cars): wave icon
                 dc.setPenWidth(2);
-                dc.drawLine(cx - 4, cy, cx - 2, cy - 3);
-                dc.drawLine(cx - 2, cy - 3, cx, cy);
-                dc.drawLine(cx, cy, cx + 2, cy + 3);
-                dc.drawLine(cx + 2, cy + 3, cx + 4, cy);
-                dc.drawLine(cx - 4, cy + 4, cx - 2, cy + 1);
-                dc.drawLine(cx - 2, cy + 1, cx, cy + 4);
-                dc.drawLine(cx, cy + 4, cx + 2, cy + 7);
-                dc.drawLine(cx + 2, cy + 7, cx + 4, cy + 4);
+                dc.drawLine(cx - 5, cy, cx - 3, cy - 4);
+                dc.drawLine(cx - 3, cy - 4, cx, cy);
+                dc.drawLine(cx, cy, cx + 3, cy + 4);
+                dc.drawLine(cx + 3, cy + 4, cx + 5, cy);
+                dc.drawLine(cx - 5, cy + 5, cx - 3, cy + 1);
+                dc.drawLine(cx - 3, cy + 1, cx, cy + 5);
+                dc.drawLine(cx, cy + 5, cx + 3, cy + 9);
+                dc.drawLine(cx + 3, cy + 9, cx + 5, cy + 5);
             }
 
-            // Active mode ring (only when multiple modes available)
-            if (isActive && view.mAvailableModes.size() > 1) {
+            // Active + available: underline indicator
+            if (isActive && available) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(1);
-                dc.drawCircle(cx, cy + 1, 9);
+                dc.fillRectangle(cx - 5, cy + 12, 10, 2);
             }
         }
     }
 
     function drawGpsIndicator(dc, view, width, height) {
-        var cy = 18;
-        var r = 4;
-        var usable = DrawUtils.getUsableWidth(cy, width, height);
-        var cx = (width + usable) / 2 - r - 4;
-        var color;
+        var barW = 3;
+        var gap = 2;
+        var maxH = 13;
+        var totalW = 3 * barW + 2 * gap;  // 15px
+
+        // Position: top-right (same area as former dot)
+        var midY = 18;
+        var usable = DrawUtils.getUsableWidth(midY, width, height);
+        var rightEdge = (width + usable) / 2 - 4;
+        var startX = rightEdge - totalW;
+        var baseY = midY + maxH / 2;  // bottom of tallest bar
+
+        // Determine fill level and color
+        var fillCount;
+        var fillColor;
         if (view.mLoadedFromCache || view.mGpsQuality == Position.QUALITY_LAST_KNOWN) {
-            color = 0x888888; // gray
+            fillCount = 3;
+            fillColor = 0x888888;
         } else if (view.mGpsQuality == Position.QUALITY_NOT_AVAILABLE) {
-            color = 0xFF0000; // red
+            fillCount = 1;
+            fillColor = 0xFF0000;
         } else if (view.mGpsQuality == Position.QUALITY_POOR) {
-            color = 0xFFAA00; // yellow
+            fillCount = 2;
+            fillColor = 0xFFAA00;
         } else {
-            color = 0x00FF00; // green (USABLE or GOOD)
+            fillCount = 3;
+            fillColor = 0x00FF00;
         }
-        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, r);
+
+        // Draw 3 ascending bars
+        for (var i = 0; i < 3; i++) {
+            var bx = startX + i * (barW + gap);
+            var bh;
+            if (i == 0) { bh = 5; }
+            else if (i == 1) { bh = 9; }
+            else { bh = 13; }
+            var by = baseY - bh;
+
+            if (i < fillCount) {
+                dc.setColor(fillColor, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+            }
+            dc.fillRectangle(bx, by, barW, bh);
+        }
     }
 
     function drawTrainRow(dc, train, y, width, height, highlighted) {
@@ -529,26 +583,36 @@ module Renderer {
 
         var arrowCx = width / 2;
         var arrowCy = height * 89 / 100;
-        var r = 12.0;
+        var r = 16.0;
 
-        // Arrow triangle (pointing up = bearing 0, rotated by relative angle)
         var cosA = Math.cos(angle).toFloat();
         var sinA = Math.sin(angle).toFloat();
 
-        // Points relative to center: tip (0,-r), base-left (-0.6r, 0.5r), base-right (0.6r, 0.5r)
-        var tipX = r * sinA;
-        var tipY = -r * cosA;
-        var blX = -r * 0.6 * cosA - r * 0.5 * sinA;
-        var blY = -r * 0.6 * sinA + r * 0.5 * cosA;
-        var brX = r * 0.6 * cosA - r * 0.5 * sinA;
-        var brY = r * 0.6 * sinA + r * 0.5 * cosA;
+        // Kite points: tip (0,-r), leftWing (-0.4r, 0.3r), rightWing (0.4r, 0.3r), tail (0, 0.15r)
+        // Rotation: x' = px*cosA - py*sinA, y' = px*sinA + py*cosA
+        var tipX = (arrowCx + r * sinA).toNumber();
+        var tipY = (arrowCy - r * cosA).toNumber();
+        var lwX = (arrowCx - 0.4 * r * cosA - 0.3 * r * sinA).toNumber();
+        var lwY = (arrowCy - 0.4 * r * sinA + 0.3 * r * cosA).toNumber();
+        var rwX = (arrowCx + 0.4 * r * cosA - 0.3 * r * sinA).toNumber();
+        var rwY = (arrowCy + 0.4 * r * sinA + 0.3 * r * cosA).toNumber();
+        var tailX = (arrowCx - 0.15 * r * sinA).toNumber();
+        var tailY = (arrowCy + 0.15 * r * cosA).toNumber();
 
-        var pts = new [3];
-        pts[0] = [(arrowCx + tipX).toNumber(), (arrowCy + tipY).toNumber()];
-        pts[1] = [(arrowCx + blX).toNumber(), (arrowCy + blY).toNumber()];
-        pts[2] = [(arrowCx + brX).toNumber(), (arrowCy + brY).toNumber()];
+        // Upper triangle (tip) — blue
+        dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+        var tipPts = new [3];
+        tipPts[0] = [tipX, tipY];
+        tipPts[1] = [lwX, lwY];
+        tipPts[2] = [rwX, rwY];
+        dc.fillPolygon(tipPts);
 
+        // Lower triangle (body) — white
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillPolygon(pts);
+        var bodyPts = new [3];
+        bodyPts[0] = [lwX, lwY];
+        bodyPts[1] = [tailX, tailY];
+        bodyPts[2] = [rwX, rwY];
+        dc.fillPolygon(bodyPts);
     }
 }
