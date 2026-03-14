@@ -38,12 +38,12 @@ class TrainTimeViewModel: ObservableObject {
     @Published var lastWalkTime: Double? = nil
 
     // MARK: - Internal State
-    private let routing = RoutingService.shared
+    let routing = RoutingService.shared
     private var requestInFlight = false
     private var requestStartTime: Date?
     private var lastFetchTime: Date = .distantPast
     private var lastSearchCoordinate: CLLocationCoordinate2D?
-    private var consecutiveErrors: Int = 0
+    var consecutiveErrors: Int = 0
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
     private var loadedFromCache = false
@@ -256,59 +256,6 @@ class TrainTimeViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Mode & Station Navigation
-
-    func cycleMode() {
-        guard availableModes.count > 1 else { return }
-        if let idx = availableModes.firstIndex(of: currentMode) {
-            let nextIdx = (idx + 1) % availableModes.count
-            selectMode(availableModes[nextIdx])
-        }
-    }
-
-    func selectMode(_ mode: TransportMode) {
-        guard mode != currentMode else { return }
-        currentMode = mode
-        stationIndex = 0
-        departures = []
-
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
-        }
-    }
-
-    func nextStation() {
-        let s = stations
-        guard s.count > 1 else { return }
-        stationIndex = (stationIndex + 1) % s.count
-        onStationSelected()
-    }
-
-    func previousStation() {
-        let s = stations
-        guard s.count > 1 else { return }
-        stationIndex = stationIndex - 1
-        if stationIndex < 0 { stationIndex = s.count - 1 }
-        onStationSelected()
-    }
-
-    func selectStation(index: Int) {
-        guard index >= 0, index < stations.count else { return }
-        stationIndex = index
-        departures = []
-        showStationPicker = false
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
-        }
-    }
-
-    private func onStationSelected() {
-        departures = []
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
-        }
-    }
-
     // MARK: - Departure Selection & Tracking
 
     func selectDeparture(index: Int) {
@@ -378,7 +325,7 @@ class TrainTimeViewModel: ObservableObject {
         }
     }
 
-    private func fetchDepartures(stationId: String) {
+    func fetchDepartures(stationId: String) {
         guard !requestInFlight else { return }
         requestInFlight = true
         requestStartTime = Date()
@@ -440,121 +387,4 @@ class TrainTimeViewModel: ObservableObject {
         departures = []
     }
 
-    // MARK: - Mode Rebuilding
-
-    private func rebuildModesAndSelect() {
-        var modes: [TransportMode] = []
-        if !trainStations.isEmpty { modes.append(.train) }
-        if !busStations.isEmpty { modes.append(.bus) }
-        if !tramStations.isEmpty { modes.append(.tram) }
-        if !specialStations.isEmpty { modes.append(.special) }
-        availableModes = modes
-
-        // If current mode has no stations, switch to first available
-        if stations.isEmpty, let firstMode = modes.first {
-            currentMode = firstMode
-        }
-
-        stationIndex = 0
-        departures = []
-
-        if let station = currentStation, let id = station.id {
-            fetchDepartures(stationId: id)
-        }
-    }
-
-    // MARK: - Focused Train Update
-
-    private func updateFocusedTrain() {
-        guard var focused = focusedTrain else { return }
-
-        // Find matching departure by destination + closest minutes (only non-departed)
-        let matches = departures.filter {
-            $0.destination == focused.destination && $0.minutesUntil >= -1
-        }
-        guard let best = matches.min(by: {
-            abs(Double($0.minutesUntil) - focused.minutesUntil) <
-            abs(Double($1.minutesUntil) - focused.minutesUntil)
-        }) else {
-            // Train no longer in stationboard → has departed
-            HapticService.shortPulse()
-            exitToStationView()
-            return
-        }
-
-        // Detect platform change
-        let oldPlatform = focused.platform
-        if best.platform != oldPlatform && !best.platform.isEmpty {
-            if best.platformChanged {
-                HapticService.doublePulse()
-            }
-            focused.platform = best.platform
-            focused.platformChanged = best.platformChanged
-        }
-
-        focused.delay = best.delay
-        focusedTrain = focused
-    }
-
-    // MARK: - State Reset
-
-    private func clearStationState() {
-        trainStations = []
-        busStations = []
-        tramStations = []
-        specialStations = []
-        stationIndex = 0
-        departures = []
-        availableModes = []
-        consecutiveErrors = 0
-
-        if appState == 2 {
-            exitToStationView()
-        }
-
-        routing.clearCache()
-        status = "Finding stations..."
-    }
-
-    // MARK: - Tracking Calculations
-
-    var trackingScheduledBuffer: Double {
-        guard let focused = focusedTrain else { return 0 }
-        let walkMin = lastWalkTime.map { $0 / 60.0 } ?? GeoUtils.walkMinutes(distanceMeters: lastWalkDist)
-        return focused.minutesUntil - walkMin
-    }
-
-    var trackingEffectiveBuffer: Double {
-        guard let focused = focusedTrain else { return 0 }
-        return trackingScheduledBuffer + Double(focused.delay)
-    }
-
-    var trackingStatusText: String {
-        let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return "No GPS" }
-        let absBuf = abs(buf)
-        if absBuf < 0.5 { return "On time" }
-        // Show seconds when close (< 1.5 min), minutes otherwise (matches Garmin)
-        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
-        return buf > 0 ? "\(unit) ahead" : "\(unit) behind"
-    }
-
-    var trackingStatusColor: Color {
-        let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return AppColors.barGray }
-        if buf > 0.5 { return AppColors.ahead }
-        if buf < -0.5 { return AppColors.behind }
-        return AppColors.onTime
-    }
-
-    /// Direction from user to station in degrees (for arrow rotation)
-    var directionToStation: Double? {
-        guard let userCoord = location.coordinate,
-              let station = currentStation,
-              let stationCoord = station.coordinate,
-              let heading = location.heading else { return nil }
-        let bearing = GeoUtils.bearing(from: userCoord, to: stationCoord)
-        // Both bearing and heading are in radians; convert relative angle to degrees
-        return (bearing - heading) * 180.0 / .pi
-    }
 }

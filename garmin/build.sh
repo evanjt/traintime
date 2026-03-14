@@ -27,6 +27,47 @@ fi
 
 cd "$SCRIPT_DIR/$APP_NAME"
 
+# Ensure Secrets.mc exists
+SECRETS_FILE="source/Secrets.mc"
+if [ ! -f "$SECRETS_FILE" ]; then
+  if [ -n "${TRAINTIME_API_KEY:-}" ]; then
+    echo "Generating $SECRETS_FILE from TRAINTIME_API_KEY env var..."
+    cat > "$SECRETS_FILE" <<SECRETS_EOF
+module Secrets {
+    const API_KEY = "$TRAINTIME_API_KEY";
+}
+SECRETS_EOF
+  else
+    echo "Error: $SECRETS_FILE not found."
+    echo ""
+    echo "Either:"
+    echo "  1. Copy from example:  cp $SECRETS_FILE.example $SECRETS_FILE"
+    echo "     and replace YOUR_API_KEY_HERE with your actual key"
+    echo "  2. Set env var:  TRAINTIME_API_KEY=your_key ./build.sh"
+    exit 1
+  fi
+fi
+
+# Validate API key
+SECRETS_PATH="$(pwd)/$SECRETS_FILE"
+KEY=$(grep -oP "API_KEY = \"\K[^\"]+" "$SECRETS_FILE")
+if [ -z "$KEY" ] || [ "$KEY" = "YOUR_API_KEY_HERE" ]; then
+  echo "Error: API key in $SECRETS_PATH is not set."
+  echo "Replace YOUR_API_KEY_HERE with your actual key."
+  exit 1
+fi
+
+echo "API key: ${KEY:0:8}... ($SECRETS_PATH)"
+
+HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "X-API-Key: $KEY" "https://api.traintime.ch/v1/departures?id=8503000&limit=1")
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "API key verified OK"
+else
+  echo "Error: API key check failed (HTTP $HTTP_CODE)"
+  echo "Check your key in $SECRETS_PATH"
+  exit 1
+fi
+
 if [ "$1" = "release" ]; then
     VERSION="$2"
     if [ -z "$VERSION" ]; then

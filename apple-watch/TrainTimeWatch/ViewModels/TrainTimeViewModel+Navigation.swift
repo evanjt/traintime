@@ -1,0 +1,102 @@
+import SwiftUI
+
+extension TrainTimeViewModel {
+
+    // MARK: - Mode Navigation
+
+    func cycleMode() {
+        guard availableModes.count > 1 else { return }
+        if let idx = availableModes.firstIndex(of: currentMode) {
+            let nextIdx = (idx + 1) % availableModes.count
+            selectMode(availableModes[nextIdx])
+        }
+    }
+
+    func selectMode(_ mode: TransportMode) {
+        guard mode != currentMode else { return }
+        currentMode = mode
+        stationIndex = 0
+        departures = []
+
+        if let station = currentStation, let id = station.id {
+            fetchDepartures(stationId: id)
+        }
+    }
+
+    // MARK: - Station Navigation
+
+    func nextStation() {
+        let s = stations
+        guard s.count > 1 else { return }
+        stationIndex = (stationIndex + 1) % s.count
+        onStationSelected()
+    }
+
+    func previousStation() {
+        let s = stations
+        guard s.count > 1 else { return }
+        stationIndex = stationIndex - 1
+        if stationIndex < 0 { stationIndex = s.count - 1 }
+        onStationSelected()
+    }
+
+    func selectStation(index: Int) {
+        guard index >= 0, index < stations.count else { return }
+        stationIndex = index
+        departures = []
+        showStationPicker = false
+        if let station = currentStation, let id = station.id {
+            fetchDepartures(stationId: id)
+        }
+    }
+
+    internal func onStationSelected() {
+        departures = []
+        if let station = currentStation, let id = station.id {
+            fetchDepartures(stationId: id)
+        }
+    }
+
+    // MARK: - Mode Rebuilding
+
+    internal func rebuildModesAndSelect() {
+        var modes: [TransportMode] = []
+        if !trainStations.isEmpty { modes.append(.train) }
+        if !busStations.isEmpty { modes.append(.bus) }
+        if !tramStations.isEmpty { modes.append(.tram) }
+        if !specialStations.isEmpty { modes.append(.special) }
+        availableModes = modes
+
+        // If current mode has no stations, switch to first available
+        if stations.isEmpty, let firstMode = modes.first {
+            currentMode = firstMode
+        }
+
+        stationIndex = 0
+        departures = []
+
+        if let station = currentStation, let id = station.id {
+            fetchDepartures(stationId: id)
+        }
+    }
+
+    // MARK: - State Reset
+
+    internal func clearStationState() {
+        trainStations = []
+        busStations = []
+        tramStations = []
+        specialStations = []
+        stationIndex = 0
+        departures = []
+        availableModes = []
+        consecutiveErrors = 0
+
+        if appState == 2 {
+            exitToStationView()
+        }
+
+        routing.clearCache()
+        status = "Finding stations..."
+    }
+}

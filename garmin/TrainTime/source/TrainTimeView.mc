@@ -1,52 +1,48 @@
 using Toybox.WatchUi;
-using Toybox.Graphics;
 using Toybox.Position;
-using Toybox.Communications;
 using Toybox.Timer;
 using Toybox.Lang;
 using Toybox.Time;
-using Toybox.Math;
 using Toybox.Application.Storage;
-using Toybox.Attention;
 
 class TrainTimeView extends WatchUi.View {
 
-    private var mLocationInfo;
-    private var mTrainData;
-    private var mTimer;
-    private var mStatus;
-    private var mStationId;
-    private var mStationName;
-    private var mRequestInFlight;
-    private var mWalkInfo;
-    private var mStations;
-    private var mStationIndex;
-    private var mLastSearchLat;
-    private var mLastSearchLon;
-    private var mRequestStartTime;
-    private var mTrainStations;
-    private var mBusStations;
-    private var mTramStations;
-    private var mSpecialStations;
-    private var mCurrentMode;
-    private var mAvailableModes;
-    private var mGpsQuality;
-    private var mLoadedFromCache;
-    private var mStationLat;
-    private var mStationLon;
-    private var mTickCount;
-    private var mLastWalkDist;  // last known walk distance in meters
+    var mLocationInfo;
+    var mTrainData;
+    var mTimer;
+    var mStatus;
+    var mStationId;
+    var mStationName;
+    var mRequestInFlight;
+    var mWalkInfo;
+    var mStations;
+    var mStationIndex;
+    var mLastSearchLat;
+    var mLastSearchLon;
+    var mRequestStartTime;
+    var mTrainStations;
+    var mBusStations;
+    var mTramStations;
+    var mSpecialStations;
+    var mCurrentMode;
+    var mAvailableModes;
+    var mGpsQuality;
+    var mLoadedFromCache;
+    var mStationLat;
+    var mStationLon;
+    var mTickCount;
+    var mLastWalkDist;  // last known walk distance in meters
     // 0 = station view, 1 = train selection, 2 = focused tracking
-    private var mAppState;
-    private var mCursorIndex;
-    private var mFocusedTrain;
-    private var mHeading;  // GPS heading in radians, null when stationary
-    private var mLastFetchTime;
-    private var mConsecutiveErrors;
-    private var mLastVibeTick;
-    private var mMaxVisibleTrains;
-    private var mScrollOffset;  // first visible row index for scrolling in State 1
-    private var mMapActive;  // true when MapTrackView is pushed
+    var mAppState;
+    var mCursorIndex;
+    var mFocusedTrain;
+    var mHeading;  // GPS heading in radians, null when stationary
+    var mLastFetchTime;
+    var mConsecutiveErrors;
+    var mLastVibeTick;
+    var mMaxVisibleTrains;
+    var mScrollOffset;  // first visible row index for scrolling in State 1
+    var mMapActive;  // true when MapTrackView is pushed
 
     function initialize() {
         View.initialize();
@@ -113,7 +109,7 @@ class TrainTimeView extends WatchUi.View {
                 mStatus = "Finding stations...";
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
-                fetchTrainData(savedLat, savedLon);
+                ApiHandler.fetchStations(self, savedLat, savedLon);
             }
         }
 
@@ -128,6 +124,26 @@ class TrainTimeView extends WatchUi.View {
         }
         Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
     }
+
+    function onUpdate(dc) {
+        Renderer.render(dc, self);
+    }
+
+    // --- API callback stubs ---
+
+    function onStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
+        ApiHandler.handleStationsResponse(self, responseCode, data);
+    }
+
+    function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
+        ApiHandler.handleTrainStationsResponse(self, responseCode, data);
+    }
+
+    function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
+        ApiHandler.handleDeparturesResponse(self, responseCode, data);
+    }
+
+    // --- State management ---
 
     function hasMovedSignificantly(lat, lon) {
         if (mLastSearchLat == null || mLastSearchLon == null) {
@@ -192,8 +208,6 @@ class TrainTimeView extends WatchUi.View {
             selectStation(0);
         }
     }
-
-    // --- State management ---
 
     function getAppState() {
         return mAppState;
@@ -266,7 +280,7 @@ class TrainTimeView extends WatchUi.View {
             mTimer.stop();
             mTimer.start(method(:onTimerTick), 1000, true);
         }
-        vibrateShort();
+        Haptics.vibrateShort();
         WatchUi.requestUpdate();
     }
 
@@ -342,69 +356,27 @@ class TrainTimeView extends WatchUi.View {
             mFocusedTrain["plat"] = bestMatch["plat"];
             mFocusedTrain["platChg"] = bestMatch["platChg"];
             if (bestMatch["platChg"] && (oldPlat == null || !oldPlat.equals(bestMatch["plat"]))) {
-                vibrateDouble();
+                Haptics.vibrateDouble();
             }
         } else {
-            vibrateShort();
+            Haptics.vibrateShort();
             exitToStationView();
         }
     }
 
-    // --- Helpers ---
-
-    // Calculate usable width at a given Y on a round display
-    function getUsableWidth(y, width, height) {
-        var r = width / 2;
-        var dy = y - height / 2;
-        if (dy < 0) { dy = -dy; }
-        if (dy >= r) { return 0; }
-        var hw = Math.sqrt(r * r - dy * dy).toNumber();
-        return hw * 2;
-    }
-
-    function truncateToFit(dc, text, font, maxWidth) {
-        var dims = dc.getTextDimensions(text, font);
-        if (dims[0] <= maxWidth) {
-            return text;
-        }
-        // Estimate chars that fit
-        var charW = dims[0] / text.length();
-        var maxChars = (maxWidth / charW).toNumber();
-        if (maxChars < 2) { maxChars = 2; }
-        if (maxChars >= text.length()) {
-            return text;
-        }
-        return text.substring(0, maxChars - 1) + ".";
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        var dLat = (lat2 - lat1) * 111000;
-        var dLon = (lon2 - lon1) * 75700; // ~111000 * cos(47°)
-        return Math.sqrt(dLat * dLat + dLon * dLon).toNumber();
-    }
-
-    // Bearing from point 1 to point 2 in radians (clockwise from north)
-    function calculateBearing(lat1, lon1, lat2, lon2) {
-        var dLon = (lon2 - lon1) * Math.PI / 180.0;
-        var lat1R = lat1 * Math.PI / 180.0;
-        var lat2R = lat2 * Math.PI / 180.0;
-        var y = Math.sin(dLon) * Math.cos(lat2R);
-        var x = Math.cos(lat1R) * Math.sin(lat2R)
-              - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLon);
-        return Math.atan2(y, x);
-    }
+    // --- Walk calculations ---
 
     function getWalkMinutes() {
         if (mStationLat != null && mStationLon != null) {
             if (mLocationInfo != null && mLocationInfo.position != null) {
                 var coords = mLocationInfo.position.toDegrees();
-                var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+                var dist = GeoMath.calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
                 mLastWalkDist = dist;
                 return dist / 83.0;
             }
             // Fallback to cached search position
             if (mLastSearchLat != null && mLastSearchLon != null) {
-                var dist = calculateDistance(mLastSearchLat, mLastSearchLon, mStationLat, mStationLon);
+                var dist = GeoMath.calculateDistance(mLastSearchLat, mLastSearchLon, mStationLat, mStationLon);
                 mLastWalkDist = dist;
                 return dist / 83.0;
             }
@@ -414,12 +386,6 @@ class TrainTimeView extends WatchUi.View {
             return mLastWalkDist / 83.0;
         }
         return null;
-    }
-
-    function clampFloat(val, minVal, maxVal) {
-        if (val < minVal) { return minVal; }
-        if (val > maxVal) { return maxVal; }
-        return val;
     }
 
     function getFocusedMinutesUntil() {
@@ -439,557 +405,28 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
         var coords = mLocationInfo.position.toDegrees();
-        var dist = calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+        var dist = GeoMath.calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
         mWalkInfo = formatWalkInfo(dist);
     }
 
-    // --- Drawing ---
-
-    function drawModeIndicators(dc, width, height) {
-        if (mAvailableModes.size() == 0) {
-            return;
-        }
-
-        var cy = height * 7 / 100;
-        var iconSpacing = 24;
-        var totalWidth = (mAvailableModes.size() - 1) * iconSpacing;
-        var startX = width / 2 - totalWidth / 2;
-
-        for (var i = 0; i < mAvailableModes.size(); i++) {
-            var mode = mAvailableModes[i];
-            var cx = startX + i * iconSpacing;
-            var isActive = (mode == mCurrentMode);
-
-            if (isActive) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            } else {
-                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-            }
-
-            if (mode == 0) {
-                // Train: rectangle body + peaked roof + 2 wheels
-                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
-                dc.fillPolygon([[cx - 3, cy - 1], [cx, cy - 4], [cx + 3, cy - 1]]);
-                dc.fillCircle(cx - 2, cy + 6, 1);
-                dc.fillCircle(cx + 2, cy + 6, 1);
-            } else if (mode == 1) {
-                // Bus: wider rectangle body + 2 wheels
-                dc.fillRectangle(cx - 4, cy, 8, 5);
-                dc.fillCircle(cx - 3, cy + 6, 1);
-                dc.fillCircle(cx + 3, cy + 6, 1);
-            } else if (mode == 2) {
-                // Tram: rectangle body + pantograph + 2 wheels
-                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
-                dc.setPenWidth(1);
-                dc.drawLine(cx, cy - 1, cx, cy - 5);
-                dc.drawLine(cx - 2, cy - 5, cx + 2, cy - 5);
-                dc.fillCircle(cx - 2, cy + 6, 1);
-                dc.fillCircle(cx + 2, cy + 6, 1);
-            } else if (mode == 3) {
-                // Special (boats/funiculars/cable cars): wave icon
-                dc.setPenWidth(2);
-                dc.drawLine(cx - 4, cy, cx - 2, cy - 3);
-                dc.drawLine(cx - 2, cy - 3, cx, cy);
-                dc.drawLine(cx, cy, cx + 2, cy + 3);
-                dc.drawLine(cx + 2, cy + 3, cx + 4, cy);
-                dc.drawLine(cx - 4, cy + 4, cx - 2, cy + 1);
-                dc.drawLine(cx - 2, cy + 1, cx, cy + 4);
-                dc.drawLine(cx, cy + 4, cx + 2, cy + 7);
-                dc.drawLine(cx + 2, cy + 7, cx + 4, cy + 4);
-            }
-
-            // Active mode ring (only when multiple modes available)
-            if (isActive && mAvailableModes.size() > 1) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.setPenWidth(1);
-                dc.drawCircle(cx, cy + 1, 9);
-            }
-        }
-    }
-
-    function drawGpsIndicator(dc, width, height) {
-        var cy = 18;
-        var r = 4;
-        var usable = getUsableWidth(cy, width, height);
-        var cx = (width + usable) / 2 - r - 4;
-        var color;
-        if (mLoadedFromCache || mGpsQuality == Position.QUALITY_LAST_KNOWN) {
-            color = 0x888888; // gray
-        } else if (mGpsQuality == Position.QUALITY_NOT_AVAILABLE) {
-            color = 0xFF0000; // red
-        } else if (mGpsQuality == Position.QUALITY_POOR) {
-            color = 0xFFAA00; // yellow
+    function formatWalkInfo(distanceMeters) {
+        var dist = distanceMeters.toNumber();
+        mLastWalkDist = dist;
+        var walkMinutes = (dist / 83.0).toNumber();
+        var timeStr;
+        if (walkMinutes < 1) {
+            timeStr = "<1 min";
         } else {
-            color = 0x00FF00; // green (USABLE or GOOD)
-        }
-        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, r);
-    }
-
-    function onUpdate(dc) {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var centerX = width / 2;
-
-        mMaxVisibleTrains = (height < 240) ? 3 : 4;
-
-        // GPS quality indicator
-        drawGpsIndicator(dc, width, height);
-
-        // State 2: focused tracking
-        if (mAppState == 2 && mFocusedTrain != null) {
-            drawFocusedMode(dc, width, height);
-            return;
+            timeStr = walkMinutes + " min";
         }
 
-        if (mStationName != null) {
-            // Mode indicators (above walk info)
-            drawModeIndicators(dc, width, height);
+        var info = timeStr + " walk - " + dist + "m";
 
-            // Walking info line
-            if (mWalkInfo != null) {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                var walkY = height * 12 / 100;
-                var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
-                var walkText = truncateToFit(dc, mWalkInfo, Graphics.FONT_XTINY, walkMaxW);
-                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
-                    walkText, Graphics.TEXT_JUSTIFY_CENTER);
-            }
-
-            // Station name
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            var stationY = height * 22 / 100;
-            var stationMaxW = getUsableWidth(stationY + 12, width, height) - 10;
-            var stationText = mStationName.toUpper();
-            var stationFont = Graphics.FONT_MEDIUM;
-            var dims = dc.getTextDimensions(stationText, stationFont);
-            if (dims[0] > stationMaxW) {
-                stationFont = Graphics.FONT_SMALL;
-                dims = dc.getTextDimensions(stationText, stationFont);
-                if (dims[0] > stationMaxW) {
-                    stationFont = Graphics.FONT_TINY;
-                    stationText = truncateToFit(dc, stationText, stationFont, stationMaxW);
-                }
-            }
-            dc.drawText(centerX, stationY, stationFont,
-                stationText, Graphics.TEXT_JUSTIFY_CENTER);
-
-            if (mTrainData != null && mTrainData.size() > 0) {
-                // Train rows
-                var maxTrains = 4;
-                if (height < 240) {
-                    maxTrains = 3;
-                }
-                var startY = height * 36 / 100;
-                var rowSpacing = height * 14 / 100;
-
-                var startIdx = (mAppState == 1) ? mScrollOffset : 0;
-                var endIdx = mTrainData.size();
-                if (endIdx > startIdx + maxTrains) {
-                    endIdx = startIdx + maxTrains;
-                }
-                for (var i = startIdx; i < endIdx; i++) {
-                    var row = i - startIdx;
-                    var highlighted = (mAppState == 1 && i == mCursorIndex);
-                    drawTrainRow(dc, mTrainData[i],
-                        startY + row * rowSpacing, width, height, highlighted);
-                }
-            } else if (mTrainData != null) {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                    "No departures", Graphics.TEXT_JUSTIFY_CENTER);
-            } else {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                var bodyMsg = "Loading...";
-                if (!mRequestInFlight) {
-                    bodyMsg = mStatus;
-                }
-                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                    bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
-            }
-        } else {
-            // No station yet — show subtle loading text, GPS dot indicates status
-            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+        if (mStations != null && mStations.size() > 1) {
+            info = info + "  " + (mStationIndex + 1) + "/" + mStations.size();
         }
 
-        // Contextual button hint at bottom
-        if (mStationName != null && mTrainData != null && mTrainData.size() > 0) {
-            var hintY = height * 92 / 100;
-            var hintMaxW = getUsableWidth(hintY + 6, width, height) - 10;
-            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-            var hint;
-            if (mAppState == 0) {
-                hint = "Press START";
-            } else if (mAppState == 1) {
-                hint = "START=OK  BACK";
-            } else {
-                hint = (WatchUi has :MapTrackView && mStationLat != null && mStationLon != null) ? "START=Map" : "";
-            }
-            if (!hint.equals("")) {
-                dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
-                    truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-            }
-        }
-    }
-
-    function drawTrainRow(dc, train, y, width, height, highlighted) {
-        var minutesUntil = train["min"];
-        var delay = train["delay"];
-        var platform = train["plat"];
-        var platformChanged = train["platChg"];
-        var destination = train["dest"];
-        var lineNumber = train["line"];
-        var isGone = (minutesUntil < 0);
-
-        // Vertical alignment: FONT_TINY for minutes, FONT_XTINY for rest
-        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
-        var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var xtinyY = y + (tinyH - xtinyH) / 2;
-
-        // Highlight background for cursor in selection mode
-        if (highlighted) {
-            var rowCenterForBg = y + tinyH / 2;
-            var usableBg = getUsableWidth(rowCenterForBg, width, height);
-            var bgX = (width - usableBg) / 2 + 2;
-            dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
-            dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(bgX, y, 3, tinyH);
-        }
-
-        // Fixed column X positions (absolute, so columns align across rows)
-        var minRightX = width * 20 / 100;
-        var delayX = width * 21 / 100;
-        var platX = width * 32 / 100;
-        var destX = width * 44 / 100;
-
-        // Right edge for this row on round display (for destination truncation)
-        var rowCenterY = y + tinyH / 2;
-        var usable = getUsableWidth(rowCenterY, width, height);
-        var rightEdge = (width + usable) / 2 - 4;
-
-        // Minutes column (right-aligned, FONT_TINY)
-        var minText;
-        if (isGone) {
-            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-            minText = "gone";
-        } else if (minutesUntil == 0) {
-            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-            minText = "now";
-        } else if (minutesUntil <= 2) {
-            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-            minText = minutesUntil + "'";
-        } else {
-            dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
-            minText = minutesUntil + "'";
-        }
-        dc.drawText(minRightX, y, Graphics.FONT_TINY,
-            minText, Graphics.TEXT_JUSTIFY_RIGHT);
-
-        // Delay column (superscript, orange)
-        if (delay > 0 && !isGone) {
-            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(delayX, y - 2, Graphics.FONT_XTINY,
-                "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
-        }
-
-        // Line number (bus/tram) or Platform column (FONT_XTINY)
-        if (lineNumber != null && lineNumber.length() > 0) {
-            dc.setColor(isGone ? 0x666666 : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
-        } else if (platform.length() > 0) {
-            var platText = "P" + platform;
-            if (isGone) {
-                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            } else if (platformChanged) {
-                var platDims = dc.getTextDimensions(platText, Graphics.FONT_XTINY);
-                var pad = 2;
-                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(platX - pad, xtinyY, platDims[0] + 2 * pad, platDims[1]);
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            } else {
-                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            }
-        }
-
-        // Destination column (FONT_XTINY, truncated to fit round edge)
-        if (isGone) {
-            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-        } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        }
-        var maxDestW = rightEdge - destX;
-        var destText = truncateToFit(dc, destination, Graphics.FONT_XTINY, maxDestW);
-        dc.drawText(destX, xtinyY, Graphics.FONT_XTINY,
-            destText, Graphics.TEXT_JUSTIFY_LEFT);
-    }
-
-    // --- Focused Mode (State 2) ---
-
-    function drawFocusedMode(dc, width, height) {
-        var centerX = width / 2;
-
-        if (mStationName == null) { return; }
-
-        // Station name (small, secondary)
-        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        var stationY = height * 15 / 100;
-        var stationMaxW = getUsableWidth(stationY + 8, width, height) - 10;
-        dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
-            truncateToFit(dc, mStationName, Graphics.FONT_XTINY, stationMaxW),
-            Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Destination + platform (auto-downsize, highlight platform change)
-        var destY = height * 26 / 100;
-        var destStr = mFocusedTrain["dest"];
-        var plat = mFocusedTrain["plat"];
-        var platChg = mFocusedTrain["platChg"];
-        var destMaxW = getUsableWidth(destY + 10, width, height) - 10;
-        var destFont = Graphics.FONT_SMALL;
-        if (plat != null && !plat.equals("")) {
-            destStr = destStr + "  P" + plat;
-        }
-        var destDims = dc.getTextDimensions(destStr, destFont);
-        if (destDims[0] > destMaxW) {
-            destFont = Graphics.FONT_TINY;
-            destStr = truncateToFit(dc, destStr, destFont, destMaxW);
-        }
-        if (platChg) {
-            dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
-        } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        }
-        dc.drawText(centerX, destY, destFont,
-            destStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Departure time + delay
-        var minY = height * 40 / 100;
-        var minutesUntil = getFocusedMinutesUntil();
-        var delay = mFocusedTrain["delay"];
-        if (delay == null) { delay = 0; }
-
-        var minStr;
-        if (minutesUntil < -0.5) {
-            minStr = "Departed";
-            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-        } else if (minutesUntil < 0.083) {
-            minStr = "now";
-            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-        } else if (minutesUntil < 3.0) {
-            var totalSec = (minutesUntil * 60.0).toNumber();
-            var m = totalSec / 60;
-            var s = totalSec % 60;
-            minStr = m + ":" + (s < 10 ? "0" + s : s.toString());
-            if (minutesUntil <= 2.0) {
-                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-            } else {
-                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
-            }
-        } else {
-            minStr = minutesUntil.toNumber() + " min";
-            dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
-        }
-        dc.drawText(centerX, minY, Graphics.FONT_MEDIUM,
-            minStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Delay indicator next to departure time
-        if (delay > 0 && minutesUntil >= -0.5) {
-            var minDims = dc.getTextDimensions(minStr, Graphics.FONT_MEDIUM);
-            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX + minDims[0] / 2 + 4, minY,
-                Graphics.FONT_XTINY, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
-        }
-
-        // Tracking bar
-        drawTrackingBar(dc, width, height);
-
-        // Status text
-        var statusY = height * 66 / 100;
-        var walkMin = getWalkMinutes();
-        if (walkMin == null) {
-            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, statusY, Graphics.FONT_TINY,
-                "No GPS", Graphics.TEXT_JUSTIFY_CENTER);
-        } else {
-            var schedBuf = minutesUntil - walkMin;
-            var effectBuf = schedBuf + delay;
-
-            var statusStr;
-            if (effectBuf > 0.5) {
-                if (effectBuf < 1.5) {
-                    var sec = (effectBuf * 60.0).toNumber();
-                    statusStr = sec + "s ahead";
-                } else {
-                    statusStr = effectBuf.toNumber() + " min ahead";
-                }
-                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
-            } else if (effectBuf < -0.5) {
-                if (effectBuf > -1.5) {
-                    var sec = ((-effectBuf) * 60.0).toNumber();
-                    statusStr = sec + "s behind";
-                } else {
-                    statusStr = (-effectBuf).toNumber() + " min behind";
-                }
-                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
-            } else {
-                statusStr = "On time";
-                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-            }
-
-            var statusMaxW = getUsableWidth(statusY + 8, width, height) - 10;
-            var statusFont = Graphics.FONT_TINY;
-            dc.drawText(centerX, statusY, statusFont,
-                truncateToFit(dc, statusStr, statusFont, statusMaxW),
-                Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // Walk info at bottom
-        if (mWalkInfo != null) {
-            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var walkY = height * 80 / 100;
-            var walkMaxW = getUsableWidth(walkY + 8, width, height) - 10;
-            dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
-                truncateToFit(dc, mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
-                Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // Direction arrow (only visible when walking)
-        drawDirectionArrow(dc, width, height);
-    }
-
-    function drawTrackingBar(dc, width, height) {
-        var barWidth = width * 60 / 100;
-        var halfBar = barWidth / 2;
-        var barX = width / 2 - halfBar;
-        var barY = height * 54 / 100;
-        var barH = 14;
-        var midX = width / 2;
-
-        // Background
-        dc.setColor(0x222222, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(barX, barY, barWidth, barH);
-
-        var walkMin = getWalkMinutes();
-        if (walkMin == null) {
-            // No GPS — fully gray bar
-            dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(barX, barY, barWidth, barH);
-            // Midpoint marker
-            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
-            return;
-        }
-
-        var minutesUntil = getFocusedMinutesUntil();
-        var delay = mFocusedTrain["delay"];
-        if (delay == null) { delay = 0; }
-
-        var schedBuf = minutesUntil - walkMin;
-        var effectBuf = schedBuf + delay;
-
-        var barScale = 3.0;
-
-        // Clamp to [-1, 1] then scale to pixels
-        var schedFrac = clampFloat(schedBuf / barScale, -1.0, 1.0);
-        var effectFrac = clampFloat(effectBuf / barScale, -1.0, 1.0);
-        var schedPx = (schedFrac * halfBar).toNumber();
-        var effectPx = (effectFrac * halfBar).toNumber();
-
-        // MIP-optimized colors — distinct on 64-color palette
-        var darkGreen = 0x00FF00;
-        var lightGreen = 0x55FF55;
-        var darkRed = 0xFF0000;
-        var amber = 0xFFAA00;
-
-        // Case 1: Both positive or zero (fully ahead)
-        if (schedPx >= 0 && effectPx >= 0) {
-            // Dark green: guaranteed buffer (0 to scheduledPx)
-            if (schedPx > 0) {
-                dc.setColor(darkGreen, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(midX, barY, schedPx, barH);
-            }
-            // Light green: delay bonus (scheduledPx to effectivePx)
-            if (effectPx > schedPx) {
-                dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
-            }
-        }
-        // Case 3: Both negative (fully behind)
-        else if (schedPx <= 0 && effectPx <= 0) {
-            // Dark red: irrecoverable deficit (scheduledPx to effectivePx)
-            if (schedPx < effectPx) {
-                dc.setColor(darkRed, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
-            }
-            // Amber: delay recovery zone (effectivePx to 0)
-            if (effectPx < 0) {
-                dc.setColor(amber, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(midX + effectPx, barY, -effectPx, barH);
-            }
-        }
-        // Case 2: Behind on schedule but saved by delay (schedPx < 0, effectPx > 0)
-        else if (schedPx < 0 && effectPx > 0) {
-            // Amber: schedule deficit covered by delay
-            dc.setColor(amber, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(midX + schedPx, barY, -schedPx, barH);
-            // Light green: delay surplus right of midpoint
-            dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(midX, barY, effectPx, barH);
-        }
-
-        // Midpoint marker
-        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
-    }
-
-    function drawDirectionArrow(dc, width, height) {
-        if (mHeading == null || mStationLat == null || mStationLon == null) {
-            return;
-        }
-        if (mLocationInfo == null || mLocationInfo.position == null) {
-            return;
-        }
-
-        var coords = mLocationInfo.position.toDegrees();
-        var bearing = calculateBearing(coords[0], coords[1], mStationLat, mStationLon);
-        var angle = bearing - mHeading;
-
-        var arrowCx = width / 2;
-        var arrowCy = height * 89 / 100;
-        var r = 12.0;
-
-        // Arrow triangle (pointing up = bearing 0, rotated by relative angle)
-        var cosA = Math.cos(angle).toFloat();
-        var sinA = Math.sin(angle).toFloat();
-
-        // Points relative to center: tip (0,-r), base-left (-0.6r, 0.5r), base-right (0.6r, 0.5r)
-        var tipX = r * sinA;
-        var tipY = -r * cosA;
-        var blX = -r * 0.6 * cosA - r * 0.5 * sinA;
-        var blY = -r * 0.6 * sinA + r * 0.5 * cosA;
-        var brX = r * 0.6 * cosA - r * 0.5 * sinA;
-        var brY = r * 0.6 * sinA + r * 0.5 * cosA;
-
-        var pts = new [3];
-        pts[0] = [(arrowCx + tipX).toNumber(), (arrowCy + tipY).toNumber()];
-        pts[1] = [(arrowCx + blX).toNumber(), (arrowCy + blY).toNumber()];
-        pts[2] = [(arrowCx + brX).toNumber(), (arrowCy + brY).toNumber()];
-
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.fillPolygon(pts);
+        return info;
     }
 
     // --- Station navigation ---
@@ -1013,7 +450,7 @@ class TrainTimeView extends WatchUi.View {
         mTrainData = null;
         mRequestInFlight = true;
         mRequestStartTime = Time.now().value();
-        fetchStationboard(mStationId);
+        ApiHandler.fetchDepartures(self, mStationId);
         WatchUi.requestUpdate();
     }
 
@@ -1073,7 +510,7 @@ class TrainTimeView extends WatchUi.View {
                 mStatus = "Updating stations...";
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
-                fetchTrainData(lat, lon);
+                ApiHandler.fetchStations(self, lat, lon);
             }
             WatchUi.requestUpdate();
             return;
@@ -1088,7 +525,7 @@ class TrainTimeView extends WatchUi.View {
             mStatus = "Finding stations...";
             mRequestInFlight = true;
             mRequestStartTime = Time.now().value();
-            fetchTrainData(lat, lon);
+            ApiHandler.fetchStations(self, lat, lon);
         }
 
         // Update walk distance with live GPS
@@ -1136,7 +573,7 @@ class TrainTimeView extends WatchUi.View {
                     clearStationState();
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();
-                    fetchTrainData(lat, lon);
+                    ApiHandler.fetchStations(self, lat, lon);
                 }
             }
         }
@@ -1149,7 +586,7 @@ class TrainTimeView extends WatchUi.View {
             var focusedMin = getFocusedMinutesUntil();
             // Auto-exit when train has departed for >1 minute
             if (focusedMin < -1.0) {
-                vibrateShort();
+                Haptics.vibrateShort();
                 exitToStationView();
             } else {
                 var walkMin = getWalkMinutes();
@@ -1162,7 +599,7 @@ class TrainTimeView extends WatchUi.View {
                         var interval = (effectBuf < -2.0) ? 2 : 4;
                         if (vibeNow - mLastVibeTick >= interval) {
                             mLastVibeTick = vibeNow;
-                            vibrateHeartbeat();
+                            Haptics.vibrateHeartbeat();
                         }
                     }
                 }
@@ -1181,335 +618,17 @@ class TrainTimeView extends WatchUi.View {
                 mLastFetchTime = nowFetch;
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
-                fetchStationboard(mStationId);
+                ApiHandler.fetchDepartures(self, mStationId);
             } else if (mLocationInfo != null && mLocationInfo.position != null) {
                 mLastFetchTime = nowFetch;
                 mStatus = "Finding stations...";
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 var coords = mLocationInfo.position.toDegrees();
-                fetchTrainData(coords[0], coords[1]);
+                ApiHandler.fetchStations(self, coords[0], coords[1]);
             }
         }
 
         WatchUi.requestUpdate();
-    }
-
-    // --- Network ---
-
-    function fetchTrainData(lat, lon) {
-        mLastSearchLat = lat;
-        mLastSearchLon = lon;
-
-        var url = "https://api.traintime.ch/v1/nearby"
-            + "?lat=" + lat + "&lon=" + lon;
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, method(:onStationsReceived));
-    }
-
-    function onStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        mRequestInFlight = false;
-        mRequestStartTime = null;
-
-        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary) {
-            mTrainStations = parseStationGroup(data, "train");
-            mBusStations = parseStationGroup(data, "bus");
-            mTramStations = parseStationGroup(data, "tram");
-            mSpecialStations = parseStationGroup(data, "special");
-
-            if (mTrainStations.size() == 0 && mBusStations.size() == 0
-                    && mTramStations.size() == 0 && mSpecialStations.size() == 0) {
-                mStatus = "No stations nearby";
-                mTrainData = null;
-            } else {
-                // Name fallback for trains
-                if (mTrainStations.size() == 0) {
-                    var cityName = extractCityName();
-                    if (cityName != null) {
-                        fetchTrainStationsByName(cityName);
-                    }
-                }
-                rebuildModesAndSelect();
-            }
-        } else if (responseCode == 429) {
-            mStatus = "Rate limited";
-        } else {
-            mStatus = "Station error: " + responseCode;
-            mTrainData = null;
-        }
-        WatchUi.requestUpdate();
-    }
-
-    function parseStationGroup(data, key) {
-        var result = [];
-        if (!data.hasKey(key)) { return result; }
-        var arr = data[key];
-        if (arr == null) { return result; }
-        for (var i = 0; i < arr.size(); i++) {
-            var s = arr[i];
-            if (!s.hasKey("id") || s["id"] == null) { continue; }
-            result.add({
-                "id" => s["id"],
-                "label" => s.hasKey("name") ? s["name"] : "Station",
-                "dist" => s.hasKey("dist") ? s["dist"] : 0,
-                "lat" => s.hasKey("lat") ? s["lat"] : null,
-                "lon" => s.hasKey("lon") ? s["lon"] : null
-            });
-        }
-        return result;
-    }
-
-    function rebuildModesAndSelect() {
-        // Build available modes from non-empty categories
-        mAvailableModes = [];
-        if (mTrainStations.size() > 0) { mAvailableModes.add(0); }
-        if (mBusStations.size() > 0) { mAvailableModes.add(1); }
-        if (mTramStations.size() > 0) { mAvailableModes.add(2); }
-        if (mSpecialStations != null && mSpecialStations.size() > 0) { mAvailableModes.add(3); }
-
-        // If current mode has no stations, switch to first available
-        var currentStations = getStationsForMode(mCurrentMode);
-        if (currentStations == null || currentStations.size() == 0) {
-            if (mAvailableModes.size() > 0) {
-                mCurrentMode = mAvailableModes[0];
-            }
-        }
-
-        mStations = getStationsForMode(mCurrentMode);
-
-        if (mStations != null && mStations.size() > 0) {
-            mStationIndex = 0;
-            var station = mStations[0];
-            mStationId = station["id"];
-            mStationName = station.hasKey("label") ? station["label"] : "Station";
-            mStationLat = station.hasKey("lat") ? station["lat"] : null;
-            mStationLon = station.hasKey("lon") ? station["lon"] : null;
-            var distance = station.hasKey("dist") ? station["dist"] : 0;
-            mWalkInfo = formatWalkInfo(distance);
-            mStatus = mStationName;
-            WatchUi.requestUpdate();
-
-            mRequestInFlight = true;
-            mRequestStartTime = Time.now().value();
-            fetchStationboard(mStationId);
-        }
-    }
-
-    function extractCityName() {
-        // Swiss stops follow "City, Stop Name" format
-        var stations = mBusStations.size() > 0 ? mBusStations : mTramStations;
-        if (stations.size() == 0) { return null; }
-        var name = stations[0]["label"];
-        var commaIdx = name.find(",");
-        if (commaIdx != null && commaIdx > 0) {
-            return name.substring(0, commaIdx);
-        }
-        return name;
-    }
-
-    function fetchTrainStationsByName(cityName) {
-        var url = "https://api.traintime.ch/v1/nearby"
-            + "?lat=" + mLastSearchLat + "&lon=" + mLastSearchLon
-            + "&query=" + cityName;
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, method(:onTrainStationsReceived));
-    }
-
-    function onTrainStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary)) {
-            return;
-        }
-
-        mTrainStations = parseStationGroup(data, "train");
-
-        if (mTrainStations.size() > 0) {
-            // Rebuild modes to include trains
-            var hadTrain = false;
-            for (var i = 0; i < mAvailableModes.size(); i++) {
-                if (mAvailableModes[i] == 0) { hadTrain = true; }
-            }
-            if (!hadTrain) {
-                // Insert train at beginning so it appears first
-                var newModes = [0];
-                for (var i = 0; i < mAvailableModes.size(); i++) {
-                    newModes.add(mAvailableModes[i]);
-                }
-                mAvailableModes = newModes;
-            }
-            // Only auto-switch if in station view — don't disrupt active tracking
-            if (mAppState == 0) {
-                mCurrentMode = 0;
-                mStations = getStationsForMode(0);
-                if (mStations != null && mStations.size() > 0) {
-                    mStationIndex = 0;
-                    selectStation(0);
-                }
-            }
-        }
-    }
-
-    function fetchStationboard(stationId) {
-        var url = "https://api.traintime.ch/v1/departures"
-            + "?id=" + stationId
-            + "&limit=10";
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, method(:onTrainDataReceived));
-    }
-
-    function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        mRequestInFlight = false;
-        mRequestStartTime = null;
-
-        if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("departures")) {
-            mConsecutiveErrors = 0;
-            mTrainData = [];
-            var departures = data["departures"];
-            var nowSeconds = Time.now().value();
-
-            for (var i = 0; i < departures.size() && i < 10; i++) {
-                var dep = departures[i];
-                var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
-                var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";
-                var number = (dep.hasKey("number") && dep["number"] != null) ? dep["number"] : "";
-                var lineNumber = "";
-                if (category.equals("B") || category.equals("T") || category.equals("NFB") || category.equals("NFT") || category.equals("M")) {
-                    lineNumber = number;
-                }
-
-                var platform = (dep.hasKey("platform") && dep["platform"] != null) ? dep["platform"].toString() : "";
-                var platformChanged = (dep.hasKey("platformChanged") && dep["platformChanged"] != null) ? dep["platformChanged"] : false;
-
-                var minutesUntil = -1;
-                var depTs = null;
-                if (dep.hasKey("departure") && dep["departure"] != null) {
-                    depTs = dep["departure"];
-                    minutesUntil = (depTs - nowSeconds) / 60;
-                }
-
-                var delay = 0;
-                if (dep.hasKey("delay") && dep["delay"] != null && dep["delay"] > 0) {
-                    delay = dep["delay"];
-                }
-
-                mTrainData.add({
-                    "min" => minutesUntil,
-                    "depTs" => depTs,
-                    "delay" => delay,
-                    "plat" => platform,
-                    "platChg" => platformChanged,
-                    "dest" => destination,
-                    "line" => lineNumber
-                });
-            }
-
-            if (mStationName != null) {
-                mStatus = mStationName;
-            }
-
-            // Clamp cursor in selection mode
-            if (mAppState == 1) {
-                var total = mTrainData.size();
-                if (total == 0) {
-                    exitToStationView();
-                } else if (mCursorIndex >= total) {
-                    mCursorIndex = total - 1;
-                }
-                // Clamp scroll offset
-                if (mScrollOffset > total - mMaxVisibleTrains) {
-                    mScrollOffset = total - mMaxVisibleTrains;
-                    if (mScrollOffset < 0) { mScrollOffset = 0; }
-                }
-            }
-
-            // Update focused train in tracking mode
-            updateFocusedTrain();
-        } else {
-            if (mAppState == 2) {
-                // Tolerate transient errors in tracking mode
-                mConsecutiveErrors = mConsecutiveErrors + 1;
-                if (mConsecutiveErrors >= 3) {
-                    mTrainData = null;
-                    if (responseCode == 429) {
-                        mStatus = "Rate limited";
-                    } else {
-                        mStatus = "Error: " + responseCode;
-                    }
-                    exitToStationView();
-                }
-            } else {
-                if (responseCode == 429) {
-                    mStatus = "Rate limited";
-                } else {
-                    mStatus = "Error: " + responseCode;
-                }
-                mTrainData = null;
-                if (mAppState > 0) {
-                    exitToStationView();
-                }
-            }
-        }
-        WatchUi.requestUpdate();
-    }
-
-    function formatWalkInfo(distanceMeters) {
-        var dist = distanceMeters.toNumber();
-        mLastWalkDist = dist;
-        var walkMinutes = (dist / 83.0).toNumber();
-        var timeStr;
-        if (walkMinutes < 1) {
-            timeStr = "<1 min";
-        } else {
-            timeStr = walkMinutes + " min";
-        }
-
-        var info = timeStr + " walk - " + dist + "m";
-
-        if (mStations != null && mStations.size() > 1) {
-            info = info + "  " + (mStationIndex + 1) + "/" + mStations.size();
-        }
-
-        return info;
-    }
-
-
-    function vibrateShort() {
-        if (Attention has :vibrate) {
-            Attention.vibrate([new Attention.VibeProfile(50, 50)]);
-        }
-    }
-
-    function vibrateDouble() {
-        if (Attention has :vibrate) {
-            Attention.vibrate([
-                new Attention.VibeProfile(100, 50),
-                new Attention.VibeProfile(0, 100),
-                new Attention.VibeProfile(100, 50)
-            ]);
-        }
-    }
-
-    function vibrateHeartbeat() {
-        if (Attention has :vibrate) {
-            Attention.vibrate([
-                new Attention.VibeProfile(50, 50),
-                new Attention.VibeProfile(0, 100),
-                new Attention.VibeProfile(50, 50)
-            ]);
-        }
     }
 }

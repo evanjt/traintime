@@ -32,6 +32,8 @@
 		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
 		444DG8920314253647586B92 /* StationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555EH0A31425364758697CA3 /* StationPickerView.swift */; };
 		A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
+		AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */; };
+		EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +64,8 @@
 		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
 		555EH0A31425364758697CA3 /* StationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPickerView.swift; sourceTree = "<group>"; };
 		B2C3D4E5F678901234567890 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Navigation.swift"; sourceTree = "<group>"; };
+		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +164,8 @@
 			isa = PBXGroup;
 			children = (
 				44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */,
+				CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */,
+				1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -254,6 +260,8 @@
 				222BE6576F81920314253647 /* MapView.swift in Sources */,
 				444DG8920314253647586B92 /* StationPickerView.swift in Sources */,
 				A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */,
+				AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */,
+				EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

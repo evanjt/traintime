@@ -1,0 +1,554 @@
+using Toybox.WatchUi;
+using Toybox.Graphics;
+using Toybox.Math;
+using Toybox.Position;
+
+module Renderer {
+
+    function render(dc, view) {
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var centerX = width / 2;
+
+        view.mMaxVisibleTrains = (height < 240) ? 3 : 4;
+
+        // GPS quality indicator
+        drawGpsIndicator(dc, view, width, height);
+
+        // State 2: focused tracking
+        if (view.mAppState == 2 && view.mFocusedTrain != null) {
+            drawFocusedMode(dc, view, width, height);
+            return;
+        }
+
+        if (view.mStationName != null) {
+            // Mode indicators (above walk info)
+            drawModeIndicators(dc, view, width, height);
+
+            // Walking info line
+            if (view.mWalkInfo != null) {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                var walkY = height * 12 / 100;
+                var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
+                var walkText = DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW);
+                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                    walkText, Graphics.TEXT_JUSTIFY_CENTER);
+            }
+
+            // Station name
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            var stationY = height * 22 / 100;
+            var stationMaxW = DrawUtils.getUsableWidth(stationY + 12, width, height) - 10;
+            var stationText = view.mStationName.toUpper();
+            var stationFont = Graphics.FONT_MEDIUM;
+            var dims = dc.getTextDimensions(stationText, stationFont);
+            if (dims[0] > stationMaxW) {
+                stationFont = Graphics.FONT_SMALL;
+                dims = dc.getTextDimensions(stationText, stationFont);
+                if (dims[0] > stationMaxW) {
+                    stationFont = Graphics.FONT_TINY;
+                    stationText = DrawUtils.truncateToFit(dc, stationText, stationFont, stationMaxW);
+                }
+            }
+            dc.drawText(centerX, stationY, stationFont,
+                stationText, Graphics.TEXT_JUSTIFY_CENTER);
+
+            if (view.mTrainData != null && view.mTrainData.size() > 0) {
+                // Train rows
+                var maxTrains = 4;
+                if (height < 240) {
+                    maxTrains = 3;
+                }
+                var startY = height * 36 / 100;
+                var rowSpacing = height * 14 / 100;
+
+                var startIdx = (view.mAppState == 1) ? view.mScrollOffset : 0;
+                var endIdx = view.mTrainData.size();
+                if (endIdx > startIdx + maxTrains) {
+                    endIdx = startIdx + maxTrains;
+                }
+                for (var i = startIdx; i < endIdx; i++) {
+                    var row = i - startIdx;
+                    var highlighted = (view.mAppState == 1 && i == view.mCursorIndex);
+                    drawTrainRow(dc, view.mTrainData[i],
+                        startY + row * rowSpacing, width, height, highlighted);
+                }
+            } else if (view.mTrainData != null) {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
+                    "No departures", Graphics.TEXT_JUSTIFY_CENTER);
+            } else {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                var bodyMsg = "Loading...";
+                if (!view.mRequestInFlight) {
+                    bodyMsg = view.mStatus;
+                }
+                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
+                    bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
+            }
+        } else {
+            // No station yet — show subtle loading text, GPS dot indicates status
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
+                "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Contextual button hint at bottom
+        if (view.mStationName != null && view.mTrainData != null && view.mTrainData.size() > 0) {
+            var hintY = height * 92 / 100;
+            var hintMaxW = DrawUtils.getUsableWidth(hintY + 6, width, height) - 10;
+            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+            var hint;
+            if (view.mAppState == 0) {
+                hint = "Press START";
+            } else if (view.mAppState == 1) {
+                hint = "START=OK  BACK";
+            } else {
+                hint = (WatchUi has :MapTrackView && view.mStationLat != null && view.mStationLon != null) ? "START=Map" : "";
+            }
+            if (!hint.equals("")) {
+                dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
+                    DrawUtils.truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+            }
+        }
+    }
+
+    function drawModeIndicators(dc, view, width, height) {
+        if (view.mAvailableModes.size() == 0) {
+            return;
+        }
+
+        var cy = height * 7 / 100;
+        var iconSpacing = 24;
+        var totalWidth = (view.mAvailableModes.size() - 1) * iconSpacing;
+        var startX = width / 2 - totalWidth / 2;
+
+        for (var i = 0; i < view.mAvailableModes.size(); i++) {
+            var mode = view.mAvailableModes[i];
+            var cx = startX + i * iconSpacing;
+            var isActive = (mode == view.mCurrentMode);
+
+            if (isActive) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            }
+
+            if (mode == 0) {
+                // Train: rectangle body + peaked roof + 2 wheels
+                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
+                dc.fillPolygon([[cx - 3, cy - 1], [cx, cy - 4], [cx + 3, cy - 1]]);
+                dc.fillCircle(cx - 2, cy + 6, 1);
+                dc.fillCircle(cx + 2, cy + 6, 1);
+            } else if (mode == 1) {
+                // Bus: wider rectangle body + 2 wheels
+                dc.fillRectangle(cx - 4, cy, 8, 5);
+                dc.fillCircle(cx - 3, cy + 6, 1);
+                dc.fillCircle(cx + 3, cy + 6, 1);
+            } else if (mode == 2) {
+                // Tram: rectangle body + pantograph + 2 wheels
+                dc.fillRectangle(cx - 3, cy - 1, 6, 6);
+                dc.setPenWidth(1);
+                dc.drawLine(cx, cy - 1, cx, cy - 5);
+                dc.drawLine(cx - 2, cy - 5, cx + 2, cy - 5);
+                dc.fillCircle(cx - 2, cy + 6, 1);
+                dc.fillCircle(cx + 2, cy + 6, 1);
+            } else if (mode == 3) {
+                // Special (boats/funiculars/cable cars): wave icon
+                dc.setPenWidth(2);
+                dc.drawLine(cx - 4, cy, cx - 2, cy - 3);
+                dc.drawLine(cx - 2, cy - 3, cx, cy);
+                dc.drawLine(cx, cy, cx + 2, cy + 3);
+                dc.drawLine(cx + 2, cy + 3, cx + 4, cy);
+                dc.drawLine(cx - 4, cy + 4, cx - 2, cy + 1);
+                dc.drawLine(cx - 2, cy + 1, cx, cy + 4);
+                dc.drawLine(cx, cy + 4, cx + 2, cy + 7);
+                dc.drawLine(cx + 2, cy + 7, cx + 4, cy + 4);
+            }
+
+            // Active mode ring (only when multiple modes available)
+            if (isActive && view.mAvailableModes.size() > 1) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.setPenWidth(1);
+                dc.drawCircle(cx, cy + 1, 9);
+            }
+        }
+    }
+
+    function drawGpsIndicator(dc, view, width, height) {
+        var cy = 18;
+        var r = 4;
+        var usable = DrawUtils.getUsableWidth(cy, width, height);
+        var cx = (width + usable) / 2 - r - 4;
+        var color;
+        if (view.mLoadedFromCache || view.mGpsQuality == Position.QUALITY_LAST_KNOWN) {
+            color = 0x888888; // gray
+        } else if (view.mGpsQuality == Position.QUALITY_NOT_AVAILABLE) {
+            color = 0xFF0000; // red
+        } else if (view.mGpsQuality == Position.QUALITY_POOR) {
+            color = 0xFFAA00; // yellow
+        } else {
+            color = 0x00FF00; // green (USABLE or GOOD)
+        }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r);
+    }
+
+    function drawTrainRow(dc, train, y, width, height, highlighted) {
+        var minutesUntil = train["min"];
+        var delay = train["delay"];
+        var platform = train["plat"];
+        var platformChanged = train["platChg"];
+        var destination = train["dest"];
+        var lineNumber = train["line"];
+        var isGone = (minutesUntil < 0);
+
+        // Vertical alignment: FONT_TINY for minutes, FONT_XTINY for rest
+        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+        var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var xtinyY = y + (tinyH - xtinyH) / 2;
+
+        // Highlight background for cursor in selection mode
+        if (highlighted) {
+            var rowCenterForBg = y + tinyH / 2;
+            var usableBg = DrawUtils.getUsableWidth(rowCenterForBg, width, height);
+            var bgX = (width - usableBg) / 2 + 2;
+            dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
+            dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bgX, y, 3, tinyH);
+        }
+
+        // Fixed column X positions (absolute, so columns align across rows)
+        var minRightX = width * 20 / 100;
+        var delayX = width * 21 / 100;
+        var platX = width * 32 / 100;
+        var destX = width * 44 / 100;
+
+        // Right edge for this row on round display (for destination truncation)
+        var rowCenterY = y + tinyH / 2;
+        var usable = DrawUtils.getUsableWidth(rowCenterY, width, height);
+        var rightEdge = (width + usable) / 2 - 4;
+
+        // Minutes column (right-aligned, FONT_TINY)
+        var minText;
+        if (isGone) {
+            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            minText = "gone";
+        } else if (minutesUntil == 0) {
+            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            minText = "now";
+        } else if (minutesUntil <= 2) {
+            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            minText = minutesUntil + "'";
+        } else {
+            dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+            minText = minutesUntil + "'";
+        }
+        dc.drawText(minRightX, y, Graphics.FONT_TINY,
+            minText, Graphics.TEXT_JUSTIFY_RIGHT);
+
+        // Delay column (superscript, orange)
+        if (delay > 0 && !isGone) {
+            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(delayX, y - 2, Graphics.FONT_XTINY,
+                "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+
+        // Line number (bus/tram) or Platform column (FONT_XTINY)
+        if (lineNumber != null && lineNumber.length() > 0) {
+            dc.setColor(isGone ? 0x666666 : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
+                lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
+        } else if (platform.length() > 0) {
+            var platText = "P" + platform;
+            if (isGone) {
+                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
+                    platText, Graphics.TEXT_JUSTIFY_LEFT);
+            } else if (platformChanged) {
+                var platDims = dc.getTextDimensions(platText, Graphics.FONT_XTINY);
+                var pad = 2;
+                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(platX - pad, xtinyY, platDims[0] + 2 * pad, platDims[1]);
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
+                    platText, Graphics.TEXT_JUSTIFY_LEFT);
+            } else {
+                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
+                    platText, Graphics.TEXT_JUSTIFY_LEFT);
+            }
+        }
+
+        // Destination column (FONT_XTINY, truncated to fit round edge)
+        if (isGone) {
+            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+        } else {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        }
+        var maxDestW = rightEdge - destX;
+        var destText = DrawUtils.truncateToFit(dc, destination, Graphics.FONT_XTINY, maxDestW);
+        dc.drawText(destX, xtinyY, Graphics.FONT_XTINY,
+            destText, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // --- Focused Mode (State 2) ---
+
+    function drawFocusedMode(dc, view, width, height) {
+        var centerX = width / 2;
+
+        if (view.mStationName == null) { return; }
+
+        // Station name (small, secondary)
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        var stationY = height * 15 / 100;
+        var stationMaxW = DrawUtils.getUsableWidth(stationY + 8, width, height) - 10;
+        dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
+            DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
+            Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Destination + platform (auto-downsize, highlight platform change)
+        var destY = height * 26 / 100;
+        var destStr = view.mFocusedTrain["dest"];
+        var plat = view.mFocusedTrain["plat"];
+        var platChg = view.mFocusedTrain["platChg"];
+        var destMaxW = DrawUtils.getUsableWidth(destY + 10, width, height) - 10;
+        var destFont = Graphics.FONT_SMALL;
+        if (plat != null && !plat.equals("")) {
+            destStr = destStr + "  P" + plat;
+        }
+        var destDims = dc.getTextDimensions(destStr, destFont);
+        if (destDims[0] > destMaxW) {
+            destFont = Graphics.FONT_TINY;
+            destStr = DrawUtils.truncateToFit(dc, destStr, destFont, destMaxW);
+        }
+        if (platChg) {
+            dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
+        } else {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        }
+        dc.drawText(centerX, destY, destFont,
+            destStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Departure time + delay
+        var minY = height * 40 / 100;
+        var minutesUntil = view.getFocusedMinutesUntil();
+        var delay = view.mFocusedTrain["delay"];
+        if (delay == null) { delay = 0; }
+
+        var minStr;
+        if (minutesUntil < -0.5) {
+            minStr = "Departed";
+            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+        } else if (minutesUntil < 0.083) {
+            minStr = "now";
+            dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+        } else if (minutesUntil < 3.0) {
+            var totalSec = (minutesUntil * 60.0).toNumber();
+            var m = totalSec / 60;
+            var s = totalSec % 60;
+            minStr = m + ":" + (s < 10 ? "0" + s : s.toString());
+            if (minutesUntil <= 2.0) {
+                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+            }
+        } else {
+            minStr = minutesUntil.toNumber() + " min";
+            dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+        }
+        dc.drawText(centerX, minY, Graphics.FONT_MEDIUM,
+            minStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Delay indicator next to departure time
+        if (delay > 0 && minutesUntil >= -0.5) {
+            var minDims = dc.getTextDimensions(minStr, Graphics.FONT_MEDIUM);
+            dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX + minDims[0] / 2 + 4, minY,
+                Graphics.FONT_XTINY, "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+
+        // Tracking bar
+        drawTrackingBar(dc, view, width, height);
+
+        // Status text
+        var statusY = height * 66 / 100;
+        var walkMin = view.getWalkMinutes();
+        if (walkMin == null) {
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, statusY, Graphics.FONT_TINY,
+                "No GPS", Graphics.TEXT_JUSTIFY_CENTER);
+        } else {
+            var schedBuf = minutesUntil - walkMin;
+            var effectBuf = schedBuf + delay;
+
+            var statusStr;
+            if (effectBuf > 0.5) {
+                if (effectBuf < 1.5) {
+                    var sec = (effectBuf * 60.0).toNumber();
+                    statusStr = sec + "s ahead";
+                } else {
+                    statusStr = effectBuf.toNumber() + " min ahead";
+                }
+                dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
+            } else if (effectBuf < -0.5) {
+                if (effectBuf > -1.5) {
+                    var sec = ((-effectBuf) * 60.0).toNumber();
+                    statusStr = sec + "s behind";
+                } else {
+                    statusStr = (-effectBuf).toNumber() + " min behind";
+                }
+                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
+            } else {
+                statusStr = "On time";
+                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+            }
+
+            var statusMaxW = DrawUtils.getUsableWidth(statusY + 8, width, height) - 10;
+            var statusFont = Graphics.FONT_TINY;
+            dc.drawText(centerX, statusY, statusFont,
+                DrawUtils.truncateToFit(dc, statusStr, statusFont, statusMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Walk info at bottom
+        if (view.mWalkInfo != null) {
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            var walkY = height * 80 / 100;
+            var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
+            dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Direction arrow (only visible when walking)
+        drawDirectionArrow(dc, view, width, height);
+    }
+
+    function drawTrackingBar(dc, view, width, height) {
+        var barWidth = width * 60 / 100;
+        var halfBar = barWidth / 2;
+        var barX = width / 2 - halfBar;
+        var barY = height * 54 / 100;
+        var barH = 14;
+        var midX = width / 2;
+
+        // Background
+        dc.setColor(0x222222, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(barX, barY, barWidth, barH);
+
+        var walkMin = view.getWalkMinutes();
+        if (walkMin == null) {
+            // No GPS — fully gray bar
+            dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(barX, barY, barWidth, barH);
+            // Midpoint marker
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+            return;
+        }
+
+        var minutesUntil = view.getFocusedMinutesUntil();
+        var delay = view.mFocusedTrain["delay"];
+        if (delay == null) { delay = 0; }
+
+        var schedBuf = minutesUntil - walkMin;
+        var effectBuf = schedBuf + delay;
+
+        var barScale = 3.0;
+
+        // Clamp to [-1, 1] then scale to pixels
+        var schedFrac = GeoMath.clampFloat(schedBuf / barScale, -1.0, 1.0);
+        var effectFrac = GeoMath.clampFloat(effectBuf / barScale, -1.0, 1.0);
+        var schedPx = (schedFrac * halfBar).toNumber();
+        var effectPx = (effectFrac * halfBar).toNumber();
+
+        // MIP-optimized colors — distinct on 64-color palette
+        var darkGreen = 0x00FF00;
+        var lightGreen = 0x55FF55;
+        var darkRed = 0xFF0000;
+        var amber = 0xFFAA00;
+
+        // Case 1: Both positive or zero (fully ahead)
+        if (schedPx >= 0 && effectPx >= 0) {
+            // Dark green: guaranteed buffer (0 to scheduledPx)
+            if (schedPx > 0) {
+                dc.setColor(darkGreen, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX, barY, schedPx, barH);
+            }
+            // Light green: delay bonus (scheduledPx to effectivePx)
+            if (effectPx > schedPx) {
+                dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
+            }
+        }
+        // Case 3: Both negative (fully behind)
+        else if (schedPx <= 0 && effectPx <= 0) {
+            // Dark red: irrecoverable deficit (scheduledPx to effectivePx)
+            if (schedPx < effectPx) {
+                dc.setColor(darkRed, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + schedPx, barY, effectPx - schedPx, barH);
+            }
+            // Amber: delay recovery zone (effectivePx to 0)
+            if (effectPx < 0) {
+                dc.setColor(amber, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(midX + effectPx, barY, -effectPx, barH);
+            }
+        }
+        // Case 2: Behind on schedule but saved by delay (schedPx < 0, effectPx > 0)
+        else if (schedPx < 0 && effectPx > 0) {
+            // Amber: schedule deficit covered by delay
+            dc.setColor(amber, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX + schedPx, barY, -schedPx, barH);
+            // Light green: delay surplus right of midpoint
+            dc.setColor(lightGreen, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(midX, barY, effectPx, barH);
+        }
+
+        // Midpoint marker
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+    }
+
+    function drawDirectionArrow(dc, view, width, height) {
+        if (view.mHeading == null || view.mStationLat == null || view.mStationLon == null) {
+            return;
+        }
+        if (view.mLocationInfo == null || view.mLocationInfo.position == null) {
+            return;
+        }
+
+        var coords = view.mLocationInfo.position.toDegrees();
+        var bearing = GeoMath.calculateBearing(coords[0], coords[1], view.mStationLat, view.mStationLon);
+        var angle = bearing - view.mHeading;
+
+        var arrowCx = width / 2;
+        var arrowCy = height * 89 / 100;
+        var r = 12.0;
+
+        // Arrow triangle (pointing up = bearing 0, rotated by relative angle)
+        var cosA = Math.cos(angle).toFloat();
+        var sinA = Math.sin(angle).toFloat();
+
+        // Points relative to center: tip (0,-r), base-left (-0.6r, 0.5r), base-right (0.6r, 0.5r)
+        var tipX = r * sinA;
+        var tipY = -r * cosA;
+        var blX = -r * 0.6 * cosA - r * 0.5 * sinA;
+        var blY = -r * 0.6 * sinA + r * 0.5 * cosA;
+        var brX = r * 0.6 * cosA - r * 0.5 * sinA;
+        var brY = r * 0.6 * sinA + r * 0.5 * cosA;
+
+        var pts = new [3];
+        pts[0] = [(arrowCx + tipX).toNumber(), (arrowCy + tipY).toNumber()];
+        pts[1] = [(arrowCx + blX).toNumber(), (arrowCy + blY).toNumber()];
+        pts[2] = [(arrowCx + brX).toNumber(), (arrowCy + brY).toNumber()];
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.fillPolygon(pts);
+    }
+}
