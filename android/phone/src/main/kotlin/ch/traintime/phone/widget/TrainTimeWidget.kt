@@ -103,7 +103,13 @@ fun TrainTimeWidgetContent(context: Context) {
             Spacer(modifier = GlanceModifier.height(4.dp))
 
             // Departures
-            val activeDeps = result.departures.filter { !it.isGone }.take(4)
+            val size = LocalSize.current
+            val maxRows = when {
+                size.height < 100.dp -> 2
+                size.height < 200.dp -> 4
+                else -> 8
+            }
+            val activeDeps = result.departures.filter { !it.isGone }.take(maxRows)
             if (activeDeps.isEmpty()) {
                 Spacer(modifier = GlanceModifier.defaultWeight())
                 Text(

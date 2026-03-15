@@ -77,6 +77,13 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     private var timerJob: Job? = null
     private var pendingDeepLink: Uri? = null
 
+    init {
+        // If location was loaded from cache, mark it
+        if (locationService.location != null && locationService.location?.accuracy == -1f) {
+            loadedFromCache = true
+        }
+    }
+
     // Computed
     val stations: List<Station>
         get() = when (currentMode) {
@@ -184,6 +191,22 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
         if (!SwissBounds.contains(location.latitude, location.longitude) && stations.isEmpty()) {
             status = "Not in Switzerland"
+            return
+        }
+
+        // When transitioning from cached to live GPS, re-fetch if moved
+        if (loadedFromCache && (gpsQuality == GPSQuality.GOOD || gpsQuality == GPSQuality.POOR)) {
+            loadedFromCache = false
+            val lastLat = lastSearchLat
+            val lastLon = lastSearchLon
+            if (lastLat != null && lastLon != null &&
+                GeoUtils.hasMovedSignificantly(lastLat, lastLon, location.latitude, location.longitude)) {
+                clearStationState()
+            }
+            if (!requestInFlight) {
+                status = "Updating stations..."
+                fetchStations(location.latitude, location.longitude)
+            }
             return
         }
 
@@ -404,7 +427,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val updated = focused.copy()
         if (best.platform != focused.platform && best.platform.isNotEmpty()) {
             if (best.platformChanged) {
-                hapticService.doublePulse()
+                hapticService.platformChange()
             }
             updated.platform = best.platform
             updated.platformChanged = best.platformChanged

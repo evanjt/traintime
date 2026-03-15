@@ -56,14 +56,16 @@ static void tick_handler(void *data) {
 // Button handlers
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
     switch (g_state.state) {
-        case 0:
-            state_cycle_mode();
-            // Request departures for new mode's station
-            {
+        case 0: {
+            int count = g_state.station_count[g_state.current_mode];
+            if (count > 1) {
+                g_state.station_index = (g_state.station_index + 1) % count;
+                g_state.departure_count = 0;
                 Station *s = state_current_station();
                 if (s && s->has_data) messaging_request_departures(s->id);
             }
             break;
+        }
         case 1:
             if (g_state.cursor_index > 0) g_state.cursor_index--;
             break;
@@ -78,17 +80,13 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
     switch (g_state.state) {
-        case 0: {
-            // Cycle station within mode
-            int count = g_state.station_count[g_state.current_mode];
-            if (count > 1) {
-                g_state.station_index = (g_state.station_index + 1) % count;
-                g_state.departure_count = 0;
+        case 0:
+            state_cycle_mode();
+            {
                 Station *s = state_current_station();
                 if (s && s->has_data) messaging_request_departures(s->id);
             }
             break;
-        }
         case 1: {
             int max_cursor = g_state.departure_count < MAX_VISIBLE_DEPARTURES ?
                 g_state.departure_count - 1 : MAX_VISIBLE_DEPARTURES - 1;

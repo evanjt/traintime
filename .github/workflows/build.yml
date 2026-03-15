@@ -280,6 +280,10 @@ jobs:
           }
           EOF
 
+      - name: Run Android tests
+        working-directory: android
+        run: ./gradlew :shared:test :phone:testDebugUnitTest :wear:testDebugUnitTest --continue || true
+
       - name: Build debug APKs (PR validation)
         if: github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch'
         working-directory: android

@@ -26,4 +26,8 @@ class WearHapticService(context: Context) {
     fun heartbeat() {
         vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
     }
+
+    fun platformChange() {
+        vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 100, 50, 100), -1))
+    }
 }

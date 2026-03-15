@@ -63,7 +63,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     private var lastSearchLon: Double? = null
     private var consecutiveErrors = 0
     private var lastVibeTick: Long = 0L
+    private var loadedFromCache = false
     private var timerJob: Job? = null
+
+    init {
+        if (locationService.location != null && locationService.location?.accuracy == -1f) {
+            loadedFromCache = true
+        }
+    }
 
     val stations: List<Station>
         get() = when (currentMode) {
@@ -169,6 +176,21 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
 
         if (!SwissBounds.contains(location.latitude, location.longitude) && stations.isEmpty()) {
             status = "Not in Switzerland"
+            return
+        }
+
+        if (loadedFromCache && (gpsQuality == GPSQuality.GOOD || gpsQuality == GPSQuality.POOR)) {
+            loadedFromCache = false
+            val lastLat = lastSearchLat
+            val lastLon = lastSearchLon
+            if (lastLat != null && lastLon != null &&
+                GeoUtils.hasMovedSignificantly(lastLat, lastLon, location.latitude, location.longitude)) {
+                clearStationState()
+            }
+            if (!requestInFlight) {
+                status = "Updating stations..."
+                fetchStations(location.latitude, location.longitude)
+            }
             return
         }
 
@@ -373,7 +395,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
 
         val updated = focused.copy()
         if (best.platform != focused.platform && best.platform.isNotEmpty()) {
-            if (best.platformChanged) hapticService.doublePulse()
+            if (best.platformChanged) hapticService.platformChange()
             updated.platform = best.platform
             updated.platformChanged = best.platformChanged
         }
