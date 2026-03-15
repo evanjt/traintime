@@ -45,6 +45,7 @@ class PhoneViewModel: ObservableObject {
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
     private var loadedFromCache = false
+    private var lastInteractionTime: Date = Date()
 
     // MARK: - Deep link pending
     private var pendingDeepLink: URL?
@@ -92,6 +93,7 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Lifecycle
 
     func onAppear() {
+        lastInteractionTime = Date()
         location.start()
         startTimer(interval: Timing.normalRefreshInterval)
     }
@@ -225,6 +227,12 @@ class PhoneViewModel: ObservableObject {
             }
         }
 
+        // Inactivity timeout in station view
+        if appState == 0, Date().timeIntervalSince(lastInteractionTime) >= Timing.inactivityTimeout {
+            enterInactiveState()
+            return
+        }
+
         if appState == 3 { return }
 
         // Fetch departures if cooldown elapsed
@@ -269,10 +277,12 @@ class PhoneViewModel: ObservableObject {
     }
 
     func resumeFromInactive() {
+        lastInteractionTime = Date()
         appState = 0
     }
 
     func exitToStationView() {
+        lastInteractionTime = Date()
         appState = 0
         focusedTrain = nil
         consecutiveErrors = 0
@@ -282,6 +292,7 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Mode Navigation
 
     func cycleMode() {
+        lastInteractionTime = Date()
         guard availableModes.count > 1 else { return }
         if let idx = availableModes.firstIndex(of: currentMode) {
             let nextIdx = (idx + 1) % availableModes.count
@@ -290,6 +301,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     func selectMode(_ mode: TransportMode) {
+        lastInteractionTime = Date()
         guard mode != currentMode else { return }
         currentMode = mode
         stationIndex = 0
@@ -306,6 +318,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     func selectStation(index: Int) {
+        lastInteractionTime = Date()
         guard index >= 0, index < stations.count else { return }
         stationIndex = index
         showStationPicker = false
@@ -535,6 +548,7 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Deep Link
 
     func handleDeepLink(_ url: URL) {
+        lastInteractionTime = Date()
         // traintime://track?destination=DEST&timestamp=TS
         guard url.scheme == "traintime", url.host == "track" else { return }
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),

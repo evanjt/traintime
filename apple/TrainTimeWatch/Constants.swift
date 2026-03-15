@@ -51,6 +51,7 @@ enum Timing {
     static let fetchCooldownNormal: TimeInterval = 30.0
     static let fetchCooldownTracking: TimeInterval = 10.0
     static let requestTimeout: TimeInterval = 30.0
+    static let inactivityTimeout: TimeInterval = 60.0
 }
 
 enum Thresholds {

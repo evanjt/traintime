@@ -10,6 +10,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onNextPage() {  // Down button
+        mView.mLastInteractionTime = Toybox.Time.now().value();
         var state = mView.getAppState();
         if (state == 3) {
             mView.exitToStationView();
@@ -23,6 +24,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() {  // Up button
+        mView.mLastInteractionTime = Toybox.Time.now().value();
         var state = mView.getAppState();
         if (state == 3) {
             mView.exitToStationView();
@@ -36,6 +38,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() {
+        mView.mLastInteractionTime = Toybox.Time.now().value();
         var state = mView.getAppState();
         if (state == 3) {
             mView.exitToStationView();
@@ -54,6 +57,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
+        mView.mLastInteractionTime = Toybox.Time.now().value();
         var state = mView.getAppState();
         if (state == 1 || state == 2) {
             mView.exitToStationView();

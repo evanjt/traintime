@@ -66,6 +66,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     private var lastVibeTick: Long = 0L
     private var loadedFromCache = false
     private var timerJob: Job? = null
+    private var lastInteractionTime: Long = System.currentTimeMillis()
 
     init {
         if (locationService.location != null && locationService.location?.accuracy == -1f) {
@@ -144,6 +145,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAppear() {
+        lastInteractionTime = System.currentTimeMillis()
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
         viewModelScope.launch {
             locationService.locationFlow.collect { location ->
@@ -261,6 +263,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // Inactivity timeout in station view
+        if (appState == 0 && System.currentTimeMillis() - lastInteractionTime >= Timing.INACTIVITY_TIMEOUT) {
+            enterInactiveState()
+            return
+        }
+
         if (appState == 3) return
 
         val cooldown = if (appState == 2) Timing.FETCH_COOLDOWN_TRACKING else Timing.FETCH_COOLDOWN_NORMAL
@@ -304,10 +312,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resumeFromInactive() {
+        lastInteractionTime = System.currentTimeMillis()
         appState = 0
     }
 
     fun exitToStationView() {
+        lastInteractionTime = System.currentTimeMillis()
         appState = 0
         focusedTrain = null
         consecutiveErrors = 0
@@ -315,6 +325,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectMode(mode: TransportMode) {
+        lastInteractionTime = System.currentTimeMillis()
         if (mode == currentMode) return
         currentMode = mode
         stationIndex = 0
@@ -330,6 +341,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectStation(index: Int) {
+        lastInteractionTime = System.currentTimeMillis()
         if (index < 0 || index >= stations.size) return
         stationIndex = index
         showStationPicker = false

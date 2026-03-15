@@ -5,6 +5,7 @@ extension TrainTimeViewModel {
     // MARK: - Mode Navigation
 
     func cycleMode() {
+        lastInteractionTime = Date()
         guard availableModes.count > 1 else { return }
         if let idx = availableModes.firstIndex(of: currentMode) {
             let nextIdx = (idx + 1) % availableModes.count
@@ -13,6 +14,7 @@ extension TrainTimeViewModel {
     }
 
     func selectMode(_ mode: TransportMode) {
+        lastInteractionTime = Date()
         guard mode != currentMode else { return }
         currentMode = mode
         stationIndex = 0
@@ -32,6 +34,7 @@ extension TrainTimeViewModel {
     // MARK: - Station Navigation
 
     func nextStation() {
+        lastInteractionTime = Date()
         let s = stations
         guard s.count > 1 else { return }
         stationIndex = (stationIndex + 1) % s.count
@@ -39,6 +42,7 @@ extension TrainTimeViewModel {
     }
 
     func previousStation() {
+        lastInteractionTime = Date()
         let s = stations
         guard s.count > 1 else { return }
         stationIndex = stationIndex - 1
@@ -47,6 +51,7 @@ extension TrainTimeViewModel {
     }
 
     func selectStation(index: Int) {
+        lastInteractionTime = Date()
         guard index >= 0, index < stations.count else { return }
         stationIndex = index
         showStationPicker = false

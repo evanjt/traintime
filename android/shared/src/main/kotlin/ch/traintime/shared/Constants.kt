@@ -42,6 +42,7 @@ object Timing {
     const val FETCH_COOLDOWN_NORMAL = 30_000L // ms
     const val FETCH_COOLDOWN_TRACKING = 10_000L // ms
     const val REQUEST_TIMEOUT = 30_000L // ms
+    const val INACTIVITY_TIMEOUT = 60_000L // ms
 }
 
 object Thresholds {

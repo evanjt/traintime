@@ -76,6 +76,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     private var loadedFromCache = false
     private var timerJob: Job? = null
     private var pendingDeepLink: Uri? = null
+    private var lastInteractionTime: Long = System.currentTimeMillis()
 
     init {
         // If location was loaded from cache, mark it
@@ -158,6 +159,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onAppear() {
+        lastInteractionTime = System.currentTimeMillis()
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
         viewModelScope.launch {
             locationService.locationFlow.collect { location ->
@@ -283,6 +285,12 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // Inactivity timeout in station view
+        if (appState == 0 && System.currentTimeMillis() - lastInteractionTime >= Timing.INACTIVITY_TIMEOUT) {
+            enterInactiveState()
+            return
+        }
+
         if (appState == 3) return
 
         // Fetch departures on cooldown
@@ -328,10 +336,12 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resumeFromInactive() {
+        lastInteractionTime = System.currentTimeMillis()
         appState = 0
     }
 
     fun exitToStationView() {
+        lastInteractionTime = System.currentTimeMillis()
         appState = 0
         focusedTrain = null
         consecutiveErrors = 0
@@ -340,6 +350,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     // Mode navigation
     fun selectMode(mode: TransportMode) {
+        lastInteractionTime = System.currentTimeMillis()
         if (mode == currentMode) return
         currentMode = mode
         stationIndex = 0
@@ -355,6 +366,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectStation(index: Int) {
+        lastInteractionTime = System.currentTimeMillis()
         if (index < 0 || index >= stations.size) return
         stationIndex = index
         showStationPicker = false
@@ -507,6 +519,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun handleDeepLink(uri: Uri) {
+        lastInteractionTime = System.currentTimeMillis()
         if (uri.scheme != "traintime" || uri.host != "track") return
         val destination = uri.getQueryParameter("destination") ?: return
         val timestamp = uri.getQueryParameter("timestamp")?.toIntOrNull() ?: return

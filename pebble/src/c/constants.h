@@ -27,6 +27,7 @@
 #define TRACKING_TICK_INTERVAL 1000  // ms
 #define FETCH_COOLDOWN_NORMAL 30     // seconds
 #define FETCH_COOLDOWN_TRACKING 10   // seconds
+#define INACTIVITY_TIMEOUT 60        // seconds
 
 // Thresholds
 #define MAX_STATIONS_PER_MODE 5

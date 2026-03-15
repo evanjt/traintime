@@ -32,6 +32,12 @@ static void tick_handler(void *data) {
         }
     }
 
+    // Inactivity timeout in station view
+    if (g_state.state == 0 && time(NULL) - g_state.last_interaction_time >= INACTIVITY_TIMEOUT) {
+        state_enter_inactive();
+        ui_update();
+    }
+
     // Fetch cooldown check
     if (g_state.state != 3) {
         time_t now = time(NULL);
@@ -55,6 +61,7 @@ static void tick_handler(void *data) {
 
 // Button handlers
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+    g_state.last_interaction_time = time(NULL);
     switch (g_state.state) {
         case 0: {
             int count = g_state.station_count[g_state.current_mode];
@@ -79,6 +86,7 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+    g_state.last_interaction_time = time(NULL);
     switch (g_state.state) {
         case 0:
             state_cycle_mode();
@@ -103,6 +111,7 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
+    g_state.last_interaction_time = time(NULL);
     switch (g_state.state) {
         case 0:
             if (g_state.departure_count > 0) {
@@ -123,6 +132,7 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
+    g_state.last_interaction_time = time(NULL);
     switch (g_state.state) {
         case 1:
             g_state.state = 0;
@@ -149,6 +159,7 @@ static void click_config_provider(void *context) {
 
 // Window handlers
 static void window_load(Window *window) {
+    g_state.last_interaction_time = time(NULL);
     ui_init(window);
     messaging_init();
 

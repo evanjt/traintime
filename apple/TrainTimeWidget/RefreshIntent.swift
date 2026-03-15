@@ -64,13 +64,26 @@ struct RefreshIntent: AppIntent {
     }
 
     private func getLocation() async throws -> CLLocationCoordinate2D {
-        for try await update in CLLocationUpdate.liveUpdates() {
-            if let location = update.location,
-               location.horizontalAccuracy >= 0 && location.horizontalAccuracy < 1000 {
-                return location.coordinate
+        // Use a timeout — widget extensions have limited execution time and
+        // CLLocationUpdate.liveUpdates() can hang if location isn't available.
+        try await withThrowingTaskGroup(of: CLLocationCoordinate2D.self) { group in
+            group.addTask {
+                for try await update in CLLocationUpdate.liveUpdates() {
+                    if let location = update.location,
+                       location.horizontalAccuracy >= 0 && location.horizontalAccuracy < 1000 {
+                        return location.coordinate
+                    }
+                }
+                throw TrainAPIError.noData
             }
+            group.addTask {
+                try await Task.sleep(for: .seconds(10))
+                throw TrainAPIError.noData
+            }
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
         }
-        throw TrainAPIError.noData
     }
 }
 

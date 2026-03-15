@@ -47,6 +47,7 @@ class TrainTimeViewModel: ObservableObject {
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
     private var loadedFromCache = false
+    private var lastInteractionTime: Date = Date()
 
     // MARK: - Computed
 
@@ -92,6 +93,7 @@ class TrainTimeViewModel: ObservableObject {
     // MARK: - Lifecycle
 
     func onAppear() {
+        lastInteractionTime = Date()
         location.start()
         startTimer(interval: Timing.normalRefreshInterval)
     }
@@ -243,6 +245,12 @@ class TrainTimeViewModel: ObservableObject {
             }
         }
 
+        // Inactivity timeout in station view
+        if appState == 0, Date().timeIntervalSince(lastInteractionTime) >= Timing.inactivityTimeout {
+            enterInactiveState()
+            return
+        }
+
         // Skip API fetches in inactive state
         if appState == 3 { return }
 
@@ -293,10 +301,12 @@ class TrainTimeViewModel: ObservableObject {
     }
 
     func resumeFromInactive() {
+        lastInteractionTime = Date()
         appState = 0
     }
 
     func exitToStationView() {
+        lastInteractionTime = Date()
         appState = 0
         focusedTrain = nil
         consecutiveErrors = 0

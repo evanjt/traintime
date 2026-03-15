@@ -43,6 +43,7 @@ class TrainTimeView extends WatchUi.View {
     var mMaxVisibleTrains;
     var mScrollOffset;  // first visible row index for scrolling in State 1
     var mMapActive;  // true when MapTrackView is pushed
+    var mLastInteractionTime;
 
     function initialize() {
         View.initialize();
@@ -80,6 +81,7 @@ class TrainTimeView extends WatchUi.View {
         mMaxVisibleTrains = 4;
         mScrollOffset = 0;
         mMapActive = false;
+        mLastInteractionTime = 0;
     }
 
     function onLayout(dc) {
@@ -118,6 +120,7 @@ class TrainTimeView extends WatchUi.View {
             }
         }
 
+        mLastInteractionTime = Time.now().value();
         mTimer = new Timer.Timer();
         mTimer.start(method(:onTimerTick), 5000, true);
     }
@@ -317,6 +320,7 @@ class TrainTimeView extends WatchUi.View {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         }
         mAppState = 0;
+        mLastInteractionTime = Time.now().value();
         mCursorIndex = 0;
         mScrollOffset = 0;
         mFocusedTrain = null;
@@ -664,6 +668,13 @@ class TrainTimeView extends WatchUi.View {
         }
 
         if (mRequestInFlight) {
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        // Inactivity timeout: enter inactive if idle for 60s in station view
+        if (mAppState == 0 && Time.now().value() - mLastInteractionTime >= 60) {
+            enterInactiveState();
             WatchUi.requestUpdate();
             return;
         }

@@ -11,6 +11,7 @@ void state_init(void) {
     g_state.state = 0;
     g_state.current_mode = MODE_TRAIN;
     g_state.gps_quality = GPS_UNAVAILABLE;
+    g_state.last_interaction_time = time(NULL);
     strncpy(g_state.status, "GPS: Searching...", sizeof(g_state.status));
 }
 
@@ -103,10 +104,12 @@ void state_enter_inactive(void) {
 
 void state_resume(void) {
     g_state.state = 0;
+    g_state.last_interaction_time = time(NULL);
 }
 
 void state_exit_to_station(void) {
     g_state.state = 0;
+    g_state.last_interaction_time = time(NULL);
     g_state.focused.active = false;
     g_state.consecutive_errors = 0;
 }

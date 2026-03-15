@@ -83,6 +83,7 @@ typedef struct {
     int consecutive_errors;
     time_t last_fetch_time;
     time_t last_vibe_tick;
+    time_t last_interaction_time;
 } AppState;
 
 // Global state

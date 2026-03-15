@@ -7,6 +7,8 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>NSWidgetWantsLocation</key>
+	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TrainTime needs your location to find nearby stations for the widget.</string>
 </dict>
