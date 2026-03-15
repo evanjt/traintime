@@ -84,9 +84,12 @@ platform :ios do
       xcargs: 'OTHER_CODE_SIGN_FLAGS="--timestamp=none"'
     )
 
-    ipa_path = File.join("artifacts", "traintime.ipa")
-    UI.user_error!("IPA not created at #{ipa_path}") unless File.exist?(ipa_path)
-    UI.success("Created IPA: #{ipa_path} (#{File.size(ipa_path)} bytes)")
+    ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
+    UI.user_error!("IPA not created") unless ipa_path && File.exist?(ipa_path)
+    # Rename to traintime.ipa for consistent artifact naming
+    final_path = File.join("artifacts", "traintime.ipa")
+    FileUtils.mv(ipa_path, final_path) unless ipa_path == final_path
+    UI.success("Created IPA: #{final_path} (#{File.size(final_path)} bytes)")
   end
 
   desc "Build watchOS-only release IPA (legacy stub method)"
