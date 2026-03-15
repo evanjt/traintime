@@ -8,12 +8,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.*
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.layout.*
 import androidx.glance.text.*
+import androidx.glance.unit.ColorProvider
 import androidx.work.*
 import ch.traintime.shared.AppColors
 import ch.traintime.phone.MainActivity

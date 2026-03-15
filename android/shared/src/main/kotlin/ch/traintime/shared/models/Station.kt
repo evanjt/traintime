@@ -15,8 +15,8 @@ data class Station(
 ) {
     companion object {
         fun from(json: JSONObject, mode: TransportMode): Station? {
-            val id = json.optString("id", null) ?: return null
-            val name = json.optString("name", null)
+            val id: String = json.optString("id", null as String?) ?: return null
+            val name: String? = json.optString("name", null as String?)
             val lat = if (json.has("lat")) json.getDouble("lat") else null
             val lon = if (json.has("lon")) json.getDouble("lon") else null
             val dist = if (json.has("dist")) json.getDouble("dist") else null

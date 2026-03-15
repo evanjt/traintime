@@ -230,9 +230,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val station = currentStation
-        if (station != null && station.lat != null && station.lon != null) {
+        val stLat = station?.lat
+        val stLon = station?.lon
+        if (station != null && stLat != null && stLon != null) {
             lastWalkDist = GeoUtils.haversineDistance(
-                location.latitude, location.longitude, station.lat, station.lon
+                location.latitude, location.longitude, stLat, stLon
             )
         }
 

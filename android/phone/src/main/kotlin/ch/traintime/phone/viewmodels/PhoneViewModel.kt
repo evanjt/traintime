@@ -249,9 +249,11 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
         // Update walk distance
         val station = currentStation
-        if (station != null && station.lat != null && station.lon != null) {
+        val stLat = station?.lat
+        val stLon = station?.lon
+        if (station != null && stLat != null && stLon != null) {
             val haversine = GeoUtils.haversineDistance(
-                location.latitude, location.longitude, station.lat, station.lon
+                location.latitude, location.longitude, stLat, stLon
             )
             lastWalkDist = haversine
             lastWalkTime = null
