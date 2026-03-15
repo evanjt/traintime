@@ -46,3 +46,17 @@ xcuserdata/
 # Fastlane
 apple/fastlane/vendor/
 apple/fastlane/.bundle/
+
+# Android
+android/shared/src/main/kotlin/ch/traintime/shared/api/Secrets.kt
+android/.gradle/
+android/build/
+android/*/build/
+android/local.properties
+*.apk
+*.aab
+*.jks
+
+# Pebble
+pebble/build/
+*.pbw

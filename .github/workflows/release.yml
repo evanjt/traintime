@@ -150,6 +150,13 @@ jobs:
           name: garmin-iq
           path: artifacts/garmin
 
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: android-apk
+          path: artifacts/android
+
       - name: Prepare release artifacts
         id: prepare
         run: |
@@ -178,6 +185,18 @@ jobs:
             echo "::notice::No Garmin .iq found"
           fi
 
+          PHONE_APK=$(find artifacts/android -name "*phone*.apk" 2>/dev/null | head -1)
+          if [ -n "$PHONE_APK" ]; then
+            cp "$PHONE_APK" "release/traintime-phone-${VERSION}.apk"
+            echo "Android Phone: traintime-phone-${VERSION}.apk"
+          fi
+
+          WEAR_APK=$(find artifacts/android -name "*wear*.apk" 2>/dev/null | head -1)
+          if [ -n "$WEAR_APK" ]; then
+            cp "$WEAR_APK" "release/traintime-wear-${VERSION}.apk"
+            echo "Android Wear: traintime-wear-${VERSION}.apk"
+          fi
+
           echo ""
           echo "=== Release artifacts ==="
           ls -la release/
@@ -192,6 +211,8 @@ jobs:
             ## Downloads
             - **iOS IPA**: For TestFlight / App Store (includes iOS app, watchOS companion, widget)
             - **Garmin .iq**: Upload to [Connect IQ Store](https://apps.garmin.com/developer/dashboard)
+            - **Android Phone APK**: Sideload or upload to Google Play
+            - **Android Wear APK**: Sideload or upload to Google Play
 
             ---
             Built from commit: ${{ github.sha }}
