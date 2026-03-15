@@ -56,7 +56,8 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     var lastWalkDist by mutableDoubleStateOf(0.0)
         private set
 
-    private var requestInFlight = false
+    var requestInFlight by mutableStateOf(false)
+        private set
     private var requestStartTime: Long? = null
     private var lastFetchTime: Long = 0L
     private var lastSearchLat: Double? = null
