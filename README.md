@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://traintime.evanjt.com/privacy">Privacy</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://traintime.evanjt.com">Website</a>
+  <a href="https://traintime.ch/privacy">Privacy</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://traintime.ch">Website</a>
 </p>
 
 ---
@@ -41,7 +41,7 @@
 
 ### Apple Watch
 
-Open `apple-watch/TrainTimeWatch.xcodeproj` in Xcode.
+Open `apple/TrainTimeWatch.xcodeproj` in Xcode.
 
 ### Garmin
 
@@ -54,7 +54,7 @@ cd garmin
 
 ## API
 
-Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https://opentransportdata.swiss). Source: [evanjt/traintime-api](https://github.com/evanjt/traintime-api). Copy `Secrets.swift.example` / `Secrets.mc.example` to `Secrets.swift` / `Secrets.mc` and fill in your API key.
+Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https://opentransportdata.swiss). Source: [traintime-api](https://github.com/evanjt/traintime-api). Copy `Secrets.swift.example` / `Secrets.mc.example` to `Secrets.swift` / `Secrets.mc` and fill in your API key.
 
 ## License
 
