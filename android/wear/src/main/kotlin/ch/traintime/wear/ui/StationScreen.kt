@@ -86,7 +86,7 @@ fun StationScreen(viewModel: WearViewModel) {
                     )
                 } else {
                     Text(
-                        text = "Loading...",
+                        text = if (viewModel.requestInFlight) "Loading..." else viewModel.status,
                         fontSize = 12.sp,
                         color = Color.Gray,
                         modifier = Modifier.padding(top = 16.dp)
