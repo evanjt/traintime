@@ -97,6 +97,11 @@ class TrainTimeView extends WatchUi.View {
             onPosition(info);
         }
 
+        // Set initial status when no station and no activity
+        if (mStationId == null && !mRequestInFlight && !mLoadedFromCache) {
+            mStatus = "Waiting for GPS...";
+        }
+
         // If OS cache failed, try our own persistent storage
         if (mStationId == null && !mRequestInFlight) {
             var savedLat = Storage.getValue("lastLat");
@@ -496,6 +501,8 @@ class TrainTimeView extends WatchUi.View {
                 && station["departures"].size() > 0) {
             mTrainData = ApiHandler.parseDepartureArray(station["departures"]);
             mLastFetchTime = Time.now().value();
+            mRequestInFlight = false;
+            mRequestStartTime = null;
         } else {
             mRequestInFlight = true;
             mRequestStartTime = Time.now().value();

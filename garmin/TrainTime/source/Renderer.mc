@@ -117,10 +117,11 @@ module Renderer {
                     bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
             }
         } else {
-            // No station yet — show subtle loading text, GPS dot indicates status
+            // No station yet — show status or loading indicator
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            var loadMsg = view.mRequestInFlight ? "Loading..." : view.mStatus;
             dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+                loadMsg, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
         // Contextual button hint at bottom

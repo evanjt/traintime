@@ -5,6 +5,15 @@ using Toybox.WatchUi;
 
 module ApiHandler {
 
+    function decodeError(responseCode) {
+        if (responseCode == 429) { return "Rate limited"; }
+        if (responseCode == 500) { return "Server error"; }
+        if (responseCode == -104) { return "Timeout"; }
+        if (responseCode == -400) { return "No connection"; }
+        if (responseCode < 0) { return "Connection error"; }
+        return "Error: " + responseCode;
+    }
+
     function fetchStations(view, lat, lon) {
         view.mLastSearchLat = lat;
         view.mLastSearchLon = lon;
@@ -37,10 +46,8 @@ module ApiHandler {
             } else {
                 rebuildModesAndSelect(view);
             }
-        } else if (responseCode == 429) {
-            view.mStatus = "Rate limited";
         } else {
-            view.mStatus = "Station error: " + responseCode;
+            view.mStatus = decodeError(responseCode);
             view.mTrainData = null;
         }
         WatchUi.requestUpdate();
@@ -105,6 +112,8 @@ module ApiHandler {
                     && station["departures"].size() > 0) {
                 view.mTrainData = parseDepartureArray(station["departures"]);
                 view.mLastFetchTime = Time.now().value();
+                view.mRequestInFlight = false;
+                view.mRequestStartTime = null;
             } else {
                 view.mRequestInFlight = true;
                 view.mRequestStartTime = Time.now().value();
@@ -203,19 +212,11 @@ module ApiHandler {
                 view.mConsecutiveErrors = view.mConsecutiveErrors + 1;
                 if (view.mConsecutiveErrors >= 3) {
                     view.mTrainData = null;
-                    if (responseCode == 429) {
-                        view.mStatus = "Rate limited";
-                    } else {
-                        view.mStatus = "Error: " + responseCode;
-                    }
+                    view.mStatus = decodeError(responseCode);
                     view.exitToStationView();
                 }
             } else {
-                if (responseCode == 429) {
-                    view.mStatus = "Rate limited";
-                } else {
-                    view.mStatus = "Error: " + responseCode;
-                }
+                view.mStatus = decodeError(responseCode);
                 view.mTrainData = null;
                 if (view.mAppState > 0) {
                     view.exitToStationView();
