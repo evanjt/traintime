@@ -13,7 +13,7 @@ enum TransportMode: Int, CaseIterable, Identifiable {
         case .train: return "train.side.front.car"
         case .bus: return "bus.fill"
         case .tram: return "tram.fill"
-        case .special: return "cablecar"
+        case .special: return "ferry.fill"
         }
     }
 
