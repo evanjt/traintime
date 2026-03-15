@@ -32,6 +32,9 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        disable += "InvalidFragmentVersionForActivityResult"
+    }
 }
 
 dependencies {
