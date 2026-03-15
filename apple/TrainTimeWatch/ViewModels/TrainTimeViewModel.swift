@@ -47,7 +47,7 @@ class TrainTimeViewModel: ObservableObject {
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
     private var loadedFromCache = false
-    private var lastInteractionTime: Date = Date()
+    var lastInteractionTime: Date = Date()
 
     // MARK: - Computed
 
