@@ -57,9 +57,9 @@ struct TrainTimeTimelineProvider: TimelineProvider {
             return
         }
 
-        // Check if the fetch is stale (>5 min old)
+        // Check if the fetch is stale (>60s old)
         let fetchAge = Date().timeIntervalSince1970 - result.fetchTime
-        if fetchAge > 300 {
+        if fetchAge > 60 {
             // Stale — return to dormant with cached station name
             completion(Timeline(
                 entries: [.dormant(stationName: result.stationName)],
@@ -69,23 +69,18 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         }
 
         let now = Date()
-        var entries: [DepartureEntry] = []
+        let dormantDate = Calendar.current.date(byAdding: .second, value: 60, to: now)!
 
-        // Pre-compute 5 timeline entries at 1-minute intervals
-        // Departures use absolute timestamps, so minutesUntil recomputes correctly at each entry date
-        for minuteOffset in 0..<5 {
-            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: now)!
-            entries.append(DepartureEntry(
-                date: entryDate,
+        // Single active entry, then return to dormant after 60s
+        let entries: [DepartureEntry] = [
+            DepartureEntry(
+                date: now,
                 stationName: result.stationName,
                 departures: result.departures,
                 isDormant: false
-            ))
-        }
-
-        // Final entry at T+5min returns to dormant
-        let dormantDate = Calendar.current.date(byAdding: .minute, value: 5, to: now)!
-        entries.append(.dormant(date: dormantDate, stationName: result.stationName))
+            ),
+            .dormant(date: dormantDate, stationName: result.stationName)
+        ]
 
         completion(Timeline(entries: entries, policy: .after(dormantDate)))
     }
