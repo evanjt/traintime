@@ -136,7 +136,7 @@ jobs:
         id: version
         run: echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
-      - name: Download watchOS artifacts from main build
+      - name: Download iOS/watchOS artifacts from main build
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ needs.find-and-wait.outputs.run_id }}
@@ -190,7 +190,7 @@ jobs:
             ## TrainTime v${{ steps.version.outputs.version }}
 
             ## Downloads
-            - **watchOS IPA**: For TestFlight / App Store
+            - **iOS IPA**: For TestFlight / App Store (includes iOS app, watchOS companion, widget)
             - **Garmin .iq**: Upload to [Connect IQ Store](https://apps.garmin.com/developer/dashboard)
 
             ---
@@ -241,7 +241,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-          working-directory: apple-watch/fastlane
+          working-directory: apple/fastlane
           bundler-cache: true
 
       - name: Download IPA
@@ -253,7 +253,7 @@ jobs:
 
       - name: Upload to TestFlight
         if: steps.check_creds.outputs.skip != 'true'
-        working-directory: apple-watch/fastlane
+        working-directory: apple/fastlane
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}

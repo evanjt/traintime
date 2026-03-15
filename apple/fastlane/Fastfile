@@ -1,0 +1,164 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Sync certificates and provisioning profiles via Match"
+  lane :certificates do
+    if ENV["ASC_KEY_ID"]
+      api_key = app_store_connect_api_key(
+        key_id: ENV["ASC_KEY_ID"],
+        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_content: ENV["ASC_API_KEY"],
+        is_key_content_base64: true
+      )
+      # Ensure App IDs exist
+      Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(**api_key)
+
+      app_ids = {
+        "com.evanjt.traintime" => "TrainTime",
+        "com.evanjt.traintime.watchkitapp" => "TrainTime WatchKit",
+        "com.evanjt.traintime.widget" => "TrainTime Widget"
+      }
+      app_ids.each do |bundle_id, name|
+        existing = Spaceship::ConnectAPI::BundleId.find(bundle_id)
+        unless existing
+          UI.message("Creating App ID: #{bundle_id}")
+          Spaceship::ConnectAPI::BundleId.create(
+            name: name,
+            identifier: bundle_id,
+            platform: "IOS"
+          )
+          UI.success("Created App ID: #{bundle_id}")
+        end
+      end
+      match(
+        type: "appstore",
+        api_key: api_key,
+        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget"]
+      )
+    else
+      match(
+        type: "appstore",
+        readonly: true,
+        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget"]
+      )
+    end
+  end
+
+  desc "Build release IPA (iOS app + embedded watchOS + widget)"
+  lane :build_release do
+    project_root = File.expand_path("..", __dir__)
+    xcodeproj = File.join(project_root, "TrainTimeWatch.xcodeproj")
+    team_id = ENV["FASTLANE_TEAM_ID"]
+
+    # Configure signing for all targets
+    {
+      "TrainTimePhone" => "match AppStore com.evanjt.traintime",
+      "TrainTimeWatch" => "match AppStore com.evanjt.traintime.watchkitapp",
+      "TrainTimeWidgetExtension" => "match AppStore com.evanjt.traintime.widget"
+    }.each do |target, profile|
+      update_code_signing_settings(
+        use_automatic_signing: false,
+        path: xcodeproj,
+        team_id: team_id,
+        profile_name: profile,
+        code_sign_identity: "Apple Distribution",
+        targets: [target]
+      )
+    end
+
+    FileUtils.mkdir_p("artifacts")
+
+    # Build iOS app (watchOS companion embeds automatically)
+    build_app(
+      project: xcodeproj,
+      scheme: "TrainTimePhone",
+      configuration: "Release",
+      destination: "generic/platform=iOS",
+      output_directory: "artifacts",
+      output_name: "traintime.ipa",
+      clean: true,
+      include_bitcode: false,
+      buildlog_path: "artifacts",
+      export_method: "app-store",
+      export_team_id: team_id,
+      xcargs: 'OTHER_CODE_SIGN_FLAGS="--timestamp=none"'
+    )
+
+    ipa_path = File.join("artifacts", "traintime.ipa")
+    UI.user_error!("IPA not created at #{ipa_path}") unless File.exist?(ipa_path)
+    UI.success("Created IPA: #{ipa_path} (#{File.size(ipa_path)} bytes)")
+  end
+
+  desc "Build watchOS-only release IPA (legacy stub method)"
+  lane :build_watch_only do
+    project_root = File.expand_path("..", __dir__)
+    xcodeproj = File.join(project_root, "TrainTimeWatch.xcodeproj")
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: xcodeproj,
+      team_id: ENV["FASTLANE_TEAM_ID"],
+      profile_name: "match AppStore com.evanjt.traintime",
+      code_sign_identity: "Apple Distribution",
+      targets: ["TrainTimeWatch"]
+    )
+
+    FileUtils.mkdir_p("artifacts")
+
+    build_app(
+      project: xcodeproj,
+      scheme: "TrainTimeWatch",
+      configuration: "Release",
+      destination: "generic/platform=watchOS",
+      skip_package_ipa: true,
+      output_directory: "artifacts",
+      clean: true,
+      include_bitcode: false,
+      buildlog_path: "artifacts",
+      xcargs: 'OTHER_CODE_SIGN_FLAGS="--timestamp=none"'
+    )
+  end
+
+  desc "Upload to TestFlight (internal track)"
+  lane :beta do |options|
+    ipa_path = options[:ipa] || "artifacts/traintime.ipa"
+
+    UI.user_error!("No IPA file specified. Use ipa:<path>") unless ipa_path
+    UI.user_error!("IPA file not found: #{ipa_path}") unless File.exist?(ipa_path)
+
+    UI.message("Uploading #{ipa_path} to TestFlight...")
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_API_KEY"],
+      is_key_content_base64: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      notify_external_testers: false
+    )
+  end
+
+  desc "Submit to App Store Review"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_API_KEY"],
+      is_key_content_base64: true
+    )
+
+    deliver(
+      api_key: api_key,
+      submit_for_review: true,
+      automatic_release: true,
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+end

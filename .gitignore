@@ -13,7 +13,7 @@ developer_key
 *.der
 
 # Secrets (API keys — copy from .example and fill in your key)
-apple-watch/TrainTimeWatch/Secrets.swift
+apple/TrainTimeWatch/Secrets.swift
 garmin/TrainTime/source/Secrets.mc
 
 # Python
@@ -44,5 +44,5 @@ xcuserdata/
 *.tmp
 
 # Fastlane
-apple-watch/fastlane/vendor/
-apple-watch/fastlane/.bundle/
+apple/fastlane/vendor/
+apple/fastlane/.bundle/

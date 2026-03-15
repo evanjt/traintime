@@ -1,0 +1,829 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		/* === Watch Target === */
+		2FD884A23B2F4EAA9E96D717 /* TrainTimeWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9FC67E77924B2C8818045F /* TrainTimeWatchApp.swift */; };
+		C157F67C4DAA4D5F9A099407 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */; };
+		8D78A06DBFD449E5BD8820F5 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
+		40B38B5AFDDD4E87B015AAB6 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
+		30228CE572A9425D93AAC33D /* Departure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C41E3FB709401C9161EB46 /* Departure.swift */; };
+		5258B5558D984B74B36EE8E4 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C443CDA163B84305AC19B8D3 /* LocationService.swift */; };
+		042568384739493FAD7A09FD /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
+		F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0998708C4748991F75B5 /* DepartureRowView.swift */; };
+		EE8C7576B9CF469E803E4790 /* StationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE45B7B46148455F9A3E37F4 /* StationView.swift */; };
+		F0DBC95E77AF41B1B71A8425 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07FBBC2455BC4C3696800498 /* Assets.xcassets */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
+		CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
+		EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
+		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */; };
+		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
+		9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDB27D479A403E916113BF /* RoutingService.swift */; };
+		77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
+		99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA47F80910213243546576F /* ModeIndicatorView.swift */; };
+		BBB580910213243546576F81 /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
+		DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
+		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
+		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
+		444DG8920314253647586B92 /* StationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555EH0A31425364758697CA3 /* StationPickerView.swift */; };
+		A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
+		AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */; };
+		EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */; };
+
+		/* === Phone Target === */
+		P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000001 /* TrainTimePhoneApp.swift */; };
+		P0A100000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000002 /* ContentView.swift */; };
+		P0A100000000000000000003 /* PhoneViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000003 /* PhoneViewModel.swift */; };
+		P0A100000000000000000004 /* PhoneLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000004 /* PhoneLocationService.swift */; };
+		P0A100000000000000000005 /* PhoneHapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000005 /* PhoneHapticService.swift */; };
+		P0A100000000000000000006 /* PhoneStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000006 /* PhoneStationView.swift */; };
+		P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */; };
+		P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000008 /* PhoneDepartureRowView.swift */; };
+		P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000009 /* PhoneModePickerView.swift */; };
+		P0A10000000000000000000A /* PhoneStationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000A /* PhoneStationPickerView.swift */; };
+		P0A10000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000B /* Assets.xcassets */; };
+		/* Phone: shared files */
+		P0A100000000000000000101 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
+		P0A100000000000000000102 /* Departure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C41E3FB709401C9161EB46 /* Departure.swift */; };
+		P0A100000000000000000103 /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
+		P0A100000000000000000104 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		P0A100000000000000000105 /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
+		P0A100000000000000000106 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
+		P0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
+		P0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
+		P0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
+		P0A10000000000000000010A /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDB27D479A403E916113BF /* RoutingService.swift */; };
+		/* Phone: shared views */
+		P0A10000000000000000010B /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
+		P0A10000000000000000010C /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
+		P0A10000000000000000010D /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
+
+		/* === Widget Target === */
+		W0A100000000000000000001 /* TrainTimeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000001 /* TrainTimeWidget.swift */; };
+		W0A100000000000000000002 /* WidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000002 /* WidgetEntry.swift */; };
+		W0A100000000000000000003 /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000003 /* WidgetViews.swift */; };
+		W0A100000000000000000004 /* RefreshIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000004 /* RefreshIntent.swift */; };
+		W0A100000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000005 /* Assets.xcassets */; };
+		/* Widget: shared files */
+		W0A100000000000000000101 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
+		W0A100000000000000000102 /* Departure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C41E3FB709401C9161EB46 /* Departure.swift */; };
+		W0A100000000000000000103 /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
+		W0A100000000000000000104 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		W0A100000000000000000105 /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
+		W0A100000000000000000106 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
+		W0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
+		W0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
+		W0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
+
+		/* Widget embedded in Phone */
+		P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		P0C100000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1D64EB725CE243E1A4B6CB59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = W0T100000000000000000001;
+			remoteInfo = TrainTimeWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		P0E100000000000000000001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		/* Watch */
+		C61B777553FC4244B48F82CE /* TrainTimeWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimeWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2D9FC67E77924B2C8818045F /* TrainTimeWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeWatchApp.swift; sourceTree = "<group>"; };
+		1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		126C5CC247C946DFB19AA5E7 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		B0776EECB8D2496AA4A29C74 /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
+		95C41E3FB709401C9161EB46 /* Departure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Departure.swift; sourceTree = "<group>"; };
+		C443CDA163B84305AC19B8D3 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAPIService.swift; sourceTree = "<group>"; };
+		583F0998708C4748991F75B5 /* DepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureRowView.swift; sourceTree = "<group>"; };
+		BE45B7B46148455F9A3E37F4 /* StationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationView.swift; sourceTree = "<group>"; };
+		5B51C424F9264A23AD022694 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		07FBBC2455BC4C3696800498 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoUtils.swift; sourceTree = "<group>"; };
+		DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportMode.swift; sourceTree = "<group>"; };
+		FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSQuality.swift; sourceTree = "<group>"; };
+		228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedDeparture.swift; sourceTree = "<group>"; };
+		44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeViewModel.swift; sourceTree = "<group>"; };
+		66C03B4C5D6E7F8091021324 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		5EFDB27D479A403E916113BF /* RoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingService.swift; sourceTree = "<group>"; };
+		88E25D6E7F80910213243546 /* GPSIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSIndicatorView.swift; sourceTree = "<group>"; };
+		AAA47F80910213243546576F /* ModeIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeIndicatorView.swift; sourceTree = "<group>"; };
+		CCC6910213243546576F8192 /* TrackingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingBarView.swift; sourceTree = "<group>"; };
+		EEE8B3243546576F81920314 /* DirectionArrowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionArrowView.swift; sourceTree = "<group>"; };
+		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
+		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		555EH0A31425364758697CA3 /* StationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPickerView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F678901234567890 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Navigation.swift"; sourceTree = "<group>"; };
+		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
+
+		/* Phone */
+		P0P100000000000000000001 /* TrainTimePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		P0F100000000000000000001 /* TrainTimePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimePhoneApp.swift; sourceTree = "<group>"; };
+		P0F100000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000003 /* PhoneViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneViewModel.swift; sourceTree = "<group>"; };
+		P0F100000000000000000004 /* PhoneLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLocationService.swift; sourceTree = "<group>"; };
+		P0F100000000000000000005 /* PhoneHapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHapticService.swift; sourceTree = "<group>"; };
+		P0F100000000000000000006 /* PhoneStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFocusedTrackingView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000008 /* PhoneDepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDepartureRowView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000009 /* PhoneModePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModePickerView.swift; sourceTree = "<group>"; };
+		P0F10000000000000000000A /* PhoneStationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationPickerView.swift; sourceTree = "<group>"; };
+		P0F10000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		P0F10000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+
+		/* Widget */
+		W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainTimeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		W0F100000000000000000001 /* TrainTimeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeWidget.swift; sourceTree = "<group>"; };
+		W0F100000000000000000002 /* WidgetEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetEntry.swift; sourceTree = "<group>"; };
+		W0F100000000000000000003 /* WidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetViews.swift; sourceTree = "<group>"; };
+		W0F100000000000000000004 /* RefreshIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshIntent.swift; sourceTree = "<group>"; };
+		W0F100000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		W0F100000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6DB23342FAD74444B1CB1018 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P0F200000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		W0F200000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		8B1A4211B1894783A138DD95 = {
+			isa = PBXGroup;
+			children = (
+				24BDF21D2AA64F6D8CA75FE2 /* TrainTimeWatch */,
+				P0G100000000000000000001 /* TrainTimePhone */,
+				W0G100000000000000000001 /* TrainTimeWidget */,
+				620CC025859F476183B6BC85 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		620CC025859F476183B6BC85 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C61B777553FC4244B48F82CE /* TrainTimeWatch.app */,
+				P0P100000000000000000001 /* TrainTimePhone.app */,
+				W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		24BDF21D2AA64F6D8CA75FE2 /* TrainTimeWatch */ = {
+			isa = PBXGroup;
+			children = (
+				2D9FC67E77924B2C8818045F /* TrainTimeWatchApp.swift */,
+				1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */,
+				126C5CC247C946DFB19AA5E7 /* Constants.swift */,
+				B2C3D4E5F678901234567890 /* Secrets.swift */,
+				7834B36382C34E0F950EE05C /* Models */,
+				0648EB2063FE4F54BBABEB55 /* Services */,
+				20B448FDFE5E46FE9295B3F1 /* Views */,
+				444F8A9B1C2D3E4F5A6B7C8D /* Utilities */,
+				555FAB0C2D3E4F5A6B7C8D9E /* ViewModels */,
+				07FBBC2455BC4C3696800498 /* Assets.xcassets */,
+				5B51C424F9264A23AD022694 /* Info.plist */,
+			);
+			path = TrainTimeWatch;
+			sourceTree = "<group>";
+		};
+		7834B36382C34E0F950EE05C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B0776EECB8D2496AA4A29C74 /* Station.swift */,
+				95C41E3FB709401C9161EB46 /* Departure.swift */,
+				DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */,
+				FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */,
+				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		0648EB2063FE4F54BBABEB55 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				C443CDA163B84305AC19B8D3 /* LocationService.swift */,
+				57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */,
+				66C03B4C5D6E7F8091021324 /* HapticService.swift */,
+				5EFDB27D479A403E916113BF /* RoutingService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		20B448FDFE5E46FE9295B3F1 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				583F0998708C4748991F75B5 /* DepartureRowView.swift */,
+				BE45B7B46148455F9A3E37F4 /* StationView.swift */,
+				88E25D6E7F80910213243546 /* GPSIndicatorView.swift */,
+				AAA47F80910213243546576F /* ModeIndicatorView.swift */,
+				CCC6910213243546576F8192 /* TrackingBarView.swift */,
+				EEE8B3243546576F81920314 /* DirectionArrowView.swift */,
+				111AD546576F819203142536 /* FocusedTrackingView.swift */,
+				333CF7681920314253647580 /* MapView.swift */,
+				555EH0A31425364758697CA3 /* StationPickerView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		444F8A9B1C2D3E4F5A6B7C8D /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		555FAB0C2D3E4F5A6B7C8D9E /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */,
+				CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */,
+				1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+
+		/* Phone Groups */
+		P0G100000000000000000001 /* TrainTimePhone */ = {
+			isa = PBXGroup;
+			children = (
+				P0F100000000000000000001 /* TrainTimePhoneApp.swift */,
+				P0F100000000000000000002 /* ContentView.swift */,
+				P0G100000000000000000002 /* ViewModels */,
+				P0G100000000000000000003 /* Views */,
+				P0G100000000000000000004 /* Services */,
+				P0F10000000000000000000B /* Assets.xcassets */,
+				P0F10000000000000000000C /* Info.plist */,
+			);
+			path = TrainTimePhone;
+			sourceTree = "<group>";
+		};
+		P0G100000000000000000002 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				P0F100000000000000000003 /* PhoneViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		P0G100000000000000000003 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				P0F100000000000000000006 /* PhoneStationView.swift */,
+				P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */,
+				P0F100000000000000000008 /* PhoneDepartureRowView.swift */,
+				P0F100000000000000000009 /* PhoneModePickerView.swift */,
+				P0F10000000000000000000A /* PhoneStationPickerView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		P0G100000000000000000004 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				P0F100000000000000000004 /* PhoneLocationService.swift */,
+				P0F100000000000000000005 /* PhoneHapticService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+
+		/* Widget Groups */
+		W0G100000000000000000001 /* TrainTimeWidget */ = {
+			isa = PBXGroup;
+			children = (
+				W0F100000000000000000001 /* TrainTimeWidget.swift */,
+				W0F100000000000000000002 /* WidgetEntry.swift */,
+				W0F100000000000000000003 /* WidgetViews.swift */,
+				W0F100000000000000000004 /* RefreshIntent.swift */,
+				W0F100000000000000000005 /* Assets.xcassets */,
+				W0F100000000000000000006 /* Info.plist */,
+			);
+			path = TrainTimeWidget;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6E9FC3E3B0BB4BA189C3C6A1 /* TrainTimeWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6DD01059674C40C698319380 /* Build configuration list for PBXNativeTarget "TrainTimeWatch" */;
+			buildPhases = (
+				114B5379B059429AB665FC9A /* Sources */,
+				6DB23342FAD74444B1CB1018 /* Frameworks */,
+				101B8ADDDACA464A97911953 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TrainTimeWatch;
+			productName = TrainTimeWatch;
+			productReference = C61B777553FC4244B48F82CE /* TrainTimeWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		P0T100000000000000000001 /* TrainTimePhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = P0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimePhone" */;
+			buildPhases = (
+				P0S100000000000000000001 /* Sources */,
+				P0F200000000000000000001 /* Frameworks */,
+				P0R100000000000000000001 /* Resources */,
+				P0E100000000000000000001 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				P0D100000000000000000001 /* PBXTargetDependency */,
+			);
+			name = TrainTimePhone;
+			productName = TrainTimePhone;
+			productReference = P0P100000000000000000001 /* TrainTimePhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		W0T100000000000000000001 /* TrainTimeWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = W0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimeWidgetExtension" */;
+			buildPhases = (
+				W0S100000000000000000001 /* Sources */,
+				W0F200000000000000000001 /* Frameworks */,
+				W0R100000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TrainTimeWidgetExtension;
+			productName = TrainTimeWidgetExtension;
+			productReference = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1D64EB725CE243E1A4B6CB59 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 56DDEA80C645434C9D9BF60F /* Build configuration list for PBXProject "TrainTimeWatch" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			attributes = {
+				TargetAttributes = {
+					6E9FC3E3B0BB4BA189C3C6A1 = {
+						ProvisioningStyle = Automatic;
+					};
+					P0T100000000000000000001 = {
+						ProvisioningStyle = Automatic;
+					};
+					W0T100000000000000000001 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			mainGroup = 8B1A4211B1894783A138DD95;
+			productRefGroup = 620CC025859F476183B6BC85 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6E9FC3E3B0BB4BA189C3C6A1 /* TrainTimeWatch */,
+				P0T100000000000000000001 /* TrainTimePhone */,
+				W0T100000000000000000001 /* TrainTimeWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		101B8ADDDACA464A97911953 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0DBC95E77AF41B1B71A8425 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P0R100000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				P0A10000000000000000000B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		W0R100000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				W0A100000000000000000005 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		114B5379B059429AB665FC9A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2FD884A23B2F4EAA9E96D717 /* TrainTimeWatchApp.swift in Sources */,
+				C157F67C4DAA4D5F9A099407 /* ContentView.swift in Sources */,
+				8D78A06DBFD449E5BD8820F5 /* Constants.swift in Sources */,
+				40B38B5AFDDD4E87B015AAB6 /* Station.swift in Sources */,
+				30228CE572A9425D93AAC33D /* Departure.swift in Sources */,
+				5258B5558D984B74B36EE8E4 /* LocationService.swift in Sources */,
+				042568384739493FAD7A09FD /* TrainAPIService.swift in Sources */,
+				F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */,
+				EE8C7576B9CF469E803E4790 /* StationView.swift in Sources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* GeoUtils.swift in Sources */,
+				CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */,
+				EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */,
+				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
+				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
+				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
+				9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */,
+				77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */,
+				99F36E7F8091021324354657 /* ModeIndicatorView.swift in Sources */,
+				BBB580910213243546576F81 /* TrackingBarView.swift in Sources */,
+				DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */,
+				FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */,
+				222BE6576F81920314253647 /* MapView.swift in Sources */,
+				444DG8920314253647586B92 /* StationPickerView.swift in Sources */,
+				A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */,
+				AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */,
+				EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		P0S100000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */,
+				P0A100000000000000000002 /* ContentView.swift in Sources */,
+				P0A100000000000000000003 /* PhoneViewModel.swift in Sources */,
+				P0A100000000000000000004 /* PhoneLocationService.swift in Sources */,
+				P0A100000000000000000005 /* PhoneHapticService.swift in Sources */,
+				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
+				P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */,
+				P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */,
+				P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */,
+				P0A10000000000000000000A /* PhoneStationPickerView.swift in Sources */,
+				P0A100000000000000000101 /* Station.swift in Sources */,
+				P0A100000000000000000102 /* Departure.swift in Sources */,
+				P0A100000000000000000103 /* TransportMode.swift in Sources */,
+				P0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
+				P0A100000000000000000105 /* GPSQuality.swift in Sources */,
+				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
+				P0A100000000000000000107 /* GeoUtils.swift in Sources */,
+				P0A100000000000000000108 /* Constants.swift in Sources */,
+				P0A100000000000000000109 /* Secrets.swift in Sources */,
+				P0A10000000000000000010A /* RoutingService.swift in Sources */,
+				P0A10000000000000000010B /* TrackingBarView.swift in Sources */,
+				P0A10000000000000000010C /* DirectionArrowView.swift in Sources */,
+				P0A10000000000000000010D /* GPSIndicatorView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		W0S100000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				W0A100000000000000000001 /* TrainTimeWidget.swift in Sources */,
+				W0A100000000000000000002 /* WidgetEntry.swift in Sources */,
+				W0A100000000000000000003 /* WidgetViews.swift in Sources */,
+				W0A100000000000000000004 /* RefreshIntent.swift in Sources */,
+				W0A100000000000000000101 /* Station.swift in Sources */,
+				W0A100000000000000000102 /* Departure.swift in Sources */,
+				W0A100000000000000000103 /* TransportMode.swift in Sources */,
+				W0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
+				W0A100000000000000000105 /* GPSQuality.swift in Sources */,
+				W0A100000000000000000106 /* TrainAPIService.swift in Sources */,
+				W0A100000000000000000107 /* GeoUtils.swift in Sources */,
+				W0A100000000000000000108 /* Constants.swift in Sources */,
+				W0A100000000000000000109 /* Secrets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		P0D100000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = W0T100000000000000000001 /* TrainTimeWidgetExtension */;
+			targetProxy = P0C100000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		/* Project-level */
+		05EA4D865B354AC5AB7F4B2B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		0FA70B7724CE468D97135E9F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+
+		/* Watch target */
+		FD4897E85D764C779A66E057 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
+				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = true;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		06DC8D03A3B0442C93252219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
+				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = true;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+
+		/* Phone target */
+		P0B100000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				INFOPLIST_FILE = TrainTimePhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+			};
+			name = Debug;
+		};
+		P0B100000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				INFOPLIST_FILE = TrainTimePhone/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+			};
+			name = Release;
+		};
+
+		/* Widget target */
+		W0B100000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrainTimeWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		W0B100000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrainTimeWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		56DDEA80C645434C9D9BF60F /* Build configuration list for PBXProject "TrainTimeWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				05EA4D865B354AC5AB7F4B2B /* Debug */,
+				0FA70B7724CE468D97135E9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6DD01059674C40C698319380 /* Build configuration list for PBXNativeTarget "TrainTimeWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FD4897E85D764C779A66E057 /* Debug */,
+				06DC8D03A3B0442C93252219 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		P0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimePhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				P0B100000000000000000001 /* Debug */,
+				P0B100000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		W0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimeWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				W0B100000000000000000001 /* Debug */,
+				W0B100000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 1D64EB725CE243E1A4B6CB59 /* Project object */;
+}
