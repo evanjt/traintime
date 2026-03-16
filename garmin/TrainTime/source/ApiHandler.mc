@@ -125,7 +125,7 @@ module ApiHandler {
     function fetchDepartures(view, stationId) {
         var url = "https://api.traintime.ch/v1/departures"
             + "?id=" + stationId
-            + "&limit=10";
+            + "&limit=20";
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -139,7 +139,7 @@ module ApiHandler {
         var result = [];
         var nowSeconds = Time.now().value();
 
-        for (var i = 0; i < departures.size() && i < 10; i++) {
+        for (var i = 0; i < departures.size() && i < 20; i++) {
             var dep = departures[i];
             var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
             var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";

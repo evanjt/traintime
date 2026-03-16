@@ -2,6 +2,7 @@ using Toybox.WatchUi;
 using Toybox.Graphics;
 using Toybox.Math;
 using Toybox.Position;
+using Toybox.Time;
 
 module Renderer {
 
@@ -378,6 +379,13 @@ module Renderer {
         dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Current wall-clock time
+        var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
+        dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(width - 8, height * 7 / 100, Graphics.FONT_XTINY,
+            timeStr, Graphics.TEXT_JUSTIFY_RIGHT);
 
         // Destination + platform (auto-downsize, highlight platform change)
         var destY = height * 26 / 100;

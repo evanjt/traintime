@@ -63,7 +63,8 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
             mView.exitToStationView();
             return true;  // consumed — don't exit app
         }
-        // State 0 and 3: exit app
+        // State 0 and 3: exit app explicitly
+        System.exit();
         return false;
     }
 }

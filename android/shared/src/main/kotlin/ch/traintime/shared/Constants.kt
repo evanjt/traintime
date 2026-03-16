@@ -50,7 +50,7 @@ object Thresholds {
     const val WALK_SPEED = 83.0 // meters per minute
     const val BAR_SCALE = 3.0 // minutes mapped to half bar width
     const val MAX_STATIONS_PER_MODE = 5
-    const val MAX_DEPARTURES = 10
+    const val MAX_DEPARTURES = 20
     const val FALLBACK_SEARCH_RADIUS = 5000.0 // meters
     const val CONSECUTIVE_ERROR_LIMIT = 3
 }

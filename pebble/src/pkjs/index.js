@@ -103,7 +103,7 @@ function fetchStations(lat, lon) {
 
 // Fetch departures for a station
 function fetchDepartures(stationId) {
-  var url = API_BASE + '/v1/departures?id=' + encodeURIComponent(stationId) + '&limit=10';
+  var url = API_BASE + '/v1/departures?id=' + encodeURIComponent(stationId) + '&limit=20';
 
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
@@ -123,7 +123,7 @@ function fetchDepartures(stationId) {
     try {
       var data = JSON.parse(xhr.responseText);
       var departures = data.departures || [];
-      var count = Math.min(departures.length, 10);
+      var count = Math.min(departures.length, 20);
       var now = Math.floor(Date.now() / 1000);
 
       for (var i = 0; i < count; i++) {

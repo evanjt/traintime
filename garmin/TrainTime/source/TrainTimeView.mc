@@ -369,7 +369,7 @@ class TrainTimeView extends WatchUi.View {
 
             mMapActive = true;
             WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
-        } catch (e instanceof Lang.Exception) {
+        } catch (e) {
             mMapActive = false;
         }
     }
@@ -407,7 +407,7 @@ class TrainTimeView extends WatchUi.View {
             }
         } else {
             Haptics.vibrateShort();
-            enterInactiveState();
+            exitToStationView();
         }
     }
 
@@ -648,7 +648,7 @@ class TrainTimeView extends WatchUi.View {
             // Auto-exit when train has departed for >1 minute
             if (focusedMin < -1.0) {
                 Haptics.vibrateShort();
-                enterInactiveState();
+                exitToStationView();
             } else {
                 var walkMin = getWalkMinutes();
                 if (walkMin != null) {
@@ -667,14 +667,14 @@ class TrainTimeView extends WatchUi.View {
             }
         }
 
-        if (mRequestInFlight) {
+        // Inactivity timeout: enter inactive if idle for 60s in station/selection view
+        if ((mAppState == 0 || mAppState == 1) && Time.now().value() - mLastInteractionTime >= 60) {
+            enterInactiveState();
             WatchUi.requestUpdate();
             return;
         }
 
-        // Inactivity timeout: enter inactive if idle for 60s in station view
-        if (mAppState == 0 && Time.now().value() - mLastInteractionTime >= 60) {
-            enterInactiveState();
+        if (mRequestInFlight) {
             WatchUi.requestUpdate();
             return;
         }
