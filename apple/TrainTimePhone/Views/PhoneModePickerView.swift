@@ -6,23 +6,29 @@ struct PhoneModePickerView: View {
     let onSelect: (TransportMode) -> Void
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 0) {
             ForEach(TransportMode.allCases) { mode in
                 let isAvailable = availableModes.contains(mode)
+                let isSelected = mode == currentMode && isAvailable
                 Button(action: { onSelect(mode) }) {
-                    Image(systemName: mode.sfSymbol)
-                        .font(.system(size: 16))
-                        .foregroundStyle(
-                            mode == currentMode && isAvailable ? .white :
-                            isAvailable ? .secondary :
-                            .primary.opacity(0.15)
-                        )
-                        .frame(width: 36, height: 36)
-                        .background(
-                            mode == currentMode && isAvailable
-                                ? Circle().fill(.blue.opacity(0.3))
-                                : Circle().fill(.clear)
-                        )
+                    VStack(spacing: 4) {
+                        Image(systemName: mode.sfSymbol)
+                            .font(.system(size: 18))
+                        Text(mode.label)
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundStyle(
+                        isSelected ? .white :
+                        isAvailable ? .secondary :
+                        .primary.opacity(0.15)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        isSelected
+                            ? RoundedRectangle(cornerRadius: 10).fill(.blue.opacity(0.3))
+                            : RoundedRectangle(cornerRadius: 10).fill(.clear)
+                    )
                 }
                 .buttonStyle(.plain)
                 .allowsHitTesting(isAvailable)

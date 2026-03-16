@@ -13,7 +13,9 @@ struct PhoneStationView: View {
                     onSelect: { viewModel.selectMode($0) }
                 )
                 Spacer()
-                GPSIndicatorView(quality: viewModel.gpsQuality)
+                Image(systemName: "location.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(viewModel.gpsQuality.color)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -29,8 +31,8 @@ struct PhoneStationView: View {
                 viewModel.showStationPicker = true
             } label: {
                 HStack(spacing: 6) {
-                    Text(viewModel.stationName.uppercased())
-                        .font(.title3.weight(.bold))
+                    Text(viewModel.stationName)
+                        .font(.title2.weight(.bold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -45,6 +47,7 @@ struct PhoneStationView: View {
             .padding(.top, 4)
 
             Divider()
+                .overlay(Color.gray.opacity(0.3))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
 
@@ -63,18 +66,26 @@ struct PhoneStationView: View {
                 }
                 Spacer()
             } else {
-                List {
-                    ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
-                        PhoneDepartureRowView(
-                            departure: departure,
-                            onTap: { viewModel.selectDeparture(index: index) }
-                        )
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
+                            PhoneDepartureRowView(
+                                departure: departure,
+                                onTap: { viewModel.selectDeparture(index: index) }
+                            )
+                            .padding(.horizontal, 16)
+
+                            if index < viewModel.departures.count - 1 {
+                                Divider()
+                                    .overlay(Color.gray.opacity(0.2))
+                                    .padding(.horizontal, 16)
+                            }
+                        }
                     }
                 }
-                .listStyle(.plain)
             }
         }
+        .background(Color.black)
         .sheet(isPresented: $viewModel.showStationPicker) {
             PhoneStationPickerView(viewModel: viewModel)
         }

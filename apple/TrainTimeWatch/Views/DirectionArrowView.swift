@@ -7,7 +7,7 @@ struct DirectionArrowView: View {
         if let deg = degrees {
             Image(systemName: "location.north.fill")
                 .font(.system(size: 16))
-                .foregroundColor(.white)
+                .foregroundStyle(.primary)
                 .rotationEffect(.degrees(deg))
         }
     }

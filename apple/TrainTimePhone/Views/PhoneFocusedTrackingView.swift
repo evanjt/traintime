@@ -8,89 +8,111 @@ struct PhoneFocusedTrackingView: View {
     var body: some View {
         let focused = viewModel.focusedTrain
 
-        ScrollView {
-            VStack(spacing: 12) {
-                // Station name
-                Text(viewModel.stationName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                // Destination + platform
-                let platChanged = focused?.platformChanged == true
-                HStack(spacing: 6) {
-                    Text(focused?.destination ?? "?")
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-
-                    if let plat = focused?.platform, !plat.isEmpty {
-                        Text("P\(plat)")
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(platChanged ? .white : AppColors.platform)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                platChanged
-                                    ? Capsule().fill(AppColors.platformChangedOrange)
-                                    : Capsule().fill(.clear)
-                            )
-                    }
-                }
-
-                // Countdown
-                Text(focused?.countdownText ?? "—")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(countdownColor)
-
-                // Delay badge
-                if let delay = focused?.delay, delay > 0,
-                   let f = focused, f.minutesUntil >= -0.5 {
-                    Text("+\(delay)")
-                        .font(.system(.subheadline, weight: .medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(AppColors.delay))
-                }
-
-                // Tracking bar
-                TrackingBarView(
-                    schedBuf: viewModel.trackingScheduledBuffer,
-                    effectBuf: viewModel.trackingEffectiveBuffer,
-                    hasGPS: viewModel.gpsQuality != .unavailable
-                )
-                .frame(height: 16)
-                .padding(.horizontal, 24)
-
-                // Status
-                Text(viewModel.trackingStatusText)
-                    .font(.headline)
-                    .foregroundStyle(viewModel.trackingStatusColor)
-
-                // Walk info + direction
-                HStack(spacing: 8) {
-                    DirectionArrowView(degrees: viewModel.directionToStation)
-
-                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
+        ZStack(alignment: .topLeading) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Station name
+                    Text(viewModel.stationName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                }
-                .padding(.top, 4)
+                        .padding(.top, 8)
 
-                // Map button
-                Button {
-                    showMap = true
-                } label: {
-                    Label("Show on Map", systemImage: "map")
-                        .font(.subheadline)
+                    // Destination + platform
+                    let platChanged = focused?.platformChanged == true
+                    HStack(spacing: 6) {
+                        Text(focused?.destination ?? "?")
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+
+                        if let plat = focused?.platform, !plat.isEmpty {
+                            Text("P\(plat)")
+                                .font(.system(.caption, weight: .medium))
+                                .foregroundStyle(platChanged ? .white : AppColors.platform)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    platChanged
+                                        ? Capsule().fill(AppColors.platformChangedOrange)
+                                        : Capsule().fill(.clear)
+                                )
+                        }
+                    }
+
+                    // Countdown
+                    Text(focused?.countdownText ?? "—")
+                        .font(.system(size: 56, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(countdownColor)
+                        .padding(.vertical, 4)
+
+                    // Delay badge
+                    if let delay = focused?.delay, delay > 0,
+                       let f = focused, f.minutesUntil >= -0.5 {
+                        Text("+\(delay)")
+                            .font(.system(.subheadline, weight: .medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(AppColors.delay))
+                    }
+
+                    // Tracking bar
+                    TrackingBarView(
+                        schedBuf: viewModel.trackingScheduledBuffer,
+                        effectBuf: viewModel.trackingEffectiveBuffer,
+                        hasGPS: viewModel.gpsQuality != .unavailable
+                    )
+                    .frame(height: 16)
+                    .padding(.horizontal, 24)
+
+                    // Status
+                    Text(viewModel.trackingStatusText)
+                        .font(.headline)
+                        .foregroundStyle(viewModel.trackingStatusColor)
+
+                    // Walk info + direction
+                    HStack(spacing: 8) {
+                        DirectionArrowView(degrees: viewModel.directionToStation)
+
+                        Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Map button
+                    Button {
+                        showMap = true
+                    } label: {
+                        Label("Show on Map", systemImage: "map")
+                            .font(.subheadline)
+                            .frame(maxWidth: 200)
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 4)
                 }
-                .buttonStyle(.bordered)
-                .padding(.top, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 24)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 24)
+            .background(Color.black)
+
+            // Back button overlay
+            Button {
+                viewModel.exitToStationView()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .medium))
+                    Text("Back")
+                        .font(.body)
+                }
+                .foregroundStyle(.blue)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showMap) {
             PhoneMapView(viewModel: viewModel)

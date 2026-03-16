@@ -16,10 +16,17 @@ struct PhoneDepartureRowView: View {
                     .frame(width: 50, alignment: .trailing)
 
                 // Delay
-                Text(departure.delay > 0 && !departure.isGone ? "+\(departure.delay)" : "")
-                    .font(.system(.caption, design: .rounded, weight: .medium))
-                    .foregroundStyle(AppColors.delay)
-                    .frame(width: 24, alignment: .leading)
+                if departure.delay > 0 && !departure.isGone {
+                    Text("+\(departure.delay)")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(AppColors.delay))
+                        .frame(width: 36, alignment: .leading)
+                } else {
+                    Spacer().frame(width: 36)
+                }
 
                 // Line number or platform
                 if !departure.lineNumber.isEmpty {
@@ -34,7 +41,7 @@ struct PhoneDepartureRowView: View {
 
                 // Destination
                 Text(departure.destination)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                     .foregroundStyle(departure.isGone ? .secondary : .primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -48,7 +55,7 @@ struct PhoneDepartureRowView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
