@@ -35,7 +35,7 @@
 | Platform | Status |
 |----------|--------|
 | Apple Watch | Available |
-| Garmin | Available |
+| [Garmin](https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb) | Available |
 
 ## Build
 

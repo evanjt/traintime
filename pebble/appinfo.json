@@ -4,7 +4,7 @@
   "longName": "TrainTime",
   "companyName": "TrainTime",
   "versionCode": 1,
-  "versionLabel": "0.2.2",
+  "versionLabel": "0.2.3",
   "sdkVersion": "3",
   "targetPlatforms": ["chalk"],
   "watchapp": {
