@@ -37,14 +37,8 @@ struct TrainTimeTimelineProvider: TimelineProvider {
             completion(.placeholder)
             return
         }
-        // Show current state from storage
         if let result = WidgetStorage.load() {
-            completion(DepartureEntry(
-                date: .now,
-                stationName: result.stationName,
-                departures: result.departures,
-                isDormant: false
-            ))
+            completion(buildEntry(from: result, date: .now))
         } else {
             completion(.dormant())
         }
@@ -52,17 +46,15 @@ struct TrainTimeTimelineProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DepartureEntry>) -> Void) {
         guard let result = WidgetStorage.load() else {
-            // No data — stay dormant, never auto-refresh
             completion(Timeline(entries: [.dormant()], policy: .never))
             return
         }
 
-        // Check if the fetch is stale (>60s old)
         let fetchAge = Date().timeIntervalSince1970 - result.fetchTime
         if fetchAge > 60 {
-            // Stale — return to dormant with cached station name
+            let stationName = result.currentStation?.name
             completion(Timeline(
-                entries: [.dormant(stationName: result.stationName)],
+                entries: [.dormant(stationName: stationName)],
                 policy: .never
             ))
             return
@@ -70,18 +62,28 @@ struct TrainTimeTimelineProvider: TimelineProvider {
 
         let now = Date()
         let dormantDate = Calendar.current.date(byAdding: .second, value: 60, to: now)!
+        let stationName = result.currentStation?.name
 
-        // Single active entry, then return to dormant after 60s
         let entries: [DepartureEntry] = [
-            DepartureEntry(
-                date: now,
-                stationName: result.stationName,
-                departures: result.departures,
-                isDormant: false
-            ),
-            .dormant(date: dormantDate, stationName: result.stationName)
+            buildEntry(from: result, date: now),
+            .dormant(date: dormantDate, stationName: stationName)
         ]
 
         completion(Timeline(entries: entries, policy: .after(dormantDate)))
+    }
+
+    private func buildEntry(from result: WidgetFetchResult, date: Date) -> DepartureEntry {
+        let station = result.currentStation
+        let stns = result.stations(for: result.selectedMode)
+        return DepartureEntry(
+            date: date,
+            stationName: station?.name,
+            departures: station?.departures ?? [],
+            isDormant: false,
+            currentMode: result.selectedMode,
+            availableModes: result.availableModes,
+            stationIndex: min(result.selectedStationIndex, max(stns.count - 1, 0)),
+            stationCount: stns.count
+        )
     }
 }

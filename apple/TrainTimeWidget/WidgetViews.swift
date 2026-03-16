@@ -18,6 +18,16 @@ struct WidgetEntryView: View {
     @ViewBuilder
     private var dormantView: some View {
         VStack(spacing: 8) {
+            // Branding
+            HStack(spacing: 4) {
+                Image(systemName: "tram.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("TrainTime")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
             if let name = entry.stationName {
                 Text(name)
                     .font(.caption.weight(.semibold))
@@ -28,7 +38,7 @@ struct WidgetEntryView: View {
             Spacer()
 
             Button(intent: RefreshIntent()) {
-                Label("Load departures", systemImage: "arrow.clockwise")
+                Label("Refresh", systemImage: "arrow.clockwise")
                     .font(.caption.weight(.medium))
             }
             .buttonStyle(.bordered)
@@ -44,12 +54,44 @@ struct WidgetEntryView: View {
     @ViewBuilder
     private var activeView: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Station header
-            HStack {
-                Text(entry.stationName ?? "Station")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
+            // Header row: mode icon | station name | refresh
+            HStack(spacing: 6) {
+                // Mode icon — tappable if multiple modes
+                if let mode = entry.currentMode {
+                    if entry.availableModes.count > 1 {
+                        Button(intent: SwitchModeIntent()) {
+                            Image(systemName: mode.sfSymbol)
+                                .font(.caption2)
+                                .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Image(systemName: mode.sfSymbol)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Station name — tappable if multiple stations
+                if entry.stationCount > 1 {
+                    Button(intent: SwitchStationIntent()) {
+                        HStack(spacing: 3) {
+                            Text(entry.stationName ?? "Station")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Text("\(entry.stationIndex + 1)/\(entry.stationCount)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text(entry.stationName ?? "Station")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                }
 
                 Spacer()
 

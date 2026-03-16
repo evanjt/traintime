@@ -83,6 +83,8 @@
 
 		/* Widget embedded in Phone */
 		P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		W0A100000000000000000006 /* SwitchModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000007 /* SwitchModeIntent.swift */; };
+		W0A100000000000000000007 /* SwitchStationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000008 /* SwitchStationIntent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -164,6 +166,8 @@
 		W0F100000000000000000004 /* RefreshIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshIntent.swift; sourceTree = "<group>"; };
 		W0F100000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		W0F100000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		W0F100000000000000000007 /* SwitchModeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchModeIntent.swift; sourceTree = "<group>"; };
+		W0F100000000000000000008 /* SwitchStationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchStationIntent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -340,6 +344,8 @@
 				W0F100000000000000000002 /* WidgetEntry.swift */,
 				W0F100000000000000000003 /* WidgetViews.swift */,
 				W0F100000000000000000004 /* RefreshIntent.swift */,
+				W0F100000000000000000007 /* SwitchModeIntent.swift */,
+				W0F100000000000000000008 /* SwitchStationIntent.swift */,
 				W0F100000000000000000005 /* Assets.xcassets */,
 				W0F100000000000000000006 /* Info.plist */,
 			);
@@ -539,6 +545,8 @@
 				W0A100000000000000000002 /* WidgetEntry.swift in Sources */,
 				W0A100000000000000000003 /* WidgetViews.swift in Sources */,
 				W0A100000000000000000004 /* RefreshIntent.swift in Sources */,
+				W0A100000000000000000006 /* SwitchModeIntent.swift in Sources */,
+				W0A100000000000000000007 /* SwitchStationIntent.swift in Sources */,
 				W0A100000000000000000101 /* Station.swift in Sources */,
 				W0A100000000000000000102 /* Departure.swift in Sources */,
 				W0A100000000000000000103 /* TransportMode.swift in Sources */,

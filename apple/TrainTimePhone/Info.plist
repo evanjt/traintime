@@ -8,6 +8,8 @@
 	<string>TrainTime needs your location to find nearby Swiss train stations and show departure times.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

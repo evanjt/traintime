@@ -7,65 +7,110 @@ struct RefreshIntent: AppIntent {
     static var description: IntentDescription = "Fetches nearby departures"
 
     func perform() async throws -> some IntentResult {
-        // Get location
         let coordinate = try await getLocation()
 
-        // Fetch stations + embedded departures
         let result = try await TrainAPIService.fetchStations(
             lat: coordinate.latitude,
             lon: coordinate.longitude
         )
 
-        // Pick the first station with departures (prefer train)
-        let allStations = result.train + result.bus + result.tram + result.special
-        guard let station = allStations.first(where: { $0.embeddedDepartures?.isEmpty == false }) ?? allStations.first else {
-            WidgetStorage.clear()
-            WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
-            return .result()
-        }
+        let previous = WidgetStorage.load()
 
-        // Convert departures to widget format
-        let deps: [WidgetDeparture]
-        if let embedded = station.embeddedDepartures, !embedded.isEmpty {
-            deps = embedded.map { dep in
-                WidgetDeparture(
-                    destination: dep.destination,
-                    departureTimestamp: dep.departureTimestamp ?? 0,
-                    delay: dep.delay,
-                    platform: dep.platform,
-                    platformChanged: dep.platformChanged,
-                    lineNumber: dep.lineNumber
-                )
-            }
-        } else {
-            // Fetch departures separately if no embedded ones
-            let fetched = try await TrainAPIService.fetchDepartures(stationId: station.id ?? "")
-            deps = fetched.map { dep in
-                WidgetDeparture(
-                    destination: dep.destination,
-                    departureTimestamp: dep.departureTimestamp ?? 0,
-                    delay: dep.delay,
-                    platform: dep.platform,
-                    platformChanged: dep.platformChanged,
-                    lineNumber: dep.lineNumber
-                )
-            }
-        }
+        var trainStations = convertStations(result.train)
+        var busStations = convertStations(result.bus)
+        var tramStations = convertStations(result.tram)
+        var specialStations = convertStations(result.special)
 
-        let fetchResult = FetchResult(
-            stationName: station.name ?? "Station",
-            departures: deps,
+        // Determine mode/station selection, preserving previous if still valid
+        var modeRaw = previous?.selectedModeRaw ?? TransportMode.train.rawValue
+        var stationIdx = previous?.selectedStationIndex ?? 0
+
+        // Validate selection
+        let tempResult = WidgetFetchResult(
+            train: trainStations, bus: busStations, tram: tramStations, special: specialStations,
+            selectedModeRaw: modeRaw, selectedStationIndex: stationIdx,
             fetchTime: Date().timeIntervalSince1970
         )
-        WidgetStorage.save(fetchResult)
+        let mode = tempResult.selectedMode
+        if tempResult.stations(for: mode).isEmpty {
+            if let first = tempResult.availableModes.first {
+                modeRaw = first.rawValue
+            }
+            stationIdx = 0
+        } else {
+            let stns = tempResult.stations(for: mode)
+            if stationIdx >= stns.count {
+                stationIdx = 0
+            }
+        }
+
+        // Fetch departures for the selected station if it has none embedded
+        let selectedMode = TransportMode(rawValue: modeRaw) ?? .train
+        let selectedStations: [WidgetStation]
+        switch selectedMode {
+        case .train: selectedStations = trainStations
+        case .bus: selectedStations = busStations
+        case .tram: selectedStations = tramStations
+        case .special: selectedStations = specialStations
+        }
+        if stationIdx < selectedStations.count && selectedStations[stationIdx].departures.isEmpty {
+            let station = selectedStations[stationIdx]
+            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: station.id) {
+                let deps = fetched.map { dep in
+                    WidgetDeparture(
+                        destination: dep.destination,
+                        departureTimestamp: dep.departureTimestamp ?? 0,
+                        delay: dep.delay,
+                        platform: dep.platform,
+                        platformChanged: dep.platformChanged,
+                        lineNumber: dep.lineNumber
+                    )
+                }
+                let updated = WidgetStation(id: station.id, name: station.name, departures: deps)
+                switch selectedMode {
+                case .train: trainStations[stationIdx] = updated
+                case .bus: busStations[stationIdx] = updated
+                case .tram: tramStations[stationIdx] = updated
+                case .special: specialStations[stationIdx] = updated
+                }
+            }
+        }
+
+        let finalResult = WidgetFetchResult(
+            train: trainStations, bus: busStations, tram: tramStations, special: specialStations,
+            selectedModeRaw: modeRaw, selectedStationIndex: stationIdx,
+            fetchTime: Date().timeIntervalSince1970
+        )
+
+        WidgetStorage.save(finalResult)
         WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
 
         return .result()
     }
 
+    private func convertStations(_ stations: [Station]) -> [WidgetStation] {
+        stations.compactMap { station in
+            guard let id = station.id, let name = station.name else { return nil }
+            let deps: [WidgetDeparture]
+            if let embedded = station.embeddedDepartures, !embedded.isEmpty {
+                deps = embedded.map { dep in
+                    WidgetDeparture(
+                        destination: dep.destination,
+                        departureTimestamp: dep.departureTimestamp ?? 0,
+                        delay: dep.delay,
+                        platform: dep.platform,
+                        platformChanged: dep.platformChanged,
+                        lineNumber: dep.lineNumber
+                    )
+                }
+            } else {
+                deps = []
+            }
+            return WidgetStation(id: id, name: name, departures: deps)
+        }
+    }
+
     private func getLocation() async throws -> CLLocationCoordinate2D {
-        // Use a timeout — widget extensions have limited execution time and
-        // CLLocationUpdate.liveUpdates() can hang if location isn't available.
         try await withThrowingTaskGroup(of: CLLocationCoordinate2D.self) { group in
             group.addTask {
                 for try await update in CLLocationUpdate.liveUpdates() {
@@ -89,20 +134,44 @@ struct RefreshIntent: AppIntent {
 
 /// Shared storage between intent and timeline provider via UserDefaults
 enum WidgetStorage {
-    private static let key = "widget_fetch_result"
+    private static let key = "widget_fetch_result_v2"
 
-    static func save(_ result: FetchResult) {
+    static func save(_ result: WidgetFetchResult) {
         if let data = try? JSONEncoder().encode(result) {
             UserDefaults.standard.set(data, forKey: key)
         }
     }
 
-    static func load() -> FetchResult? {
+    static func load() -> WidgetFetchResult? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(FetchResult.self, from: data)
+        return try? JSONDecoder().decode(WidgetFetchResult.self, from: data)
     }
 
     static func clear() {
         UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    static func updateSelection(_ result: WidgetFetchResult, modeRaw: Int, stationIndex: Int) -> WidgetFetchResult {
+        WidgetFetchResult(
+            train: result.train, bus: result.bus, tram: result.tram, special: result.special,
+            selectedModeRaw: modeRaw, selectedStationIndex: stationIndex,
+            fetchTime: result.fetchTime
+        )
+    }
+
+    /// Replace a single station's data within the stored result
+    static func updateStation(_ result: WidgetFetchResult, mode: TransportMode, index: Int, station: WidgetStation) -> WidgetFetchResult {
+        var train = result.train, bus = result.bus, tram = result.tram, special = result.special
+        switch mode {
+        case .train: train[index] = station
+        case .bus: bus[index] = station
+        case .tram: tram[index] = station
+        case .special: special[index] = station
+        }
+        return WidgetFetchResult(
+            train: train, bus: bus, tram: tram, special: special,
+            selectedModeRaw: result.selectedModeRaw, selectedStationIndex: result.selectedStationIndex,
+            fetchTime: result.fetchTime
+        )
     }
 }

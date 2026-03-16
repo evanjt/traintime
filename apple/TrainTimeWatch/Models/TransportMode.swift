@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum TransportMode: Int, CaseIterable, Identifiable {
+enum TransportMode: Int, CaseIterable, Identifiable, Codable {
     case train = 0
     case bus = 1
     case tram = 2
