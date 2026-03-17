@@ -3,6 +3,7 @@ import Foundation
 struct FocusedDeparture {
     let destination: String
     let departureTimestamp: Int
+    let lineNumber: String
     var delay: Int
     var platform: String
     var platformChanged: Bool

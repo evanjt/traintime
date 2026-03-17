@@ -53,4 +53,6 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
     implementation(libs.work.runtime.ktx)
+    implementation(libs.play.services.wearable)
+    implementation(libs.connectiq.companion) { artifact { type = "aar" } }
 }

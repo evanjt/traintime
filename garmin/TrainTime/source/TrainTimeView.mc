@@ -64,6 +64,10 @@ class TrainTimeView extends WatchUi.View {
         mTramStations = null;
         mSpecialStations = null;
         mCurrentMode = 0;
+        var savedMode = Storage.getValue("defaultMode");
+        if (savedMode != null && savedMode >= 0 && savedMode <= 2) {
+            mCurrentMode = savedMode;
+        }
         mAvailableModes = [];
         mGpsQuality = Position.QUALITY_NOT_AVAILABLE;
         mLoadedFromCache = false;
@@ -300,7 +304,8 @@ class TrainTimeView extends WatchUi.View {
             "depTs" => t["depTs"],
             "delay" => t["delay"],
             "plat" => t["plat"],
-            "platChg" => t["platChg"]
+            "platChg" => t["platChg"],
+            "line" => t["line"]
         };
         mAppState = 2;
         mConsecutiveErrors = 0;
@@ -378,6 +383,50 @@ class TrainTimeView extends WatchUi.View {
         mMapActive = false;
     }
 
+    function enterTrackingFromPhone(data) {
+        if (data == null) { return; }
+        if (!data.hasKey("action") || !data["action"].equals("track")) { return; }
+
+        // Wake from inactive state if needed
+        if (mAppState == 3) {
+            mLastInteractionTime = Time.now().value();
+        }
+
+        // Set station ID for API polling
+        if (data.hasKey("stId")) {
+            mStationId = data["stId"];
+        }
+
+        // Build focused train from message data
+        var depTs = data.hasKey("depTs") ? data["depTs"] : null;
+        var minVal = 0;
+        if (depTs != null) {
+            minVal = (depTs - Time.now().value()) / 60;
+        }
+
+        mFocusedTrain = {
+            "dest" => data.hasKey("dest") ? data["dest"] : "Unknown",
+            "min" => minVal,
+            "depTs" => depTs,
+            "delay" => data.hasKey("delay") ? data["delay"] : 0,
+            "plat" => data.hasKey("plat") ? data["plat"] : "",
+            "platChg" => data.hasKey("platChg") ? data["platChg"] : false,
+            "line" => data.hasKey("line") ? data["line"] : ""
+        };
+
+        mAppState = 2;
+        mConsecutiveErrors = 0;
+        mLastFetchTime = 0;
+
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer.start(method(:onTimerTick), 1000, true);
+        }
+
+        Haptics.vibrateShort();
+        WatchUi.requestUpdate();
+    }
+
     function updateFocusedTrain() {
         if (mAppState != 2 || mFocusedTrain == null || mTrainData == null) { return; }
         var targetDest = mFocusedTrain["dest"];
@@ -402,6 +451,7 @@ class TrainTimeView extends WatchUi.View {
             mFocusedTrain["delay"] = bestMatch["delay"];
             mFocusedTrain["plat"] = bestMatch["plat"];
             mFocusedTrain["platChg"] = bestMatch["platChg"];
+            mFocusedTrain["line"] = bestMatch["line"];
             if (bestMatch["platChg"] && (oldPlat == null || !oldPlat.equals(bestMatch["plat"]))) {
                 Haptics.vibrateDouble();
             }
@@ -561,6 +611,13 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
+        // Skip API calls in inactive state (still update GPS position above)
+        if (mAppState == 3) {
+            updateWalkDistance();
+            WatchUi.requestUpdate();
+            return;
+        }
+
         // If we loaded from stale cache and now have a live GPS fix, re-search
         if (mLoadedFromCache && info.accuracy >= Position.QUALITY_POOR) {
             mLoadedFromCache = false;
@@ -629,8 +686,8 @@ class TrainTimeView extends WatchUi.View {
                     return;
                 }
 
-                // Re-search stations if moved >500m from last search
-                if (hasMovedSignificantly(lat, lon)) {
+                // Re-search stations if moved >500m from last search (skip in inactive)
+                if (mAppState != 3 && hasMovedSignificantly(lat, lon)) {
                     clearStationState();
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();

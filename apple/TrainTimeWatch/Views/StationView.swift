@@ -2,10 +2,11 @@ import SwiftUI
 
 struct StationView: View {
     @ObservedObject var viewModel: TrainTimeViewModel
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 4) {
-            // Mode selector + GPS indicator
+            // Mode selector + GPS + Settings
             HStack {
                 ModeIndicatorView(
                     availableModes: viewModel.availableModes,
@@ -14,6 +15,12 @@ struct StationView: View {
                 )
                 Spacer()
                 GPSIndicatorView(quality: viewModel.gpsQuality)
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 2)
 
@@ -73,6 +80,9 @@ struct StationView: View {
         }
         .sheet(isPresented: $viewModel.showStationPicker) {
             StationPickerView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(viewModel: viewModel)
         }
     }
 }

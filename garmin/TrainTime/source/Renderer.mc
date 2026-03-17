@@ -327,30 +327,11 @@ module Renderer {
                 "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
-        // Line number (bus/tram) or Platform column (FONT_XTINY)
+        // Connection ID column (FONT_XTINY)
         if (lineNumber != null && lineNumber.length() > 0) {
             dc.setColor(isGone ? 0x666666 : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
             dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
                 lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
-        } else if (platform.length() > 0) {
-            var platText = "P" + platform;
-            if (isGone) {
-                dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            } else if (platformChanged) {
-                var platDims = dc.getTextDimensions(platText, Graphics.FONT_XTINY);
-                var pad = 2;
-                dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(platX - pad, xtinyY, platDims[0] + 2 * pad, platDims[1]);
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            } else {
-                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                    platText, Graphics.TEXT_JUSTIFY_LEFT);
-            }
         }
 
         // Destination column (FONT_XTINY, truncated to fit round edge)
@@ -380,16 +361,23 @@ module Renderer {
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Current wall-clock time
+        // Current wall-clock time (positioned within usable width on round display)
         var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
         dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width - 8, height * 7 / 100, Graphics.FONT_XTINY,
+        var clockUsable = DrawUtils.getUsableWidth(stationY + 4, width, height);
+        var clockRightEdge = (width + clockUsable) / 2 - 4;
+        dc.drawText(clockRightEdge, stationY, Graphics.FONT_XTINY,
             timeStr, Graphics.TEXT_JUSTIFY_RIGHT);
 
-        // Destination + platform (auto-downsize, highlight platform change)
+        // Line + Destination + platform (auto-downsize, highlight platform change)
         var destY = height * 26 / 100;
-        var destStr = view.mFocusedTrain["dest"];
+        var line = view.mFocusedTrain["line"];
+        var destStr = "";
+        if (line != null && !line.equals("")) {
+            destStr = line + " ";
+        }
+        destStr = destStr + view.mFocusedTrain["dest"];
         var plat = view.mFocusedTrain["plat"];
         var platChg = view.mFocusedTrain["platChg"];
         var destMaxW = DrawUtils.getUsableWidth(destY + 10, width, height) - 10;

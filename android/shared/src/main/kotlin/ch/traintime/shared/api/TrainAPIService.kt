@@ -36,8 +36,14 @@ object TrainAPIService {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    suspend fun fetchStations(lat: Double, lon: Double): StationResult = withContext(Dispatchers.IO) {
-        val url = "$BASE_URL/v1/nearby?lat=$lat&lon=$lon"
+    suspend fun fetchStations(lat: Double, lon: Double, mode: TransportMode? = null): StationResult = withContext(Dispatchers.IO) {
+        var url = "$BASE_URL/v1/nearby?lat=$lat&lon=$lon"
+        when (mode) {
+            TransportMode.BUS -> url += "&mode=bus"
+            TransportMode.TRAM -> url += "&mode=tram"
+            TransportMode.SPECIAL -> url += "&mode=special"
+            else -> {}
+        }
         val json = makeRequest(url)
 
         StationResult(

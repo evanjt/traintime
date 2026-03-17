@@ -3,6 +3,7 @@ package ch.traintime.shared.models
 data class FocusedDeparture(
     val destination: String,
     val departureTimestamp: Int,
+    val lineNumber: String = "",
     var delay: Int,
     var platform: String,
     var platformChanged: Boolean

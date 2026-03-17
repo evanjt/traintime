@@ -42,7 +42,7 @@ fun DepartureRow(departure: Departure, onTap: () -> Unit) {
             modifier = Modifier.width(24.dp)
         )
 
-        // Line number or platform
+        // Connection ID
         Box(modifier = Modifier.width(36.dp)) {
             if (departure.lineNumber.isNotEmpty()) {
                 Text(
@@ -51,26 +51,6 @@ fun DepartureRow(departure: Departure, onTap: () -> Unit) {
                     fontWeight = FontWeight.Medium,
                     color = if (departure.isGone) Color.Gray else Color(AppColors.PLATFORM)
                 )
-            } else if (departure.platform.isNotEmpty()) {
-                val text = "P${departure.platform}"
-                if (departure.isGone) {
-                    Text(text = text, fontSize = 12.sp, color = Color.Gray)
-                } else if (departure.platformChanged) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = Color(AppColors.PLATFORM_CHANGED)
-                    ) {
-                        Text(
-                            text = text,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
-                    }
-                } else {
-                    Text(text = text, fontSize = 12.sp, color = Color(AppColors.PLATFORM))
-                }
             }
         }
 

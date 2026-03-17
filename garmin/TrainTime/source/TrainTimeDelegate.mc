@@ -67,4 +67,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
         System.exit();
         return false;
     }
+
+    function onMenu() {
+        SettingsMenu.open();
+        return true;
+    }
 }

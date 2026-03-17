@@ -2,10 +2,11 @@ import SwiftUI
 
 struct PhoneStationView: View {
     @ObservedObject var viewModel: PhoneViewModel
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header: Mode picker + GPS
+            // Header: Mode picker + GPS + Settings
             HStack {
                 PhoneModePickerView(
                     availableModes: viewModel.availableModes,
@@ -16,6 +17,13 @@ struct PhoneStationView: View {
                 Image(systemName: "location.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(viewModel.gpsQuality.color)
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 8)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -88,6 +96,9 @@ struct PhoneStationView: View {
         .background(Color.black)
         .sheet(isPresented: $viewModel.showStationPicker) {
             PhoneStationPickerView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showSettings) {
+            PhoneSettingsView(viewModel: viewModel)
         }
     }
 }

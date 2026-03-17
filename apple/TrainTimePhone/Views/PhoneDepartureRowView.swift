@@ -28,12 +28,9 @@ struct PhoneDepartureRowView: View {
                     Spacer().frame(width: 36)
                 }
 
-                // Line number or platform
+                // Connection ID
                 if !departure.lineNumber.isEmpty {
                     lineBadge
-                        .frame(width: 36, alignment: .leading)
-                } else if !departure.platform.isEmpty {
-                    platformBadge
                         .frame(width: 36, alignment: .leading)
                 } else {
                     Spacer().frame(width: 36)
@@ -75,24 +72,4 @@ struct PhoneDepartureRowView: View {
             .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
     }
 
-    @ViewBuilder
-    private var platformBadge: some View {
-        let text = "P\(departure.platform)"
-        if departure.isGone {
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else if departure.platformChanged {
-            Text(text)
-                .font(.system(.caption, weight: .medium))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .background(Capsule().fill(AppColors.platformChanged))
-        } else {
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(AppColors.platform)
-        }
-    }
 }

@@ -1,6 +1,7 @@
 package ch.traintime.wear.viewmodels
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -17,11 +18,18 @@ import ch.traintime.shared.geo.GeoUtils
 import ch.traintime.shared.models.*
 import ch.traintime.wear.services.WearHapticService
 import ch.traintime.wear.services.WearLocationService
+import com.google.android.gms.wearable.MessageClient
+import com.google.android.gms.wearable.MessageEvent
+import com.google.android.gms.wearable.Wearable
 import kotlinx.coroutines.*
+import org.json.JSONObject
 
-class WearViewModel(application: Application) : AndroidViewModel(application) {
+class WearViewModel(application: Application) : AndroidViewModel(application),
+    MessageClient.OnMessageReceivedListener {
+
     val locationService = WearLocationService(application)
     private val hapticService = WearHapticService(application)
+    private val messageClient: MessageClient = Wearable.getMessageClient(application)
 
     var appState by mutableIntStateOf(0)
         private set
@@ -41,6 +49,8 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
 
     var currentMode by mutableStateOf(TransportMode.TRAIN)
         private set
+    var defaultMode by mutableStateOf(TransportMode.TRAIN)
+        private set
     var availableModes by mutableStateOf<List<TransportMode>>(emptyList())
         private set
 
@@ -48,6 +58,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var showStationPicker by mutableStateOf(false)
+    var showSettings by mutableStateOf(false)
     var focusedTrain by mutableStateOf<FocusedDeparture?>(null)
         private set
 
@@ -72,6 +83,13 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         if (locationService.location != null && locationService.location?.accuracy == -1f) {
             loadedFromCache = true
         }
+
+        // Load default mode
+        val prefs = application.getSharedPreferences("traintime", Context.MODE_PRIVATE)
+        val savedMode = prefs.getInt("defaultMode", 0)
+        val mode = TransportMode.entries.getOrNull(savedMode) ?: TransportMode.TRAIN
+        defaultMode = mode
+        currentMode = mode
     }
 
     val stations: List<Station>
@@ -147,6 +165,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     fun onAppear() {
         lastInteractionTime = System.currentTimeMillis()
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+        messageClient.addListener(this)
         viewModelScope.launch {
             locationService.locationFlow.collect { location ->
                 onLocationUpdate(location)
@@ -157,6 +176,53 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     fun onDisappear() {
         locationService.stop()
         timerJob?.cancel()
+        messageClient.removeListener(this)
+    }
+
+    // MARK: - Phone message receiver
+
+    override fun onMessageReceived(event: MessageEvent) {
+        if (event.path != "/traintime/track") return
+        try {
+            val json = JSONObject(String(event.data))
+            val action = json.optString("action")
+            if (action != "track") return
+
+            val dest = json.getString("dest")
+            val depTs = json.getInt("depTs")
+            val delay = json.optInt("delay", 0)
+            val plat = json.optString("plat", "")
+            val platChg = json.optBoolean("platChg", false)
+            val line = json.optString("line", "")
+
+            viewModelScope.launch(Dispatchers.Main) {
+                enterTrackingFromPhone(dest, depTs, delay, plat, platChg, line)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun enterTrackingFromPhone(
+        dest: String, depTs: Int, delay: Int, plat: String, platChg: Boolean, line: String = ""
+    ) {
+        if (appState == 3) {
+            lastInteractionTime = System.currentTimeMillis()
+        }
+
+        focusedTrain = FocusedDeparture(
+            destination = dest,
+            departureTimestamp = depTs,
+            lineNumber = line,
+            delay = delay,
+            platform = plat,
+            platformChanged = platChg
+        )
+        appState = 2
+        consecutiveErrors = 0
+        lastVibeTick = 0
+        lastFetchTime = 0
+
+        startTimer(Timing.TRACKING_REFRESH_INTERVAL)
+        hapticService.shortPulse()
     }
 
     private fun startTimer(intervalMs: Long) {
@@ -291,6 +357,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = FocusedDeparture(
             destination = dep.destination,
             departureTimestamp = depTs,
+            lineNumber = dep.lineNumber,
             delay = dep.delay,
             platform = dep.platform,
             platformChanged = dep.platformChanged
@@ -322,6 +389,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = null
         consecutiveErrors = 0
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+    }
+
+    fun setDefaultMode(mode: TransportMode) {
+        defaultMode = mode
+        getApplication<Application>().getSharedPreferences("traintime", Context.MODE_PRIVATE)
+            .edit().putInt("defaultMode", mode.ordinal).apply()
     }
 
     fun selectMode(mode: TransportMode) {
@@ -365,7 +438,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         availableModes = modes
 
         if (stations.isEmpty() && modes.isNotEmpty()) {
-            currentMode = modes.first()
+            currentMode = if (defaultMode in modes) defaultMode else modes.first()
         }
 
         stationIndex = 0
@@ -425,7 +498,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val result = TrainAPIService.fetchStations(lat, lon)
+                val result = TrainAPIService.fetchStations(lat, lon, defaultMode)
                 trainStations = result.train
                 busStations = result.bus
                 tramStations = result.tram

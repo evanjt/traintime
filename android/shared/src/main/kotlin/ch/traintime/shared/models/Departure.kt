@@ -18,7 +18,7 @@ data class Departure(
             val destination = json.optString("to", "?")
             val category = json.optString("category", "")
             val number = json.optString("number", "")
-            val lineNumber = if (category in listOf("B", "T", "NFB", "NFT", "M")) number else ""
+            val lineNumber = number
             val platform = json.optString("platform", "")
             val platformChanged = json.optBoolean("platformChanged", false)
 

@@ -64,7 +64,7 @@ fun FocusedTrackingScreen(viewModel: PhoneViewModel, onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = focused?.destination ?: "?",
+                    text = focused?.let { if (it.lineNumber.isNotEmpty()) "${it.lineNumber} ${it.destination}" else it.destination } ?: "?",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (platChanged) Color(AppColors.PLATFORM_CHANGED_ORANGE) else Color.White,
@@ -149,6 +149,60 @@ fun FocusedTrackingScreen(viewModel: PhoneViewModel, onBack: () -> Unit) {
                 Text(
                     text = GeoUtils.formatWalkInfo(viewModel.lastWalkDist, viewModel.lastWalkTime),
                     fontSize = 14.sp,
+                    color = Color(0xFFAAAAAA)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Send to Watch
+            val watches = viewModel.connectedWatches
+            val sendStatus = viewModel.watchSendStatus
+
+            LaunchedEffect(Unit) {
+                viewModel.refreshConnectedWatches()
+            }
+
+            if (watches.size <= 1) {
+                // Single watch or none — one button
+                OutlinedButton(
+                    onClick = { viewModel.sendToWatch() },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF444444))
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "\u231A  Send to Watch",
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                // Multiple watches — one button per watch
+                for (watch in watches) {
+                    OutlinedButton(
+                        onClick = { viewModel.sendToWatch(watch) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFF444444))
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "\u231A  ${watch.name}",
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            if (sendStatus != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = sendStatus,
+                    fontSize = 12.sp,
                     color = Color(0xFFAAAAAA)
                 )
             }

@@ -1,6 +1,7 @@
 package ch.traintime.phone.viewmodels
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
@@ -15,14 +16,17 @@ import ch.traintime.shared.*
 import ch.traintime.shared.api.TrainAPIService
 import ch.traintime.shared.geo.GeoUtils
 import ch.traintime.shared.models.*
+import ch.traintime.phone.services.ConnectedWatch
 import ch.traintime.phone.services.HapticService
 import ch.traintime.phone.services.LocationService
+import ch.traintime.phone.services.WatchService
 import kotlinx.coroutines.*
 
 class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     // Services
     val locationService = LocationService(application)
     private val hapticService = HapticService(application)
+    val watchService = WatchService(application)
 
     // App State
     var appState by mutableIntStateOf(0)
@@ -45,6 +49,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     // Transport Modes
     var currentMode by mutableStateOf(TransportMode.TRAIN)
         private set
+    var defaultMode by mutableStateOf(TransportMode.TRAIN)
+        private set
     var availableModes by mutableStateOf<List<TransportMode>>(emptyList())
         private set
 
@@ -65,6 +71,12 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     var lastWalkTime: Double? by mutableStateOf(null)
         private set
 
+    // Watch connectivity
+    var connectedWatches by mutableStateOf<List<ConnectedWatch>>(emptyList())
+        private set
+    var watchSendStatus by mutableStateOf<String?>(null)
+        private set
+
     // Internal
     private var requestInFlight = false
     private var requestStartTime: Long? = null
@@ -83,6 +95,13 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         if (locationService.location != null && locationService.location?.accuracy == -1f) {
             loadedFromCache = true
         }
+
+        // Load default mode
+        val prefs = application.getSharedPreferences("traintime", Context.MODE_PRIVATE)
+        val savedMode = prefs.getInt("defaultMode", 0)
+        val mode = TransportMode.entries.getOrNull(savedMode) ?: TransportMode.TRAIN
+        defaultMode = mode
+        currentMode = mode
     }
 
     // Computed
@@ -161,6 +180,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     fun onAppear() {
         lastInteractionTime = System.currentTimeMillis()
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+        watchService.initialize()
         viewModelScope.launch {
             locationService.locationFlow.collect { location ->
                 onLocationUpdate(location)
@@ -171,6 +191,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     fun onDisappear() {
         locationService.stop()
         timerJob?.cancel()
+        watchService.shutdown()
     }
 
     private fun startTimer(intervalMs: Long) {
@@ -315,6 +336,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = FocusedDeparture(
             destination = dep.destination,
             departureTimestamp = depTs,
+            lineNumber = dep.lineNumber,
             delay = dep.delay,
             platform = dep.platform,
             platformChanged = dep.platformChanged
@@ -346,6 +368,12 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = null
         consecutiveErrors = 0
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+    }
+
+    fun setDefaultMode(mode: TransportMode) {
+        defaultMode = mode
+        getApplication<Application>().getSharedPreferences("traintime", Context.MODE_PRIVATE)
+            .edit().putInt("defaultMode", mode.ordinal).apply()
     }
 
     // Mode navigation
@@ -390,7 +418,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         availableModes = modes
 
         if (stations.isEmpty() && modes.isNotEmpty()) {
-            currentMode = modes.first()
+            currentMode = if (defaultMode in modes) defaultMode else modes.first()
         }
 
         stationIndex = 0
@@ -458,7 +486,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                val result = TrainAPIService.fetchStations(lat, lon)
+                val result = TrainAPIService.fetchStations(lat, lon, defaultMode)
                 trainStations = result.train
                 busStations = result.bus
                 tramStations = result.tram
@@ -516,6 +544,38 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             else -> "$context error"
         }
         departures = emptyList()
+    }
+
+    fun refreshConnectedWatches() {
+        viewModelScope.launch {
+            connectedWatches = watchService.getConnectedWatches()
+        }
+    }
+
+    fun sendToWatch(watch: ConnectedWatch) {
+        val focused = focusedTrain ?: return
+        val stationId = currentStation?.id
+        viewModelScope.launch {
+            val success = watchService.sendTrackCommand(watch, focused, stationId)
+            watchSendStatus = if (success) "Sent to ${watch.name}" else "Failed to send"
+            // Auto-clear status after 3 seconds
+            delay(3000)
+            watchSendStatus = null
+        }
+    }
+
+    fun sendToWatch() {
+        // Convenience: send to first connected watch
+        val watch = connectedWatches.firstOrNull()
+        if (watch != null) {
+            sendToWatch(watch)
+        } else {
+            watchSendStatus = "No watch connected"
+            viewModelScope.launch {
+                delay(3000)
+                watchSendStatus = null
+            }
+        }
     }
 
     fun handleDeepLink(uri: Uri) {

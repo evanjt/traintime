@@ -22,6 +22,7 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Transport Modes
     @Published var currentMode: TransportMode = .train
     @Published var availableModes: [TransportMode] = []
+    @Published var defaultMode: TransportMode = .train
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
@@ -34,6 +35,11 @@ class PhoneViewModel: ObservableObject {
     @Published var gpsQuality: GPSQuality = .unavailable
     @Published var lastWalkDist: Double = 0
     @Published var lastWalkTime: Double? = nil
+
+    // MARK: - Watch Connectivity
+    let watchService = PhoneWatchService()
+    @Published var connectedWatches: [PhoneConnectedWatch] = []
+    @Published var watchSendStatus: String? = nil
 
     // MARK: - Internal State
     let routing = RoutingService.shared
@@ -88,6 +94,24 @@ class PhoneViewModel: ObservableObject {
             .sink { [weak self] coord in
                 self?.onLocationUpdate(coord)
             }
+
+        // Load default mode from UserDefaults
+        if let savedRaw = UserDefaults.standard.object(forKey: "defaultMode") as? Int,
+           let savedMode = TransportMode(rawValue: savedRaw) {
+            defaultMode = savedMode
+            currentMode = savedMode
+        }
+
+        // Receive default mode sync from watch
+        watchService.wcService.onApplicationContextReceived = { [weak self] context in
+            DispatchQueue.main.async {
+                if let modeRaw = context["defaultMode"] as? Int,
+                   let mode = TransportMode(rawValue: modeRaw) {
+                    self?.defaultMode = mode
+                    UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
+                }
+            }
+        }
     }
 
     // MARK: - Lifecycle
@@ -96,11 +120,13 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         location.start()
         startTimer(interval: Timing.normalRefreshInterval)
+        watchService.initialize()
     }
 
     func onDisappear() {
         location.stop()
         stopTimer()
+        watchService.shutdown()
     }
 
     // MARK: - Timer
@@ -256,6 +282,7 @@ class PhoneViewModel: ObservableObject {
         focusedTrain = FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
+            lineNumber: dep.lineNumber,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -279,6 +306,12 @@ class PhoneViewModel: ObservableObject {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+    }
+
+    func setDefaultMode(_ mode: TransportMode) {
+        defaultMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "defaultMode")
+        watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
     }
 
     func exitToStationView() {
@@ -342,8 +375,12 @@ class PhoneViewModel: ObservableObject {
         if !specialStations.isEmpty { modes.append(.special) }
         availableModes = modes
 
-        if stations.isEmpty, let firstMode = modes.first {
-            currentMode = firstMode
+        if stations.isEmpty {
+            if modes.contains(defaultMode) {
+                currentMode = defaultMode
+            } else if let firstMode = modes.first {
+                currentMode = firstMode
+            }
         }
 
         stationIndex = 0
@@ -461,7 +498,7 @@ class PhoneViewModel: ObservableObject {
 
         Task {
             do {
-                let result = try await TrainAPIService.fetchStations(lat: lat, lon: lon)
+                let result = try await TrainAPIService.fetchStations(lat: lat, lon: lon, mode: defaultMode)
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
@@ -545,12 +582,51 @@ class PhoneViewModel: ObservableObject {
         departures = []
     }
 
+    // MARK: - Watch Sending
+
+    func refreshConnectedWatches() {
+        watchService.refreshConnectedWatches()
+        connectedWatches = watchService.connectedWatches
+    }
+
+    func sendToWatch(_ watch: PhoneConnectedWatch) {
+        guard let focused = focusedTrain else { return }
+        let stationId = currentStation?.id
+        watchService.sendTrackCommand(to: watch, departure: focused, stationId: stationId) { [weak self] success in
+            DispatchQueue.main.async {
+                self?.watchSendStatus = success ? "Sent to \(watch.name)" : "Failed to send"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self?.watchSendStatus = nil
+                }
+            }
+        }
+    }
+
+    func sendToWatch() {
+        guard let watch = connectedWatches.first else {
+            watchSendStatus = "No watch connected"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                self?.watchSendStatus = nil
+            }
+            return
+        }
+        sendToWatch(watch)
+    }
+
     // MARK: - Deep Link
 
     func handleDeepLink(_ url: URL) {
         lastInteractionTime = Date()
+        guard url.scheme == "traintime" else { return }
+
+        // traintime://sbbshare — just open the app (SBB share trigger)
+        if url.host == "sbbshare" {
+            if appState == 3 { resumeFromInactive() }
+            return
+        }
+
         // traintime://track?destination=DEST&timestamp=TS
-        guard url.scheme == "traintime", url.host == "track" else { return }
+        guard url.host == "track" else { return }
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let destination = components.queryItems?.first(where: { $0.name == "destination" })?.value,
               let tsString = components.queryItems?.first(where: { $0.name == "timestamp" })?.value,

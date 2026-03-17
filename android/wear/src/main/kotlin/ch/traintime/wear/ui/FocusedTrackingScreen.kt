@@ -50,7 +50,7 @@ fun FocusedTrackingScreen(viewModel: WearViewModel, onBack: () -> Unit) {
             val platChanged = focused?.platformChanged == true
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = focused?.destination ?: "?",
+                    text = focused?.let { if (it.lineNumber.isNotEmpty()) "${it.lineNumber} ${it.destination}" else it.destination } ?: "?",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (platChanged) Color(AppColors.PLATFORM_CHANGED_ORANGE) else Color.White,

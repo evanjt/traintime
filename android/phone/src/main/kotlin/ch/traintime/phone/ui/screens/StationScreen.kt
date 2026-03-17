@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +21,7 @@ import ch.traintime.phone.viewmodels.PhoneViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StationScreen(viewModel: PhoneViewModel) {
+    var showSettings by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxSize()) {
         // Header: Mode picker + GPS
         Row(
@@ -34,6 +37,18 @@ fun StationScreen(viewModel: PhoneViewModel) {
             )
             Spacer(modifier = Modifier.weight(1f))
             GpsIndicator(quality = viewModel.gpsQuality)
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(
+                onClick = { showSettings = true },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
 
         // Walk info
@@ -109,5 +124,9 @@ fun StationScreen(viewModel: PhoneViewModel) {
     // Station picker bottom sheet
     if (viewModel.showStationPicker) {
         StationPickerSheet(viewModel = viewModel)
+    }
+
+    if (showSettings) {
+        SettingsDialog(viewModel = viewModel, onDismiss = { showSettings = false })
     }
 }

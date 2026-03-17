@@ -9,6 +9,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://developer.garmin.com/downloads/connect-iq/maven") }
     }
 }
 

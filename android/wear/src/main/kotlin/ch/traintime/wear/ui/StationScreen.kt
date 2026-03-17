@@ -23,6 +23,10 @@ import ch.traintime.wear.viewmodels.WearViewModel
 
 @Composable
 fun StationScreen(viewModel: WearViewModel) {
+    if (viewModel.showSettings) {
+        WearSettingsScreen(viewModel = viewModel)
+        return
+    }
     val listState = rememberScalingLazyListState()
 
     ScalingLazyColumn(
@@ -101,6 +105,18 @@ fun StationScreen(viewModel: WearViewModel) {
                 )
             }
         }
+
+        // Settings
+        item {
+            Text(
+                text = "\u2699",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier
+                    .clickable { viewModel.showSettings = true }
+                    .padding(top = 8.dp, bottom = 16.dp)
+            )
+        }
     }
 
     if (viewModel.showStationPicker) {
@@ -139,19 +155,13 @@ fun WearDepartureRow(departure: Departure, onTap: () -> Unit) {
             modifier = Modifier.width(14.dp)
         )
 
-        // Line or platform
+        // Connection ID
         Box(modifier = Modifier.width(28.dp)) {
             if (departure.lineNumber.isNotEmpty()) {
                 Text(
                     text = departure.lineNumber,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (departure.isGone) Color.Gray else Color(AppColors.PLATFORM)
-                )
-            } else if (departure.platform.isNotEmpty()) {
-                Text(
-                    text = "P${departure.platform}",
-                    fontSize = 10.sp,
                     color = if (departure.isGone) Color.Gray else Color(AppColors.PLATFORM)
                 )
             }

@@ -2,6 +2,7 @@ using Toybox.Communications;
 using Toybox.Lang;
 using Toybox.Time;
 using Toybox.WatchUi;
+using Toybox.Application.Storage;
 
 module ApiHandler {
 
@@ -18,8 +19,13 @@ module ApiHandler {
         view.mLastSearchLat = lat;
         view.mLastSearchLon = lon;
 
+        var defaultMode = Storage.getValue("defaultMode");
+        var modeParam = "";
+        if (defaultMode == 1) { modeParam = "&mode=bus"; }
+        else if (defaultMode == 2) { modeParam = "&mode=tram"; }
+
         var url = "https://api.traintime.ch/v1/nearby"
-            + "?lat=" + lat + "&lon=" + lon;
+            + "?lat=" + lat + "&lon=" + lon + modeParam;
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -144,10 +150,7 @@ module ApiHandler {
             var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
             var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";
             var number = (dep.hasKey("number") && dep["number"] != null) ? dep["number"] : "";
-            var lineNumber = "";
-            if (category.equals("B") || category.equals("T") || category.equals("NFB") || category.equals("NFT") || category.equals("M")) {
-                lineNumber = number;
-            }
+            var lineNumber = number;
 
             var platform = (dep.hasKey("platform") && dep["platform"] != null) ? dep["platform"].toString() : "";
             var platformChanged = (dep.hasKey("platformChanged") && dep["platformChanged"] != null) ? dep["platformChanged"] : false;

@@ -2,8 +2,9 @@ import SwiftUI
 import CoreLocation
 import Combine
 import WatchKit
+import WatchConnectivity
 
-class TrainTimeViewModel: ObservableObject {
+class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Services
     let location = LocationService()
     private var locationCancellable: AnyCancellable?
@@ -24,6 +25,7 @@ class TrainTimeViewModel: ObservableObject {
     // MARK: - Transport Modes
     @Published var currentMode: TransportMode = .train
     @Published var availableModes: [TransportMode] = []
+    @Published var defaultMode: TransportMode = .train
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
@@ -77,7 +79,16 @@ class TrainTimeViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init() {
+    override init() {
+        super.init()
+
+        // Load default mode from UserDefaults
+        if let savedRaw = UserDefaults.standard.object(forKey: "defaultMode") as? Int,
+           let savedMode = TransportMode(rawValue: savedRaw) {
+            defaultMode = savedMode
+            currentMode = savedMode
+        }
+
         // If we loaded a cached coordinate, mark it
         if location.coordinate != nil && location.horizontalAccuracy == -1 {
             loadedFromCache = true
@@ -88,6 +99,78 @@ class TrainTimeViewModel: ObservableObject {
             .sink { [weak self] coord in
                 self?.onLocationUpdate(coord)
             }
+
+        // Activate WatchConnectivity for phone messages
+        if WCSession.isSupported() {
+            let session = WCSession.default
+            session.delegate = self
+            session.activate()
+        }
+    }
+
+    // MARK: - WatchConnectivity
+
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        DispatchQueue.main.async { [weak self] in
+            self?.handlePhoneMessage(message)
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            self?.handlePhoneMessage(message)
+        }
+        replyHandler(["status": "ok"])
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        DispatchQueue.main.async { [weak self] in
+            if let modeRaw = applicationContext["defaultMode"] as? Int,
+               let mode = TransportMode(rawValue: modeRaw) {
+                self?.defaultMode = mode
+                UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
+            }
+        }
+    }
+
+    private func handlePhoneMessage(_ data: [String: Any]) {
+        guard let action = data["action"] as? String, action == "track" else { return }
+        guard let dest = data["dest"] as? String,
+              let depTs = data["depTs"] as? Int else { return }
+
+        let delay = data["delay"] as? Int ?? 0
+        let plat = data["plat"] as? String ?? ""
+        let platChg = data["platChg"] as? Bool ?? false
+
+        if let stId = data["stId"] as? String {
+            // Set station for API polling — find matching station or use ID directly
+            // The next timer tick will fetch departures for this station
+            _ = stId  // Station ID available for future API polling
+        }
+
+        // Wake from inactive
+        if appState == 3 {
+            lastInteractionTime = Date()
+        }
+
+        focusedTrain = FocusedDeparture(
+            destination: dest,
+            departureTimestamp: depTs,
+            lineNumber: data["line"] as? String ?? "",
+            delay: delay,
+            platform: plat,
+            platformChanged: platChg
+        )
+        appState = 2
+        consecutiveErrors = 0
+        lastVibeTick = 0
+        lastFetchTime = .distantPast
+
+        startTimer(interval: Timing.trackingRefreshInterval)
+        startExtendedSession()
+        HapticService.shortPulse()
     }
 
     // MARK: - Lifecycle
@@ -277,6 +360,7 @@ class TrainTimeViewModel: ObservableObject {
         focusedTrain = FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
+            lineNumber: dep.lineNumber,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -305,6 +389,15 @@ class TrainTimeViewModel: ObservableObject {
         appState = 0
     }
 
+    func setDefaultMode(_ mode: TransportMode) {
+        defaultMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "defaultMode")
+        // Sync to phone via WCSession
+        if WCSession.isSupported() && WCSession.default.activationState == .activated {
+            try? WCSession.default.updateApplicationContext(["defaultMode": mode.rawValue])
+        }
+    }
+
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
@@ -325,7 +418,7 @@ class TrainTimeViewModel: ObservableObject {
 
         Task {
             do {
-                let result = try await TrainAPIService.fetchStations(lat: lat, lon: lon)
+                let result = try await TrainAPIService.fetchStations(lat: lat, lon: lon, mode: defaultMode)
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil

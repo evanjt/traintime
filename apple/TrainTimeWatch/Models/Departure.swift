@@ -15,7 +15,7 @@ struct Departure: Identifiable {
         let destination = json["to"] as? String ?? "?"
         let category = json["category"] as? String ?? ""
         let number = json["number"] as? String ?? ""
-        let lineNumber = (category == "B" || category == "T" || category == "NFB" || category == "NFT" || category == "M") ? number : ""
+        let lineNumber = number
 
         let platform = json["platform"] as? String ?? ""
         let platformChanged = json["platformChanged"] as? Bool ?? false

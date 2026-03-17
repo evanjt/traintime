@@ -23,12 +23,9 @@ struct DepartureRowView: View {
                     .baselineOffset(4)
                     .frame(width: 14, alignment: .leading)
 
-                // Line number (bus/tram) or Platform
+                // Connection ID
                 if !departure.lineNumber.isEmpty {
                     lineBadge
-                        .frame(width: 28, alignment: .leading)
-                } else if !departure.platform.isEmpty {
-                    platformBadge
                         .frame(width: 28, alignment: .leading)
                 } else {
                     Spacer().frame(width: 28)
@@ -63,24 +60,4 @@ struct DepartureRowView: View {
             .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
     }
 
-    @ViewBuilder
-    private var platformBadge: some View {
-        let text = "P\(departure.platform)"
-        if departure.isGone {
-            Text(text)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        } else if departure.platformChanged {
-            Text(text)
-                .font(.system(.caption2, weight: .medium))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 3)
-                .padding(.vertical, 1)
-                .background(Capsule().fill(AppColors.platformChanged))
-        } else {
-            Text(text)
-                .font(.caption2)
-                .foregroundStyle(AppColors.platform)
-        }
-    }
 }

@@ -15,9 +15,17 @@ struct TrainAPIService {
     // MARK: - Station Search by Coordinates
 
     static func fetchStations(
-        lat: Double, lon: Double
+        lat: Double, lon: Double, mode: TransportMode? = nil
     ) async throws -> (train: [Station], bus: [Station], tram: [Station], special: [Station]) {
-        let urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)"
+        var urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)"
+        if let mode = mode {
+            switch mode {
+            case .bus: urlString += "&mode=bus"
+            case .tram: urlString += "&mode=tram"
+            case .special: urlString += "&mode=special"
+            default: break
+            }
+        }
         guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
         let (data, response) = try await makeRequest(url: url)

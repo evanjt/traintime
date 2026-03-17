@@ -20,7 +20,7 @@ struct PhoneFocusedTrackingView: View {
                     // Destination + platform
                     let platChanged = focused?.platformChanged == true
                     HStack(spacing: 6) {
-                        Text(focused?.destination ?? "?")
+                        Text(focused.map { $0.lineNumber.isEmpty ? $0.destination : "\($0.lineNumber) \($0.destination)" } ?? "?")
                             .font(.title2.weight(.bold))
                             .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
                             .lineLimit(1)
@@ -91,6 +91,40 @@ struct PhoneFocusedTrackingView: View {
                     }
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
+
+                    // Send to Watch
+                    Divider()
+                        .overlay(Color.gray.opacity(0.3))
+                        .padding(.vertical, 4)
+
+                    let watches = viewModel.connectedWatches
+                    if watches.count <= 1 {
+                        Button {
+                            viewModel.sendToWatch()
+                        } label: {
+                            Label("Send to Watch", systemImage: "applewatch")
+                                .font(.subheadline)
+                                .frame(maxWidth: 200)
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        ForEach(watches) { watch in
+                            Button {
+                                viewModel.sendToWatch(watch)
+                            } label: {
+                                Label(watch.name, systemImage: watch.type == .appleWatch ? "applewatch" : "watch.analog")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: 200)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    if let status = viewModel.watchSendStatus {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
@@ -114,6 +148,7 @@ struct PhoneFocusedTrackingView: View {
             }
             .buttonStyle(.plain)
         }
+        .onAppear { viewModel.refreshConnectedWatches() }
         .sheet(isPresented: $showMap) {
             PhoneMapView(viewModel: viewModel)
         }

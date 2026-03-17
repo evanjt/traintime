@@ -18,7 +18,7 @@ struct FocusedTrackingView: View {
                 // Destination + platform
                 let platChanged = focused?.platformChanged == true
                 HStack(spacing: 4) {
-                    Text(focused?.destination ?? "?")
+                    Text(focused.map { $0.lineNumber.isEmpty ? $0.destination : "\($0.lineNumber) \($0.destination)" } ?? "?")
                         .font(.system(.headline, weight: .bold))
                         .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
                         .lineLimit(1)

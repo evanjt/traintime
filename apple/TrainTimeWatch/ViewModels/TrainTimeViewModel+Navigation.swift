@@ -85,9 +85,13 @@ extension TrainTimeViewModel {
         if !specialStations.isEmpty { modes.append(.special) }
         availableModes = modes
 
-        // If current mode has no stations, switch to first available
-        if stations.isEmpty, let firstMode = modes.first {
-            currentMode = firstMode
+        // If current mode has no stations, prefer default mode, then first available
+        if stations.isEmpty {
+            if modes.contains(defaultMode) {
+                currentMode = defaultMode
+            } else if let firstMode = modes.first {
+                currentMode = firstMode
+            }
         }
 
         stationIndex = 0
