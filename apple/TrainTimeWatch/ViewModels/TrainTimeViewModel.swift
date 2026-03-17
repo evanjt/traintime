@@ -235,6 +235,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
+        // Skip API calls in inactive state (still update GPS above)
+        if appState == 3 { return }
+
         // If loaded from stale cache and now have a live GPS fix, re-search
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
@@ -276,8 +279,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection
-        if let lastSearch = lastSearchCoordinate,
+        // Movement detection (skip in inactive state)
+        if appState != 3,
+           let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
             clearStationState()
             fetchStations(lat: coord.latitude, lon: coord.longitude)

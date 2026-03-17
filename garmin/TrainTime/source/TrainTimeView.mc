@@ -686,8 +686,8 @@ class TrainTimeView extends WatchUi.View {
                     return;
                 }
 
-                // Re-search stations if moved >500m from last search (skip in inactive)
-                if (mAppState != 3 && hasMovedSignificantly(lat, lon)) {
+                // Re-search stations if moved >500m from last search (only in station/selection view)
+                if (mAppState <= 1 && hasMovedSignificantly(lat, lon)) {
                     clearStationState();
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();

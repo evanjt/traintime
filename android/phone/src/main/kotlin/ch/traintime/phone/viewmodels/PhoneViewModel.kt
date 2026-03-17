@@ -217,6 +217,9 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        // Skip API calls in inactive state (still update GPS above)
+        if (appState == 3) return
+
         // When transitioning from cached to live GPS, re-fetch if moved
         if (loadedFromCache && (gpsQuality == GPSQuality.GOOD || gpsQuality == GPSQuality.POOR)) {
             loadedFromCache = false
@@ -260,10 +263,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
         if (location == null) return
 
-        // Movement detection
+        // Movement detection (skip in inactive state)
         val lastLat = lastSearchLat
         val lastLon = lastSearchLon
-        if (lastLat != null && lastLon != null &&
+        if (appState != 3 && lastLat != null && lastLon != null &&
             GeoUtils.hasMovedSignificantly(lastLat, lastLon, location.latitude, location.longitude)) {
             clearStationState()
             fetchStations(location.latitude, location.longitude)

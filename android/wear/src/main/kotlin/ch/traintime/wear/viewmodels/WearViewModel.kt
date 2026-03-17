@@ -248,6 +248,9 @@ class WearViewModel(application: Application) : AndroidViewModel(application),
             return
         }
 
+        // Skip API calls in inactive state (still update GPS above)
+        if (appState == 3) return
+
         if (loadedFromCache && (gpsQuality == GPSQuality.GOOD || gpsQuality == GPSQuality.POOR)) {
             loadedFromCache = false
             val lastLat = lastSearchLat
@@ -289,9 +292,10 @@ class WearViewModel(application: Application) : AndroidViewModel(application),
 
         if (location == null) return
 
+        // Movement detection (skip in inactive state)
         val lastLat = lastSearchLat
         val lastLon = lastSearchLon
-        if (lastLat != null && lastLon != null &&
+        if (appState != 3 && lastLat != null && lastLon != null &&
             GeoUtils.hasMovedSignificantly(lastLat, lastLon, location.latitude, location.longitude)) {
             clearStationState()
             fetchStations(location.latitude, location.longitude)
