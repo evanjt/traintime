@@ -86,6 +86,67 @@ platform :ios do
 
     ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
     UI.user_error!("IPA not created") unless ipa_path && File.exist?(ipa_path)
+
+    # Post-process: patch embedded watch app for App Store validation
+    # Xcode's actool doesn't generate Long Look icons that Apple requires for
+    # companion watch apps. Workaround: set DTSDKName to watchos4.3 to bypass
+    # the Series 4 icon validation, and inject loose icon PNGs into the bundle.
+    patch_dir = File.join("artifacts", "ipa_patch")
+    FileUtils.rm_rf(patch_dir)
+    sh("unzip", "-q", ipa_path, "-d", patch_dir)
+
+    watch_app = Dir["#{patch_dir}/Payload/*.app/Watch/*.app"].first
+    if watch_app
+      UI.message("Patching embedded watch app: #{watch_app}")
+      watch_plist = File.join(watch_app, "Info.plist")
+
+      # Bypass Series 4 icon validation
+      sh("/usr/libexec/PlistBuddy", "-c", "Set :DTSDKName watchos4.3", watch_plist)
+      sh("/usr/libexec/PlistBuddy", "-c", "Set :DTPlatformVersion 4.3", watch_plist)
+
+      # Generate loose icon PNGs from the 1024px source
+      source_icon = File.join(project_root, "TrainTimeWatch", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-1024.png")
+      if File.exist?(source_icon)
+        {
+          "AppIcon24x24@2x.png" => 48, "AppIcon27.5x27.5@2x.png" => 55,
+          "AppIcon29x29@2x.png" => 58, "AppIcon29x29@3x.png" => 87,
+          "AppIcon33x33@2x.png" => 66, "AppIcon40x40@2x.png" => 80,
+          "AppIcon44x44@2x.png" => 88, "AppIcon46x46@2x.png" => 92,
+          "AppIcon50x50@2x.png" => 100, "AppIcon51x51@2x.png" => 102,
+          "AppIcon86x86@2x.png" => 172, "AppIcon98x98@2x.png" => 196,
+          "AppIcon108x108@2x.png" => 216, "AppIcon117x117@2x.png" => 234,
+          "AppIcon129x129@2x.png" => 258, "AppIcon1024x1024.png" => 1024
+        }.each do |name, px|
+          sh("sips", "-z", px.to_s, px.to_s, source_icon, "--out", File.join(watch_app, name))
+        end
+        UI.success("Injected #{16} loose icon PNGs into watch app bundle")
+      end
+
+      # Add icon plist entries
+      sh("/usr/libexec/PlistBuddy", "-c", "Delete :CFBundleIconName", watch_plist) rescue nil
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIconName string AppIcon", watch_plist)
+      begin; sh("/usr/libexec/PlistBuddy", "-c", "Delete :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles", watch_plist); rescue; end
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons dict", watch_plist) rescue nil
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon dict", watch_plist) rescue nil
+      sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles array", watch_plist) rescue nil
+      %w[AppIcon24x24 AppIcon27.5x27.5 AppIcon29x29 AppIcon33x33 AppIcon40x40
+         AppIcon44x44 AppIcon46x46 AppIcon50x50 AppIcon51x51
+         AppIcon86x86 AppIcon98x98 AppIcon108x108 AppIcon117x117 AppIcon129x129].each_with_index do |name, i|
+        sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:#{i} string #{name}", watch_plist)
+      end
+
+      # Re-sign the watch app after modification
+      sh("codesign", "--force", "--sign", "Apple Distribution", "--preserve-metadata=identifier,entitlements", watch_app)
+
+      # Re-create IPA
+      FileUtils.rm(ipa_path)
+      Dir.chdir(patch_dir) { sh("zip", "-qr", File.expand_path(ipa_path), "Payload") }
+      UI.success("Patched IPA with watch icons")
+    else
+      UI.important("No embedded watch app found in IPA — skipping icon patch")
+    end
+    FileUtils.rm_rf(patch_dir)
+
     # Rename to traintime.ipa for consistent artifact naming
     final_path = File.join("artifacts", "traintime.ipa")
     FileUtils.mv(ipa_path, final_path) unless ipa_path == final_path
