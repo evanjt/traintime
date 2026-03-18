@@ -673,9 +673,8 @@ module Renderer {
         var lineY = formY + wagonH + 2;
         var sectorTextY = lineY + 1;
         if (locoW > 0) {
-            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             var arrowX = startX + locoW / 2;
-            var arrowY = sectorTextY + dc.getFontHeight(Graphics.FONT_XTINY) / 2;
             dc.drawText(arrowX, sectorTextY, Graphics.FONT_XTINY,
                 "<", Graphics.TEXT_JUSTIFY_CENTER);
         }

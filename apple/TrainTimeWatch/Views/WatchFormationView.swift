@@ -111,8 +111,8 @@ private struct WatchSectorLabels: View {
     var body: some View {
         HStack(spacing: 0) {
             Image(systemName: "arrow.left")
-                .font(.system(size: 7, weight: .regular))
-                .foregroundColor(Color(white: 0.35))
+                .font(.system(size: 7, weight: .medium))
+                .foregroundColor(.white)
                 .frame(width: noseWidth)
 
             ForEach(Array(groups.enumerated()), id: \.offset) { i, group in

@@ -240,8 +240,8 @@ private struct PhoneSectorLabels: View {
     var body: some View {
         HStack(spacing: 0) {
             Image(systemName: "arrow.left")
-                .font(.system(size: 9, weight: .regular))
-                .foregroundColor(Color(white: 0.35))
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(.white)
                 .frame(width: locoOffset)
 
             ForEach(Array(groups.enumerated()), id: \.offset) { i, group in
@@ -256,7 +256,7 @@ private struct PhoneSectorLabels: View {
                     // Sector letter with opaque background to "break" the line
                     Text(group.sector)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white)
                         .padding(.horizontal, 3)
                         .background(Color.black)
                 }

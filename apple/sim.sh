@@ -45,6 +45,13 @@ esac
 
 DESTINATION="platform=$PLATFORM,name=$DEVICE"
 
+# Ensure Secrets.swift exists (gitignored, copy from example if missing)
+SECRETS="$SCRIPT_DIR/TrainTimeWatch/Secrets.swift"
+if [ ! -f "$SECRETS" ]; then
+    cp "$SECRETS.example" "$SECRETS"
+    echo "Created Secrets.swift from example (update with real API key if needed)"
+fi
+
 echo "Building $SCHEME for $DEVICE..."
 
 # Build for simulator
