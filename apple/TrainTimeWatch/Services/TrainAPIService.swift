@@ -59,6 +59,20 @@ struct TrainAPIService {
         return departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
     }
 
+    // MARK: - Formation
+
+    static func fetchFormation(trainNumber: String, date: String, stationId: String) async throws -> Formation? {
+        let encodedStation = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
+        let urlString = "\(baseURL)/v1/formation?train=\(trainNumber)&date=\(date)&stop=\(encodedStation)"
+        guard let url = URL(string: urlString) else { return nil }
+
+        let (data, response) = try await makeRequest(url: url)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        return Formation.from(json: json)
+    }
+
     // MARK: - Helpers
 
     private static func parseStationGroup(_ raw: Any?, mode: TransportMode) -> [Station] {

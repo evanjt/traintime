@@ -33,6 +33,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
     @Published var focusedTrain: FocusedDeparture? = nil
+    @Published var formation: Formation? = nil
 
     // MARK: - GPS
     @Published var gpsQuality: GPSQuality = .unavailable
@@ -156,10 +157,15 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             lastInteractionTime = Date()
         }
 
+        let category = data["cat"] as? String ?? ""
+        let trainNumber = data["trainNum"] as? String
+
         focusedTrain = FocusedDeparture(
             destination: dest,
             departureTimestamp: depTs,
             lineNumber: data["line"] as? String ?? "",
+            category: category,
+            trainNumber: trainNumber,
             delay: delay,
             platform: plat,
             platformChanged: platChg
@@ -168,6 +174,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast
+        formation = nil
+
+        // Fetch formation for rail departures
+        if let tn = trainNumber, Formation.isRailCategory(category),
+           let stId = data["stId"] as? String {
+            let date = formationDateString()
+            Task { @MainActor in
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stId)
+            }
+        }
 
         startTimer(interval: Timing.trackingRefreshInterval)
         startExtendedSession()
@@ -363,6 +379,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             destination: dep.destination,
             departureTimestamp: depTs,
             lineNumber: dep.lineNumber,
+            category: dep.category,
+            trainNumber: dep.trainNumber,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -371,6 +389,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast  // Force immediate fetch on tracking entry
+        formation = nil
+
+        // Fetch formation for rail departures
+        if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
+           let stationId = currentStation?.id {
+            let date = formationDateString()
+            Task { @MainActor in
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId)
+            }
+        }
 
         // Switch to faster timer for tracking
         startTimer(interval: Timing.trackingRefreshInterval)
@@ -381,6 +409,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func enterInactiveState() {
         appState = 3
         focusedTrain = nil
+        formation = nil
         consecutiveErrors = 0
         startTimer(interval: Timing.normalRefreshInterval)
         endExtendedSession()
@@ -409,11 +438,19 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         lastInteractionTime = Date()
         appState = 0
         focusedTrain = nil
+        formation = nil
         consecutiveErrors = 0
 
         // Restore normal timer
         startTimer(interval: Timing.normalRefreshInterval)
         endExtendedSession()
+    }
+
+    private func formationDateString() -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return fmt.string(from: Date())
     }
 
     // MARK: - API Calls

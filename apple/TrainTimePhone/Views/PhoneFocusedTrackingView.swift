@@ -88,6 +88,12 @@ struct PhoneFocusedTrackingView: View {
                         viewModel.toggleRoutedDistance()
                     }
 
+                    // Formation diagram
+                    if let formation = viewModel.formation {
+                        FormationDiagramView(formation: formation)
+                            .padding(.top, 8)
+                    }
+
                     // Map button
                     Button {
                         showMap = true

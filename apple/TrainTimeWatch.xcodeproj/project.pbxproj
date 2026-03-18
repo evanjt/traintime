@@ -36,6 +36,8 @@
 		AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */; };
 		EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */; };
 		999C01A2B3C4D5E6F7081920 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888B01A2B3C4D5E6F7081920 /* SettingsView.swift */; };
+		F0A100000000000000000001 /* Formation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000001 /* Formation.swift */; };
+		F0A100000000000000000002 /* WatchFormationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000003 /* WatchFormationView.swift */; };
 
 		/* === Phone Target === */
 		P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000001 /* TrainTimePhoneApp.swift */; };
@@ -68,6 +70,8 @@
 		P0A10000000000000000010B /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
 		P0A10000000000000000010C /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
 		P0A10000000000000000010D /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
+		F0A100000000000000000003 /* Formation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000001 /* Formation.swift */; };
+		F0A100000000000000000004 /* FormationDiagramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000002 /* FormationDiagramView.swift */; };
 
 		/* === Widget Target === */
 		W0A100000000000000000001 /* TrainTimeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000001 /* TrainTimeWidget.swift */; };
@@ -85,6 +89,7 @@
 		W0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
 		W0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
 		W0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
+		F0A100000000000000000005 /* Formation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000001 /* Formation.swift */; };
 
 		/* Widget embedded in Phone */
 		P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -148,6 +153,9 @@
 		CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Navigation.swift"; sourceTree = "<group>"; };
 		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
 		888B01A2B3C4D5E6F7081920 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F0F100000000000000000001 /* Formation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formation.swift; sourceTree = "<group>"; };
+		F0F100000000000000000002 /* FormationDiagramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormationDiagramView.swift; sourceTree = "<group>"; };
+		F0F100000000000000000003 /* WatchFormationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchFormationView.swift; sourceTree = "<group>"; };
 
 		/* Phone */
 		P0P100000000000000000001 /* TrainTimePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -251,6 +259,7 @@
 				DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */,
 				FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */,
 				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
+				F0F100000000000000000001 /* Formation.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -279,6 +288,7 @@
 				333CF7681920314253647580 /* MapView.swift */,
 				555EH0A31425364758697CA3 /* StationPickerView.swift */,
 				888B01A2B3C4D5E6F7081920 /* SettingsView.swift */,
+				F0F100000000000000000003 /* WatchFormationView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -334,6 +344,7 @@
 				P0F100000000000000000009 /* PhoneModePickerView.swift */,
 				P0F10000000000000000000A /* PhoneStationPickerView.swift */,
 				P0F100000000000000000010 /* SettingsView.swift */,
+				F0F100000000000000000002 /* FormationDiagramView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -520,6 +531,8 @@
 				AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */,
 				EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */,
 				999C01A2B3C4D5E6F7081920 /* SettingsView.swift in Sources */,
+				F0A100000000000000000001 /* Formation.swift in Sources */,
+				F0A100000000000000000002 /* WatchFormationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -554,6 +567,8 @@
 				P0A10000000000000000000E /* WatchConnectivityService.swift in Sources */,
 				P0A10000000000000000000F /* GarminConnectIQService.swift in Sources */,
 				P0A100000000000000000010 /* SettingsView.swift in Sources */,
+				F0A100000000000000000003 /* Formation.swift in Sources */,
+				F0A100000000000000000004 /* FormationDiagramView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,6 +591,7 @@
 				W0A100000000000000000107 /* GeoUtils.swift in Sources */,
 				W0A100000000000000000108 /* Constants.swift in Sources */,
 				W0A100000000000000000109 /* Secrets.swift in Sources */,
+				F0A100000000000000000005 /* Formation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

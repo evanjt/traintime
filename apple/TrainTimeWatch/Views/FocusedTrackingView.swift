@@ -83,6 +83,12 @@ struct FocusedTrackingView: View {
                 .onTapGesture {
                     viewModel.toggleRoutedDistance()
                 }
+
+                // Formation strip
+                if let formation = viewModel.formation {
+                    WatchFormationView(formation: formation)
+                        .padding(.top, 2)
+                }
             }
             .padding(.horizontal, 2)
         }

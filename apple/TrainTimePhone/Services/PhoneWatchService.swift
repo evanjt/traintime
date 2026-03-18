@@ -62,8 +62,12 @@ class PhoneWatchService: ObservableObject {
             "depTs": departure.departureTimestamp,
             "delay": departure.delay,
             "plat": departure.platform,
-            "platChg": departure.platformChanged
+            "platChg": departure.platformChanged,
+            "cat": departure.category
         ]
+        if let tn = departure.trainNumber {
+            data["trainNum"] = tn
+        }
         if let stId = stationId {
             data["stId"] = stId
         }

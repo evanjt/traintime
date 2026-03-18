@@ -30,6 +30,7 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
     @Published var focusedTrain: FocusedDeparture? = nil
+    @Published var formation: Formation? = nil
 
     // MARK: - GPS
     @Published var gpsQuality: GPSQuality = .unavailable
@@ -286,6 +287,8 @@ class PhoneViewModel: ObservableObject {
             destination: dep.destination,
             departureTimestamp: depTs,
             lineNumber: dep.lineNumber,
+            category: dep.category,
+            trainNumber: dep.trainNumber,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -294,6 +297,16 @@ class PhoneViewModel: ObservableObject {
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast
+        formation = nil
+
+        // Fetch formation for rail departures
+        if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
+           let stationId = currentStation?.id {
+            let date = formationDateString()
+            Task { @MainActor in
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId)
+            }
+        }
 
         startTimer(interval: Timing.trackingRefreshInterval)
         PhoneHapticService.shortPulse()
@@ -302,6 +315,7 @@ class PhoneViewModel: ObservableObject {
     func enterInactiveState() {
         appState = 3
         focusedTrain = nil
+        formation = nil
         consecutiveErrors = 0
         startTimer(interval: Timing.normalRefreshInterval)
     }
@@ -326,6 +340,7 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         appState = 0
         focusedTrain = nil
+        formation = nil
         consecutiveErrors = 0
         startTimer(interval: Timing.normalRefreshInterval)
     }
@@ -616,6 +631,15 @@ class PhoneViewModel: ObservableObject {
             return
         }
         sendToWatch(watch)
+    }
+
+    // MARK: - Formation
+
+    private func formationDateString() -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return fmt.string(from: Date())
     }
 
     // MARK: - Deep Link
