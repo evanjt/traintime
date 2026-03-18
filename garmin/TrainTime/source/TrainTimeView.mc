@@ -124,7 +124,11 @@ class TrainTimeView extends WatchUi.View {
             }
         }
 
-        mLastInteractionTime = Time.now().value();
+        // Only set interaction time on first launch, not on wrist-raise wake cycles
+        // (onShow is called each time the display wakes, which would reset the inactivity timer)
+        if (mLastInteractionTime == 0) {
+            mLastInteractionTime = Time.now().value();
+        }
         mTimer = new Timer.Timer();
         mTimer.start(method(:onTimerTick), 5000, true);
     }
