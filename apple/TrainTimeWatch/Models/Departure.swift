@@ -11,6 +11,7 @@ struct Departure: Identifiable {
     let lineNumber: String
     let category: String
     let trainNumber: String?
+    let operatorRef: String?
 
     /// Parse a single departure entry from the API JSON
     static func from(json: [String: Any]) -> Departure {
@@ -19,6 +20,7 @@ struct Departure: Identifiable {
         let number = json["number"] as? String ?? ""
         let lineNumber = number
         let trainNumber = json["trainNumber"] as? String
+        let operatorRef = json["operatorRef"] as? String
 
         let platform = json["platform"] as? String ?? ""
         let platformChanged = json["platformChanged"] as? Bool ?? false
@@ -45,7 +47,8 @@ struct Departure: Identifiable {
             platformChanged: platformChanged,
             lineNumber: lineNumber,
             category: category,
-            trainNumber: trainNumber
+            trainNumber: trainNumber,
+            operatorRef: operatorRef
         )
     }
 

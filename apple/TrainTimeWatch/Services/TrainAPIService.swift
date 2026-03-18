@@ -61,9 +61,12 @@ struct TrainAPIService {
 
     // MARK: - Formation
 
-    static func fetchFormation(trainNumber: String, date: String, stationId: String) async throws -> Formation? {
+    static func fetchFormation(trainNumber: String, date: String, stationId: String, operatorRef: String? = nil) async throws -> Formation? {
         let encodedStation = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
-        let urlString = "\(baseURL)/v1/formation?train=\(trainNumber)&date=\(date)&stop=\(encodedStation)"
+        var urlString = "\(baseURL)/v1/formation?train=\(trainNumber)&date=\(date)&stop=\(encodedStation)"
+        if let op = operatorRef {
+            urlString += "&operatorRef=\(op)"
+        }
         guard let url = URL(string: urlString) else { return nil }
 
         let (data, response) = try await makeRequest(url: url)

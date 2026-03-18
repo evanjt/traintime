@@ -289,6 +289,7 @@ class PhoneViewModel: ObservableObject {
             lineNumber: dep.lineNumber,
             category: dep.category,
             trainNumber: dep.trainNumber,
+            operatorRef: dep.operatorRef,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -303,8 +304,9 @@ class PhoneViewModel: ObservableObject {
         if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
            let stationId = currentStation?.id {
             let date = formationDateString()
+            let opRef = dep.operatorRef
             Task { @MainActor in
-                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId)
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
             }
         }
 

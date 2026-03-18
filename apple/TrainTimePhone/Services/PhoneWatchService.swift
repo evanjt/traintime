@@ -68,6 +68,9 @@ class PhoneWatchService: ObservableObject {
         if let tn = departure.trainNumber {
             data["trainNum"] = tn
         }
+        if let op = departure.operatorRef {
+            data["opRef"] = op
+        }
         if let stId = stationId {
             data["stId"] = stId
         }

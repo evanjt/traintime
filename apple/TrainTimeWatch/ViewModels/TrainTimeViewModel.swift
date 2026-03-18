@@ -159,6 +159,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         let category = data["cat"] as? String ?? ""
         let trainNumber = data["trainNum"] as? String
+        let operatorRef = data["opRef"] as? String
 
         focusedTrain = FocusedDeparture(
             destination: dest,
@@ -166,6 +167,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             lineNumber: data["line"] as? String ?? "",
             category: category,
             trainNumber: trainNumber,
+            operatorRef: operatorRef,
             delay: delay,
             platform: plat,
             platformChanged: platChg
@@ -181,7 +183,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
            let stId = data["stId"] as? String {
             let date = formationDateString()
             Task { @MainActor in
-                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stId)
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stId, operatorRef: operatorRef)
             }
         }
 
@@ -381,6 +383,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             lineNumber: dep.lineNumber,
             category: dep.category,
             trainNumber: dep.trainNumber,
+            operatorRef: dep.operatorRef,
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
@@ -395,8 +398,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
            let stationId = currentStation?.id {
             let date = formationDateString()
+            let opRef = dep.operatorRef
             Task { @MainActor in
-                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId)
+                self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
             }
         }
 

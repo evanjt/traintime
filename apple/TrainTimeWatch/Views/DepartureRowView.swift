@@ -26,9 +26,9 @@ struct DepartureRowView: View {
                 // Connection ID
                 if !departure.lineNumber.isEmpty {
                     lineBadge
-                        .frame(width: 28, alignment: .leading)
+                        .frame(width: 34, alignment: .leading)
                 } else {
-                    Spacer().frame(width: 28)
+                    Spacer().frame(width: 34)
                 }
 
                 // Destination
@@ -58,6 +58,8 @@ struct DepartureRowView: View {
         Text(departure.lineNumber)
             .font(.system(.caption2, weight: .medium))
             .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
     }
 
 }

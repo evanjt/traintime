@@ -27,19 +27,14 @@ struct FormationDiagramView: View {
                         }
                     }
 
-                    // Sector labels
+                    // Sector labels with bracket lines
                     if !formation.sectors.isEmpty {
-                        HStack(spacing: 0) {
-                            Color.clear.frame(width: 30) // loco offset
-                            ForEach(Array(formation.wagons.enumerated()), id: \.offset) { i, wagon in
-                                let w = carriageWidth + (i > 0 ? gap : 0)
-                                let isFirst = i == 0 || formation.wagons[i - 1].sector != wagon.sector
-                                Text(isFirst && !wagon.sector.isEmpty ? wagon.sector : "")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .frame(width: w)
-                            }
-                        }
+                        PhoneSectorLabels(
+                            wagons: formation.wagons,
+                            carriageWidth: carriageWidth,
+                            gap: gap,
+                            locoOffset: 30
+                        )
                     }
                 }
                 .padding(.horizontal, 8)
@@ -151,18 +146,11 @@ private struct CarriageCell: View {
                 .frame(width: width - 6, height: 6)
                 .offset(y: -3)
 
-            // Car number + class
-            HStack(spacing: 3) {
-                Text("\(wagon.number)")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(white: 0.65))
-                if wagon.wagonClass == 1 {
-                    Text("1")
-                        .font(.system(size: 8, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.92, green: 0.72, blue: 0.0).opacity(0.9))
-                }
-            }
-            .offset(y: 2)
+            // Car number
+            Text("\(wagon.number)")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(Color(white: 0.65))
+                .offset(y: 2)
 
             // Feature icon
             if let feature = wagon.features.first {
@@ -190,6 +178,66 @@ private struct CarriageCell: View {
         case "business": return "briefcase"
         case "low_floor": return "arrow.down.to.line"
         default: return "questionmark"
+        }
+    }
+}
+
+// MARK: - Sector Labels with bracket lines
+
+private struct PhoneSectorLabels: View {
+    let wagons: [FormationWagon]
+    let carriageWidth: CGFloat
+    let gap: CGFloat
+    let locoOffset: CGFloat
+
+    private struct SectorGroup {
+        let sector: String
+        let count: Int
+    }
+
+    private var groups: [SectorGroup] {
+        var result: [SectorGroup] = []
+        var currentSector = ""
+        var count = 0
+        for wagon in wagons {
+            if wagon.sector != currentSector {
+                if count > 0 {
+                    result.append(SectorGroup(sector: currentSector, count: count))
+                }
+                currentSector = wagon.sector
+                count = 1
+            } else {
+                count += 1
+            }
+        }
+        if count > 0 {
+            result.append(SectorGroup(sector: currentSector, count: count))
+        }
+        return result
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: locoOffset)
+
+            ForEach(Array(groups.enumerated()), id: \.offset) { i, group in
+                let groupWidth = CGFloat(group.count) * carriageWidth + CGFloat(max(0, group.count - 1)) * gap + (i > 0 ? gap : 0)
+
+                ZStack {
+                    // Line through the middle of the text
+                    Rectangle()
+                        .fill(Color(white: 0.35))
+                        .frame(width: groupWidth - 4, height: 0.5)
+
+                    // Sector letter with opaque background to "break" the line
+                    Text(group.sector)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 3)
+                        .background(Color.black)
+                }
+                .frame(width: groupWidth, height: 14)
+            }
         }
     }
 }

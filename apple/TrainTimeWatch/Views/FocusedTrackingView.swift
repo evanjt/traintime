@@ -7,91 +7,89 @@ struct FocusedTrackingView: View {
     var body: some View {
         let focused = viewModel.focusedTrain
 
-        ScrollView {
-            VStack(spacing: 4) {
-                // Station name
-                Text(viewModel.stationName)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 2) {
+            // Station name
+            Text(viewModel.stationName)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            // Destination
+            let platChanged = focused?.platformChanged == true
+            HStack(spacing: 4) {
+                if let f = focused, !f.lineNumber.isEmpty {
+                    Text(f.lineNumber)
+                        .font(.system(.subheadline, weight: .bold))
+                        .foregroundStyle(AppColors.platform)
+                }
+                Text(focused?.destination ?? "?")
+                    .font(.system(.subheadline, weight: .bold))
+                    .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
 
-                // Destination
-                let platChanged = focused?.platformChanged == true
-                HStack(spacing: 4) {
-                    if let f = focused, !f.lineNumber.isEmpty {
-                        Text(f.lineNumber)
-                            .font(.system(.headline, weight: .bold))
-                            .foregroundStyle(AppColors.platform)
-                    }
-                    Text(focused?.destination ?? "?")
-                        .font(.system(.headline, weight: .bold))
-                        .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
+            // Platform
+            if let plat = focused?.platform, !plat.isEmpty {
+                Text("Pl. \(plat)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+            }
 
-                // Platform
-                if let plat = focused?.platform, !plat.isEmpty {
-                    Text("Platform \(plat)")
+            // Countdown + delay
+            HStack(spacing: 4) {
+                Text(focused?.countdownText ?? "—")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(countdownColor)
+
+                if let delay = focused?.delay, delay > 0,
+                   let f = focused, f.minutesUntil >= -0.5 {
+                    Text("+\(delay)")
                         .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
-                }
-
-                // Countdown + delay
-                HStack(spacing: 6) {
-                    Text(focused?.countdownText ?? "—")
-                        .font(.system(.title2, design: .rounded, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundStyle(countdownColor)
-
-                    if let delay = focused?.delay, delay > 0,
-                       let f = focused, f.minutesUntil >= -0.5 {
-                        Text("+\(delay)")
-                            .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(AppColors.delay))
-                    }
-                }
-
-                // Tracking bar
-                TrackingBarView(
-                    schedBuf: viewModel.trackingScheduledBuffer,
-                    effectBuf: viewModel.trackingEffectiveBuffer,
-                    hasGPS: viewModel.gpsQuality != .unavailable
-                )
-                .padding(.horizontal, 4)
-
-                // Status
-                Text(viewModel.trackingStatusText)
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(viewModel.trackingStatusColor)
-
-                // Walk info + direction
-                HStack(spacing: 6) {
-                    DirectionArrowView(degrees: viewModel.directionToStation)
-
-                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
-                .onTapGesture {
-                    viewModel.toggleRoutedDistance()
-                }
-
-                // Formation strip
-                if let formation = viewModel.formation {
-                    WatchFormationView(formation: formation)
-                        .padding(.top, 2)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(AppColors.delay))
                 }
             }
-            .padding(.horizontal, 2)
+
+            // Tracking bar
+            TrackingBarView(
+                schedBuf: viewModel.trackingScheduledBuffer,
+                effectBuf: viewModel.trackingEffectiveBuffer,
+                hasGPS: viewModel.gpsQuality != .unavailable
+            )
+            .padding(.horizontal, 4)
+
+            // Status
+            Text(viewModel.trackingStatusText)
+                .font(.system(.caption, weight: .semibold))
+                .foregroundStyle(viewModel.trackingStatusColor)
+
+            // Walk info + direction
+            HStack(spacing: 4) {
+                DirectionArrowView(degrees: viewModel.directionToStation)
+
+                Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
+            }
+            .onTapGesture {
+                viewModel.toggleRoutedDistance()
+            }
+
+            // Formation strip
+            if let formation = viewModel.formation {
+                WatchFormationView(formation: formation)
+                    .padding(.top, 1)
+            }
         }
+        .padding(.horizontal, 2)
         .onTapGesture {
             showMap = true
         }

@@ -6,6 +6,7 @@ struct FocusedDeparture {
     let lineNumber: String
     let category: String
     let trainNumber: String?
+    let operatorRef: String?
     var delay: Int
     var platform: String
     var platformChanged: Bool
