@@ -79,6 +79,13 @@ struct PhoneFocusedTrackingView: View {
                         Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+
+                        Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .onTapGesture {
+                        viewModel.toggleRoutedDistance()
                     }
 
                     // Map button

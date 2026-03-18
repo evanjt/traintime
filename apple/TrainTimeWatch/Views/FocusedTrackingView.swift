@@ -75,6 +75,13 @@ struct FocusedTrackingView: View {
                     Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+
+                    Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+                .onTapGesture {
+                    viewModel.toggleRoutedDistance()
                 }
             }
             .padding(.horizontal, 2)

@@ -35,6 +35,7 @@ class PhoneViewModel: ObservableObject {
     @Published var gpsQuality: GPSQuality = .unavailable
     @Published var lastWalkDist: Double = 0
     @Published var lastWalkTime: Double? = nil
+    @Published var useRoutedDistance: Bool = UserDefaults.standard.bool(forKey: "useRoutedDistance")
 
     // MARK: - Watch Connectivity
     let watchService = PhoneWatchService()
@@ -217,7 +218,7 @@ class PhoneViewModel: ObservableObject {
             lastWalkDist = haversine
             lastWalkTime = nil
 
-            if let stationId = station.id {
+            if useRoutedDistance, let stationId = station.id {
                 if let interpolated = routing.interpolate(stationId: stationId, currentHaversine: haversine) {
                     lastWalkDist = interpolated.distance
                     lastWalkTime = interpolated.time
@@ -307,6 +308,11 @@ class PhoneViewModel: ObservableObject {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+    }
+
+    func toggleRoutedDistance() {
+        useRoutedDistance.toggle()
+        UserDefaults.standard.set(useRoutedDistance, forKey: "useRoutedDistance")
     }
 
     func setDefaultMode(_ mode: TransportMode) {
