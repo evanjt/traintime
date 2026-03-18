@@ -34,7 +34,7 @@
 
 | Platform | Status |
 |----------|--------|
-| Apple Watch | Available |
+| [Apple Watch](https://apps.apple.com/ch/app/traintime/id6760388620) | Available |
 | [Garmin](https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb) | Available |
 
 ## Build
