@@ -321,6 +321,10 @@ class TrainTimeView extends WatchUi.View {
             "opRef" => t["opRef"]
         };
         mAppState = 2;
+        // Reformat walk info without station index
+        if (mLastWalkDist != null) {
+            mWalkInfo = formatWalkInfo(mLastWalkDist);
+        }
         mConsecutiveErrors = 0;
         mLastFetchTime = 0;  // Force immediate fetch on tracking entry
         mFormationClasses = null;
@@ -559,7 +563,7 @@ class TrainTimeView extends WatchUi.View {
 
         var info = timeStr + " walk - " + dist + "m";
 
-        if (mStations != null && mStations.size() > 1) {
+        if (mStations != null && mStations.size() > 1 && mAppState != 2) {
             info = info + "  " + (mStationIndex + 1) + "/" + mStations.size();
         }
 

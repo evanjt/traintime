@@ -7,6 +7,28 @@ struct FormationDiagramView: View {
     private let gap: CGFloat = 2
     private let locoWidth: CGFloat = 32
 
+    private struct WagonGroup {
+        let sector: String
+        let wagons: [FormationWagon]
+    }
+
+    private func sectorGroups(_ wagons: [FormationWagon]) -> [WagonGroup] {
+        var groups: [WagonGroup] = []
+        var current = ""
+        var batch: [FormationWagon] = []
+        for w in wagons {
+            if w.sector != current {
+                if !batch.isEmpty { groups.append(WagonGroup(sector: current, wagons: batch)) }
+                current = w.sector
+                batch = [w]
+            } else {
+                batch.append(w)
+            }
+        }
+        if !batch.isEmpty { groups.append(WagonGroup(sector: current, wagons: batch)) }
+        return groups
+    }
+
     var body: some View {
         VStack(spacing: 2) {
             GeometryReader { geo in
@@ -15,19 +37,34 @@ struct FormationDiagramView: View {
                 let carriageWidth = min(56, max(available / n, 20))
 
                 VStack(alignment: .leading, spacing: 3) {
-                    // Train
+                    // Train with sector group boxes
                     HStack(spacing: 0) {
                         // Locomotive
                         LocoView(height: carriageHeight)
 
-                        // Carriages
-                        ForEach(Array(formation.wagons.enumerated()), id: \.offset) { i, wagon in
-                            if i > 0 {
+                        // Carriages grouped by sector
+                        let groups = sectorGroups(formation.wagons)
+                        ForEach(Array(groups.enumerated()), id: \.offset) { gi, group in
+                            if gi > 0 {
                                 Rectangle()
                                     .fill(Color(white: 0.12))
                                     .frame(width: gap, height: carriageHeight * 0.35)
                             }
-                            CarriageCell(wagon: wagon, width: carriageWidth, height: carriageHeight, showFeature: carriageWidth >= 30)
+                            HStack(spacing: 0) {
+                                ForEach(Array(group.wagons.enumerated()), id: \.offset) { wi, wagon in
+                                    if wi > 0 {
+                                        Rectangle()
+                                            .fill(Color(white: 0.12))
+                                            .frame(width: gap, height: carriageHeight * 0.35)
+                                    }
+                                    CarriageCell(wagon: wagon, width: carriageWidth, height: carriageHeight, showFeature: carriageWidth >= 30)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(Color(white: 0.28), lineWidth: 0.5)
+                            )
                         }
                     }
 
@@ -43,7 +80,7 @@ struct FormationDiagramView: View {
                 }
                 .padding(.horizontal, 8)
             }
-            .frame(height: 50)
+            .frame(height: 54)
         }
     }
 }

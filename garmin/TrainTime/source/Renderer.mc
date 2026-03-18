@@ -353,60 +353,91 @@ module Renderer {
 
         if (view.mStationName == null) { return; }
 
-        // Station name (small, secondary)
+        // Station name + clock on same line
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        var stationY = height * 15 / 100;
-        var stationMaxW = DrawUtils.getUsableWidth(stationY + 8, width, height) - 10;
+        var stationY = height * 10 / 100;
+        var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var stationMaxW = DrawUtils.getUsableWidth(stationY + 4, width, height) - 10;
         dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Current wall-clock time (positioned within usable width on round display)
+        // Clock below station name
         var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
         dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-        var clockUsable = DrawUtils.getUsableWidth(stationY + 4, width, height);
+        var clockY = stationY + xtinyH;
+        var clockUsable = DrawUtils.getUsableWidth(clockY + 4, width, height);
         var clockRightEdge = (width + clockUsable) / 2 - 4;
-        dc.drawText(clockRightEdge, stationY, Graphics.FONT_XTINY,
+        dc.drawText(clockRightEdge, clockY, Graphics.FONT_XTINY,
             timeStr, Graphics.TEXT_JUSTIFY_RIGHT);
 
-        // Line + Destination + platform (auto-downsize, highlight platform change)
-        var destY = height * 26 / 100;
+        // Line + Destination (auto-downsize, line number in blue)
+        var destY = height * 18 / 100;
         var line = view.mFocusedTrain["line"];
-        var destStr = "";
+        var dest = view.mFocusedTrain["dest"];
+        var fullStr = "";
         if (line != null && !line.equals("")) {
-            destStr = line + " ";
+            fullStr = line + " ";
         }
-        destStr = destStr + view.mFocusedTrain["dest"];
-        var plat = view.mFocusedTrain["plat"];
-        var platChg = view.mFocusedTrain["platChg"];
+        fullStr = fullStr + dest;
         var destMaxW = DrawUtils.getUsableWidth(destY + 10, width, height) - 10;
         var destFont = Graphics.FONT_SMALL;
-        if (plat != null && !plat.equals("")) {
-            destStr = destStr + "  P" + plat;
+        var fullDims = dc.getTextDimensions(fullStr, destFont);
+        if (fullDims[0] > destMaxW) {
+            destFont = Graphics.FONT_TINY;
         }
-        // Append departure time (HH:mm)
+        // Draw line number (blue) + destination (white) separately
+        if (line != null && !line.equals("")) {
+            var lineStr = line + " ";
+            var lineDims = dc.getTextDimensions(lineStr, destFont);
+            var destDims = dc.getTextDimensions(dest, destFont);
+            var totalW = lineDims[0] + destDims[0];
+            var startTextX = centerX - totalW / 2;
+            dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(startTextX, destY, destFont, lineStr, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(startTextX + lineDims[0], destY, destFont,
+                DrawUtils.truncateToFit(dc, dest, destFont, destMaxW - lineDims[0]),
+                Graphics.TEXT_JUSTIFY_LEFT);
+        } else {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, destY, destFont,
+                DrawUtils.truncateToFit(dc, dest, destFont, destMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Platform + departure time (smaller, below destination)
+        var platY = destY + dc.getFontHeight(destFont) + 1;
+        var plat = view.mFocusedTrain["plat"];
+        var platChg = view.mFocusedTrain["platChg"];
+        var platStr = "";
+        if (plat != null && !plat.equals("")) {
+            platStr = "Pl. " + plat;
+        }
         var depTs = view.mFocusedTrain["depTs"];
         if (depTs != null) {
             var depMoment = new Time.Moment(depTs);
             var depInfo = Time.Gregorian.info(depMoment, Time.FORMAT_SHORT);
-            destStr = destStr + "  " + depInfo.hour.format("%02d") + ":" + depInfo.min.format("%02d");
+            var timeStr2 = depInfo.hour.format("%02d") + ":" + depInfo.min.format("%02d");
+            if (platStr.length() > 0) {
+                platStr = platStr + "  " + timeStr2;
+            } else {
+                platStr = timeStr2;
+            }
         }
-        var destDims = dc.getTextDimensions(destStr, destFont);
-        if (destDims[0] > destMaxW) {
-            destFont = Graphics.FONT_TINY;
-            destStr = DrawUtils.truncateToFit(dc, destStr, destFont, destMaxW);
+        if (platStr.length() > 0) {
+            if (platChg) {
+                dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
+            } else {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            }
+            dc.drawText(centerX, platY, Graphics.FONT_XTINY,
+                platStr, Graphics.TEXT_JUSTIFY_CENTER);
         }
-        if (platChg) {
-            dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
-        } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        }
-        dc.drawText(centerX, destY, destFont,
-            destStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Departure time + delay
-        var minY = height * 40 / 100;
+        // Countdown + delay
+        var minY = platY + dc.getFontHeight(Graphics.FONT_XTINY) + 2;
         var minutesUntil = view.getFocusedMinutesUntil();
         var delay = view.mFocusedTrain["delay"];
         if (delay == null) { delay = 0; }
@@ -444,10 +475,11 @@ module Renderer {
         }
 
         // Tracking bar
-        drawTrackingBar(dc, view, width, height);
+        var barY = minY + dc.getFontHeight(Graphics.FONT_MEDIUM) + 2;
+        drawTrackingBar(dc, view, width, height, barY);
 
         // Status text
-        var statusY = height * 63 / 100;
+        var statusY = barY + 18;
         var walkMin = view.getWalkMinutes();
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -489,7 +521,7 @@ module Renderer {
         // Walk info at bottom
         if (view.mWalkInfo != null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var walkY = height * 76 / 100;
+            var walkY = statusY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
             var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
             dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
@@ -502,14 +534,14 @@ module Renderer {
         }
 
         // Direction arrow (only visible when walking)
-        drawDirectionArrow(dc, view, width, height);
+        drawDirectionArrow(dc, view, width, height, minY);
     }
 
-    function drawTrackingBar(dc, view, width, height) {
+    function drawTrackingBar(dc, view, width, height, passedBarY) {
         var barWidth = width * 60 / 100;
         var halfBar = barWidth / 2;
         var barX = width / 2 - halfBar;
-        var barY = height * 54 / 100;
+        var barY = passedBarY;
         var barH = 14;
         var midX = width / 2;
 
@@ -595,10 +627,10 @@ module Renderer {
         if (count == 0) { return; }
 
         var fontH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var wagonH = fontH - 2;  // tall enough to contain FONT_XTINY
-        var wagonW = 10;
+        var wagonH = fontH;
+        var wagonW = 8;
         var gap = 1;
-        var locoW = 12;
+        var locoW = 6;
 
         // Total width needed
         var totalW = locoW + gap + count * wagonW + (count - 1) * gap;
@@ -622,45 +654,28 @@ module Renderer {
         var startX = (width - totalW) / 2;
         var x = startX;
 
-        // Draw locomotive
+        // Loco space
         if (locoW > 0) {
-            dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
-            var locoPts = new [4];
-            locoPts[0] = [x, formY + wagonH];
-            locoPts[1] = [x + 2, formY];
-            locoPts[2] = [x + locoW, formY];
-            locoPts[3] = [x + locoW, formY + wagonH];
-            dc.fillPolygon(locoPts);
-            dc.setColor(0x777777, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(x, formY + wagonH, x + 2, formY);
-            dc.drawLine(x + 2, formY, x + locoW, formY);
             x = x + locoW + gap;
         }
 
         // Vertical center for text inside wagon
         var textY = formY + (wagonH - fontH) / 2;
+        var wagonStartX = x;
 
-        // Draw wagons
+        // Draw wagon contents (yellow stripes + numbers)
         for (var i = 0; i < count; i++) {
             var cls = view.mFormationClasses[i];
             var num = view.mFormationNumbers[i];
 
-            // Wagon fill
-            dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(x, formY, wagonW, wagonH);
-
-            // Border
-            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-            dc.drawRectangle(x, formY, wagonW, wagonH);
-
             // 1st class: yellow stripe at top
             if (cls == 1) {
-                dc.setColor(0xFFBB00, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(x + 1, formY, wagonW - 2, 2);
+                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(x, formY + 1, wagonW, 3);
             }
 
             // Wagon number inside box (only if wide enough)
-            if (wagonW >= 8 && num > 0) {
+            if (wagonW >= 7 && num > 0) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(x + wagonW / 2, textY, Graphics.FONT_XTINY,
                     num.toString(), Graphics.TEXT_JUSTIFY_CENTER);
@@ -668,6 +683,21 @@ module Renderer {
 
             x = x + wagonW + gap;
         }
+
+        // Single outline around entire train (loco + wagons)
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        var trainEndX = x - gap;
+        // Loco tapered nose on the left
+        if (locoW > 0) {
+            var noseW = locoW / 3;
+            dc.drawLine(startX, formY + wagonH, startX + noseW, formY);
+            dc.drawLine(startX + noseW, formY, trainEndX, formY);
+        } else {
+            dc.drawLine(startX, formY, trainEndX, formY);
+        }
+        // Right side, bottom, left bottom
+        dc.drawLine(trainEndX, formY, trainEndX, formY + wagonH);
+        dc.drawLine(trainEndX, formY + wagonH, startX, formY + wagonH);
 
         // Direction arrow below locomotive
         var lineY = formY + wagonH + 2;
@@ -680,20 +710,20 @@ module Renderer {
         }
 
         // Sector labels below wagons
-        var wagonStartX = startX + (locoW > 0 ? locoW + gap : 0);
+        if (view.mFormationSectors == null) { return; }
 
         // Group consecutive wagons by sector
-        var groupStart = 0;
-        while (groupStart < count) {
-            var sector = view.mFormationSectors[groupStart];
-            var groupEnd = groupStart + 1;
-            while (groupEnd < count && view.mFormationSectors[groupEnd].equals(sector)) {
-                groupEnd = groupEnd + 1;
+        var sectorStart = 0;
+        while (sectorStart < count) {
+            var sector = view.mFormationSectors[sectorStart];
+            var sectorEnd = sectorStart + 1;
+            while (sectorEnd < count && view.mFormationSectors[sectorEnd].equals(sector)) {
+                sectorEnd = sectorEnd + 1;
             }
 
             if (!sector.equals("")) {
-                var gx1 = wagonStartX + groupStart * (wagonW + gap);
-                var gx2 = wagonStartX + groupEnd * (wagonW + gap) - gap;
+                var gx1 = wagonStartX + sectorStart * (wagonW + gap);
+                var gx2 = wagonStartX + sectorEnd * (wagonW + gap) - gap;
                 var gmid = (gx1 + gx2) / 2;
 
                 // Horizontal line spanning sector group
@@ -706,31 +736,32 @@ module Renderer {
                     sector, Graphics.TEXT_JUSTIFY_CENTER);
             }
 
-            groupStart = groupEnd;
+            sectorStart = sectorEnd;
         }
     }
 
-    function drawDirectionArrow(dc, view, width, height) {
-        if (view.mHeading == null || view.mStationLat == null || view.mStationLon == null) {
-            return;
-        }
-        if (view.mLocationInfo == null || view.mLocationInfo.position == null) {
-            return;
-        }
+    function drawDirectionArrow(dc, view, width, height, countdownY) {
+        // Position to the left of the countdown text, vertically centered
+        var minFontH = dc.getFontHeight(Graphics.FONT_MEDIUM);
+        var arrowCx = width * 3 / 14;
+        var arrowCy = countdownY + minFontH / 2;
+        var r = 14.0;
 
-        var coords = view.mLocationInfo.position.toDegrees();
-        var bearing = GeoMath.calculateBearing(coords[0], coords[1], view.mStationLat, view.mStationLon);
-        var angle = bearing - view.mHeading;
+        var hasGps = view.mHeading != null && view.mStationLat != null
+            && view.mStationLon != null && view.mLocationInfo != null
+            && view.mLocationInfo.position != null;
 
-        var arrowCx = width / 2;
-        var arrowCy = height * 89 / 100;
-        var r = 16.0;
+        var angle = 0.0;  // default: pointing up (north)
+        if (hasGps) {
+            var coords = view.mLocationInfo.position.toDegrees();
+            var bearing = GeoMath.calculateBearing(coords[0], coords[1], view.mStationLat, view.mStationLon);
+            angle = bearing - view.mHeading;
+        }
 
         var cosA = Math.cos(angle).toFloat();
         var sinA = Math.sin(angle).toFloat();
 
         // Kite points: tip (0,-r), leftWing (-0.4r, 0.3r), rightWing (0.4r, 0.3r), tail (0, 0.15r)
-        // Rotation: x' = px*cosA - py*sinA, y' = px*sinA + py*cosA
         var tipX = (arrowCx + r * sinA).toNumber();
         var tipY = (arrowCy - r * cosA).toNumber();
         var lwX = (arrowCx - 0.4 * r * cosA - 0.3 * r * sinA).toNumber();
@@ -740,16 +771,16 @@ module Renderer {
         var tailX = (arrowCx - 0.15 * r * sinA).toNumber();
         var tailY = (arrowCy + 0.15 * r * cosA).toNumber();
 
-        // Upper triangle (tip) — blue
-        dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+        // Upper triangle (tip)
+        dc.setColor(hasGps ? 0x55AAFF : 0x555555, Graphics.COLOR_TRANSPARENT);
         var tipPts = new [3];
         tipPts[0] = [tipX, tipY];
         tipPts[1] = [lwX, lwY];
         tipPts[2] = [rwX, rwY];
         dc.fillPolygon(tipPts);
 
-        // Lower triangle (body) — white
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        // Lower triangle (body)
+        dc.setColor(hasGps ? Graphics.COLOR_WHITE : 0x444444, Graphics.COLOR_TRANSPARENT);
         var bodyPts = new [3];
         bodyPts[0] = [lwX, lwY];
         bodyPts[1] = [tailX, tailY];

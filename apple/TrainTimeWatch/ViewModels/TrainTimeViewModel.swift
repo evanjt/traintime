@@ -329,7 +329,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 let minutesLeft = focused.minutesUntil
                 if minutesLeft < -1.0 {
                     HapticService.shortPulse()
-                    enterInactiveState()
+                    exitToStationView()
                     return
                 }
 

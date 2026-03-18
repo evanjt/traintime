@@ -17,7 +17,7 @@ extension TrainTimeViewModel {
         }) else {
             // Train no longer in stationboard → has departed
             HapticService.shortPulse()
-            enterInactiveState()
+            exitToStationView()
             return
         }
 

@@ -238,7 +238,7 @@ class PhoneViewModel: ObservableObject {
                 let minutesLeft = focused.minutesUntil
                 if minutesLeft < -1.0 {
                     PhoneHapticService.shortPulse()
-                    enterInactiveState()
+                    exitToStationView()
                     return
                 }
 
@@ -458,7 +458,7 @@ class PhoneViewModel: ObservableObject {
             abs(Double($1.minutesUntil) - focused.minutesUntil)
         }) else {
             PhoneHapticService.shortPulse()
-            enterInactiveState()
+            exitToStationView()
             return
         }
 
