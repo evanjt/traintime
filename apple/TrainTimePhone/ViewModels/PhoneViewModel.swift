@@ -162,8 +162,8 @@ class PhoneViewModel: ObservableObject {
             return
         }
 
-        // Skip API calls in inactive state (still update GPS above)
-        if appState == 3 { return }
+        // Skip station search in tracking/inactive (still update GPS above)
+        if appState >= 2 { return }
 
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
@@ -197,16 +197,13 @@ class PhoneViewModel: ObservableObject {
             requestStartTime = nil
             if appState == 2 {
                 consecutiveErrors += 1
-                if consecutiveErrors >= Thresholds.consecutiveErrorLimit {
-                    exitToStationView()
-                }
             }
         }
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection (skip in inactive state)
-        if appState != 3,
+        // Movement detection (only in station/selection view)
+        if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
             clearStationState()
@@ -561,11 +558,8 @@ class PhoneViewModel: ObservableObject {
 
     private func handleError(_ error: Error, context: String) {
         if appState == 2 {
+            // In tracking mode: keep existing data, continue countdown
             consecutiveErrors += 1
-            if consecutiveErrors >= Thresholds.consecutiveErrorLimit {
-                exitToStationView()
-                status = "Connection lost"
-            }
             return
         }
 

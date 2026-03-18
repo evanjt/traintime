@@ -611,8 +611,8 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
-        // Skip API calls in inactive state (still update GPS position above)
-        if (mAppState == 3) {
+        // Skip station search in tracking/inactive (still update GPS + walk distance)
+        if (mAppState >= 2) {
             updateWalkDistance();
             WatchUi.requestUpdate();
             return;

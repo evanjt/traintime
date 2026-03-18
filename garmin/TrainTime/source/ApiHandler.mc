@@ -211,13 +211,9 @@ module ApiHandler {
             view.updateFocusedTrain();
         } else {
             if (view.mAppState == 2) {
-                // Tolerate transient errors in tracking mode
+                // In tracking mode: keep existing data, continue countdown
+                // Delay/platform won't update but depTs-based countdown still works
                 view.mConsecutiveErrors = view.mConsecutiveErrors + 1;
-                if (view.mConsecutiveErrors >= 3) {
-                    view.mTrainData = null;
-                    view.mStatus = decodeError(responseCode);
-                    view.exitToStationView();
-                }
             } else {
                 view.mStatus = decodeError(responseCode);
                 view.mTrainData = null;

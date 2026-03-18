@@ -235,8 +235,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
-        // Skip API calls in inactive state (still update GPS above)
-        if appState == 3 { return }
+        // Skip station search in tracking/inactive (still update GPS above)
+        if appState >= 2 { return }
 
         // If loaded from stale cache and now have a live GPS fix, re-search
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
@@ -271,16 +271,13 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             requestStartTime = nil
             if appState == 2 {
                 consecutiveErrors += 1
-                if consecutiveErrors >= Thresholds.consecutiveErrorLimit {
-                    exitToStationView()
-                }
             }
         }
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection (skip in inactive state)
-        if appState != 3,
+        // Movement detection (only in station/selection view)
+        if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
             clearStationState()
@@ -482,13 +479,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     private func handleError(_ error: Error, context: String) {
         if appState == 2 {
-            // In tracking mode: tolerate errors with stale data
+            // In tracking mode: keep existing data, continue countdown
             consecutiveErrors += 1
-            if consecutiveErrors >= Thresholds.consecutiveErrorLimit {
-                exitToStationView()
-                status = "Connection lost"
-            }
-            // Keep stale data for < 3 errors
             return
         }
 

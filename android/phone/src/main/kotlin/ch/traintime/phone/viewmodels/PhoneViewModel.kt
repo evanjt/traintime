@@ -217,8 +217,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Skip API calls in inactive state (still update GPS above)
-        if (appState == 3) return
+        // Skip station search in tracking/inactive (still update GPS above)
+        if (appState >= 2) return
 
         // When transitioning from cached to live GPS, re-fetch if moved
         if (loadedFromCache && (gpsQuality == GPSQuality.GOOD || gpsQuality == GPSQuality.POOR)) {
@@ -254,19 +254,16 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
                 requestStartTime = null
                 if (appState == 2) {
                     consecutiveErrors++
-                    if (consecutiveErrors >= Thresholds.CONSECUTIVE_ERROR_LIMIT) {
-                        exitToStationView()
-                    }
                 }
             }
         }
 
         if (location == null) return
 
-        // Movement detection (skip in inactive state)
+        // Movement detection (only in station/selection view)
         val lastLat = lastSearchLat
         val lastLon = lastSearchLon
-        if (appState != 3 && lastLat != null && lastLon != null &&
+        if (appState <= 1 && lastLat != null && lastLon != null &&
             GeoUtils.hasMovedSignificantly(lastLat, lastLon, location.latitude, location.longitude)) {
             clearStationState()
             fetchStations(location.latitude, location.longitude)
@@ -531,11 +528,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun handleError(error: Exception, context: String) {
         if (appState == 2) {
+            // In tracking mode: keep existing data, continue countdown
             consecutiveErrors++
-            if (consecutiveErrors >= Thresholds.CONSECUTIVE_ERROR_LIMIT) {
-                exitToStationView()
-                status = "Connection lost"
-            }
             return
         }
 
