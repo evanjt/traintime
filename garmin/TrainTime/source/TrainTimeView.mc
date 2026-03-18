@@ -44,6 +44,7 @@ class TrainTimeView extends WatchUi.View {
     var mScrollOffset;  // first visible row index for scrolling in State 1
     var mMapActive;  // true when MapTrackView is pushed
     var mLastInteractionTime;
+    var mFormationSummary;  // e.g. "1st:A,B | 2nd:C,D"
 
     function initialize() {
         View.initialize();
@@ -86,6 +87,7 @@ class TrainTimeView extends WatchUi.View {
         mScrollOffset = 0;
         mMapActive = false;
         mLastInteractionTime = 0;
+        mFormationSummary = null;
     }
 
     function onLayout(dc) {
@@ -309,11 +311,23 @@ class TrainTimeView extends WatchUi.View {
             "delay" => t["delay"],
             "plat" => t["plat"],
             "platChg" => t["platChg"],
-            "line" => t["line"]
+            "line" => t["line"],
+            "cat" => t["cat"],
+            "trainNum" => t["trainNum"],
+            "opRef" => t["opRef"]
         };
         mAppState = 2;
         mConsecutiveErrors = 0;
         mLastFetchTime = 0;  // Force immediate fetch on tracking entry
+        mFormationSummary = null;
+
+        // Fetch formation for rail departures
+        var trainNum = t["trainNum"];
+        var cat = t["cat"];
+        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
+            ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
+        }
+
         // Faster timer for tracking mode (1s for seconds-precision countdown)
         if (mTimer != null) {
             mTimer.stop();
@@ -321,6 +335,16 @@ class TrainTimeView extends WatchUi.View {
         }
         Haptics.vibrateShort();
         WatchUi.requestUpdate();
+    }
+
+    function isRailCategory(cat) {
+        return cat.equals("IR") || cat.equals("IC") || cat.equals("EC") || cat.equals("ICE")
+            || cat.equals("TGV") || cat.equals("RJX") || cat.equals("RE") || cat.equals("R")
+            || cat.equals("S") || cat.equals("PE") || cat.equals("NJ") || cat.equals("EN");
+    }
+
+    function onFormationReceived(responseCode, data) {
+        ApiHandler.handleFormationResponse(self, responseCode, data);
     }
 
     function exitToStationView() {
@@ -333,6 +357,7 @@ class TrainTimeView extends WatchUi.View {
         mCursorIndex = 0;
         mScrollOffset = 0;
         mFocusedTrain = null;
+        mFormationSummary = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -349,6 +374,7 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 3;
         mFocusedTrain = null;
+        mFormationSummary = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {

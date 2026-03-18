@@ -489,6 +489,16 @@ module Renderer {
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
+        // Formation summary (between walk info and direction arrow)
+        if (view.mFormationSummary != null) {
+            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+            var formY = height * 87 / 100;
+            var formMaxW = DrawUtils.getUsableWidth(formY + 6, width, height) - 10;
+            dc.drawText(centerX, formY, Graphics.FONT_XTINY,
+                DrawUtils.truncateToFit(dc, view.mFormationSummary, Graphics.FONT_XTINY, formMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
         // Direction arrow (only visible when walking)
         drawDirectionArrow(dc, view, width, height);
     }

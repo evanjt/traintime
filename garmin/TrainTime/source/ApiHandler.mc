@@ -167,6 +167,9 @@ module ApiHandler {
                 delay = dep["delay"];
             }
 
+            var trainNumber = (dep.hasKey("trainNumber") && dep["trainNumber"] != null) ? dep["trainNumber"].toString() : null;
+            var operatorRef = (dep.hasKey("operatorRef") && dep["operatorRef"] != null) ? dep["operatorRef"].toString() : null;
+
             result.add({
                 "min" => minutesUntil,
                 "depTs" => depTs,
@@ -174,10 +177,89 @@ module ApiHandler {
                 "plat" => platform,
                 "platChg" => platformChanged,
                 "dest" => destination,
-                "line" => lineNumber
+                "line" => lineNumber,
+                "cat" => category,
+                "trainNum" => trainNumber,
+                "opRef" => operatorRef
             });
         }
         return result;
+    }
+
+    function fetchFormation(view, trainNumber, stationId, operatorRef) {
+        // Format today's date as YYYY-MM-DD
+        var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var date = now.year + "-" + now.month.format("%02d") + "-" + now.day.format("%02d");
+
+        var url = "https://api.traintime.ch/v1/formation"
+            + "?train=" + trainNumber
+            + "&date=" + date
+            + "&stop=" + stationId;
+        if (operatorRef != null) {
+            url = url + "&operatorRef=" + operatorRef;
+        }
+
+        var params = {
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => { "X-API-Key" => Secrets.API_KEY }
+        };
+
+        Communications.makeWebRequest(url, null, params, view.method(:onFormationReceived));
+    }
+
+    function handleFormationResponse(view, responseCode, data) {
+        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) {
+            view.mFormationSummary = null;
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        var wagons = data["wagons"];
+        if (wagons == null || wagons.size() == 0) {
+            view.mFormationSummary = null;
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        // Build summary: "1st: A,B | 2nd: C,D" (sectors per class)
+        var first = {};
+        var second = {};
+        for (var i = 0; i < wagons.size(); i++) {
+            var w = wagons[i];
+            var cls = w.hasKey("class") ? w["class"] : 2;
+            var sector = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
+            if (sector.equals("")) { continue; }
+            if (cls == 1) {
+                first[sector] = true;
+            } else {
+                second[sector] = true;
+            }
+        }
+
+        var summary = "";
+        if (first.size() > 0) {
+            var sectors = first.keys();
+            summary = "1st:";
+            for (var i = 0; i < sectors.size(); i++) {
+                summary = summary + sectors[i];
+            }
+        }
+        if (second.size() > 0) {
+            var sectors = second.keys();
+            if (!summary.equals("")) { summary = summary + " | "; }
+            summary = summary + "2nd:";
+            for (var i = 0; i < sectors.size(); i++) {
+                summary = summary + sectors[i];
+            }
+        }
+
+        if (!summary.equals("")) {
+            view.mFormationSummary = summary;
+        } else {
+            view.mFormationSummary = null;
+        }
+
+        WatchUi.requestUpdate();
     }
 
     function handleDeparturesResponse(view, responseCode, data) {
