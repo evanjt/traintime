@@ -11,10 +11,8 @@ struct WatchFormationView: View {
         VStack(spacing: 1) {
             // Train
             HStack(spacing: 0) {
-                // Direction nose
-                WatchNoseShape()
-                    .fill(Color(white: 0.22))
-                    .frame(width: 6, height: carriageHeight)
+                // Locomotive
+                WatchLocoView(height: carriageHeight)
 
                 // Carriages
                 ForEach(Array(formation.wagons.enumerated()), id: \.offset) { i, wagon in
@@ -48,9 +46,10 @@ struct WatchFormationView: View {
 
                         // Car number
                         Text("\(wagon.number)")
-                            .font(.system(size: 7, weight: .medium, design: .rounded))
+                            .font(.system(size: 9, weight: .semibold, design: .rounded))
                             .foregroundColor(Color(white: 0.55))
-                            .offset(y: 1)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
                     }
                 }
             }
@@ -61,7 +60,7 @@ struct WatchFormationView: View {
                     groups: sectorGroups,
                     carriageWidth: carriageWidth,
                     gap: gap,
-                    noseWidth: 6
+                    noseWidth: 22
                 )
             }
         }
@@ -127,17 +126,64 @@ private struct WatchSectorLabels: View {
     }
 }
 
-private struct WatchNoseShape: Shape {
+private struct WatchLocoView: View {
+    let height: CGFloat
+    private let width: CGFloat = 22
+
+    var body: some View {
+        ZStack {
+            WatchLocoShape()
+                .fill(Color(white: 0.18))
+                .frame(width: width, height: height)
+
+            WatchLocoShape()
+                .stroke(Color(white: 0.32), lineWidth: 0.5)
+                .frame(width: width, height: height)
+
+            // Headlight at nose tip
+            Circle()
+                .fill(Color.white.opacity(0.18))
+                .frame(width: 1.5, height: 1.5)
+                .offset(x: -width / 2 + 2, y: height / 2 - 3)
+        }
+    }
+}
+
+private struct WatchLocoShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let r: CGFloat = 2
-        path.move(to: CGPoint(x: 1, y: rect.midY))
+        let r: CGFloat = 1.5
+        let h = rect.height
+        let w = rect.width
+
+        // ETR 610 nose: tip at bottom, dramatic S-curve up
+
+        // Bottom-right
+        path.move(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY),
+                          control: CGPoint(x: rect.maxX, y: rect.maxY))
+
+        // Flat bottom to nose tip
+        path.addLine(to: CGPoint(x: rect.minX + 0.5, y: rect.maxY))
+
+        // Nose tip
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.maxY - 1.5),
+            control: CGPoint(x: rect.minX - 0.3, y: rect.maxY)
+        )
+
+        // Dramatic S-curve sweep
+        path.addCurve(
+            to: CGPoint(x: rect.minX + w * 0.7, y: rect.minY),
+            control1: CGPoint(x: rect.minX + w * 0.05, y: h * 0.15),
+            control2: CGPoint(x: rect.minX + w * 0.35, y: rect.minY)
+        )
+
+        // Roof to top-right
         path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
         path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + r),
                           control: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY),
-                          control: CGPoint(x: rect.maxX, y: rect.maxY))
+
         path.closeSubpath()
         return path
     }

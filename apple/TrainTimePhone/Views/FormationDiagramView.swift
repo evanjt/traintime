@@ -4,7 +4,7 @@ struct FormationDiagramView: View {
     let formation: Formation
 
     private let carriageWidth: CGFloat = 56
-    private let carriageHeight: CGFloat = 26
+    private let carriageHeight: CGFloat = 30
     private let gap: CGFloat = 2
 
     var body: some View {
@@ -33,7 +33,7 @@ struct FormationDiagramView: View {
                             wagons: formation.wagons,
                             carriageWidth: carriageWidth,
                             gap: gap,
-                            locoOffset: 30
+                            locoOffset: 70
                         )
                     }
                 }
@@ -47,7 +47,7 @@ struct FormationDiagramView: View {
 
 private struct LocoView: View {
     let height: CGFloat
-    private let width: CGFloat = 30
+    private let width: CGFloat = 70
 
     var body: some View {
         ZStack {
@@ -58,20 +58,20 @@ private struct LocoView: View {
 
             // Outline
             LocoShape()
-                .stroke(Color(white: 0.30), lineWidth: 0.5)
+                .stroke(Color(white: 0.32), lineWidth: 0.5)
                 .frame(width: width, height: height)
 
-            // Windshield
+            // Windshield (in the upper curve area)
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color.white.opacity(0.08))
-                .frame(width: 6, height: height * 0.45)
-                .offset(x: -width / 2 + 10)
+                .fill(Color.white.opacity(0.09))
+                .frame(width: 10, height: height * 0.38)
+                .offset(x: -width * 0.08, y: -height * 0.12)
 
-            // Direction chevron
-            Image(systemName: "chevron.left")
-                .font(.system(size: 7, weight: .semibold))
-                .foregroundColor(Color(white: 0.45))
-                .offset(x: -width / 2 + 5)
+            // Headlight at nose tip (bottom-left)
+            Circle()
+                .fill(Color.white.opacity(0.20))
+                .frame(width: 3, height: 3)
+                .offset(x: -width / 2 + 5, y: height / 2 - 5)
         }
     }
 }
@@ -80,27 +80,42 @@ private struct LocoShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let r: CGFloat = 3
-        let noseR: CGFloat = 8
+        let h = rect.height
+        let w = rect.width
 
-        // Start top-right
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY + r))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.minY),
-                          control: CGPoint(x: rect.maxX, y: rect.minY))
+        // ETR 610 Pendolino nose profile:
+        // - Nose tip at bottom-left, very low (near rail)
+        // - Dramatic upward sweep — steep S-curve to windshield
+        // - Windshield high and raked back
+        // - Roofline about 70% back from nose tip
 
-        // Top edge to nose taper
-        path.addLine(to: CGPoint(x: rect.minX + noseR, y: rect.minY))
+        // Start bottom-right
+        path.move(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY),
+                          control: CGPoint(x: rect.maxX, y: rect.maxY))
 
-        // Smooth nose curve (top to tip to bottom)
-        path.addCurve(
-            to: CGPoint(x: rect.minX + noseR, y: rect.maxY),
-            control1: CGPoint(x: rect.minX - 2, y: rect.minY + 2),
-            control2: CGPoint(x: rect.minX - 2, y: rect.maxY - 2)
+        // Bottom edge — flat to nose tip
+        path.addLine(to: CGPoint(x: rect.minX + 1, y: rect.maxY))
+
+        // Nose tip — sharp rounded point at bottom
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.maxY - 2),
+            control: CGPoint(x: rect.minX - 0.5, y: rect.maxY)
         )
 
-        // Bottom edge
-        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.maxY))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY - r),
-                          control: CGPoint(x: rect.maxX, y: rect.maxY))
+        // Dramatic S-curve sweep from nose tip up to roofline
+        // First: steep upward from the nose (concave section)
+        // Then: eases into the roofline (convex section)
+        path.addCurve(
+            to: CGPoint(x: rect.minX + w * 0.7, y: rect.minY),
+            control1: CGPoint(x: rect.minX + w * 0.05, y: h * 0.15),
+            control2: CGPoint(x: rect.minX + w * 0.35, y: rect.minY)
+        )
+
+        // Roof to top-right
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + r),
+                          control: CGPoint(x: rect.maxX, y: rect.minY))
 
         path.closeSubpath()
         return path
