@@ -135,8 +135,19 @@ platform :ios do
         sh("/usr/libexec/PlistBuddy", "-c", "Add :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:#{i} string #{name}", watch_plist)
       end
 
-      # Re-sign the watch app after modification
+      # Re-sign everything inside-out after modification
+      # 1. Watch app (modified)
       sh("codesign", "--force", "--sign", "Apple Distribution", "--preserve-metadata=identifier,entitlements", watch_app)
+
+      # 2. Widget extension (unchanged but parent sig is invalidated)
+      widget_ext = Dir["#{patch_dir}/Payload/*.app/PlugIns/*.appex"].first
+      if widget_ext
+        sh("codesign", "--force", "--sign", "Apple Distribution", "--preserve-metadata=identifier,entitlements", widget_ext)
+      end
+
+      # 3. Parent iOS app
+      ios_app = Dir["#{patch_dir}/Payload/*.app"].first
+      sh("codesign", "--force", "--sign", "Apple Distribution", "--preserve-metadata=identifier,entitlements", ios_app) if ios_app
 
       # Re-create IPA
       FileUtils.rm(ipa_path)
