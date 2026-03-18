@@ -16,9 +16,21 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/apple/01-station-view.png" width="180" alt="Station departures" />&nbsp;&nbsp;
-  <img src="docs/screenshots/apple/02-focused-tracking.png" width="180" alt="Focused tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/apple/03-station-picker.png" width="180" alt="Station picker" />
+  <img src="docs/screenshots/apple/01-station-view.png" width="180" alt="Watch station departures" />&nbsp;&nbsp;
+  <img src="docs/screenshots/apple/02-focused-tracking.png" width="180" alt="Watch focused tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/apple/03-station-picker.png" width="180" alt="Watch station picker" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/iphone/01-station-view.png" width="140" alt="iPhone departure list" />&nbsp;&nbsp;
+  <img src="docs/screenshots/iphone/02-focused-tracking.png" width="140" alt="iPhone focused tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/iphone/03-station-picker.png" width="140" alt="iPhone station picker" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/garmin/01-station-view-framed.png" width="160" alt="Garmin station departures" />&nbsp;&nbsp;
+  <img src="docs/screenshots/garmin/03-focused-tracking-framed.png" width="160" alt="Garmin focused tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/garmin/04-station-picker-framed.png" width="160" alt="Garmin station picker" />
 </p>
 
 ---
@@ -34,7 +46,7 @@
 
 | Platform | Status |
 |----------|--------|
-| [Apple Watch](https://apps.apple.com/ch/app/traintime/id6760388620) | Available |
+| [Apple Watch & iPhone](https://apps.apple.com/ch/app/traintime/id6760388620) | Available |
 | [Garmin](https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb) | Available |
 
 ## Build

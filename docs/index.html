@@ -351,6 +351,12 @@
         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.3));
       }
 
+      .watch-device.iphone img {
+        width: 160px;
+        display: block;
+        filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
+      }
+
       .watch-label {
         margin-top: 16px;
         font-size: 13px;
@@ -600,6 +606,10 @@
           width: 160px;
         }
 
+        .watch-device.iphone img {
+          width: 130px;
+        }
+
         .features {
           padding: 60px 20px 80px;
         }
@@ -648,6 +658,10 @@
         .watch-device.garmin img {
           width: 130px;
         }
+
+        .watch-device.iphone img {
+          width: 100px;
+        }
       }
     </style>
   </head>
@@ -686,6 +700,7 @@
       <div class="gallery-switcher">
         <div class="gallery-toggle" id="gallery-toggle">
           <button class="active" data-platform="apple">Apple Watch</button>
+          <button data-platform="iphone">iPhone</button>
           <button data-platform="garmin">Garmin</button>
         </div>
       </div>
@@ -702,6 +717,22 @@
             </div>
             <div class="watch-device">
               <div class="watch-img-wrap"><img src="screenshots/apple/03-station-picker.png" alt="Station picker showing nearby stations with walk times" /></div>
+              <div class="watch-label">Stations</div>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-band hidden" id="band-iphone">
+          <div class="gallery-track">
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/01-station-view.png" alt="iPhone departure list showing trains from Sion" /></div>
+              <div class="watch-label">Departures</div>
+            </div>
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/02-focused-tracking.png" alt="iPhone focused tracking with formation diagram" /></div>
+              <div class="watch-label">Tracking</div>
+            </div>
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/03-station-picker.png" alt="iPhone station picker showing nearby stations" /></div>
               <div class="watch-label">Stations</div>
             </div>
           </div>
@@ -779,7 +810,7 @@
 
     <section class="platforms" id="platforms">
       <div class="platforms-label">PLATFORMS</div>
-      <h2 class="platforms-title">ON YOUR WRIST</h2>
+      <h2 class="platforms-title">ON YOUR WRIST &amp; IN YOUR POCKET</h2>
       <div class="platform-cards">
         <a class="platform-card" href="https://apps.apple.com/ch/app/traintime/id6760388620" target="_blank" style="text-decoration: none; color: inherit;">
           <div class="platform-icon">
@@ -790,7 +821,7 @@
               <rect x="18" y="1" width="12" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
             </svg>
           </div>
-          <div class="platform-name">Apple Watch</div>
+          <div class="platform-name">Apple Watch &amp; iPhone</div>
           <div class="platform-status available">Available now</div>
         </a>
         <a class="platform-card" href="https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb" target="_blank" style="text-decoration: none; color: inherit;">
@@ -837,7 +868,7 @@
         });
 
         // Gallery platform switcher
-        var platforms = ['apple', 'garmin'];
+        var platforms = ['apple', 'iphone', 'garmin'];
         var current = 0;
         var switching = false;
         var autoTimer = null;
