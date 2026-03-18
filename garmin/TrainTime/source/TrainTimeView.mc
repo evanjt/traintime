@@ -44,7 +44,9 @@ class TrainTimeView extends WatchUi.View {
     var mScrollOffset;  // first visible row index for scrolling in State 1
     var mMapActive;  // true when MapTrackView is pushed
     var mLastInteractionTime;
-    var mFormationSummary;  // e.g. "1st:A,B | 2nd:C,D"
+    var mFormationClasses;  // Array of Number (1 or 2) per wagon
+    var mFormationNumbers;  // Array of Number (wagon numbers)
+    var mFormationSectors;  // Array of String (sector letters)
 
     function initialize() {
         View.initialize();
@@ -87,7 +89,9 @@ class TrainTimeView extends WatchUi.View {
         mScrollOffset = 0;
         mMapActive = false;
         mLastInteractionTime = 0;
-        mFormationSummary = null;
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
     }
 
     function onLayout(dc) {
@@ -319,7 +323,9 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 2;
         mConsecutiveErrors = 0;
         mLastFetchTime = 0;  // Force immediate fetch on tracking entry
-        mFormationSummary = null;
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
 
         // Fetch formation for rail departures
         var trainNum = t["trainNum"];
@@ -357,7 +363,9 @@ class TrainTimeView extends WatchUi.View {
         mCursorIndex = 0;
         mScrollOffset = 0;
         mFocusedTrain = null;
-        mFormationSummary = null;
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -374,7 +382,9 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 3;
         mFocusedTrain = null;
-        mFormationSummary = null;
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {

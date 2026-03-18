@@ -209,56 +209,35 @@ module ApiHandler {
 
     function handleFormationResponse(view, responseCode, data) {
         if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) {
-            view.mFormationSummary = null;
+            view.mFormationClasses = null;
+            view.mFormationNumbers = null;
+            view.mFormationSectors = null;
             WatchUi.requestUpdate();
             return;
         }
 
         var wagons = data["wagons"];
         if (wagons == null || wagons.size() == 0) {
-            view.mFormationSummary = null;
+            view.mFormationClasses = null;
+            view.mFormationNumbers = null;
+            view.mFormationSectors = null;
             WatchUi.requestUpdate();
             return;
         }
 
-        // Build summary: "1st: A,B | 2nd: C,D" (sectors per class)
-        var first = {};
-        var second = {};
+        var classes = new [wagons.size()];
+        var numbers = new [wagons.size()];
+        var sectors = new [wagons.size()];
         for (var i = 0; i < wagons.size(); i++) {
             var w = wagons[i];
-            var cls = w.hasKey("class") ? w["class"] : 2;
-            var sector = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
-            if (sector.equals("")) { continue; }
-            if (cls == 1) {
-                first[sector] = true;
-            } else {
-                second[sector] = true;
-            }
+            classes[i] = w.hasKey("class") ? w["class"] : 2;
+            numbers[i] = (w.hasKey("number") && w["number"] != null) ? w["number"] : 0;
+            sectors[i] = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
         }
 
-        var summary = "";
-        if (first.size() > 0) {
-            var sectors = first.keys();
-            summary = "1st:";
-            for (var i = 0; i < sectors.size(); i++) {
-                summary = summary + sectors[i];
-            }
-        }
-        if (second.size() > 0) {
-            var sectors = second.keys();
-            if (!summary.equals("")) { summary = summary + " | "; }
-            summary = summary + "2nd:";
-            for (var i = 0; i < sectors.size(); i++) {
-                summary = summary + sectors[i];
-            }
-        }
-
-        if (!summary.equals("")) {
-            view.mFormationSummary = summary;
-        } else {
-            view.mFormationSummary = null;
-        }
-
+        view.mFormationClasses = classes;
+        view.mFormationNumbers = numbers;
+        view.mFormationSectors = sectors;
         WatchUi.requestUpdate();
     }
 

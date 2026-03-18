@@ -44,6 +44,7 @@ struct ContentView: View {
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
         .onChange(of: scenePhase) { _, phase in
+            viewModel.isInForeground = (phase == .active)
             if phase == .active {
                 viewModel.onAppear()
             } else {

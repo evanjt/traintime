@@ -32,14 +32,17 @@ class WatchConnectivityService: NSObject, WCSessionDelegate {
     }
 
     func sendMessage(_ data: [String: Any], completion: @escaping (Bool) -> Void) {
-        guard let session = session, session.isReachable else {
+        guard let session = session else {
             completion(false)
             return
         }
+
+        // Always try sendMessage first — from iOS, this wakes the watch extension
+        // in the background even if isReachable is false
         session.sendMessage(data, replyHandler: { _ in
             completion(true)
         }, errorHandler: { _ in
-            // Fall back to transferUserInfo for background delivery
+            // Fall back to transferUserInfo for queued delivery
             session.transferUserInfo(data)
             completion(true)
         })

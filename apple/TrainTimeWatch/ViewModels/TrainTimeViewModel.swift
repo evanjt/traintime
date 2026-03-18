@@ -3,6 +3,7 @@ import CoreLocation
 import Combine
 import WatchKit
 import WatchConnectivity
+import UserNotifications
 
 class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Services
@@ -52,6 +53,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private var tickCount: Int = 0
     private var loadedFromCache = false
     var lastInteractionTime: Date = Date()
+    var isInForeground = false
 
     // MARK: - Computed
 
@@ -127,6 +129,12 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         replyHandler(["status": "ok"])
     }
 
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { [weak self] in
+            self?.handlePhoneMessage(userInfo)
+        }
+    }
+
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         DispatchQueue.main.async { [weak self] in
             if let modeRaw = applicationContext["defaultMode"] as? Int,
@@ -178,6 +186,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         lastFetchTime = .distantPast
         formation = nil
 
+        // Persist pending track command so it survives app restart
+        UserDefaults.standard.set(data, forKey: "pendingTrackCommand")
+
         // Fetch formation for rail departures
         if let tn = trainNumber, Formation.isRailCategory(category),
            let stId = data["stId"] as? String {
@@ -190,6 +201,22 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         startTimer(interval: Timing.trackingRefreshInterval)
         startExtendedSession()
         HapticService.shortPulse()
+
+        // If app isn't in foreground, post a notification so user can tap to open
+        if !isInForeground {
+            scheduleTrackNotification(destination: dest)
+        }
+    }
+
+    private func scheduleTrackNotification(destination: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "TrainTime"
+        content.body = "Now tracking → \(destination)"
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: "trackCommand", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
     }
 
     // MARK: - Lifecycle
@@ -197,6 +224,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func onAppear() {
         lastInteractionTime = Date()
         location.start()
+
+        // Restore pending track command from background delivery
+        if appState != 2, let pending = UserDefaults.standard.dictionary(forKey: "pendingTrackCommand") {
+            UserDefaults.standard.removeObject(forKey: "pendingTrackCommand")
+            handlePhoneMessage(pending)
+            return
+        }
+
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
     }
 
@@ -444,6 +479,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
+        UserDefaults.standard.removeObject(forKey: "pendingTrackCommand")
 
         // Restore normal timer
         startTimer(interval: Timing.normalRefreshInterval)

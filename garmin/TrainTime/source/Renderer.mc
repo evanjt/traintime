@@ -440,7 +440,7 @@ module Renderer {
         drawTrackingBar(dc, view, width, height);
 
         // Status text
-        var statusY = height * 66 / 100;
+        var statusY = height * 63 / 100;
         var walkMin = view.getWalkMinutes();
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -482,21 +482,16 @@ module Renderer {
         // Walk info at bottom
         if (view.mWalkInfo != null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var walkY = height * 80 / 100;
+            var walkY = height * 76 / 100;
             var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
             dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Formation summary (between walk info and direction arrow)
-        if (view.mFormationSummary != null) {
-            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-            var formY = height * 87 / 100;
-            var formMaxW = DrawUtils.getUsableWidth(formY + 6, width, height) - 10;
-            dc.drawText(centerX, formY, Graphics.FONT_XTINY,
-                DrawUtils.truncateToFit(dc, view.mFormationSummary, Graphics.FONT_XTINY, formMaxW),
-                Graphics.TEXT_JUSTIFY_CENTER);
+        // Visual formation diagram
+        if (view.mFormationClasses != null) {
+            drawFormation(dc, view, width, height);
         }
 
         // Direction arrow (only visible when walking)
@@ -586,6 +581,118 @@ module Renderer {
         // Midpoint marker
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+    }
+
+    function drawFormation(dc, view, width, height) {
+        var count = view.mFormationClasses.size();
+        if (count == 0) { return; }
+
+        var fontH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var wagonH = fontH - 2;  // tall enough to contain FONT_XTINY
+        var wagonW = 10;
+        var gap = 1;
+        var locoW = 12;
+
+        // Total width needed
+        var totalW = locoW + gap + count * wagonW + (count - 1) * gap;
+
+        // Available width at the formation Y position
+        var formY = height * 82 / 100;
+        var usable = DrawUtils.getUsableWidth(formY + wagonH / 2, width, height) - 10;
+
+        // Scale down wagon width if formation doesn't fit
+        if (totalW > usable) {
+            wagonW = (usable - locoW - gap - (count - 1) * gap) / count;
+            if (wagonW < 4) {
+                // Too many wagons even at min size — drop locomotive
+                locoW = 0;
+                wagonW = (usable - (count - 1) * gap) / count;
+                if (wagonW < 3) { wagonW = 3; }
+            }
+            totalW = locoW + (locoW > 0 ? gap : 0) + count * wagonW + (count - 1) * gap;
+        }
+
+        var startX = (width - totalW) / 2;
+        var x = startX;
+
+        // Draw locomotive
+        if (locoW > 0) {
+            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            var locoPts = new [4];
+            locoPts[0] = [x, formY + wagonH];
+            locoPts[1] = [x + 2, formY];
+            locoPts[2] = [x + locoW, formY];
+            locoPts[3] = [x + locoW, formY + wagonH];
+            dc.fillPolygon(locoPts);
+            dc.setColor(0x777777, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(x, formY + wagonH, x + 2, formY);
+            dc.drawLine(x + 2, formY, x + locoW, formY);
+            x = x + locoW + gap;
+        }
+
+        // Vertical center for text inside wagon
+        var textY = formY + (wagonH - fontH) / 2;
+
+        // Draw wagons
+        for (var i = 0; i < count; i++) {
+            var cls = view.mFormationClasses[i];
+            var num = view.mFormationNumbers[i];
+
+            // Wagon fill
+            dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x, formY, wagonW, wagonH);
+
+            // Border
+            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            dc.drawRectangle(x, formY, wagonW, wagonH);
+
+            // 1st class: yellow stripe at top
+            if (cls == 1) {
+                dc.setColor(0xFFBB00, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(x + 1, formY, wagonW - 2, 2);
+            }
+
+            // Wagon number inside box (only if wide enough)
+            if (wagonW >= 8 && num > 0) {
+                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(x + wagonW / 2, textY, Graphics.FONT_XTINY,
+                    num.toString(), Graphics.TEXT_JUSTIFY_CENTER);
+            }
+
+            x = x + wagonW + gap;
+        }
+
+        // Sector labels below wagons
+        var lineY = formY + wagonH + 2;
+        var sectorTextY = lineY + 1;
+        var wagonStartX = startX + (locoW > 0 ? locoW + gap : 0);
+
+        // Group consecutive wagons by sector
+        var groupStart = 0;
+        while (groupStart < count) {
+            var sector = view.mFormationSectors[groupStart];
+            var groupEnd = groupStart + 1;
+            while (groupEnd < count && view.mFormationSectors[groupEnd].equals(sector)) {
+                groupEnd = groupEnd + 1;
+            }
+
+            if (!sector.equals("")) {
+                var gx1 = wagonStartX + groupStart * (wagonW + gap);
+                var gx2 = wagonStartX + groupEnd * (wagonW + gap) - gap;
+                var gmid = (gx1 + gx2) / 2;
+
+                // Horizontal line spanning sector group
+                dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+                dc.drawLine(gx1, lineY, gx2, lineY);
+
+                // Sector letter centered below line
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(gmid, sectorTextY, Graphics.FONT_XTINY,
+                    sector, Graphics.TEXT_JUSTIFY_CENTER);
+            }
+
+            groupStart = groupEnd;
+        }
     }
 
     function drawDirectionArrow(dc, view, width, height) {
