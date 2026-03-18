@@ -35,6 +35,7 @@
 		A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
 		AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */; };
 		EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */; };
+		999C01A2B3C4D5E6F7081920 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888B01A2B3C4D5E6F7081920 /* SettingsView.swift */; };
 
 		/* === Phone Target === */
 		P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000001 /* TrainTimePhoneApp.swift */; };
@@ -59,6 +60,10 @@
 		P0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
 		P0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
 		P0A10000000000000000010A /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDB27D479A403E916113BF /* RoutingService.swift */; };
+		P0A10000000000000000000D /* PhoneWatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000D /* PhoneWatchService.swift */; };
+		P0A10000000000000000000E /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000E /* WatchConnectivityService.swift */; };
+		P0A10000000000000000000F /* GarminConnectIQService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000F /* GarminConnectIQService.swift */; };
+		P0A100000000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000010 /* SettingsView.swift */; };
 		/* Phone: shared views */
 		P0A10000000000000000010B /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
 		P0A10000000000000000010C /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
@@ -142,6 +147,7 @@
 		B2C3D4E5F678901234567890 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Navigation.swift"; sourceTree = "<group>"; };
 		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
+		888B01A2B3C4D5E6F7081920 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 
 		/* Phone */
 		P0P100000000000000000001 /* TrainTimePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -157,6 +163,10 @@
 		P0F10000000000000000000A /* PhoneStationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationPickerView.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		P0F10000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		P0F10000000000000000000D /* PhoneWatchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchService.swift; sourceTree = "<group>"; };
+		P0F10000000000000000000E /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
+		P0F10000000000000000000F /* GarminConnectIQService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminConnectIQService.swift; sourceTree = "<group>"; };
+		P0F100000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 
 		/* Widget */
 		W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainTimeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -268,6 +278,7 @@
 				111AD546576F819203142536 /* FocusedTrackingView.swift */,
 				333CF7681920314253647580 /* MapView.swift */,
 				555EH0A31425364758697CA3 /* StationPickerView.swift */,
+				888B01A2B3C4D5E6F7081920 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -322,6 +333,7 @@
 				P0F100000000000000000008 /* PhoneDepartureRowView.swift */,
 				P0F100000000000000000009 /* PhoneModePickerView.swift */,
 				P0F10000000000000000000A /* PhoneStationPickerView.swift */,
+				P0F100000000000000000010 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -331,6 +343,9 @@
 			children = (
 				P0F100000000000000000004 /* PhoneLocationService.swift */,
 				P0F100000000000000000005 /* PhoneHapticService.swift */,
+				P0F10000000000000000000D /* PhoneWatchService.swift */,
+				P0F10000000000000000000E /* WatchConnectivityService.swift */,
+				P0F10000000000000000000F /* GarminConnectIQService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -504,6 +519,7 @@
 				A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */,
 				AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */,
 				EEFF01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Tracking.swift in Sources */,
+				999C01A2B3C4D5E6F7081920 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -534,6 +550,10 @@
 				P0A10000000000000000010B /* TrackingBarView.swift in Sources */,
 				P0A10000000000000000010C /* DirectionArrowView.swift in Sources */,
 				P0A10000000000000000010D /* GPSIndicatorView.swift in Sources */,
+				P0A10000000000000000000D /* PhoneWatchService.swift in Sources */,
+				P0A10000000000000000000E /* WatchConnectivityService.swift in Sources */,
+				P0A10000000000000000000F /* GarminConnectIQService.swift in Sources */,
+				P0A100000000000000000010 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
