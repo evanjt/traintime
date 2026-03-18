@@ -20,6 +20,8 @@ import ch.traintime.shared.models.Departure
 import ch.traintime.shared.models.GPSQuality
 import ch.traintime.shared.models.TransportMode
 import ch.traintime.wear.viewmodels.WearViewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SatelliteAlt
 
 @Composable
 fun StationScreen(viewModel: WearViewModel) {
@@ -212,13 +214,10 @@ fun WearModePickerBar(
 
 @Composable
 fun WearGpsIndicator(quality: GPSQuality) {
-    Box(
-        modifier = Modifier
-            .size(8.dp)
-            .padding(1.dp)
-    ) {
-        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(Color(quality.colorInt))
-        }
-    }
+    androidx.wear.compose.material.Icon(
+        imageVector = Icons.Filled.SatelliteAlt,
+        contentDescription = "GPS",
+        tint = Color(quality.colorInt),
+        modifier = Modifier.size(14.dp)
+    )
 }

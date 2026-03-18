@@ -15,11 +15,11 @@ struct PhoneStationView: View {
                 )
                 Spacer()
                 Image(systemName: "location.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 16))
                     .foregroundStyle(viewModel.gpsQuality.color)
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 16))
+                        .font(.system(size: 18))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)

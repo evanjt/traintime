@@ -29,7 +29,7 @@ fun SettingsDialog(viewModel: PhoneViewModel, onDismiss: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                viewModel.setDefaultMode(mode)
+                                viewModel.updateDefaultMode(mode)
                             }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically

@@ -31,7 +31,7 @@ case "$TARGET" in
         ;;
     watch)
         SCHEME="TrainTimeWatch"
-        DEVICE="Apple Watch Ultra 2 (49mm)"
+        DEVICE="Apple Watch Ultra 3 (49mm)"
         PLATFORM="watchOS Simulator"
         APP_NAME="TrainTimeWatch.app"
         APP_SUBDIR="Debug-watchsimulator"
@@ -76,6 +76,7 @@ BOOTED=$(xcrun simctl list devices booted | grep "$DEVICE" || true)
 if [ -z "$BOOTED" ]; then
     echo "Booting $DEVICE..."
     xcrun simctl boot "$DEVICE" 2>/dev/null || true
+    sleep 2
 fi
 
 # Open Simulator.app
@@ -83,7 +84,7 @@ open -a Simulator
 
 # Set location to Sion old town, Switzerland
 echo "Setting location to Sion, Switzerland..."
-xcrun simctl location "$DEVICE" set 46.2325,7.3597
+xcrun simctl location "$DEVICE" set "46.2325,7.3597"
 
 # Install and launch
 echo "Installing and launching..."

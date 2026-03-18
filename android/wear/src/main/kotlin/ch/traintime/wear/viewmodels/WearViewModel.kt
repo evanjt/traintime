@@ -392,7 +392,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application),
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
     }
 
-    fun setDefaultMode(mode: TransportMode) {
+    fun updateDefaultMode(mode: TransportMode) {
         defaultMode = mode
         getApplication<Application>().getSharedPreferences("traintime", Context.MODE_PRIVATE)
             .edit().putInt("defaultMode", mode.ordinal).apply()

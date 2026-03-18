@@ -43,7 +43,7 @@ fun WearSettingsScreen(viewModel: WearViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            viewModel.setDefaultMode(mode)
+                            viewModel.updateDefaultMode(mode)
                             viewModel.showSettings = false
                         }
                         .padding(horizontal = 16.dp, vertical = 10.dp),

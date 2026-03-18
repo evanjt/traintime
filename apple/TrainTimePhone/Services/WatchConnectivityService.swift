@@ -22,10 +22,7 @@ class WatchConnectivityService: NSObject, WCSessionDelegate {
     }
 
     var watchName: String {
-        if #available(iOS 17.0, *) {
-            return session?.companionAppInstalledOnSameDevice == true ? "Apple Watch" : "Apple Watch"
-        }
-        return "Apple Watch"
+        "Apple Watch"
     }
 
     var onApplicationContextReceived: (([String: Any]) -> Void)?

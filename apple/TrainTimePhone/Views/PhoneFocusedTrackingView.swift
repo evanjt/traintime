@@ -17,46 +17,46 @@ struct PhoneFocusedTrackingView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
 
-                    // Destination + platform
+                    // Destination
                     let platChanged = focused?.platformChanged == true
                     HStack(spacing: 6) {
-                        Text(focused.map { $0.lineNumber.isEmpty ? $0.destination : "\($0.lineNumber) \($0.destination)" } ?? "?")
+                        if let f = focused, !f.lineNumber.isEmpty {
+                            Text(f.lineNumber)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(AppColors.platform)
+                        }
+                        Text(focused?.destination ?? "?")
                             .font(.title2.weight(.bold))
                             .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
+                    }
 
-                        if let plat = focused?.platform, !plat.isEmpty {
-                            Text("P\(plat)")
-                                .font(.system(.caption, weight: .medium))
-                                .foregroundStyle(platChanged ? .white : AppColors.platform)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(
-                                    platChanged
-                                        ? Capsule().fill(AppColors.platformChangedOrange)
-                                        : Capsule().fill(.clear)
-                                )
+                    // Platform
+                    if let plat = focused?.platform, !plat.isEmpty {
+                        Text("Platform \(plat)")
+                            .font(.system(.caption, weight: .medium))
+                            .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+                    }
+
+                    // Countdown + delay
+                    HStack(spacing: 8) {
+                        Text(focused?.countdownText ?? "—")
+                            .font(.system(size: 56, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(countdownColor)
+
+                        if let delay = focused?.delay, delay > 0,
+                           let f = focused, f.minutesUntil >= -0.5 {
+                            Text("+\(delay)")
+                                .font(.system(.subheadline, weight: .medium))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(AppColors.delay))
                         }
                     }
-
-                    // Countdown
-                    Text(focused?.countdownText ?? "—")
-                        .font(.system(size: 56, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(countdownColor)
-                        .padding(.vertical, 4)
-
-                    // Delay badge
-                    if let delay = focused?.delay, delay > 0,
-                       let f = focused, f.minutesUntil >= -0.5 {
-                        Text("+\(delay)")
-                            .font(.system(.subheadline, weight: .medium))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(AppColors.delay))
-                    }
+                    .padding(.vertical, 4)
 
                     // Tracking bar
                     TrackingBarView(

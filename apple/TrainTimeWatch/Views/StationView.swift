@@ -17,7 +17,7 @@ struct StationView: View {
                 GPSIndicatorView(quality: viewModel.gpsQuality)
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 10))
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)

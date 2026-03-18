@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.wear.compose.material)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.wear.compose.foundation)
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.android)

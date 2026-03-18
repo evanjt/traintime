@@ -120,7 +120,7 @@ class PhoneViewModel: ObservableObject {
     func onAppear() {
         lastInteractionTime = Date()
         location.start()
-        startTimer(interval: Timing.normalRefreshInterval)
+        startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
         watchService.initialize()
     }
 
@@ -268,7 +268,8 @@ class PhoneViewModel: ObservableObject {
            Date().timeIntervalSince(lastFetchTime) >= (appState == 2 ? Timing.fetchCooldownTracking : Timing.fetchCooldownNormal) {
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
-            } else if stations.isEmpty {
+            } else if stations.isEmpty,
+                      SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
         }

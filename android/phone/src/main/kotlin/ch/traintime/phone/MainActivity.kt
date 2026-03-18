@@ -49,9 +49,17 @@ class MainActivity : ComponentActivity() {
                 checkLocationPermission()
             }
 
-            DisposableEffect(Unit) {
-                viewModel.onAppear()
-                onDispose { viewModel.onDisappear() }
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    when (event) {
+                        androidx.lifecycle.Lifecycle.Event.ON_RESUME -> viewModel.onAppear()
+                        androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> viewModel.onDisappear()
+                        else -> {}
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
 
             LaunchedEffect(intent) {

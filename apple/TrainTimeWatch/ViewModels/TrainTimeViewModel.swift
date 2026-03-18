@@ -179,7 +179,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func onAppear() {
         lastInteractionTime = Date()
         location.start()
-        startTimer(interval: Timing.normalRefreshInterval)
+        startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
     }
 
     func onDisappear() {
@@ -346,7 +346,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 fetchDepartures(stationId: id)
             } else if !stations.isEmpty {
                 // No valid station selected
-            } else {
+            } else if SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
         }

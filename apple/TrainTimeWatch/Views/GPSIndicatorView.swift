@@ -4,8 +4,8 @@ struct GPSIndicatorView: View {
     let quality: GPSQuality
 
     var body: some View {
-        Circle()
-            .fill(quality.color)
-            .frame(width: 6, height: 6)
+        Image(systemName: "location.fill")
+            .font(.system(size: 14))
+            .foregroundStyle(quality.color)
     }
 }
