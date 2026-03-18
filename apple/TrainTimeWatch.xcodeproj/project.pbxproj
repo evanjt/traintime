@@ -95,6 +95,9 @@
 		P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		W0A100000000000000000006 /* SwitchModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000007 /* SwitchModeIntent.swift */; };
 		W0A100000000000000000007 /* SwitchStationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000008 /* SwitchStationIntent.swift */; };
+
+		/* Watch embedded in Phone */
+		WEA10000000000000000EMBED /* TrainTimeWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C61B777553FC4244B48F82CE /* TrainTimeWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,6 +107,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = W0T100000000000000000001;
 			remoteInfo = TrainTimeWidgetExtension;
+		};
+		WEC100000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1D64EB725CE243E1A4B6CB59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6E9FC3E3B0BB4BA189C3C6A1;
+			remoteInfo = TrainTimeWatch;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -117,6 +127,17 @@
 				P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WEE100000000000000000001 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				WEA10000000000000000EMBED /* TrainTimeWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -406,11 +427,13 @@
 				P0F200000000000000000001 /* Frameworks */,
 				P0R100000000000000000001 /* Resources */,
 				P0E100000000000000000001 /* Embed Foundation Extensions */,
+				WEE100000000000000000001 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				P0D100000000000000000001 /* PBXTargetDependency */,
+				WED100000000000000000001 /* PBXTargetDependency */,
 			);
 			name = TrainTimePhone;
 			productName = TrainTimePhone;
@@ -603,6 +626,11 @@
 			target = W0T100000000000000000001 /* TrainTimeWidgetExtension */;
 			targetProxy = P0C100000000000000000001 /* PBXContainerItemProxy */;
 		};
+		WED100000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6E9FC3E3B0BB4BA189C3C6A1 /* TrainTimeWatch */;
+			targetProxy = WEC100000000000000000001 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -669,10 +697,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.2.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = NO;
+				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -697,10 +725,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.2.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
-				SKIP_INSTALL = NO;
+				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

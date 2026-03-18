@@ -105,38 +105,40 @@ struct PhoneFocusedTrackingView: View {
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
 
-                    // Send to Watch
-                    Divider()
-                        .overlay(Color.gray.opacity(0.3))
-                        .padding(.vertical, 4)
-
+                    // Send to Watch (only when watches are connected)
                     let watches = viewModel.connectedWatches
-                    if watches.count <= 1 {
-                        Button {
-                            viewModel.sendToWatch()
-                        } label: {
-                            Label("Send to Watch", systemImage: "applewatch")
-                                .font(.subheadline)
-                                .frame(maxWidth: 200)
-                        }
-                        .buttonStyle(.bordered)
-                    } else {
-                        ForEach(watches) { watch in
+                    if !watches.isEmpty {
+                        Divider()
+                            .overlay(Color.gray.opacity(0.3))
+                            .padding(.vertical, 4)
+
+                        if watches.count == 1 {
                             Button {
-                                viewModel.sendToWatch(watch)
+                                viewModel.sendToWatch()
                             } label: {
-                                Label(watch.name, systemImage: watch.type == .appleWatch ? "applewatch" : "watch.analog")
+                                Label("Send to Watch", systemImage: "applewatch")
                                     .font(.subheadline)
                                     .frame(maxWidth: 200)
                             }
                             .buttonStyle(.bordered)
+                        } else {
+                            ForEach(watches) { watch in
+                                Button {
+                                    viewModel.sendToWatch(watch)
+                                } label: {
+                                    Label(watch.name, systemImage: watch.type == .appleWatch ? "applewatch" : "watch.analog")
+                                        .font(.subheadline)
+                                        .frame(maxWidth: 200)
+                                }
+                                .buttonStyle(.bordered)
+                            }
                         }
-                    }
 
-                    if let status = viewModel.watchSendStatus {
-                        Text(status)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if let status = viewModel.watchSendStatus {
+                            Text(status)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
