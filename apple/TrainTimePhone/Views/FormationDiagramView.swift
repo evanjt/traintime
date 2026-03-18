@@ -3,13 +3,17 @@ import SwiftUI
 struct FormationDiagramView: View {
     let formation: Formation
 
-    private let carriageWidth: CGFloat = 56
     private let carriageHeight: CGFloat = 30
     private let gap: CGFloat = 2
+    private let locoWidth: CGFloat = 32
 
     var body: some View {
         VStack(spacing: 2) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            GeometryReader { geo in
+                let n = CGFloat(formation.wagons.count)
+                let available = geo.size.width - 16 - locoWidth - (n - 1) * gap
+                let carriageWidth = min(56, max(available / n, 20))
+
                 VStack(alignment: .leading, spacing: 3) {
                     // Train
                     HStack(spacing: 0) {
@@ -23,7 +27,7 @@ struct FormationDiagramView: View {
                                     .fill(Color(white: 0.12))
                                     .frame(width: gap, height: carriageHeight * 0.35)
                             }
-                            CarriageCell(wagon: wagon, width: carriageWidth, height: carriageHeight)
+                            CarriageCell(wagon: wagon, width: carriageWidth, height: carriageHeight, showFeature: carriageWidth >= 30)
                         }
                     }
 
@@ -33,12 +37,13 @@ struct FormationDiagramView: View {
                             wagons: formation.wagons,
                             carriageWidth: carriageWidth,
                             gap: gap,
-                            locoOffset: 70
+                            locoOffset: locoWidth
                         )
                     }
                 }
                 .padding(.horizontal, 8)
             }
+            .frame(height: 50)
         }
     }
 }
@@ -47,7 +52,7 @@ struct FormationDiagramView: View {
 
 private struct LocoView: View {
     let height: CGFloat
-    private let width: CGFloat = 70
+    private let width: CGFloat = 32
 
     var body: some View {
         ZStack {
@@ -64,14 +69,14 @@ private struct LocoView: View {
             // Windshield (in the upper curve area)
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.white.opacity(0.09))
-                .frame(width: 10, height: height * 0.38)
-                .offset(x: -width * 0.08, y: -height * 0.12)
+                .frame(width: 8, height: height * 0.38)
+                .offset(x: -width * 0.06, y: -height * 0.12)
 
             // Headlight at nose tip (bottom-left)
             Circle()
                 .fill(Color.white.opacity(0.20))
                 .frame(width: 3, height: 3)
-                .offset(x: -width / 2 + 5, y: height / 2 - 5)
+                .offset(x: -width / 2 + 4, y: height / 2 - 5)
         }
     }
 }
@@ -128,6 +133,7 @@ private struct CarriageCell: View {
     let wagon: FormationWagon
     let width: CGFloat
     let height: CGFloat
+    var showFeature: Bool = true
 
     var body: some View {
         ZStack {
@@ -168,7 +174,7 @@ private struct CarriageCell: View {
                 .offset(y: 2)
 
             // Feature icon
-            if let feature = wagon.features.first {
+            if showFeature, let feature = wagon.features.first {
                 Image(systemName: featureIcon(feature))
                     .font(.system(size: 7))
                     .foregroundColor(Color(white: 0.45))
@@ -233,7 +239,10 @@ private struct PhoneSectorLabels: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: locoOffset)
+            Image(systemName: "arrow.left")
+                .font(.system(size: 9, weight: .regular))
+                .foregroundColor(Color(white: 0.35))
+                .frame(width: locoOffset)
 
             ForEach(Array(groups.enumerated()), id: \.offset) { i, group in
                 let groupWidth = CGFloat(group.count) * carriageWidth + CGFloat(max(0, group.count - 1)) * gap + (i > 0 ? gap : 0)

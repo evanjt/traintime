@@ -385,6 +385,13 @@ module Renderer {
         if (plat != null && !plat.equals("")) {
             destStr = destStr + "  P" + plat;
         }
+        // Append departure time (HH:mm)
+        var depTs = view.mFocusedTrain["depTs"];
+        if (depTs != null) {
+            var depMoment = new Time.Moment(depTs);
+            var depInfo = Time.Gregorian.info(depMoment, Time.FORMAT_SHORT);
+            destStr = destStr + "  " + depInfo.hour.format("%02d") + ":" + depInfo.min.format("%02d");
+        }
         var destDims = dc.getTextDimensions(destStr, destFont);
         if (destDims[0] > destMaxW) {
             destFont = Graphics.FONT_TINY;
@@ -617,7 +624,7 @@ module Renderer {
 
         // Draw locomotive
         if (locoW > 0) {
-            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
             var locoPts = new [4];
             locoPts[0] = [x, formY + wagonH];
             locoPts[1] = [x + 2, formY];
@@ -662,9 +669,18 @@ module Renderer {
             x = x + wagonW + gap;
         }
 
-        // Sector labels below wagons
+        // Direction arrow below locomotive
         var lineY = formY + wagonH + 2;
         var sectorTextY = lineY + 1;
+        if (locoW > 0) {
+            dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+            var arrowX = startX + locoW / 2;
+            var arrowY = sectorTextY + dc.getFontHeight(Graphics.FONT_XTINY) / 2;
+            dc.drawText(arrowX, sectorTextY, Graphics.FONT_XTINY,
+                "<", Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Sector labels below wagons
         var wagonStartX = startX + (locoW > 0 ? locoW + gap : 0);
 
         // Group consecutive wagons by sector

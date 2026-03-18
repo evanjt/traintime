@@ -32,11 +32,21 @@ struct PhoneFocusedTrackingView: View {
                             .minimumScaleFactor(0.6)
                     }
 
-                    // Platform
-                    if let plat = focused?.platform, !plat.isEmpty {
-                        Text("Platform \(plat)")
-                            .font(.system(.caption, weight: .medium))
-                            .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+                    // Platform + departure time
+                    HStack(spacing: 6) {
+                        if let plat = focused?.platform, !plat.isEmpty {
+                            Text("Platform \(plat)")
+                                .font(.system(.caption, weight: .medium))
+                                .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+                        }
+                        if let f = focused {
+                            Text("·")
+                                .foregroundStyle(.quaternary)
+                            Text(Self.formatDepartureTime(f.departureTimestamp))
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(.tertiary)
+                        }
                     }
 
                     // Countdown + delay
@@ -139,6 +149,10 @@ struct PhoneFocusedTrackingView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+
+                        Text("Watch app must be open")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -167,6 +181,13 @@ struct PhoneFocusedTrackingView: View {
         .sheet(isPresented: $showMap) {
             PhoneMapView(viewModel: viewModel)
         }
+    }
+
+    private static func formatDepartureTime(_ timestamp: Int) -> String {
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
     }
 
     private var countdownColor: Color {

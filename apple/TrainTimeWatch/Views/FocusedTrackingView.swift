@@ -29,11 +29,22 @@ struct FocusedTrackingView: View {
                     .minimumScaleFactor(0.5)
             }
 
-            // Platform
-            if let plat = focused?.platform, !plat.isEmpty {
-                Text("Pl. \(plat)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+            // Platform + departure time
+            HStack(spacing: 3) {
+                if let plat = focused?.platform, !plat.isEmpty {
+                    Text("Pl. \(plat)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .secondary)
+                }
+                if let f = focused {
+                    Text("·")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.quaternary)
+                    Text(Self.formatDepartureTime(f.departureTimestamp))
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.tertiary)
+                }
             }
 
             // Countdown + delay
@@ -96,6 +107,13 @@ struct FocusedTrackingView: View {
         .sheet(isPresented: $showMap) {
             MapView(viewModel: viewModel)
         }
+    }
+
+    private static func formatDepartureTime(_ timestamp: Int) -> String {
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: date)
     }
 
     private var countdownColor: Color {

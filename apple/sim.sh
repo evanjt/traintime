@@ -35,7 +35,7 @@ case "$TARGET" in
         PLATFORM="watchOS Simulator"
         APP_NAME="TrainTimeWatch.app"
         APP_SUBDIR="Debug-watchsimulator"
-        BUNDLE_ID="com.evanjt.traintime"
+        BUNDLE_ID="com.evanjt.traintime.watchkitapp"
         ;;
     *)
         echo "Unknown target: $TARGET (use 'phone' or 'watch')"
