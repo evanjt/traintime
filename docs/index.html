@@ -6,14 +6,14 @@
     <title>TrainTime - Swiss Departures on Your Wrist</title>
     <meta
       name="description"
-      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms — glance and go."
+      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms - glance and go."
     />
     <meta name="theme-color" content="#000000" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <meta property="og:title" content="TrainTime - Swiss Departures on Your Wrist" />
     <meta
       property="og:description"
-      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms — glance and go."
+      content="Real-time Swiss public transport departures on your wrist. Walk times, delays, platforms - glance and go."
     />
     <meta property="og:type" content="website" />
 
@@ -237,8 +237,27 @@
         text-align: center;
         max-width: 520px;
         line-height: 1.6;
-        margin-bottom: 48px;
+        margin-bottom: 32px;
         animation: fadeInUp 0.6s ease-out 0.2s both;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 48px;
+        animation: fadeInUp 0.6s ease-out 0.25s both;
+      }
+
+      .hero-buttons a {
+        transition: opacity 0.2s;
+      }
+
+      .hero-buttons a:hover {
+        opacity: 0.8;
+      }
+
+      .hero-buttons img {
+        display: block;
       }
 
       @keyframes fadeInUp {
@@ -713,16 +732,24 @@
       </h1>
       <p class="hero-sub">
         Real-time Swiss public transport departures on your wrist.
-        Walk times, delays, platforms &mdash; glance and go.
+        Walk times, delays, platforms - glance and go.
       </p>
+      <div class="hero-buttons">
+        <a href="https://apps.apple.com/ch/app/traintime/id6760388620" target="_blank">
+          <img src="app-store-badge.svg" alt="Download on the App Store" height="44" />
+        </a>
+        <a href="https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb" target="_blank">
+          <img src="connect-iq-badge.svg" alt="Available on Connect IQ" height="44" />
+        </a>
+      </div>
     </section>
 
     <section class="gallery-section">
       <div class="gallery-switcher">
         <div class="gallery-toggle" id="gallery-toggle">
           <button class="active" data-platform="apple">Apple Watch</button>
-          <button data-platform="iphone">iPhone</button>
           <button data-platform="garmin">Garmin</button>
+          <button data-platform="iphone">iPhone</button>
         </div>
       </div>
       <div class="gallery-viewport">
@@ -738,22 +765,6 @@
             </div>
             <div class="watch-device">
               <div class="watch-img-wrap"><img src="screenshots/apple/03-station-picker.png" alt="Station picker showing nearby stations with walk times" /></div>
-              <div class="watch-label">Stations</div>
-            </div>
-          </div>
-        </div>
-        <div class="gallery-band hidden" id="band-iphone">
-          <div class="gallery-track">
-            <div class="watch-device iphone">
-              <div class="watch-img-wrap"><img src="screenshots/iphone/01-station-view.png" alt="iPhone departure list showing trains from Sion" /></div>
-              <div class="watch-label">Departures</div>
-            </div>
-            <div class="watch-device iphone">
-              <div class="watch-img-wrap"><img src="screenshots/iphone/02-focused-tracking.png" alt="iPhone focused tracking with formation diagram" /></div>
-              <div class="watch-label">Tracking</div>
-            </div>
-            <div class="watch-device iphone">
-              <div class="watch-img-wrap"><img src="screenshots/iphone/03-station-picker.png" alt="iPhone station picker showing nearby stations" /></div>
               <div class="watch-label">Stations</div>
             </div>
           </div>
@@ -774,6 +785,22 @@
             </div>
           </div>
         </div>
+        <div class="gallery-band hidden" id="band-iphone">
+          <div class="gallery-track">
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/01-station-view.png" alt="iPhone departure list showing trains from Sion" /></div>
+              <div class="watch-label">Departures</div>
+            </div>
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/02-focused-tracking.png" alt="iPhone focused tracking with formation diagram" /></div>
+              <div class="watch-label">Tracking</div>
+            </div>
+            <div class="watch-device iphone">
+              <div class="watch-img-wrap"><img src="screenshots/iphone/03-station-picker.png" alt="iPhone station picker showing nearby stations" /></div>
+              <div class="watch-label">Stations</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -787,7 +814,7 @@
         <div>
           <div class="data-value blue">50,000+</div>
           <div class="data-label">Stations covered</div>
-          <div class="data-sub">Source: <a href="https://data.sbb.ch/explore/dataset/dienststellen-gemass-opentransportdataswiss/" target="_blank" rel="noopener">SBB Open Data &mdash; Didok</a></div>
+          <div class="data-sub">Source: <a href="https://data.sbb.ch/explore/dataset/dienststellen-gemass-opentransportdataswiss/" target="_blank" rel="noopener">SBB Open Data - Didok</a></div>
         </div>
         <div>
           <div class="data-value red">Live</div>
@@ -826,7 +853,7 @@
           <div class="feature-indicator white"></div>
           <div class="feature-name">Train, bus, tram & more</div>
           <div class="feature-desc">
-            Switch between transport modes — trains, buses, trams, boats, funiculars, and cable cars. The app finds the nearest stations for each type.
+            Switch between transport modes - trains, buses, trams, boats, funiculars, and cable cars. The app finds the nearest stations for each type.
           </div>
         </div>
       </div>
@@ -892,7 +919,7 @@
         });
 
         // Gallery platform switcher
-        var platforms = ['apple', 'iphone', 'garmin'];
+        var platforms = ['apple', 'garmin', 'iphone'];
         var current = 0;
         var switching = false;
         var autoTimer = null;
