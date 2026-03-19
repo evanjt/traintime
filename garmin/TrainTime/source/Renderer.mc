@@ -140,7 +140,7 @@ module Renderer {
                     hint = "START=OK  BACK";
                 }
             } else {
-                hint = (WatchUi has :MapTrackView && view.mStationLat != null && view.mStationLon != null) ? "START=Map" : "";
+                hint = (view.mStationLat != null && view.mStationLon != null) ? "START=Nav" : "";
             }
             if (!hint.equals("")) {
                 dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
@@ -535,6 +535,24 @@ module Renderer {
 
         // Direction arrow (only visible when walking)
         drawDirectionArrow(dc, view, width, height, minY);
+
+        // Map error toast overlay
+        if (view.mMapError != null && view.mMapErrorTick != null) {
+            var elapsed = Time.now().value() - view.mMapErrorTick;
+            if (elapsed < 3) {
+                var toastH = dc.getFontHeight(Graphics.FONT_SMALL) + 8;
+                var toastY = height / 2 - toastH / 2;
+                var toastW = width * 60 / 100;
+                dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(centerX - toastW / 2, toastY, toastW, toastH);
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, toastY + 4, Graphics.FONT_SMALL,
+                    view.mMapError, Graphics.TEXT_JUSTIFY_CENTER);
+            } else {
+                view.mMapError = null;
+                view.mMapErrorTick = null;
+            }
+        }
     }
 
     function drawTrackingBar(dc, view, width, height, passedBarY) {

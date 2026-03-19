@@ -4,6 +4,9 @@ using Toybox.Timer;
 using Toybox.Lang;
 using Toybox.Time;
 using Toybox.Application.Storage;
+using Toybox.Graphics;
+using Toybox.PersistedContent;
+using Toybox.System;
 
 class TrainTimeView extends WatchUi.View {
 
@@ -47,6 +50,8 @@ class TrainTimeView extends WatchUi.View {
     var mFormationClasses;  // Array of Number (1 or 2) per wagon
     var mFormationNumbers;  // Array of Number (wagon numbers)
     var mFormationSectors;  // Array of String (sector letters)
+    var mMapError;      // error message to show as toast overlay
+    var mMapErrorTick;  // timestamp when error was set
 
     function initialize() {
         View.initialize();
@@ -92,6 +97,8 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mMapError = null;
+        mMapErrorTick = null;
     }
 
     function onLayout(dc) {
@@ -399,28 +406,104 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function enterMapView() {
-        if (!(WatchUi has :MapTrackView)) { return; }
-        if (mStationLat == null || mStationLon == null) { return; }
+        if (mStationLat == null || mStationLon == null) {
+            showMapError("No station location");
+            return;
+        }
+
+        var stationLoc = new Position.Location(
+            {:latitude => mStationLat, :longitude => mStationLon, :format => :degrees}
+        );
+
+        // Primary: native navigation via saved waypoint
+        if (Toybox has :PersistedContent) {
+            try {
+                // Clean up old waypoints from this app
+                var iter = PersistedContent.getAppWaypoints();
+                var old = iter.next();
+                while (old != null) {
+                    old.remove();
+                    old = iter.next();
+                }
+
+                // Save station as waypoint and navigate
+                var name = mStationName != null ? mStationName : "Station";
+                PersistedContent.saveWaypoint(stationLoc, {:name => name});
+                iter = PersistedContent.getAppWaypoints();
+                var wp = iter.next();
+                if (wp != null) {
+                    System.exitTo(wp.toIntent());
+                    return;
+                }
+            } catch (e) {
+                // Fall through to MapTrackView fallback
+            }
+        }
+
+        // Fallback: MapTrackView with polyline
+        if (!(WatchUi has :MapTrackView)) {
+            showMapError("Navigation unavailable");
+            return;
+        }
         if (mMapActive) { return; }
 
         try {
             var mapView = new WatchUi.MapTrackView();
-            var stationLoc = new Position.Location(
-                {:latitude => mStationLat, :longitude => mStationLon, :format => :degrees}
-            );
             var marker = new WatchUi.MapMarker(stationLoc);
             marker.setIcon(WatchUi.MAP_MARKER_ICON_PIN, 0, 0);
             if (mStationName != null) {
                 marker.setLabel(mStationName);
             }
             mapView.setMapMarker(marker);
-            mapView.setMapMode(WatchUi.MAP_MODE_BROWSE);
 
+            // Add route polyline from user position to station
+            if (WatchUi has :MapPolyline) {
+                if (mLocationInfo != null && mLocationInfo.position != null) {
+                    var coords = mLocationInfo.position.toDegrees();
+                    var userLoc = new Position.Location(
+                        {:latitude => coords[0], :longitude => coords[1], :format => :degrees}
+                    );
+                    var polyline = new WatchUi.MapPolyline();
+                    polyline.addLocation(userLoc);
+                    polyline.addLocation(stationLoc);
+                    polyline.setColor(Graphics.COLOR_BLUE);
+                    polyline.setWidth(3);
+                    mapView.setPolyline(polyline);
+                }
+            }
+
+            // Set visible area to frame both user position and station
+            if (mLocationInfo != null && mLocationInfo.position != null) {
+                var uCoords = mLocationInfo.position.toDegrees();
+                var minLat = (uCoords[0] < mStationLat) ? uCoords[0] : mStationLat;
+                var maxLat = (uCoords[0] > mStationLat) ? uCoords[0] : mStationLat;
+                var minLon = (uCoords[1] < mStationLon) ? uCoords[1] : mStationLon;
+                var maxLon = (uCoords[1] > mStationLon) ? uCoords[1] : mStationLon;
+                var latPad = (maxLat - minLat) * 0.3 + 0.002;
+                var lonPad = (maxLon - minLon) * 0.3 + 0.002;
+                var topLeft = new Position.Location(
+                    {:latitude => maxLat + latPad, :longitude => minLon - lonPad, :format => :degrees}
+                );
+                var bottomRight = new Position.Location(
+                    {:latitude => minLat - latPad, :longitude => maxLon + lonPad, :format => :degrees}
+                );
+                mapView.setMapVisibleArea(topLeft, bottomRight);
+            }
+
+            mapView.setMapMode(WatchUi.MAP_MODE_BROWSE);
             mMapActive = true;
             WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
         } catch (e) {
             mMapActive = false;
+            showMapError("Map unavailable");
         }
+    }
+
+    function showMapError(msg) {
+        mMapError = msg;
+        mMapErrorTick = Time.now().value();
+        Haptics.vibrateShort();
+        WatchUi.requestUpdate();
     }
 
     function exitMapView() {
