@@ -544,6 +544,27 @@
         text-transform: uppercase;
       }
 
+      .data-sub {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+        opacity: 0.7;
+      }
+
+      .data-sub a {
+        color: var(--text-muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--border);
+        transition: color 0.2s, border-color 0.2s;
+      }
+
+      .data-sub a:hover {
+        color: var(--text-secondary);
+        border-color: var(--text-secondary);
+      }
+
       /* ---- FOOTER ---- */
       footer {
         padding: 40px 32px;
@@ -759,16 +780,19 @@
     <section class="data-section">
       <div class="data-grid">
         <div>
-          <div class="data-value green">4</div>
+          <div class="data-value green">10</div>
           <div class="data-label">Transport modes</div>
+          <div class="data-sub">Trains, buses, trams, boats, funiculars, cable cars & more</div>
         </div>
         <div>
-          <div class="data-value blue">51k+</div>
+          <div class="data-value blue">50,000+</div>
           <div class="data-label">Stations covered</div>
+          <div class="data-sub">Source: <a href="https://data.sbb.ch/explore/dataset/dienststellen-gemass-opentransportdataswiss/" target="_blank" rel="noopener">SBB Open Data &mdash; Didok</a></div>
         </div>
         <div>
           <div class="data-value red">Live</div>
           <div class="data-label">Delay updates</div>
+          <div class="data-sub">Via <a href="https://opentransportdata.swiss/" target="_blank" rel="noopener">Open Transport Data Switzerland</a></div>
         </div>
       </div>
     </section>

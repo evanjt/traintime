@@ -201,6 +201,7 @@ struct PhoneFocusedTrackingView: View {
 
 struct PhoneMapView: View {
     @ObservedObject var viewModel: PhoneViewModel
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         NavigationStack {
@@ -218,6 +219,14 @@ struct PhoneMapView: View {
                     MapScaleView()
                 }
                 .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .fontWeight(.bold)
+                        }
+                    }
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             let destination = MKMapItem(placemark: MKPlacemark(coordinate: stationCoord))
