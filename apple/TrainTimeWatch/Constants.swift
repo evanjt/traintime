@@ -21,6 +21,9 @@ enum AppColors {
     // Platform changed in tracking mode
     static let platformChangedOrange = Color(red: 0xFF/255, green: 0x44/255, blue: 0x00/255)
 
+    // Favourite highlight
+    static let favouriteBackground = Color(red: 0x33/255, green: 0x28/255, blue: 0x00/255)
+
     // Tracking bar colors
     static let darkGreen = Color(red: 0.0, green: 1.0, blue: 0.0)
     static let lightGreen = Color(red: 0x55/255, green: 0xFF/255, blue: 0x55/255)
