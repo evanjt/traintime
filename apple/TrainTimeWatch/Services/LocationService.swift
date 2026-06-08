@@ -22,18 +22,32 @@ class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
+        // Coarse accuracy returns a fix for station discovery without waiting for
+        // GPS convergence; raised to a finer fix while tracking (setTrackingAccuracy).
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.allowsBackgroundLocationUpdates = false
-        loadLastKnownCoordinate()
     }
 
     func start() {
         manager.requestWhenInUseAuthorization()
+        // Seed from the OS last-known fix so stations can show immediately, before the
+        // first live update arrives (analog of Garmin's Position.getInfo()).
+        if coordinate == nil, let cached = manager.location {
+            coordinate = cached.coordinate
+            horizontalAccuracy = cached.horizontalAccuracy
+            speed = cached.speed
+        }
         manager.startUpdatingLocation()
     }
 
     func stop() {
         manager.stopUpdatingLocation()
+    }
+
+    /// Coarse accuracy while finding stations; finer accuracy while actively tracking
+    /// a departure (more precise walk distance/direction).
+    func setTrackingAccuracy(_ tracking: Bool) {
+        manager.desiredAccuracy = tracking ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyHundredMeters
     }
 
     /// Check if user has moved significantly from a reference point

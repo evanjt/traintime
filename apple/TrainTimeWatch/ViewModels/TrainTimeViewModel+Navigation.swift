@@ -82,7 +82,24 @@ extension TrainTimeViewModel {
 
     // MARK: - Mode Rebuilding
 
-    internal func rebuildModesAndSelect() {
+    /// Find a station by id across all mode arrays, returning its (mode, index).
+    private func locate(stationId: String) -> (TransportMode, Int)? {
+        let groups: [(TransportMode, [Station])] = [
+            (.train, trainStations), (.bus, busStations),
+            (.tram, tramStations), (.special, specialStations)
+        ]
+        for (mode, list) in groups {
+            if let idx = list.firstIndex(where: { $0.id == stationId }) {
+                return (mode, idx)
+            }
+        }
+        return nil
+    }
+
+    /// Rebuild the mode list after a station fetch. When `preserveStationId` still
+    /// exists in the new results, keep the user on that station/mode (in-place refresh,
+    /// no reset to the nearest station); otherwise fall back to selecting the nearest.
+    internal func rebuildModesAndSelect(preserveStationId: String? = nil) {
         var modes: [TransportMode] = []
         if !trainStations.isEmpty { modes.append(.train) }
         if !busStations.isEmpty { modes.append(.bus) }
@@ -90,23 +107,31 @@ extension TrainTimeViewModel {
         if !specialStations.isEmpty { modes.append(.special) }
         availableModes = modes
 
-        // If current mode has no stations, prefer default mode, then first available
-        if stations.isEmpty {
-            if modes.contains(defaultMode) {
-                currentMode = defaultMode
-            } else if let firstMode = modes.first {
-                currentMode = firstMode
+        var preserved = false
+        if let id = preserveStationId, let (mode, idx) = locate(stationId: id) {
+            currentMode = mode
+            stationIndex = idx
+            preserved = true
+        } else {
+            // If current mode has no stations, prefer default mode, then first available
+            if stations.isEmpty {
+                if modes.contains(defaultMode) {
+                    currentMode = defaultMode
+                } else if let firstMode = modes.first {
+                    currentMode = firstMode
+                }
             }
+            stationIndex = 0
         }
 
-        stationIndex = 0
-
-        // Use embedded departures if available (closest station per mode)
+        // Adopt fresh embedded departures if present. On the non-preserved path, blank
+        // and refetch. On the preserved path with no fresh embedded departures, leave the
+        // existing list untouched (no flash) — the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
             favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
-        } else {
+        } else if !preserved {
             departures = []
             favouriteDepartures = []
             if let station = currentStation, let id = station.id {

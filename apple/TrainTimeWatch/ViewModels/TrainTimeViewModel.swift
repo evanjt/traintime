@@ -178,6 +178,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             platformChanged: platChg
         )
         appState = 2
+        location.setTrackingAccuracy(true)
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast
@@ -262,15 +263,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         // Skip station search in tracking/inactive (still update GPS above)
         if appState >= 2 { return }
 
-        // If loaded from stale cache and now have a live GPS fix, re-search
+        // If loaded from stale cache and now have a live GPS fix, refresh in place
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
-            if let lastSearch = lastSearchCoordinate,
-               location.hasMovedSignificantly(from: lastSearch) {
-                clearStationState()
-            }
             if !requestInFlight {
-                status = "Updating stations..."
+                if stations.isEmpty { status = "Updating stations..." }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
             return
@@ -300,11 +297,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection (only in station/selection view)
+        // Movement detection (only in station/selection view) — refresh in place
         if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
-            clearStationState()
             fetchStations(lat: coord.latitude, lon: coord.longitude)
             return
         }
@@ -401,6 +397,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             platformChanged: dep.platformChanged
         )
         appState = 2
+        location.setTrackingAccuracy(true)
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast  // Force immediate fetch on tracking entry
@@ -424,6 +421,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     func enterInactiveState() {
         appState = 3
+        location.setTrackingAccuracy(false)
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -473,6 +471,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
+        location.setTrackingAccuracy(false)
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -502,13 +501,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
+                    let prevStationId = currentStation?.id
                     trainStations = result.train
                     busStations = result.bus
                     tramStations = result.tram
                     specialStations = result.special
                     lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                     location.saveLastKnownCoordinate()
-                    rebuildModesAndSelect()
+                    rebuildModesAndSelect(preserveStationId: prevStationId)
 
                     if stations.isEmpty {
                         status = "No stations nearby"

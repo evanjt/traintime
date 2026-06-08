@@ -174,12 +174,8 @@ class PhoneViewModel: ObservableObject {
 
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
-            if let lastSearch = lastSearchCoordinate,
-               location.hasMovedSignificantly(from: lastSearch) {
-                clearStationState()
-            }
             if !requestInFlight {
-                status = "Updating stations..."
+                if stations.isEmpty { status = "Updating stations..." }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
             return
@@ -209,11 +205,10 @@ class PhoneViewModel: ObservableObject {
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection (only in station/selection view)
+        // Movement detection (only in station/selection view) — refresh in place
         if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
-            clearStationState()
             fetchStations(lat: coord.latitude, lon: coord.longitude)
             return
         }
@@ -307,6 +302,7 @@ class PhoneViewModel: ObservableObject {
             platformChanged: dep.platformChanged
         )
         appState = 2
+        location.setTrackingAccuracy(true)
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast
@@ -328,6 +324,7 @@ class PhoneViewModel: ObservableObject {
 
     func enterInactiveState() {
         appState = 3
+        location.setTrackingAccuracy(false)
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -373,6 +370,7 @@ class PhoneViewModel: ObservableObject {
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
+        location.setTrackingAccuracy(false)
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -428,7 +426,24 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    private func rebuildModesAndSelect() {
+    /// Find a station by id across all mode arrays, returning its (mode, index).
+    private func locate(stationId: String) -> (TransportMode, Int)? {
+        let groups: [(TransportMode, [Station])] = [
+            (.train, trainStations), (.bus, busStations),
+            (.tram, tramStations), (.special, specialStations)
+        ]
+        for (mode, list) in groups {
+            if let idx = list.firstIndex(where: { $0.id == stationId }) {
+                return (mode, idx)
+            }
+        }
+        return nil
+    }
+
+    /// Rebuild the mode list after a station fetch. When `preserveStationId` still
+    /// exists in the new results, keep the user on that station/mode (in-place refresh,
+    /// no reset to the nearest station); otherwise fall back to selecting the nearest.
+    private func rebuildModesAndSelect(preserveStationId: String? = nil) {
         var modes: [TransportMode] = []
         if !trainStations.isEmpty { modes.append(.train) }
         if !busStations.isEmpty { modes.append(.bus) }
@@ -436,21 +451,30 @@ class PhoneViewModel: ObservableObject {
         if !specialStations.isEmpty { modes.append(.special) }
         availableModes = modes
 
-        if stations.isEmpty {
-            if modes.contains(defaultMode) {
-                currentMode = defaultMode
-            } else if let firstMode = modes.first {
-                currentMode = firstMode
+        var preserved = false
+        if let id = preserveStationId, let (mode, idx) = locate(stationId: id) {
+            currentMode = mode
+            stationIndex = idx
+            preserved = true
+        } else {
+            if stations.isEmpty {
+                if modes.contains(defaultMode) {
+                    currentMode = defaultMode
+                } else if let firstMode = modes.first {
+                    currentMode = firstMode
+                }
             }
+            stationIndex = 0
         }
 
-        stationIndex = 0
-
+        // Adopt fresh embedded departures if present. On the non-preserved path, blank
+        // and refetch. On the preserved path with no fresh embedded departures, leave the
+        // existing list untouched (no flash) — the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
             favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
-        } else {
+        } else if !preserved {
             departures = []
             favouriteDepartures = []
             if let station = currentStation, let id = station.id {
@@ -566,13 +590,14 @@ class PhoneViewModel: ObservableObject {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
+                    let prevStationId = currentStation?.id
                     trainStations = result.train
                     busStations = result.bus
                     tramStations = result.tram
                     specialStations = result.special
                     lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                     location.saveLastKnownCoordinate()
-                    rebuildModesAndSelect()
+                    rebuildModesAndSelect(preserveStationId: prevStationId)
 
                     if stations.isEmpty {
                         status = "No stations nearby"
