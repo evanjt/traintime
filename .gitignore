@@ -46,3 +46,9 @@ xcuserdata/
 # Fastlane
 apple/fastlane/vendor/
 apple/fastlane/.bundle/
+
+# Android / Gradle
+.gradle/
+local.properties
+*.apk
+*.aab
