@@ -76,9 +76,30 @@ struct PhoneStationView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        // Favourite departures at top
+                        ForEach(viewModel.favouriteDepartures) { departure in
+                            PhoneDepartureRowView(
+                                departure: departure,
+                                isFavourite: true,
+                                onTap: {
+                                    viewModel.selectFavouriteDeparture(departure)
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                        }
+                        // Separator line under favourites
+                        if !viewModel.favouriteDepartures.isEmpty && !viewModel.departures.isEmpty {
+                            Rectangle()
+                                .fill(Color.yellow.opacity(0.2))
+                                .frame(height: 1)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 4)
+                        }
+                        // Regular departures
                         ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
                             PhoneDepartureRowView(
                                 departure: departure,
+                                isFavourite: viewModel.isDepartureFavourite(departure),
                                 onTap: { viewModel.selectDeparture(index: index) }
                             )
                             .padding(.horizontal, 16)

@@ -55,8 +55,14 @@ struct RefreshIntent: AppIntent {
         }
         if stationIdx < selectedStations.count && selectedStations[stationIdx].departures.isEmpty {
             let station = selectedStations[stationIdx]
-            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: station.id) {
-                let deps = fetched.map { dep in
+            let favParam = FavouritesStore.shared.favouritesParam(forStation: station.id)
+            if let result = try? await TrainAPIService.fetchDepartures(stationId: station.id, favourites: favParam) {
+                // Server returns favourites separately when param is sent; fall back to client-side extraction
+                let favDeps = !result.favourites.isEmpty
+                    ? result.favourites
+                    : FavouritesStore.shared.extractFavourites(from: result.departures, stationId: station.id)
+                let allDeps = favDeps + result.departures
+                let deps = allDeps.map { dep in
                     WidgetDeparture(
                         destination: dep.destination,
                         departureTimestamp: dep.departureTimestamp ?? 0,

@@ -25,6 +25,20 @@ struct SettingsView: View {
                 }
             }
 
+            if !viewModel.favouritesStore.favourites.isEmpty {
+                Section("Favourites (\(viewModel.favouritesStore.favourites.count))") {
+                    ForEach(viewModel.favouritesStore.favourites) { fav in
+                        Text(fav.displayString)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                    }
+                    .onDelete { offsets in
+                        let toRemove = offsets.map { viewModel.favouritesStore.favourites[$0] }
+                        toRemove.forEach { viewModel.favouritesStore.remove($0) }
+                    }
+                }
+            }
+
             Section {
                 HStack {
                     Text("Version")

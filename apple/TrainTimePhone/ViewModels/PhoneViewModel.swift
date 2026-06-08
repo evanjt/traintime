@@ -26,6 +26,10 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
+    @Published var favouriteDepartures: [Departure] = []
+
+    // MARK: - Favourites
+    let favouritesStore = FavouritesStore.shared
 
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
@@ -104,7 +108,7 @@ class PhoneViewModel: ObservableObject {
             currentMode = savedMode
         }
 
-        // Receive default mode sync from watch
+        // Receive default mode + favourites sync from watch
         watchService.wcService.onApplicationContextReceived = { [weak self] context in
             DispatchQueue.main.async {
                 if let modeRaw = context["defaultMode"] as? Int,
@@ -112,6 +116,7 @@ class PhoneViewModel: ObservableObject {
                     self?.defaultMode = mode
                     UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
                 }
+                self?.favouritesStore.handleReceivedContext(context)
             }
         }
     }
@@ -278,9 +283,16 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Departure Selection & Tracking
 
+    func selectFavouriteDeparture(_ dep: Departure) {
+        selectDepartureImpl(dep)
+    }
+
     func selectDeparture(index: Int) {
         guard index >= 0, index < departures.count else { return }
-        let dep = departures[index]
+        selectDepartureImpl(departures[index])
+    }
+
+    private func selectDepartureImpl(_ dep: Departure) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
 
         focusedTrain = FocusedDeparture(
@@ -338,6 +350,26 @@ class PhoneViewModel: ObservableObject {
         watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
     }
 
+    func toggleFavourite() {
+        guard let focused = focusedTrain, let station = currentStation, let stationId = station.id else { return }
+        favouritesStore.toggle(
+            stationId: stationId,
+            stationName: station.name ?? "Station",
+            lineNumber: focused.lineNumber,
+            destination: focused.destination
+        )
+    }
+
+    var isFocusedTrainFavourite: Bool {
+        guard let focused = focusedTrain, let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: focused.lineNumber, destination: focused.destination)
+    }
+
+    func isDepartureFavourite(_ departure: Departure) -> Bool {
+        guard let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
@@ -366,9 +398,11 @@ class PhoneViewModel: ObservableObject {
 
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -383,9 +417,11 @@ class PhoneViewModel: ObservableObject {
 
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -412,9 +448,11 @@ class PhoneViewModel: ObservableObject {
 
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -434,6 +472,7 @@ class PhoneViewModel: ObservableObject {
         specialStations = []
         stationIndex = 0
         departures = []
+        favouriteDepartures = []
         availableModes = []
         consecutiveErrors = 0
 
@@ -554,15 +593,20 @@ class PhoneViewModel: ObservableObject {
         requestInFlight = true
         requestStartTime = Date()
 
+        let favParam = favouritesStore.favouritesParam(forStation: stationId)
+
         Task {
             do {
-                let result = try await TrainAPIService.fetchDepartures(stationId: stationId)
+                let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
                     lastFetchTime = Date()
                     consecutiveErrors = 0
-                    departures = result
+                    departures = result.departures
+                    favouriteDepartures = !result.favourites.isEmpty
+                        ? result.favourites
+                        : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)
 
                     if appState == 2 {
                         updateFocusedTrain()
@@ -602,6 +646,7 @@ class PhoneViewModel: ObservableObject {
             status = "\(context) error"
         }
         departures = []
+        favouriteDepartures = []
     }
 
     // MARK: - Watch Sending
@@ -642,6 +687,11 @@ class PhoneViewModel: ObservableObject {
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
         return fmt.string(from: Date())
+    }
+
+    private func extractFavouritesFromCurrent(_ deps: [Departure]) -> [Departure] {
+        guard let stationId = currentStation?.id else { return [] }
+        return favouritesStore.extractFavourites(from: deps, stationId: stationId)
     }
 
     // MARK: - Deep Link

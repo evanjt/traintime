@@ -29,6 +29,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
+    @Published var favouriteDepartures: [Departure] = []
+
+    // MARK: - Favourites
+    let favouritesStore = FavouritesStore.shared
 
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
@@ -134,6 +138,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 self?.defaultMode = mode
                 UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
             }
+            self?.favouritesStore.handleReceivedContext(applicationContext)
         }
     }
 
@@ -372,9 +377,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - Departure Selection & Tracking
 
+    func selectFavouriteDeparture(_ dep: Departure) {
+        selectDepartureImpl(dep)
+    }
+
     func selectDeparture(index: Int) {
         guard index >= 0, index < departures.count else { return }
-        let dep = departures[index]
+        selectDepartureImpl(departures[index])
+    }
+
+    private func selectDepartureImpl(_ dep: Departure) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
 
         focusedTrain = FocusedDeparture(
@@ -438,6 +450,26 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    func toggleFavourite() {
+        guard let focused = focusedTrain, let station = currentStation, let stationId = station.id else { return }
+        favouritesStore.toggle(
+            stationId: stationId,
+            stationName: station.name ?? "Station",
+            lineNumber: focused.lineNumber,
+            destination: focused.destination
+        )
+    }
+
+    var isFocusedTrainFavourite: Bool {
+        guard let focused = focusedTrain, let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: focused.lineNumber, destination: focused.destination)
+    }
+
+    func isDepartureFavourite(_ departure: Departure) -> Bool {
+        guard let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
@@ -497,15 +529,20 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         requestInFlight = true
         requestStartTime = Date()
 
+        let favParam = favouritesStore.favouritesParam(forStation: stationId)
+
         Task {
             do {
-                let result = try await TrainAPIService.fetchDepartures(stationId: stationId)
+                let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
                     lastFetchTime = Date()
                     consecutiveErrors = 0
-                    departures = result
+                    departures = result.departures
+                    favouriteDepartures = !result.favourites.isEmpty
+                        ? result.favourites
+                        : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)
 
                     // Update focused train if tracking
                     if appState == 2 {
@@ -547,6 +584,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             status = "\(context) error"
         }
         departures = []
+        favouriteDepartures = []
     }
 
 }

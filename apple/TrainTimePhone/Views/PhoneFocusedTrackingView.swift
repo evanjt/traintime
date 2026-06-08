@@ -17,7 +17,7 @@ struct PhoneFocusedTrackingView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
 
-                    // Destination
+                    // Destination + star
                     let platChanged = focused?.platformChanged == true
                     HStack(spacing: 6) {
                         if let f = focused, !f.lineNumber.isEmpty {
@@ -30,6 +30,14 @@ struct PhoneFocusedTrackingView: View {
                             .foregroundStyle(platChanged ? AppColors.platformChangedOrange : .primary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
+                        Button {
+                            viewModel.toggleFavourite()
+                        } label: {
+                            Image(systemName: viewModel.isFocusedTrainFavourite ? "star.fill" : "star")
+                                .font(.system(size: 20))
+                                .foregroundStyle(viewModel.isFocusedTrainFavourite ? .yellow : .secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Platform + departure time
