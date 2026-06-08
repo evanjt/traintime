@@ -22,6 +22,8 @@
 		CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
 		EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
 		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		FA0A00000000000000000001 /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
+		FA0A00000000000000000002 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AE1F2A3B4C5D6E7F809102 /* TrainTimeViewModel.swift */; };
 		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
 		9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDB27D479A403E916113BF /* RoutingService.swift */; };
@@ -58,6 +60,8 @@
 		P0A100000000000000000104 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
 		P0A100000000000000000105 /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
 		P0A100000000000000000106 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
+		P0A100000000000000000201 /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
+		P0A100000000000000000202 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		P0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
 		P0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
 		P0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
@@ -86,6 +90,8 @@
 		W0A100000000000000000104 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
 		W0A100000000000000000105 /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
 		W0A100000000000000000106 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
+		W0A100000000000000000201 /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
+		W0A100000000000000000202 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		W0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
 		W0A100000000000000000108 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
 		W0A100000000000000000109 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
@@ -152,6 +158,8 @@
 		95C41E3FB709401C9161EB46 /* Departure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Departure.swift; sourceTree = "<group>"; };
 		C443CDA163B84305AC19B8D3 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAPIService.swift; sourceTree = "<group>"; };
+		FA0F00000000000000000001 /* Favourite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Favourite.swift; sourceTree = "<group>"; };
+		FA0F00000000000000000002 /* FavouritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavouritesStore.swift; sourceTree = "<group>"; };
 		583F0998708C4748991F75B5 /* DepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureRowView.swift; sourceTree = "<group>"; };
 		BE45B7B46148455F9A3E37F4 /* StationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationView.swift; sourceTree = "<group>"; };
 		5B51C424F9264A23AD022694 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -281,6 +289,7 @@
 				FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */,
 				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
 				F0F100000000000000000001 /* Formation.swift */,
+				FA0F00000000000000000001 /* Favourite.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -292,6 +301,7 @@
 				57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */,
 				66C03B4C5D6E7F8091021324 /* HapticService.swift */,
 				5EFDB27D479A403E916113BF /* RoutingService.swift */,
+				FA0F00000000000000000002 /* FavouritesStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -540,6 +550,8 @@
 				CC3D4E5F6A7B8C9D0E1F2A3B /* TransportMode.swift in Sources */,
 				EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */,
 				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
+				FA0A00000000000000000001 /* Favourite.swift in Sources */,
+				FA0A00000000000000000002 /* FavouritesStore.swift in Sources */,
 				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
 				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
 				9F8BB8912BE0432E9DEFDF61 /* RoutingService.swift in Sources */,
@@ -579,6 +591,8 @@
 				P0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
 				P0A100000000000000000105 /* GPSQuality.swift in Sources */,
 				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
+				P0A100000000000000000201 /* Favourite.swift in Sources */,
+				P0A100000000000000000202 /* FavouritesStore.swift in Sources */,
 				P0A100000000000000000107 /* GeoUtils.swift in Sources */,
 				P0A100000000000000000108 /* Constants.swift in Sources */,
 				P0A100000000000000000109 /* Secrets.swift in Sources */,
@@ -611,6 +625,8 @@
 				W0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
 				W0A100000000000000000105 /* GPSQuality.swift in Sources */,
 				W0A100000000000000000106 /* TrainAPIService.swift in Sources */,
+				W0A100000000000000000201 /* Favourite.swift in Sources */,
+				W0A100000000000000000202 /* FavouritesStore.swift in Sources */,
 				W0A100000000000000000107 /* GeoUtils.swift in Sources */,
 				W0A100000000000000000108 /* Constants.swift in Sources */,
 				W0A100000000000000000109 /* Secrets.swift in Sources */,
