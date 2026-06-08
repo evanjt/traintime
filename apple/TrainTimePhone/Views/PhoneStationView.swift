@@ -77,7 +77,7 @@ struct PhoneStationView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         // Favourite departures at top
-                        ForEach(viewModel.favouriteDepartures) { departure in
+                        ForEach(Array(viewModel.favouriteDepartures.enumerated()), id: \.offset) { _, departure in
                             PhoneDepartureRowView(
                                 departure: departure,
                                 isFavourite: true,
@@ -90,8 +90,8 @@ struct PhoneStationView: View {
                         // Separator line under favourites
                         if !viewModel.favouriteDepartures.isEmpty && !viewModel.departures.isEmpty {
                             Rectangle()
-                                .fill(Color.yellow.opacity(0.2))
-                                .frame(height: 1)
+                                .fill(AppColors.favouriteSeparator)
+                                .frame(height: 2)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 4)
                         }

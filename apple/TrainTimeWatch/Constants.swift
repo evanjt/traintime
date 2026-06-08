@@ -23,6 +23,7 @@ enum AppColors {
 
     // Favourite highlight
     static let favouriteBackground = Color(red: 0x33/255, green: 0x28/255, blue: 0x00/255)
+    static let favouriteSeparator = Color(red: 0x99/255, green: 0x88/255, blue: 0x00/255)
 
     // Tracking bar colors
     static let darkGreen = Color(red: 0.0, green: 1.0, blue: 0.0)
