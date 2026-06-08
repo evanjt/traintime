@@ -21,6 +21,15 @@ module SettingsMenu {
             :defaultMode,
             {}
         ));
+        var favCount = FavouritesManager.getTotalCount();
+        if (favCount > 0) {
+            menu.addItem(new WatchUi.MenuItem(
+                "Favourites",
+                favCount + " saved",
+                :favourites,
+                {}
+            ));
+        }
         menu.addItem(new WatchUi.MenuItem(
             "Version",
             AppVersion.VERSION,
@@ -50,6 +59,39 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
             Storage.setValue("defaultMode", current);
             item.setSubLabel(SettingsMenu.modeLabel(current));
+        } else if (item.getId() == :favourites) {
+            // Open favourites submenu
+            var allFavs = FavouritesManager.getAllFavourites();
+            var subMenu = new WatchUi.Menu2({:title => "Favourites"});
+            for (var i = 0; i < allFavs.size(); i++) {
+                var f = allFavs[i];
+                subMenu.addItem(new WatchUi.MenuItem(
+                    f[0] + " " + f[1],  // lineNumber + destination
+                    f[2],                // stationName
+                    i,
+                    {}
+                ));
+            }
+            WatchUi.pushView(subMenu, new FavouritesListDelegate(), WatchUi.SLIDE_LEFT);
         }
+    }
+}
+
+class FavouritesListDelegate extends WatchUi.Menu2InputDelegate {
+
+    function initialize() {
+        Menu2InputDelegate.initialize();
+    }
+
+    function onSelect(item) {
+        // Delete the selected favourite
+        var idx = item.getId() as Toybox.Lang.Number;
+        var allFavs = FavouritesManager.getAllFavourites();
+        if (idx >= 0 && idx < allFavs.size()) {
+            var f = allFavs[idx];
+            FavouritesManager.removeFavourite(f[3], f[0], f[1]);  // stationId, lineNumber, destination
+        }
+        // Pop back to settings
+        WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }
 }

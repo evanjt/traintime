@@ -69,7 +69,11 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onMenu() {
-        SettingsMenu.open();
+        if (mView.getAppState() == 2) {
+            FavouritesMenu.openTrackingMenu(mView);
+        } else {
+            SettingsMenu.open();
+        }
         return true;
     }
 }

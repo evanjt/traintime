@@ -50,6 +50,7 @@ class TrainTimeView extends WatchUi.View {
     var mFormationClasses;  // Array of Number (1 or 2) per wagon
     var mFormationNumbers;  // Array of Number (wagon numbers)
     var mFormationSectors;  // Array of String (sector letters)
+    var mFavouriteData; // favourite departures from API (separate from mTrainData)
     var mMapError;      // error message to show as toast overlay
     var mMapErrorTick;  // timestamp when error was set
 
@@ -97,6 +98,7 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mFavouriteData = null;
         mMapError = null;
         mMapErrorTick = null;
     }
@@ -194,6 +196,7 @@ class TrainTimeView extends WatchUi.View {
         mTramStations = null;
         mSpecialStations = null;
         mTrainData = null;
+        mFavouriteData = null;
         mWalkInfo = null;
         mStationIndex = 0;
         mAvailableModes = [];
@@ -259,6 +262,23 @@ class TrainTimeView extends WatchUi.View {
         return mAppState;
     }
 
+    // Combined selectable count: favourites + regular departures
+    function getSelectableCount() {
+        var count = 0;
+        if (mFavouriteData != null) { count = count + mFavouriteData.size(); }
+        if (mTrainData != null) { count = count + mTrainData.size(); }
+        return count;
+    }
+
+    // Get item from combined list: favourites first, then regular departures
+    function getSelectableItem(index) {
+        var favCount = (mFavouriteData != null) ? mFavouriteData.size() : 0;
+        if (index < favCount) {
+            return mFavouriteData[index];
+        }
+        return mTrainData[index - favCount];
+    }
+
     function enterTrainSelection() {
         if (mStationName == null) {
             return;
@@ -270,11 +290,10 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function moveCursorDown() {
-        if (mTrainData == null || mTrainData.size() == 0) {
-            // No departures — only station indicator navigable
+        var total = getSelectableCount();
+        if (total == 0) {
             return;
         }
-        var total = mTrainData.size();
         if (mCursorIndex == -1) {
             // Move from station indicator to first departure row
             mCursorIndex = 0;
@@ -299,7 +318,8 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function moveCursorUp() {
-        if (mTrainData == null || mTrainData.size() == 0) { return; }
+        var total = getSelectableCount();
+        if (total == 0) { return; }
         if (mCursorIndex == -1) {
             // Already at top (station indicator), no-op
             return;
@@ -313,8 +333,9 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function confirmTrainSelection() {
-        if (mTrainData == null || mCursorIndex < 0 || mCursorIndex >= mTrainData.size()) { return; }
-        var t = mTrainData[mCursorIndex];
+        var total = getSelectableCount();
+        if (total == 0 || mCursorIndex < 0 || mCursorIndex >= total) { return; }
+        var t = getSelectableItem(mCursorIndex);
         mFocusedTrain = {
             "dest" => t["dest"],
             "min" => t["min"],
@@ -676,11 +697,13 @@ class TrainTimeView extends WatchUi.View {
         mWalkInfo = formatWalkInfo(distance);
         mStatus = mStationName;
         mTrainData = null;
+        mFavouriteData = null;
 
         // Use embedded departures if available (closest station per mode)
         if (station.hasKey("departures") && station["departures"] != null
                 && station["departures"].size() > 0) {
             mTrainData = ApiHandler.parseDepartureArray(station["departures"]);
+            mFavouriteData = ApiHandler.extractFavourites(mTrainData, mStationId);
             mLastFetchTime = Time.now().value();
             mRequestInFlight = false;
             mRequestStartTime = null;

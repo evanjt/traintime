@@ -85,7 +85,7 @@ module Renderer {
                 stationText, Graphics.TEXT_JUSTIFY_CENTER);
 
             if (view.mTrainData != null && view.mTrainData.size() > 0) {
-                // Train rows
+                // Train rows (favourites first, then regular)
                 var maxTrains = 4;
                 if (height < 240) {
                     maxTrains = 3;
@@ -93,16 +93,77 @@ module Renderer {
                 var startY = height * 36 / 100;
                 var rowSpacing = height * 14 / 100;
 
-                var startIdx = (view.mAppState == 1) ? view.mScrollOffset : 0;
-                var endIdx = view.mTrainData.size();
-                if (endIdx > startIdx + maxTrains) {
-                    endIdx = startIdx + maxTrains;
+                // Build combined list: favourites + separator marker + regular departures
+                var favCount = 0;
+                if (view.mFavouriteData != null) {
+                    favCount = view.mFavouriteData.size();
                 }
-                for (var i = startIdx; i < endIdx; i++) {
-                    var row = i - startIdx;
-                    var highlighted = (view.mAppState == 1 && i == view.mCursorIndex);
-                    drawTrainRow(dc, view.mTrainData[i],
-                        startY + row * rowSpacing, width, height, highlighted);
+
+                if (view.mAppState == 1) {
+                    // Selection mode: favourites first, then regular departures
+                    var selectTotal = view.getSelectableCount();
+                    var startIdx = view.mScrollOffset;
+                    var endIdx = selectTotal;
+                    if (endIdx > startIdx + maxTrains) {
+                        endIdx = startIdx + maxTrains;
+                    }
+                    for (var i = startIdx; i < endIdx; i++) {
+                        var row = i - startIdx;
+                        var highlighted = (i == view.mCursorIndex);
+                        var item = view.getSelectableItem(i);
+                        var isFav = false;
+                        if (view.mStationId != null) {
+                            isFav = FavouritesManager.isFavourite(view.mStationId,
+                                item["line"], item["dest"]);
+                        }
+                        drawTrainRow(dc, item,
+                            startY + row * rowSpacing, width, height, highlighted, isFav);
+                    }
+                    // Draw separator line after favourites section (if visible)
+                    if (favCount > 0 && selectTotal > favCount) {
+                        var sepIdx = favCount - 1;  // last favourite index
+                        if (sepIdx >= startIdx && sepIdx < endIdx) {
+                            var sepRow = sepIdx - startIdx;
+                            var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+                            var sepY2 = startY + sepRow * rowSpacing + tinyH + 1;
+                            var sepUsable2 = DrawUtils.getUsableWidth(sepY2, width, height) - 20;
+                            var sepX2 = (width - sepUsable2) / 2;
+                            dc.setColor(0x665500, Graphics.COLOR_TRANSPARENT);
+                            dc.fillRectangle(sepX2, sepY2, sepUsable2, 1);
+                        }
+                    }
+                } else {
+                    // Station view: favourites first, then separator, then regular
+                    var rowIdx = 0;
+
+                    // Draw favourite rows
+                    for (var f = 0; f < favCount && rowIdx < maxTrains; f++) {
+                        drawTrainRow(dc, view.mFavouriteData[f],
+                            startY + rowIdx * rowSpacing, width, height, false, true);
+                        rowIdx = rowIdx + 1;
+                    }
+
+                    // Horizontal line under favourites section
+                    if (favCount > 0 && rowIdx < maxTrains && view.mTrainData.size() > 0) {
+                        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+                        var sepY = startY + (rowIdx - 1) * rowSpacing + tinyH + 1;
+                        var sepUsable = DrawUtils.getUsableWidth(sepY, width, height) - 20;
+                        var sepX = (width - sepUsable) / 2;
+                        dc.setColor(0x665500, Graphics.COLOR_TRANSPARENT);
+                        dc.fillRectangle(sepX, sepY, sepUsable, 1);
+                    }
+
+                    // Draw regular departure rows (favourites in list get gold bg too)
+                    for (var t = 0; t < view.mTrainData.size() && rowIdx < maxTrains; t++) {
+                        var regFav = false;
+                        if (view.mStationId != null) {
+                            regFav = FavouritesManager.isFavourite(view.mStationId,
+                                view.mTrainData[t]["line"], view.mTrainData[t]["dest"]);
+                        }
+                        drawTrainRow(dc, view.mTrainData[t],
+                            startY + rowIdx * rowSpacing, width, height, false, regFav);
+                        rowIdx = rowIdx + 1;
+                    }
                 }
             } else if (view.mTrainData != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -266,7 +327,7 @@ module Renderer {
         }
     }
 
-    function drawTrainRow(dc, train, y, width, height, highlighted) {
+    function drawTrainRow(dc, train, y, width, height, highlighted, isFav) {
         var minutesUntil = train["min"];
         var delay = train["delay"];
         var platform = train["plat"];
@@ -279,6 +340,15 @@ module Renderer {
         var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
         var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
         var xtinyY = y + (tinyH - xtinyH) / 2;
+
+        // Favourite background tint (subtle gold)
+        if (isFav && !highlighted) {
+            var rowCenterForBg = y + tinyH / 2;
+            var usableBg = DrawUtils.getUsableWidth(rowCenterForBg, width, height);
+            var bgX = (width - usableBg) / 2 + 2;
+            dc.setColor(0x332800, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
+        }
 
         // Highlight background for cursor in selection mode
         if (highlighted) {
