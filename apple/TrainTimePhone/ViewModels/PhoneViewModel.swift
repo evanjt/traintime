@@ -628,7 +628,9 @@ class PhoneViewModel: ObservableObject {
                     requestStartTime = nil
                     lastFetchTime = Date()
                     consecutiveErrors = 0
-                    departures = result.departures
+                    departures = !result.favourites.isEmpty
+                        ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
+                        : result.departures
                     favouriteDepartures = !result.favourites.isEmpty
                         ? result.favourites
                         : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)

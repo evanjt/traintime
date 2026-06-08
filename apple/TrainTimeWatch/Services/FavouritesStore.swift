@@ -72,6 +72,23 @@ class FavouritesStore: ObservableObject {
         return stationFavs.map { "\($0.lineNumber):\($0.destination)" }.joined(separator: ",")
     }
 
+    /// Keep favourite departures present in the regular list so they repeat in time order.
+    /// Client-side extraction already pulls favourites from `departures`; this covers a
+    /// server that returns favourites as a separate array without keeping them in `departures`.
+    func merging(favourites: [Departure], into departures: [Departure]) -> [Departure] {
+        guard !favourites.isEmpty else { return departures }
+        var result = departures
+        for fav in favourites {
+            let present = departures.contains {
+                $0.lineNumber == fav.lineNumber
+                    && $0.destination == fav.destination
+                    && $0.departureTimestamp == fav.departureTimestamp
+            }
+            if !present { result.append(fav) }
+        }
+        return result.sorted { ($0.departureTimestamp ?? 0) < ($1.departureTimestamp ?? 0) }
+    }
+
     // MARK: - Persistence
 
     private func save() {
