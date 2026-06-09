@@ -1,0 +1,24 @@
+TrainTime bringt die Abfahrten des öffentlichen Verkehrs der Schweiz direkt an dein Handgelenk, und jetzt auch in deine Tasche. Sieh, was von nahegelegenen Bahn-, Tram- und Bushaltestellen, Schiffen, Luftseilbahnen und Standseilbahnen abfährt, mit Verspätungen in Echtzeit, Gleisnummern und Gehdistanz. Haptisches Feedback, wenn du spät dran bist, hilft dir, keine Abfahrt zu verpassen.
+
+ABFAHRTEN IN DER NÄHE
+TrainTime nutzt deinen Standort, um die nächstgelegenen Schweizer Haltestellen zu finden, und zeigt die nächsten Abfahrten mit Ziel, Gleis, Verspätung und Fahrtrichtung.
+
+ABFAHRT VERFOLGEN
+Tippe auf eine Abfahrt, um sie zu verfolgen. Ein Live-Countdown zeigt anhand deiner Gehdistanz zur Haltestelle, wie viel Zeit dir bleibt und ob du es schaffst. Sieh die vollständige Wagenreihung, damit du genau weisst, wo du dich auf dem Perron hinstellen musst.
+
+iPHONE + APPLE WATCH
+Durchsuche Abfahrten und verfolge Züge auf dem iPhone mit der vollständigen Companion-App oder wirf einen Blick auf deine Watch für das Wesentliche. Sende eine verfolgte Abfahrt mit einem Tippen vom iPhone an deine Watch. Füge das Home-Screen-Widget für sofortigen Zugriff hinzu.
+
+VERSCHIEDENE VERKEHRSMITTEL
+Wechsle zwischen Zügen, Bussen, Trams, Schiffen, Standseilbahnen und Luftseilbahnen. Durchsuche bis zu 5 nahegelegene Haltestellen pro Verkehrsmittel über 4 Verkehrsarten. TrainTime zeigt nur, was sich in deiner Umgebung befindet.
+
+IN DER GANZEN SCHWEIZ
+Basierend auf Echtzeitdaten von opentransportdata.swiss, mit über 51'000 Haltestellen im ganzen Land.
+
+DATENSCHUTZ ZUERST
+Kein Konto nötig. Kein Tracking. Keine Analyse. Deine Koordinaten werden von unserer API im Arbeitsspeicher verarbeitet und sofort verworfen, nie gespeichert oder weitergegeben. Vollständige Datenschutzerklärung unter traintime.ch/privacy.
+
+OPEN SOURCE
+App und API sind beide Open Source.
+
+Diese App ist nicht mit SBB oder einem anderen Schweizer Verkehrsbetrieb verbunden oder von diesen unterstützt. Die Abfahrtsdaten stammen von opentransportdata.swiss und sind möglicherweise nicht immer korrekt oder aktuell.

@@ -1,0 +1,1 @@
+trasporti,fermata,tram,bus,battello,funicolare,funivia,vicino,orologio,treno,Svizzera,Lugano,FFS

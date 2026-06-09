@@ -1,0 +1,1 @@
+Chargement plus rapide. Les arrêts et les départs à proximité s'affichent désormais plus vite à l'ouverture de l'app.

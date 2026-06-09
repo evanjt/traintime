@@ -1,0 +1,1 @@
+Faster loading. Nearby stations and departures now appear more quickly when you open the app.

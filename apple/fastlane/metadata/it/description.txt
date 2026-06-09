@@ -1,0 +1,24 @@
+TrainTime mostra le partenze dei trasporti pubblici svizzeri direttamente al tuo polso, e ora anche in tasca. Guarda cosa parte dalle fermate di treno, tram e bus, dai battelli, dalle funivie e dalle funicolari nelle vicinanze, con ritardi in tempo reale, numeri di binario e distanza a piedi. Il feedback aptico quando sei in ritardo ti aiuta a non perdere una partenza.
+
+PARTENZE NELLE VICINANZE
+TrainTime usa la tua posizione per trovare le fermate svizzere più vicine e mostra le prossime partenze con destinazione, binario, ritardo e direzione di marcia.
+
+SEGUI LA TUA PARTENZA
+Tocca una partenza per seguirla. Un conto alla rovescia in tempo reale mostra il tempo che ti resta in base alla distanza a piedi dalla fermata, così sai se ce la farai. Consulta la composizione completa del treno per sapere esattamente dove posizionarti sul binario.
+
+iPHONE + APPLE WATCH
+Sfoglia le partenze e segui i treni dal tuo iPhone con l'app companion completa, oppure dai un'occhiata al Watch per l'essenziale. Invia una partenza monitorata dal telefono al Watch con un tocco. Aggiungi il widget nella schermata Home per un accesso immediato.
+
+DIVERSI MEZZI DI TRASPORTO
+Passa tra treni, bus, tram, battelli, funicolari e funivie. Sfoglia fino a 5 fermate vicine per mezzo, su 4 tipi di trasporto. TrainTime mostra solo ciò che ti circonda.
+
+IN TUTTA LA SVIZZERA
+Basato sui dati in tempo reale di opentransportdata.swiss, con oltre 51'000 fermate in tutto il paese.
+
+PRIVACY AL PRIMO POSTO
+Nessun account richiesto. Nessun tracciamento. Nessuna analisi. Le tue coordinate vengono elaborate in memoria dalla nostra API e subito eliminate, mai memorizzate né condivise. Informativa sulla privacy completa su traintime.ch/privacy.
+
+OPEN SOURCE
+L'app e l'API sono entrambe open source.
+
+Questa app non è affiliata né approvata da FFS o da altri operatori di trasporto svizzeri. I dati sulle partenze provengono da opentransportdata.swiss e potrebbero non essere sempre accurati o aggiornati.

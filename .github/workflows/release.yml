@@ -276,3 +276,64 @@ jobs:
           echo "- **Track:** Internal TestFlight" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Build will be available in [App Store Connect](https://appstoreconnect.apple.com) shortly." >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Prepare App Store version + upload metadata
+  # ============================================
+  prepare-appstore:
+    name: Prepare App Store version
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for App Store Connect credentials
+        id: check_creds
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_API_KEY" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "::notice::Skipping App Store metadata - credentials not configured"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout repository
+        if: steps.check_creds.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches MARKETING_VERSION
+        if: steps.check_creds.outputs.skip != 'true'
+        run: |
+          MV=$(grep 'MARKETING_VERSION' apple/TrainTimeWatch.xcodeproj/project.pbxproj | head -1 | sed 's/.*= *\(.*\);/\1/' | tr -d ' ')
+          echo "Tag: ${{ github.ref_name }} | MARKETING_VERSION: $MV"
+          if [ "$MV" != "${{ github.ref_name }}" ]; then
+            echo "::error::Tag ${{ github.ref_name }} does not match MARKETING_VERSION $MV. Bump the version in Xcode before tagging."
+            exit 1
+          fi
+
+      - name: Setup Ruby
+        if: steps.check_creds.outputs.skip != 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          working-directory: apple/fastlane
+          bundler-cache: true
+
+      - name: Create App Store version and upload metadata
+        if: steps.check_creds.outputs.skip != 'true'
+        working-directory: apple/fastlane
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        run: bundle exec fastlane ios sync_metadata version:${{ github.ref_name }}
+
+      - name: Summary
+        if: steps.check_creds.outputs.skip != 'true'
+        run: |
+          echo "## App Store Version Prepared" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ github.ref_name }} (Prepare for Submission, not submitted)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Metadata:** uploaded from apple/fastlane/metadata/" >> $GITHUB_STEP_SUMMARY

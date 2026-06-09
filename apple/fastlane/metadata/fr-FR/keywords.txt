@@ -1,0 +1,1 @@
+horaire,arrêt,retard,quai,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,train,Genève,CFF
