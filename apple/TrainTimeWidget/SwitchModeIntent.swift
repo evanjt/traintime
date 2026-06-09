@@ -20,8 +20,12 @@ struct SwitchModeIntent: AppIntent {
         // Fetch departures for the new station if it has none
         let stations = result.stations(for: nextMode)
         if !stations.isEmpty && stations[0].departures.isEmpty {
-            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: stations[0].id) {
-                let deps = fetched.map { dep in
+            let favParam = FavouritesStore.shared.favouritesParam(forStation: stations[0].id)
+            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: stations[0].id, favourites: favParam) {
+                let favDeps = !fetched.favourites.isEmpty
+                    ? fetched.favourites
+                    : FavouritesStore.shared.extractFavourites(from: fetched.departures, stationId: stations[0].id)
+                let deps = (favDeps + fetched.departures).map { dep in
                     WidgetDeparture(
                         destination: dep.destination,
                         departureTimestamp: dep.departureTimestamp ?? 0,
