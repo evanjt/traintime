@@ -40,6 +40,51 @@ struct WidgetEntryView: View {
         }
     }
 
+    // MARK: - Row metrics (scaled per family, medium ≈ the phone's PhoneDepartureRowView)
+
+    private struct RowMetrics {
+        var minutesFont: Font
+        var clockFont: Font
+        var minutesWidth: CGFloat
+        var showDelay: Bool
+        var delayWidth: CGFloat
+        var lineFont: Font
+        var lineWidth: CGFloat
+        var destFont: Font
+        var starSize: CGFloat
+        var hSpacing: CGFloat
+    }
+
+    private var rowMetrics: RowMetrics {
+        switch family {
+        case .systemSmall:
+            return RowMetrics(
+                minutesFont: .system(size: 16, weight: .bold, design: .rounded),
+                clockFont: .system(size: 13, weight: .semibold, design: .rounded),
+                minutesWidth: 26, showDelay: false, delayWidth: 0,
+                lineFont: .system(size: 12, weight: .semibold), lineWidth: 28,
+                destFont: .subheadline, starSize: 9, hSpacing: 5)
+        case .systemLarge:
+            return RowMetrics(
+                minutesFont: .system(size: 19, weight: .bold, design: .rounded),
+                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
+                minutesWidth: 40, showDelay: true, delayWidth: 34,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 40,
+                destFont: .body, starSize: 12, hSpacing: 8)
+        default: // medium
+            return RowMetrics(
+                minutesFont: .system(size: 20, weight: .bold, design: .rounded),
+                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
+                minutesWidth: 42, showDelay: true, delayWidth: 34,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 40,
+                destFont: .body, starSize: 12, hSpacing: 8)
+        }
+    }
+
+    private var headerFont: Font {
+        family == .systemSmall ? .subheadline.weight(.bold) : .headline
+    }
+
     // MARK: - Dormant View
 
     @ViewBuilder
@@ -55,16 +100,16 @@ struct WidgetEntryView: View {
         VStack(spacing: 8) {
             HStack(spacing: 4) {
                 Image(systemName: "tram.fill")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("TrainTime")
-                    .font(.caption2.weight(.medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
             }
 
             if let name = entry.stationName {
                 Text(name)
-                    .font(.caption.weight(.semibold))
+                    .font(.headline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -78,67 +123,72 @@ struct WidgetEntryView: View {
 
     private var staleDormantView: some View {
         let rows = entry.displayDepartures(limit: max(1, maxDepartureRows - 1))
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: "tram.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(entry.stationName ?? "TrainTime")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer()
-                if let asOf = entry.asOf {
-                    // Clock time, not a stale minute count — a dormant widget can sit for hours.
-                    Text("as of \(asOf, style: .time)")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.tertiary)
+        return GeometryReader { geo in
+            VStack(spacing: 0) {
+                HStack(spacing: 6) {
+                    Image(systemName: "tram.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(entry.stationName ?? "TrainTime")
+                        .font(headerFont)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    if let asOf = entry.asOf {
+                        // Clock time, not a stale minute count — a dormant widget can sit for hours.
+                        Text("as of \(asOf, style: .time)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
+
+                Divider().padding(.vertical, 4)
+
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, dep in
+                    staleRow(dep).frame(maxHeight: .infinity)
+                }
+
+                refreshButton.padding(.top, 6)
             }
-
-            Divider()
-
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, dep in
-                staleRow(dep)
-            }
-
-            Spacer(minLength: 0)
-            refreshButton
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .padding(12)
     }
 
     private func staleRow(_ dep: WidgetDeparture) -> some View {
-        HStack(spacing: 4) {
+        let m = rowMetrics
+        // Clock column spans minutes + delay so the line/destination columns line up with the active view.
+        let clockWidth = m.minutesWidth + (m.showDelay ? m.hSpacing + m.delayWidth : 0)
+        return HStack(spacing: m.hSpacing) {
             Text(dep.clockTimeText)
-                .font(.system(.caption, design: .rounded, weight: .medium))
+                .font(m.clockFont)
                 .foregroundStyle(.secondary)
-                .frame(width: 36, alignment: .trailing)
-            if family != .systemSmall, !dep.lineNumber.isEmpty {
-                Text(dep.lineNumber)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, alignment: .leading)
-            }
+                .frame(width: clockWidth, alignment: .trailing)
+            Text(lineLabel(dep))
+                .font(m.lineFont)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: m.lineWidth, alignment: .leading)
             Text(dep.destination)
-                .font(.caption)
+                .font(m.destFont)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 0)
             if entry.isFavourite(dep) {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 8))
+                    .font(.system(size: m.starSize))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 1)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var refreshButton: some View {
         Button(intent: RefreshIntent()) {
             Label("Refresh", systemImage: "arrow.clockwise")
-                .font(.caption.weight(.medium))
+                .font(.subheadline.weight(.medium))
         }
         .buttonStyle(.bordered)
         .tint(.blue)
@@ -150,72 +200,84 @@ struct WidgetEntryView: View {
         let maxRows = maxDepartureRows
         let favShown = entry.favouriteRows(limit: maxRows)
         let regularShown = entry.regularRows(limit: maxRows - favShown.count)
-        return VStack(alignment: .leading, spacing: 4) {
-            headerRow
+        return GeometryReader { geo in
+            VStack(spacing: 0) {
+                headerRow
 
-            Divider()
+                Divider().padding(.vertical, 4)
 
-            if favShown.isEmpty && regularShown.isEmpty {
-                Spacer()
-                Text("No departures")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                Spacer()
-            } else {
-                ForEach(Array(favShown.enumerated()), id: \.offset) { _, dep in
-                    widgetDepartureRow(dep, isFavourite: true)
+                if favShown.isEmpty && regularShown.isEmpty {
+                    Spacer()
+                    Text("No departures")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                } else {
+                    ForEach(Array(favShown.enumerated()), id: \.offset) { _, dep in
+                        departureRow(dep, isFavourite: true)
+                            .frame(maxHeight: .infinity)
+                    }
+                    if !favShown.isEmpty && !regularShown.isEmpty {
+                        Rectangle()
+                            .fill(AppColors.favouriteSeparator)
+                            .frame(height: 1.5)
+                            .padding(.vertical, 2)
+                    }
+                    ForEach(Array(regularShown.enumerated()), id: \.offset) { _, dep in
+                        departureRow(dep, isFavourite: entry.isFavourite(dep))
+                            .frame(maxHeight: .infinity)
+                    }
                 }
-                if !favShown.isEmpty && !regularShown.isEmpty {
-                    Rectangle()
-                        .fill(AppColors.favouriteSeparator)
-                        .frame(height: 1)
-                        .padding(.vertical, 1)
-                }
-                ForEach(Array(regularShown.enumerated()), id: \.offset) { _, dep in
-                    widgetDepartureRow(dep, isFavourite: entry.isFavourite(dep))
-                }
-                Spacer(minLength: 0)
             }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .padding(12)
+        // systemSmall honours only one tap region, so the whole tile opens the next departure;
+        // medium/large get a per-row Link instead (set in departureRow).
+        .widgetURL(family == .systemSmall ? entry.displayDepartures(limit: 1).first?.trackURL : nil)
     }
 
     private var headerRow: some View {
         HStack(spacing: 6) {
-            // Mode icon — tappable if multiple modes
-            if let mode = entry.currentMode {
+            // Mode icon — medium/large only (no room on small)
+            if family != .systemSmall, let mode = entry.currentMode {
                 if entry.availableModes.count > 1 {
                     Button(intent: SwitchModeIntent()) {
                         Image(systemName: mode.sfSymbol)
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.blue)
                     }
                     .buttonStyle(.plain)
                 } else {
                     Image(systemName: mode.sfSymbol)
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            // Station name — tappable if multiple stations
+            // Station name — tappable to cycle stations
             if entry.stationCount > 1 {
                 Button(intent: SwitchStationIntent()) {
                     HStack(spacing: 3) {
                         Text(entry.stationName ?? "Station")
-                            .font(.caption.weight(.bold))
+                            .font(headerFont)
                             .foregroundStyle(.primary)
                             .lineLimit(1)
-                        Text("\(entry.stationIndex + 1)/\(entry.stationCount)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.secondary)
+                        if family != .systemSmall {
+                            Text("\(entry.stationIndex + 1)/\(entry.stationCount)")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
             } else {
                 Text(entry.stationName ?? "Station")
-                    .font(.caption.weight(.bold))
+                    .font(headerFont)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -224,69 +286,91 @@ struct WidgetEntryView: View {
 
             Button(intent: RefreshIntent()) {
                 Image(systemName: "arrow.clockwise")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
         }
     }
 
-    private func widgetDepartureRow(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
-        let deepLink = URL(string: "traintime://track?destination=\(dep.destination.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&timestamp=\(dep.departureTimestamp)")
-
-        return Link(destination: deepLink ?? URL(string: "traintime://")!) {
-            HStack(spacing: 4) {
-                // Minutes
-                Text(dep.minutesText(at: entry.date))
-                    .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(minutesColor(dep))
-                    .frame(width: 30, alignment: .trailing)
-
-                // Delay
-                if dep.delay > 0 {
-                    Text("+\(dep.delay)")
-                        .font(.system(size: 8, weight: .medium))
-                        .foregroundStyle(AppColors.delay)
-                }
-
-                // Line or platform (medium/large only)
-                if family != .systemSmall {
-                    if !dep.lineNumber.isEmpty {
-                        Text(dep.lineNumber)
-                            .font(.system(.caption2, weight: .medium))
-                            .foregroundStyle(AppColors.platform)
-                            .frame(width: 24, alignment: .leading)
-                    } else if !dep.platform.isEmpty {
-                        Text("P\(dep.platform)")
-                            .font(.caption2)
-                            .foregroundStyle(dep.platformChanged ? .red : AppColors.platform)
-                            .frame(width: 24, alignment: .leading)
-                    }
-                }
-
-                // Destination
-                Text(dep.destination)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
-                Spacer(minLength: 0)
-
-                if isFavourite {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 8))
-                        .foregroundStyle(AppColors.favouriteStar)
-                }
-            }
-            .padding(.vertical, 2)
+    @ViewBuilder
+    private func departureRow(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
+        let row = departureRowContent(dep, isFavourite: isFavourite)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background {
                 if isFavourite {
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 6)
                         .fill(AppColors.favouriteBackground)
                 }
             }
+        if family == .systemSmall {
+            row
+        } else {
+            Link(destination: dep.trackURL) { row }
         }
+    }
+
+    private func departureRowContent(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
+        let m = rowMetrics
+        return HStack(spacing: m.hSpacing) {
+            // Minutes
+            Text(dep.minutesText(at: entry.date))
+                .font(m.minutesFont)
+                .foregroundStyle(minutesColor(dep))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: m.minutesWidth, alignment: .trailing)
+
+            // Delay capsule — reserved column with an explicit spacer when on time, so the
+            // line + destination columns line up whether or not a row has a delay.
+            if m.showDelay {
+                if dep.delay > 0 {
+                    Text("+\(dep.delay)")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(AppColors.delay))
+                        .frame(width: m.delayWidth, alignment: .leading)
+                } else {
+                    Spacer().frame(width: m.delayWidth)
+                }
+            }
+
+            // Line (reserved column, wide enough for 4-char lines like IR95)
+            Text(lineLabel(dep))
+                .font(m.lineFont)
+                .foregroundStyle(lineColor(dep))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: m.lineWidth, alignment: .leading)
+
+            // Destination
+            Text(dep.destination)
+                .font(m.destFont)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 0)
+
+            if isFavourite {
+                Image(systemName: "star.fill")
+                    .font(.system(size: m.starSize))
+                    .foregroundStyle(AppColors.favouriteStar)
+            }
+        }
+    }
+
+    private func lineLabel(_ dep: WidgetDeparture) -> String {
+        if !dep.lineNumber.isEmpty { return dep.lineNumber }
+        if !dep.platform.isEmpty { return "P\(dep.platform)" }
+        return ""
+    }
+
+    private func lineColor(_ dep: WidgetDeparture) -> Color {
+        if dep.lineNumber.isEmpty && dep.platformChanged { return .red }
+        return AppColors.platform
     }
 
     private func minutesColor(_ dep: WidgetDeparture) -> Color {
@@ -297,9 +381,9 @@ struct WidgetEntryView: View {
 
     private var maxDepartureRows: Int {
         switch family {
-        case .systemSmall: return 2
-        case .systemMedium: return 4
-        case .systemLarge: return 8
+        case .systemSmall: return 3
+        case .systemMedium: return 3
+        case .systemLarge: return 7
         default: return 4
         }
     }
