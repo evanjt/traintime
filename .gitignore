@@ -49,6 +49,10 @@ apple/fastlane/.bundle/
 
 # Android / Gradle
 .gradle/
+.kotlin/
 local.properties
 *.apk
 *.aab
+*.keystore
+android/.idea/
+android/captures/

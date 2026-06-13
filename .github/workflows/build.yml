@@ -247,3 +247,52 @@ jobs:
           name: garmin-prg
           path: garmin/builds/*.prg
           retention-days: 30
+
+
+  # ============================================
+  # Android build
+  # ============================================
+  build-android:
+    name: Build Android App
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get version info
+        id: version
+        working-directory: android
+        run: |
+          VERSION=$(grep 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "filename=traintime-${VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "filename=traintime-${VERSION}-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Version: $VERSION | SHA: $SHORT_SHA"
+
+      - name: Build and test
+        env:
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+        working-directory: android
+        run: ./gradlew assembleDebug testDebugUnitTest
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ steps.version.outputs.filename }}
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
