@@ -38,6 +38,5 @@ struct PhoneStationPickerView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }

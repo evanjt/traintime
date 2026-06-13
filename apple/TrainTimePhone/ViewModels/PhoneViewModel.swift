@@ -1,12 +1,14 @@
 import SwiftUI
 import CoreLocation
 import Combine
+import WidgetKit
 
 class PhoneViewModel: ObservableObject {
     // MARK: - Services
     let location = PhoneLocationService()
     private var locationCancellable: AnyCancellable?
     private var timerCancellable: AnyCancellable?
+    private var favouritesCancellable: AnyCancellable?
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
@@ -26,6 +28,10 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
+    @Published var favouriteDepartures: [Departure] = []
+
+    // MARK: - Favourites
+    let favouritesStore = FavouritesStore.shared
 
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
@@ -104,7 +110,7 @@ class PhoneViewModel: ObservableObject {
             currentMode = savedMode
         }
 
-        // Receive default mode sync from watch
+        // Receive default mode + favourites sync from watch
         watchService.wcService.onApplicationContextReceived = { [weak self] context in
             DispatchQueue.main.async {
                 if let modeRaw = context["defaultMode"] as? Int,
@@ -112,8 +118,21 @@ class PhoneViewModel: ObservableObject {
                     self?.defaultMode = mode
                     UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
                 }
+                self?.favouritesStore.handleReceivedContext(context)
             }
         }
+
+        // FavouritesStore is a separate ObservableObject the phone views reach through the
+        // view model, so its changes don't republish on their own. Forward them: this both
+        // drives star icons / row tints / Settings and re-extracts the top section
+        // immediately rather than waiting for the next fetch (the 30s cooldown).
+        favouritesCancellable = favouritesStore.$favourites
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.favouriteDepartures = self.extractFavouritesFromCurrent(self.departures)
+            }
     }
 
     // MARK: - Lifecycle
@@ -126,6 +145,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     func onDisappear() {
+        updateWidgetCache() // the widget is only visible once we background; seed it with what was on screen
         location.stop()
         stopTimer()
         watchService.shutdown()
@@ -273,9 +293,16 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Departure Selection & Tracking
 
+    func selectFavouriteDeparture(_ dep: Departure) {
+        selectDepartureImpl(dep)
+    }
+
     func selectDeparture(index: Int) {
         guard index >= 0, index < departures.count else { return }
-        let dep = departures[index]
+        selectDepartureImpl(departures[index])
+    }
+
+    private func selectDepartureImpl(_ dep: Departure) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
 
         focusedTrain = FocusedDeparture(
@@ -335,6 +362,37 @@ class PhoneViewModel: ObservableObject {
         watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
     }
 
+    func toggleFavourite() {
+        guard let focused = focusedTrain else { return }
+        toggleFavourite(lineNumber: focused.lineNumber, destination: focused.destination)
+    }
+
+    func toggleFavourite(departure: Departure) {
+        toggleFavourite(lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
+    private func toggleFavourite(lineNumber: String, destination: String) {
+        guard let station = currentStation, let stationId = station.id else { return }
+        lastInteractionTime = Date() // curating favourites shouldn't trip the inactivity timeout
+        favouritesStore.toggle(
+            stationId: stationId,
+            stationName: station.name ?? "Station",
+            lineNumber: lineNumber,
+            destination: destination
+        )
+        PhoneHapticService.shortPulse()
+    }
+
+    var isFocusedTrainFavourite: Bool {
+        guard let focused = focusedTrain, let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: focused.lineNumber, destination: focused.destination)
+    }
+
+    func isDepartureFavourite(_ departure: Departure) -> Bool {
+        guard let stationId = currentStation?.id else { return false }
+        return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
     func exitToStationView() {
         lastInteractionTime = Date()
         appState = 0
@@ -364,9 +422,11 @@ class PhoneViewModel: ObservableObject {
 
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -381,9 +441,11 @@ class PhoneViewModel: ObservableObject {
 
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -436,9 +498,11 @@ class PhoneViewModel: ObservableObject {
         // existing list untouched (no flash) — the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else if !preserved {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -458,6 +522,7 @@ class PhoneViewModel: ObservableObject {
         specialStations = []
         stationIndex = 0
         departures = []
+        favouriteDepartures = []
         availableModes = []
         consecutiveErrors = 0
 
@@ -575,32 +640,51 @@ class PhoneViewModel: ObservableObject {
     }
 
     func fetchDepartures(stationId: String) {
+        Task { await fetchDeparturesAsync(stationId: stationId) }
+    }
+
+    @MainActor
+    private func fetchDeparturesAsync(stationId: String) async {
         guard !requestInFlight else { return }
         requestInFlight = true
         requestStartTime = Date()
 
-        Task {
-            do {
-                let result = try await TrainAPIService.fetchDepartures(stationId: stationId)
-                await MainActor.run {
-                    requestInFlight = false
-                    requestStartTime = nil
-                    lastFetchTime = Date()
-                    consecutiveErrors = 0
-                    departures = result
+        let favParam = favouritesStore.favouritesParam(forStation: stationId)
 
-                    if appState == 2 {
-                        updateFocusedTrain()
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    requestInFlight = false
-                    requestStartTime = nil
-                    handleError(error, context: "Departures")
-                }
+        do {
+            let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
+            requestInFlight = false
+            requestStartTime = nil
+            lastFetchTime = Date()
+            consecutiveErrors = 0
+            departures = !result.favourites.isEmpty
+                ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
+                : result.departures
+            favouriteDepartures = !result.favourites.isEmpty
+                ? result.favourites
+                : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)
+
+            if appState == 2 {
+                updateFocusedTrain()
             }
+        } catch {
+            requestInFlight = false
+            requestStartTime = nil
+            handleError(error, context: "Departures")
         }
+    }
+
+    /// Pull-to-refresh: bypasses the timer cooldown by calling the fetch directly.
+    @MainActor
+    func forceRefresh() async {
+        lastInteractionTime = Date()
+        var waited = 0
+        while requestInFlight && waited < 100 { // ride out an in-flight timer fetch (≤10s)
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            waited += 1
+        }
+        guard let id = currentStation?.id else { return }
+        await fetchDeparturesAsync(stationId: id)
     }
 
     // MARK: - Error Handling
@@ -627,6 +711,7 @@ class PhoneViewModel: ObservableObject {
             status = "\(context) error"
         }
         departures = []
+        favouriteDepartures = []
     }
 
     // MARK: - Watch Sending
@@ -667,6 +752,58 @@ class PhoneViewModel: ObservableObject {
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
         return fmt.string(from: Date())
+    }
+
+    private func extractFavouritesFromCurrent(_ deps: [Departure]) -> [Departure] {
+        guard let stationId = currentStation?.id else { return [] }
+        return favouritesStore.extractFavourites(from: deps, stationId: stationId)
+    }
+
+    // MARK: - Widget Cache
+
+    /// Seed the widget's App Group cache with what the user last saw, so the widget shows live
+    /// data without its own Refresh tap. Called on background (the widget is only visible then).
+    /// Piggybacks on fetches the user already triggered, so it adds no polling, and the fresh
+    /// fetchTime re-arms the widget's active window before it goes dormant — the breaker holds.
+    private func updateWidgetCache() {
+        guard currentStation != nil else { return }
+        let result = WidgetFetchResult(
+            train: widgetStations(trainStations, mode: .train),
+            bus: widgetStations(busStations, mode: .bus),
+            tram: widgetStations(tramStations, mode: .tram),
+            special: widgetStations(specialStations, mode: .special),
+            selectedModeRaw: currentMode.rawValue,
+            selectedStationIndex: stationIndex,
+            fetchTime: Date().timeIntervalSince1970
+        )
+        result.cache()
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+    }
+
+    /// The selected station carries the full, freshly-fetched departure list; the rest carry
+    /// whatever the nearby search embedded.
+    private func widgetStations(_ list: [Station], mode: TransportMode) -> [WidgetStation] {
+        list.compactMap { station in
+            guard let id = station.id, let name = station.name else { return nil }
+            let deps: [Departure]
+            if mode == currentMode, id == currentStation?.id, !departures.isEmpty {
+                deps = departures
+            } else {
+                deps = station.embeddedDepartures ?? []
+            }
+            return WidgetStation(id: id, name: name, departures: deps.map(widgetDeparture))
+        }
+    }
+
+    private func widgetDeparture(_ dep: Departure) -> WidgetDeparture {
+        WidgetDeparture(
+            destination: dep.destination,
+            departureTimestamp: dep.departureTimestamp ?? 0,
+            delay: dep.delay,
+            platform: dep.platform,
+            platformChanged: dep.platformChanged,
+            lineNumber: dep.lineNumber
+        )
     }
 
     // MARK: - Deep Link

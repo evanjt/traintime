@@ -1,0 +1,4 @@
+# Copy to local.properties and fill in.
+# sdk.dir is optional if ANDROID_HOME is set.
+sdk.dir=/home/you/Android/Sdk
+traintime.apiKey=YOUR_API_KEY

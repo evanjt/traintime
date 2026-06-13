@@ -68,9 +68,28 @@ struct StationView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
+                        // Favourite departures at top
+                        ForEach(Array(viewModel.favouriteDepartures.enumerated()), id: \.offset) { _, departure in
+                            DepartureRowView(
+                                departure: departure,
+                                isFavourite: true,
+                                onTap: {
+                                    viewModel.selectFavouriteDeparture(departure)
+                                }
+                            )
+                        }
+                        // Separator line under favourites
+                        if !viewModel.favouriteDepartures.isEmpty && !viewModel.departures.isEmpty {
+                            Rectangle()
+                                .fill(AppColors.favouriteSeparator)
+                                .frame(height: 2)
+                                .padding(.horizontal, 4)
+                        }
+                        // Regular departures
                         ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
                             DepartureRowView(
                                 departure: departure,
+                                isFavourite: viewModel.isDepartureFavourite(departure),
                                 onTap: { viewModel.selectDeparture(index: index) }
                             )
                         }

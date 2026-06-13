@@ -43,9 +43,12 @@ struct TrainAPIService {
 
     // MARK: - Departures
 
-    static func fetchDepartures(stationId: String) async throws -> [Departure] {
+    static func fetchDepartures(stationId: String, favourites: String? = nil) async throws -> (departures: [Departure], favourites: [Departure]) {
         let encoded = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
-        let urlString = "\(baseURL)/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
+        var urlString = "\(baseURL)/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
+        if let favParam = favourites?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            urlString += "&favourites=\(favParam)"
+        }
         guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
         let (data, response) = try await makeRequest(url: url)
@@ -53,10 +56,17 @@ struct TrainAPIService {
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let departureArray = json?["departures"] as? [[String: Any]] else {
-            return []
+            return ([], [])
         }
 
-        return departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
+        let deps = departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
+        let favDeps: [Departure]
+        if let favArray = json?["favourites"] as? [[String: Any]] {
+            favDeps = favArray.map { Departure.from(json: $0) }
+        } else {
+            favDeps = []
+        }
+        return (Array(deps), favDeps)
     }
 
     // MARK: - Formation

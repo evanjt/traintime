@@ -1,0 +1,266 @@
+package com.evanjt.traintime.ui.station
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.ui.MainViewModel
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StationScreen(
+    viewModel: MainViewModel,
+    onOpenSettings: () -> Unit,
+) {
+    val palette = LocalAppPalette.current
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val scope = rememberCoroutineScope()
+    var refreshing by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Header: mode picker + GPS + settings
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp),
+        ) {
+            ModePicker(
+                availableModes = viewModel.availableModes,
+                currentMode = viewModel.currentMode,
+                onSelect = { viewModel.selectMode(it) },
+            )
+            Spacer(Modifier.weight(1f))
+            Icon(
+                Icons.Filled.LocationOn,
+                contentDescription = "GPS quality",
+                tint = viewModel.gpsQuality.color,
+            )
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)
+            }
+        }
+
+        // Walk info
+        Text(
+            viewModel.walkInfo,
+            color = secondary,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
+
+        // Station name — tappable to open picker
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.showStationPicker = true }
+                .padding(top = 4.dp),
+        ) {
+            Text(
+                viewModel.stationName,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (viewModel.stations.size > 1) {
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = "Pick station",
+                    tint = secondary,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        }
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+
+        // Departure list
+        if (viewModel.departures.isEmpty() && viewModel.favouriteDepartures.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (viewModel.stations.isEmpty()) {
+                    Text(
+                        viewModel.status,
+                        color = secondary,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp),
+                    )
+                } else {
+                    CircularProgressIndicator(color = secondary)
+                }
+            }
+        } else {
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = {
+                    scope.launch {
+                        refreshing = true
+                        viewModel.forceRefresh()
+                        refreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                LazyColumn {
+                    // Favourite departures at top
+                    items(
+                        viewModel.favouriteDepartures,
+                        key = { "fav-${it.stableId}" },
+                    ) { departure ->
+                        DepartureListItem(
+                            departure = departure,
+                            isFavourite = true,
+                            onSelect = { viewModel.selectFavouriteDeparture(departure) },
+                            onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
+                        )
+                    }
+                    // Separator line under favourites
+                    if (viewModel.favouriteDepartures.isNotEmpty() && viewModel.departures.isNotEmpty()) {
+                        item(key = "fav-separator") {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .height(2.dp)
+                                    .background(palette.favouriteSeparator),
+                            )
+                        }
+                    }
+                    // Regular departures
+                    itemsIndexed(
+                        viewModel.departures,
+                        key = { _, dep -> "dep-${dep.stableId}" },
+                    ) { index, departure ->
+                        DepartureListItem(
+                            departure = departure,
+                            isFavourite = viewModel.isDepartureFavourite(departure),
+                            onSelect = { viewModel.selectDeparture(index) },
+                            onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
+                        )
+                        if (index < viewModel.departures.size - 1) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Swipe-from-left to (un)favourite, long-press for the same, tap to select —
+// the Android mapping of iOS swipeActions + contextMenu + row tap.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DepartureListItem(
+    departure: Departure,
+    isFavourite: Boolean,
+    onSelect: () -> Unit,
+    onToggleFavourite: () -> Unit,
+) {
+    val palette = LocalAppPalette.current
+    val dismissState = rememberSwipeToDismissBoxState()
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd) {
+            onToggleFavourite()
+            dismissState.reset()
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromEndToStart = false,
+        backgroundContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(palette.favouriteStar)
+                    .padding(horizontal = 20.dp),
+            ) {
+                Icon(
+                    if (isFavourite) Icons.Filled.StarBorder else Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    if (isFavourite) "Unfavourite" else "Favourite",
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        },
+    ) {
+        Box(
+            Modifier
+                .background(MaterialTheme.colorScheme.background)
+                .combinedClickable(
+                    onClick = { if (!departure.isGone) onSelect() },
+                    onLongClick = onToggleFavourite,
+                ),
+        ) {
+            DepartureRow(departure = departure, isFavourite = isFavourite)
+        }
+    }
+}

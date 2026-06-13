@@ -54,6 +54,10 @@ struct Departure: Identifiable {
 
     var isGone: Bool { minutesUntil < 0 }
 
+    /// Identity stable across fetches (unlike `id`, a fresh UUID each parse). The triple
+    /// matches how `FavouritesStore.merging` dedupes, so it is unique within one list.
+    var stableId: String { "\(departureTimestamp ?? 0)|\(lineNumber)|\(destination)" }
+
     /// Seconds until departure (more precise than minutesUntil for tracking)
     var secondsUntil: Int? {
         guard let ts = departureTimestamp else { return nil }

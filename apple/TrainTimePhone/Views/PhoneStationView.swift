@@ -55,7 +55,6 @@ struct PhoneStationView: View {
             .padding(.top, 4)
 
             Divider()
-                .overlay(Color.gray.opacity(0.3))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
 
@@ -74,31 +73,77 @@ struct PhoneStationView: View {
                 }
                 Spacer()
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(viewModel.departures.enumerated()), id: \.element.id) { index, departure in
-                            PhoneDepartureRowView(
-                                departure: departure,
-                                onTap: { viewModel.selectDeparture(index: index) }
-                            )
-                            .padding(.horizontal, 16)
-
-                            if index < viewModel.departures.count - 1 {
-                                Divider()
-                                    .overlay(Color.gray.opacity(0.2))
-                                    .padding(.horizontal, 16)
+                List {
+                    if !viewModel.favouriteDepartures.isEmpty {
+                        Section {
+                            // IDs namespaced so a favourite that also appears in the regular
+                            // section below doesn't collide on identity within the List.
+                            ForEach(viewModel.favouriteDepartures.map(FavRow.init)) { row in
+                                departureRow(row.departure, isFavourite: true) {
+                                    viewModel.selectFavouriteDeparture(row.departure)
+                                }
+                                .listRowSeparator(.hidden)
+                            }
+                            if !viewModel.departures.isEmpty {
+                                Rectangle()
+                                    .fill(AppColors.favouriteSeparator)
+                                    .frame(height: 2)
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                            }
+                        }
+                    }
+                    Section {
+                        ForEach(Array(viewModel.departures.enumerated()), id: \.element.stableId) { index, departure in
+                            departureRow(departure, isFavourite: viewModel.isDepartureFavourite(departure)) {
+                                viewModel.selectDeparture(index: index)
                             }
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 2)
+                .refreshable { await viewModel.forceRefresh() }
             }
         }
-        .background(Color.black)
         .sheet(isPresented: $viewModel.showStationPicker) {
             PhoneStationPickerView(viewModel: viewModel)
         }
         .sheet(isPresented: $showSettings) {
             PhoneSettingsView(viewModel: viewModel)
         }
+    }
+
+    /// Wrapper giving favourite rows a namespaced, fetch-stable List identity.
+    private struct FavRow: Identifiable {
+        let departure: Departure
+        var id: String { "fav-" + departure.stableId }
+        init(_ departure: Departure) { self.departure = departure }
+    }
+
+    @ViewBuilder
+    private func departureRow(_ departure: Departure, isFavourite: Bool, onTap: @escaping () -> Void) -> some View {
+        PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, onTap: onTap)
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowBackground(isFavourite ? AppColors.favouriteBackground : nil)
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button {
+                    viewModel.toggleFavourite(departure: departure)
+                } label: {
+                    Label(isFavourite ? "Unfavourite" : "Favourite",
+                          systemImage: isFavourite ? "star.slash.fill" : "star.fill")
+                }
+                .tint(AppColors.favouriteStar)
+            }
+            .contextMenu {
+                Button {
+                    viewModel.toggleFavourite(departure: departure)
+                } label: {
+                    Label(isFavourite ? "Remove Favourite" : "Add Favourite",
+                          systemImage: isFavourite ? "star.slash" : "star")
+                }
+            }
     }
 }

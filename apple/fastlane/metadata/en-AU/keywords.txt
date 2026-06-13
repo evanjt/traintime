@@ -1,0 +1,1 @@
+SBB,CFF,FFS,ÖV,timetable,schedule,station,nearby,realtime,widget,watch,boat,ferry,funicular,Zürich

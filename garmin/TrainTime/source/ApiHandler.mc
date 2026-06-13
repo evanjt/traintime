@@ -117,6 +117,7 @@ module ApiHandler {
             if (station.hasKey("departures") && station["departures"] != null
                     && station["departures"].size() > 0) {
                 view.mTrainData = parseDepartureArray(station["departures"]);
+                view.mFavouriteData = extractFavourites(view.mTrainData, view.mStationId);
                 view.mLastFetchTime = Time.now().value();
                 view.mRequestInFlight = false;
                 view.mRequestStartTime = null;
@@ -132,6 +133,11 @@ module ApiHandler {
         var url = "https://api.traintime.ch/v1/departures"
             + "?id=" + stationId
             + "&limit=20";
+
+        var favParam = FavouritesManager.buildFavouritesParam(stationId);
+        if (favParam != null) {
+            url = url + "&favourites=" + favParam;
+        }
 
         var params = {
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
@@ -184,6 +190,88 @@ module ApiHandler {
             });
         }
         return result;
+    }
+
+    // Extract favourite departures from a departure list, client-side.
+    // Returns first match per stored favourite, sorted by departure time.
+    function extractFavourites(trainData, stationId) {
+        if (stationId == null || trainData == null || trainData.size() == 0) {
+            return null;
+        }
+        var stationFavs = FavouritesManager.getFavouritesForStation(stationId);
+        if (stationFavs.size() == 0) {
+            return null;
+        }
+        var result = [];
+        for (var f = 0; f < stationFavs.size(); f++) {
+            var favLine = stationFavs[f][0];
+            var favDest = stationFavs[f][1];
+            for (var i = 0; i < trainData.size(); i++) {
+                var t = trainData[i];
+                if (t["line"] != null && t["line"].equals(favLine)
+                        && t["dest"] != null && t["dest"].equals(favDest)) {
+                    result.add(t);
+                    break;  // first match only
+                }
+            }
+        }
+        if (result.size() == 0) {
+            return null;
+        }
+        // Sort by departure time
+        for (var i = 0; i < result.size() - 1; i++) {
+            for (var j = i + 1; j < result.size(); j++) {
+                var a = result[i]["depTs"];
+                var b = result[j]["depTs"];
+                if (a != null && b != null && a > b) {
+                    var tmp = result[i];
+                    result[i] = result[j];
+                    result[j] = tmp;
+                }
+            }
+        }
+        return result;
+    }
+
+    // Ensure favourite departures appear in the regular list so they repeat in time order.
+    // Client-side extraction already pulls favourites from trainData; this covers a server
+    // that returns favourites as a separate array without keeping them in "departures".
+    function mergeFavourites(trainData, favData) {
+        if (favData == null || favData.size() == 0) {
+            return trainData;
+        }
+        if (trainData == null) {
+            trainData = [];
+        }
+        for (var f = 0; f < favData.size(); f++) {
+            var fav = favData[f];
+            var present = false;
+            for (var i = 0; i < trainData.size(); i++) {
+                var t = trainData[i];
+                if (t["line"] != null && t["line"].equals(fav["line"])
+                        && t["dest"] != null && t["dest"].equals(fav["dest"])
+                        && t["depTs"] == fav["depTs"]) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) {
+                trainData.add(fav);
+            }
+        }
+        // Sort by departure time
+        for (var i = 0; i < trainData.size() - 1; i++) {
+            for (var j = i + 1; j < trainData.size(); j++) {
+                var a = trainData[i]["depTs"];
+                var b = trainData[j]["depTs"];
+                if (a != null && b != null && a > b) {
+                    var tmp = trainData[i];
+                    trainData[i] = trainData[j];
+                    trainData[j] = tmp;
+                }
+            }
+        }
+        return trainData;
     }
 
     function fetchFormation(view, trainNumber, stationId, operatorRef) {
@@ -249,13 +337,22 @@ module ApiHandler {
             view.mConsecutiveErrors = 0;
             view.mTrainData = parseDepartureArray(data["departures"]);
 
+            // Use server-side favourites if present, fall back to client-side extraction
+            if (data.hasKey("favourites") && data["favourites"] != null
+                    && data["favourites"] instanceof Lang.Array && data["favourites"].size() > 0) {
+                view.mFavouriteData = parseDepartureArray(data["favourites"]);
+                view.mTrainData = mergeFavourites(view.mTrainData, view.mFavouriteData);
+            } else {
+                view.mFavouriteData = extractFavourites(view.mTrainData, view.mStationId);
+            }
+
             if (view.mStationName != null) {
                 view.mStatus = view.mStationName;
             }
 
-            // Clamp cursor in selection mode
+            // Clamp cursor in selection mode (combined: favourites + regular)
             if (view.mAppState == 1) {
-                var total = view.mTrainData.size();
+                var total = view.getSelectableCount();
                 if (total == 0) {
                     view.exitToStationView();
                 } else if (view.mCursorIndex >= total) {

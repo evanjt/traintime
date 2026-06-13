@@ -22,9 +22,11 @@ extension TrainTimeViewModel {
         // Use embedded departures if available (closest station per mode)
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -59,9 +61,11 @@ extension TrainTimeViewModel {
         // Use embedded departures if available (closest station per mode)
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -70,6 +74,7 @@ extension TrainTimeViewModel {
 
     internal func onStationSelected() {
         departures = []
+        favouriteDepartures = []
         if let station = currentStation, let id = station.id {
             fetchDepartures(stationId: id)
         }
@@ -124,9 +129,11 @@ extension TrainTimeViewModel {
         // existing list untouched (no flash) — the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
+            favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else if !preserved {
             departures = []
+            favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -142,6 +149,7 @@ extension TrainTimeViewModel {
         specialStations = []
         stationIndex = 0
         departures = []
+        favouriteDepartures = []
         availableModes = []
         consecutiveErrors = 0
 
@@ -151,5 +159,12 @@ extension TrainTimeViewModel {
 
         routing.clearCache()
         status = "Finding stations..."
+    }
+
+    // MARK: - Helpers
+
+    private func extractFavouritesFromCurrent(_ deps: [Departure]) -> [Departure] {
+        guard let stationId = currentStation?.id else { return [] }
+        return favouritesStore.extractFavourites(from: deps, stationId: stationId)
     }
 }
