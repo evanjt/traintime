@@ -16,7 +16,7 @@ struct TrackingBarView: View {
             ZStack(alignment: .leading) {
                 // Background
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.black)
+                    .fill(AppColors.trackingBarBackground)
 
                 if !hasGPS {
                     // Gray bar when no GPS

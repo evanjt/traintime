@@ -35,7 +35,7 @@ struct PhoneFocusedTrackingView: View {
                         } label: {
                             Image(systemName: viewModel.isFocusedTrainFavourite ? "star.fill" : "star")
                                 .font(.system(size: 20))
-                                .foregroundStyle(viewModel.isFocusedTrainFavourite ? .yellow : .secondary)
+                                .foregroundStyle(viewModel.isFocusedTrainFavourite ? AppColors.favouriteStar : Color.secondary)
                         }
                         .buttonStyle(.plain)
                     }
@@ -127,7 +127,6 @@ struct PhoneFocusedTrackingView: View {
                     let watches = viewModel.connectedWatches
                     if !watches.isEmpty {
                         Divider()
-                            .overlay(Color.gray.opacity(0.3))
                             .padding(.vertical, 4)
 
                         if watches.count == 1 {
@@ -167,7 +166,6 @@ struct PhoneFocusedTrackingView: View {
                 .padding(.vertical, 24)
                 .frame(maxWidth: .infinity)
             }
-            .background(Color.black)
 
             // Back button overlay
             Button {

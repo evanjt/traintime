@@ -7,6 +7,7 @@ class PhoneViewModel: ObservableObject {
     let location = PhoneLocationService()
     private var locationCancellable: AnyCancellable?
     private var timerCancellable: AnyCancellable?
+    private var favouritesCancellable: AnyCancellable?
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
@@ -119,6 +120,18 @@ class PhoneViewModel: ObservableObject {
                 self?.favouritesStore.handleReceivedContext(context)
             }
         }
+
+        // FavouritesStore is a separate ObservableObject the phone views reach through the
+        // view model, so its changes don't republish on their own. Forward them: this both
+        // drives star icons / row tints / Settings and re-extracts the top section
+        // immediately rather than waiting for the next fetch (the 30s cooldown).
+        favouritesCancellable = favouritesStore.$favourites
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.favouriteDepartures = self.extractFavouritesFromCurrent(self.departures)
+            }
     }
 
     // MARK: - Lifecycle
@@ -348,13 +361,24 @@ class PhoneViewModel: ObservableObject {
     }
 
     func toggleFavourite() {
-        guard let focused = focusedTrain, let station = currentStation, let stationId = station.id else { return }
+        guard let focused = focusedTrain else { return }
+        toggleFavourite(lineNumber: focused.lineNumber, destination: focused.destination)
+    }
+
+    func toggleFavourite(departure: Departure) {
+        toggleFavourite(lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
+    private func toggleFavourite(lineNumber: String, destination: String) {
+        guard let station = currentStation, let stationId = station.id else { return }
+        lastInteractionTime = Date() // curating favourites shouldn't trip the inactivity timeout
         favouritesStore.toggle(
             stationId: stationId,
             stationName: station.name ?? "Station",
-            lineNumber: focused.lineNumber,
-            destination: focused.destination
+            lineNumber: lineNumber,
+            destination: destination
         )
+        PhoneHapticService.shortPulse()
     }
 
     var isFocusedTrainFavourite: Bool {
@@ -614,39 +638,51 @@ class PhoneViewModel: ObservableObject {
     }
 
     func fetchDepartures(stationId: String) {
+        Task { await fetchDeparturesAsync(stationId: stationId) }
+    }
+
+    @MainActor
+    private func fetchDeparturesAsync(stationId: String) async {
         guard !requestInFlight else { return }
         requestInFlight = true
         requestStartTime = Date()
 
         let favParam = favouritesStore.favouritesParam(forStation: stationId)
 
-        Task {
-            do {
-                let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
-                await MainActor.run {
-                    requestInFlight = false
-                    requestStartTime = nil
-                    lastFetchTime = Date()
-                    consecutiveErrors = 0
-                    departures = !result.favourites.isEmpty
-                        ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
-                        : result.departures
-                    favouriteDepartures = !result.favourites.isEmpty
-                        ? result.favourites
-                        : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)
+        do {
+            let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
+            requestInFlight = false
+            requestStartTime = nil
+            lastFetchTime = Date()
+            consecutiveErrors = 0
+            departures = !result.favourites.isEmpty
+                ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
+                : result.departures
+            favouriteDepartures = !result.favourites.isEmpty
+                ? result.favourites
+                : favouritesStore.extractFavourites(from: result.departures, stationId: stationId)
 
-                    if appState == 2 {
-                        updateFocusedTrain()
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    requestInFlight = false
-                    requestStartTime = nil
-                    handleError(error, context: "Departures")
-                }
+            if appState == 2 {
+                updateFocusedTrain()
             }
+        } catch {
+            requestInFlight = false
+            requestStartTime = nil
+            handleError(error, context: "Departures")
         }
+    }
+
+    /// Pull-to-refresh: bypasses the timer cooldown by calling the fetch directly.
+    @MainActor
+    func forceRefresh() async {
+        lastInteractionTime = Date()
+        var waited = 0
+        while requestInFlight && waited < 100 { // ride out an in-flight timer fetch (≤10s)
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            waited += 1
+        }
+        guard let id = currentStation?.id else { return }
+        await fetchDeparturesAsync(stationId: id)
     }
 
     // MARK: - Error Handling

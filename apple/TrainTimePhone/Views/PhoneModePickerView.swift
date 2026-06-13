@@ -18,15 +18,15 @@ struct PhoneModePickerView: View {
                             .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundStyle(
-                        isSelected ? .white :
-                        isAvailable ? .secondary :
-                        .primary.opacity(0.15)
+                        isSelected ? Color.accentColor :
+                        isAvailable ? Color.secondary :
+                        Color.primary.opacity(0.15)
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         isSelected
-                            ? RoundedRectangle(cornerRadius: 10).fill(.blue.opacity(0.3))
+                            ? RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.15))
                             : RoundedRectangle(cornerRadius: 10).fill(.clear)
                     )
                 }

@@ -47,14 +47,14 @@ struct FormationDiagramView: View {
                         ForEach(Array(groups.enumerated()), id: \.offset) { gi, group in
                             if gi > 0 {
                                 Rectangle()
-                                    .fill(Color(white: 0.12))
+                                    .fill(Color(.systemGray6))
                                     .frame(width: gap, height: carriageHeight * 0.35)
                             }
                             HStack(spacing: 0) {
                                 ForEach(Array(group.wagons.enumerated()), id: \.offset) { wi, wagon in
                                     if wi > 0 {
                                         Rectangle()
-                                            .fill(Color(white: 0.12))
+                                            .fill(Color(.systemGray6))
                                             .frame(width: gap, height: carriageHeight * 0.35)
                                     }
                                     CarriageCell(wagon: wagon, width: carriageWidth, height: carriageHeight, showFeature: carriageWidth >= 30)
@@ -63,7 +63,7 @@ struct FormationDiagramView: View {
                             .padding(.vertical, 2)
                             .background(
                                 RoundedRectangle(cornerRadius: 5)
-                                    .stroke(Color(white: 0.28), lineWidth: 0.5)
+                                    .stroke(Color(.systemGray3), lineWidth: 0.5)
                             )
                         }
                     }
@@ -95,23 +95,23 @@ private struct LocoView: View {
         ZStack {
             // Body
             LocoShape()
-                .fill(Color(white: 0.18))
+                .fill(Color(.systemGray5))
                 .frame(width: width, height: height)
 
             // Outline
             LocoShape()
-                .stroke(Color(white: 0.32), lineWidth: 0.5)
+                .stroke(Color(.systemGray3), lineWidth: 0.5)
                 .frame(width: width, height: height)
 
             // Windshield (in the upper curve area)
             RoundedRectangle(cornerRadius: 2)
-                .fill(Color.white.opacity(0.09))
+                .fill(Color.primary.opacity(0.09))
                 .frame(width: 8, height: height * 0.38)
                 .offset(x: -width * 0.06, y: -height * 0.12)
 
             // Headlight at nose tip (bottom-left)
             Circle()
-                .fill(Color.white.opacity(0.20))
+                .fill(Color.primary.opacity(0.20))
                 .frame(width: 3, height: 3)
                 .offset(x: -width / 2 + 4, y: height / 2 - 5)
         }
@@ -176,13 +176,13 @@ private struct CarriageCell: View {
         ZStack {
             // Body
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color(white: 0.18))
+                .fill(Color(.systemGray5))
                 .frame(width: width, height: height)
                 .opacity(wagon.closed ? 0.4 : 1.0)
 
             // Outline
             RoundedRectangle(cornerRadius: 3)
-                .stroke(Color(white: 0.30), lineWidth: 0.5)
+                .stroke(Color(.systemGray3), lineWidth: 0.5)
                 .frame(width: width, height: height)
 
             // 1st class accent — yellow stripe along top
@@ -200,28 +200,28 @@ private struct CarriageCell: View {
 
             // Subtle window band
             RoundedRectangle(cornerRadius: 1)
-                .fill(Color.white.opacity(0.06))
+                .fill(Color.primary.opacity(0.06))
                 .frame(width: width - 6, height: 6)
                 .offset(y: -3)
 
             // Car number
             Text("\(wagon.number)")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundColor(Color(white: 0.65))
+                .foregroundColor(.secondary)
                 .offset(y: 2)
 
             // Feature icon
             if showFeature, let feature = wagon.features.first {
                 Image(systemName: featureIcon(feature))
                     .font(.system(size: 7))
-                    .foregroundColor(Color(white: 0.45))
+                    .foregroundColor(Color(.systemGray))
                     .offset(x: width / 2 - 8, y: height / 2 - 6)
             }
 
             // Closed
             if wagon.closed {
                 Rectangle()
-                    .fill(Color.white.opacity(0.3))
+                    .fill(Color.primary.opacity(0.35))
                     .frame(width: width * 0.7, height: 1)
                     .rotationEffect(.degrees(-8))
             }
@@ -278,7 +278,7 @@ private struct PhoneSectorLabels: View {
         HStack(spacing: 0) {
             Image(systemName: "arrow.left")
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .frame(width: locoOffset)
 
             ForEach(Array(groups.enumerated()), id: \.offset) { i, group in
@@ -287,15 +287,15 @@ private struct PhoneSectorLabels: View {
                 ZStack {
                     // Line through the middle of the text
                     Rectangle()
-                        .fill(Color(white: 0.35))
+                        .fill(Color(.systemGray3))
                         .frame(width: groupWidth - 4, height: 0.5)
 
                     // Sector letter with opaque background to "break" the line
                     Text(group.sector)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .padding(.horizontal, 3)
-                        .background(Color.black)
+                        .background(Color(uiColor: .systemBackground))
                 }
                 .frame(width: groupWidth, height: 14)
             }
