@@ -85,6 +85,17 @@ struct WidgetEntryView: View {
         family == .systemSmall ? .subheadline.weight(.bold) : .headline
     }
 
+    // Header control glyphs sit a step up from .subheadline and carry a square min hit area, so
+    // refresh / stop / favourite / mode are comfortable finger targets (Apple's own widgets use
+    // similarly chunky controls) without the row feeling crowded.
+    private var headerControlFont: Font {
+        family == .systemSmall ? .subheadline : .body
+    }
+
+    private var controlHitSize: CGFloat {
+        family == .systemSmall ? 22 : 28
+    }
+
     // MARK: - Dormant View
 
     @ViewBuilder
@@ -242,20 +253,23 @@ struct WidgetEntryView: View {
     }
 
     private var headerRow: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             // Mode icon — medium/large only (no room on small)
             if family != .systemSmall, let mode = entry.currentMode {
                 if entry.availableModes.count > 1 {
                     Button(intent: SwitchModeIntent()) {
                         Image(systemName: mode.sfSymbol)
-                            .font(.subheadline)
+                            .font(headerControlFont)
                             .foregroundStyle(.blue)
+                            .frame(minWidth: controlHitSize, minHeight: controlHitSize)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 } else {
                     Image(systemName: mode.sfSymbol)
-                        .font(.subheadline)
+                        .font(headerControlFont)
                         .foregroundStyle(.secondary)
+                        .frame(minWidth: controlHitSize, minHeight: controlHitSize)
                 }
             }
 
@@ -276,6 +290,8 @@ struct WidgetEntryView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .frame(minHeight: controlHitSize)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             } else {
@@ -285,23 +301,40 @@ struct WidgetEntryView: View {
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             // Toggle favourites grouping — only useful (and only room) when there are
             // favourites at this station and on the larger families.
             if family != .systemSmall && !entry.favouriteKeys.isEmpty {
                 Button(intent: ToggleFavouritesIntent()) {
                     Image(systemName: entry.hideFavouritesBlock ? "star.slash" : "star.fill")
-                        .font(.subheadline)
+                        .font(headerControlFont)
                         .foregroundStyle(entry.hideFavouritesBlock ? Color.secondary : AppColors.favouriteStar)
+                        .frame(minWidth: controlHitSize, minHeight: controlHitSize)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Stop: drop straight back to dormant (the breaker also opens on its own after the
+            // active window). No room on small, which just waits out the timeout.
+            if family != .systemSmall {
+                Button(intent: StopIntent()) {
+                    Image(systemName: "stop.circle")
+                        .font(headerControlFont)
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: controlHitSize, minHeight: controlHitSize)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
 
             Button(intent: RefreshIntent()) {
                 Image(systemName: "arrow.clockwise")
-                    .font(.subheadline)
+                    .font(headerControlFont)
                     .foregroundStyle(.secondary)
+                    .frame(minWidth: controlHitSize, minHeight: controlHitSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }

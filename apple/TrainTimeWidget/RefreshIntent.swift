@@ -140,23 +140,15 @@ struct RefreshIntent: AppIntent {
 
 /// Shared storage between intent and timeline provider via the App Group container.
 enum WidgetStorage {
-    // v3: favourites are no longer pre-prepended into the stored list (the provider derives
-    // them per entry), so the old v2 cache has incompatible semantics and is abandoned.
-    private static let key = "widget_fetch_result_v3"
+    // The cache key + codec live on WidgetFetchResult (shared with the phone target), so the
+    // app can seed the same cache the widget reads. v3: favourites are no longer pre-prepended
+    // into the stored list (the provider derives them per entry).
+    static func save(_ result: WidgetFetchResult) { result.cache() }
 
-    static func save(_ result: WidgetFetchResult) {
-        if let data = try? JSONEncoder().encode(result) {
-            SharedDefaults.store.set(data, forKey: key)
-        }
-    }
-
-    static func load() -> WidgetFetchResult? {
-        guard let data = SharedDefaults.store.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(WidgetFetchResult.self, from: data)
-    }
+    static func load() -> WidgetFetchResult? { WidgetFetchResult.loadCached() }
 
     static func clear() {
-        SharedDefaults.store.removeObject(forKey: key)
+        SharedDefaults.store.removeObject(forKey: WidgetFetchResult.cacheKey)
     }
 
     // Display preference (not fetched data): when true the widget hides the favourites block
@@ -167,6 +159,20 @@ enum WidgetStorage {
         get { SharedDefaults.store.bool(forKey: hideFavKey) }
         set { SharedDefaults.store.set(newValue, forKey: hideFavKey) }
     }
+
+    // Manual stop: when the user taps Stop, we stamp the time. The provider treats a stop newer
+    // than the last fetchTime as dormant, so the breaker opens immediately. A Refresh (or the app
+    // seeding a fresh fetchTime) supersedes it and re-activates the live window.
+    private static let stoppedAtKey = "widget_stopped_at"
+
+    static var stoppedAt: TimeInterval {
+        get { SharedDefaults.store.double(forKey: stoppedAtKey) }
+        set { SharedDefaults.store.set(newValue, forKey: stoppedAtKey) }
+    }
+
+    static func stop() { stoppedAt = Date().timeIntervalSince1970 }
+
+    static func isStopped(since fetchTime: TimeInterval) -> Bool { stoppedAt > fetchTime }
 
     static func updateSelection(_ result: WidgetFetchResult, modeRaw: Int, stationIndex: Int) -> WidgetFetchResult {
         WidgetFetchResult(
@@ -200,6 +206,19 @@ struct ToggleFavouritesIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         WidgetStorage.hideFavouritesBlock.toggle()
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+        return .result()
+    }
+}
+
+/// Drops the widget back to its dormant state at once, without waiting out the active window.
+/// No network — stamps the stop time and reloads. The next Refresh re-activates it.
+struct StopIntent: AppIntent {
+    static var title: LocalizedStringResource = "Stop Live Updates"
+    static var description: IntentDescription = "Return the widget to its dormant state"
+
+    func perform() async throws -> some IntentResult {
+        WidgetStorage.stop()
         WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
         return .result()
     }

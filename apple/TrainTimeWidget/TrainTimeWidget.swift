@@ -52,7 +52,8 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         FavouritesStore.shared.reload()
         let now = Date()
         let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
-        completion(DepartureEntry.make(date: now, result: result, favourites: favourites(for: result), isDormant: now >= windowEnd, hideFavouritesBlock: WidgetStorage.hideFavouritesBlock))
+        let dormant = now >= windowEnd || WidgetStorage.isStopped(since: result.fetchTime)
+        completion(DepartureEntry.make(date: now, result: result, favourites: favourites(for: result), isDormant: dormant, hideFavouritesBlock: WidgetStorage.hideFavouritesBlock))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DepartureEntry>) -> Void) {
@@ -67,8 +68,9 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
         let now = Date()
 
-        // Past the window: rich dormant view, breaker open (no refresh until the user taps).
-        guard now < windowEnd else {
+        // Past the window, or the user tapped Stop: rich dormant view, breaker open (no refresh
+        // until the user taps).
+        guard !WidgetStorage.isStopped(since: result.fetchTime), now < windowEnd else {
             completion(Timeline(
                 entries: [DepartureEntry.make(date: now, result: result, favourites: favs, isDormant: true, hideFavouritesBlock: hideFav)],
                 policy: .never
