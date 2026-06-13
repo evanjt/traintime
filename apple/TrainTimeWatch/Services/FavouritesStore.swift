@@ -1,5 +1,8 @@
 import Foundation
 import WatchConnectivity
+#if os(iOS)
+import WidgetKit
+#endif
 
 class FavouritesStore: ObservableObject {
     static let shared = FavouritesStore()
@@ -10,6 +13,12 @@ class FavouritesStore: ObservableObject {
     @Published private(set) var favourites: [Favourite] = []
 
     init() {
+        favourites = Self.load()
+    }
+
+    /// Re-read from storage. The widget extension process is long-lived and this singleton
+    /// only loads once, so the timeline provider/intents call this to see app-side toggles.
+    func reload() {
         favourites = Self.load()
     }
 
@@ -93,14 +102,32 @@ class FavouritesStore: ObservableObject {
 
     private func save() {
         if let data = try? JSONEncoder().encode(favourites) {
-            UserDefaults.standard.set(data, forKey: Self.key)
+            SharedDefaults.store.set(data, forKey: Self.key)
         }
         syncToCounterpart()
+        reloadWidget()
     }
 
     private static func load() -> [Favourite] {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
+        let store = SharedDefaults.store
+        #if os(iOS)
+        // One-time migration from the app's standard defaults into the App Group container
+        // (favourites predate the shared suite). No-op in the widget process (empty .standard).
+        if store.data(forKey: key) == nil,
+           let legacy = UserDefaults.standard.data(forKey: key) {
+            store.set(legacy, forKey: key)
+        }
+        #endif
+        guard let data = store.data(forKey: key) else { return [] }
         return (try? JSONDecoder().decode([Favourite].self, from: data)) ?? []
+    }
+
+    /// Favourites changing in the app must invalidate the widget timeline so stars/blocks
+    /// re-render. The provider re-derives them from storage, so no network is involved.
+    private func reloadWidget() {
+        #if os(iOS)
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+        #endif
     }
 
     // MARK: - WCSession Sync
@@ -119,7 +146,8 @@ class FavouritesStore: ObservableObject {
               let decoded = try? JSONDecoder().decode([Favourite].self, from: data) else { return }
         favourites = decoded
         if let encoded = try? JSONEncoder().encode(favourites) {
-            UserDefaults.standard.set(encoded, forKey: Self.key)
+            SharedDefaults.store.set(encoded, forKey: Self.key)
         }
+        reloadWidget()
     }
 }

@@ -16,17 +16,25 @@ struct TrainTimeWidget: Widget {
             kind: kind,
             provider: TrainTimeTimelineProvider()
         ) { entry in
+            // Container background is applied inside WidgetEntryView so it can vary by family
+            // (accessory families need a clear background, not the tinted system fill).
             WidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("TrainTime")
         .description("Nearby departures at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([
+            .systemSmall, .systemMedium, .systemLarge,
+            .accessoryRectangular, .accessoryInline, .accessoryCircular
+        ])
     }
 }
 
 struct TrainTimeTimelineProvider: TimelineProvider {
     typealias Entry = DepartureEntry
+
+    // Tap-to-activate window. Network only ever happens in the user-triggered intents; the
+    // provider just replays cached data, ticking the countdown each minute, then goes dormant.
+    private let activeWindow: TimeInterval = 300
 
     func placeholder(in context: Context) -> DepartureEntry {
         DepartureEntry.placeholder
@@ -37,11 +45,14 @@ struct TrainTimeTimelineProvider: TimelineProvider {
             completion(.placeholder)
             return
         }
-        if let result = WidgetStorage.load() {
-            completion(buildEntry(from: result, date: .now))
-        } else {
+        guard let result = WidgetStorage.load() else {
             completion(.dormant())
+            return
         }
+        FavouritesStore.shared.reload()
+        let now = Date()
+        let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
+        completion(DepartureEntry.make(date: now, result: result, favourites: favourites(for: result), isDormant: now >= windowEnd))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DepartureEntry>) -> Void) {
@@ -49,41 +60,35 @@ struct TrainTimeTimelineProvider: TimelineProvider {
             completion(Timeline(entries: [.dormant()], policy: .never))
             return
         }
+        FavouritesStore.shared.reload() // fresh favourite flags, no network
+        let favs = favourites(for: result)
 
-        let fetchAge = Date().timeIntervalSince1970 - result.fetchTime
-        if fetchAge > 60 {
-            let stationName = result.currentStation?.name
+        let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
+        let now = Date()
+
+        // Past the window: rich dormant view, breaker open (no refresh until the user taps).
+        guard now < windowEnd else {
             completion(Timeline(
-                entries: [.dormant(stationName: stationName)],
+                entries: [DepartureEntry.make(date: now, result: result, favourites: favs, isDormant: true)],
                 policy: .never
             ))
             return
         }
 
-        let now = Date()
-        let dormantDate = Calendar.current.date(byAdding: .second, value: 60, to: now)!
-        let stationName = result.currentStation?.name
-
-        let entries: [DepartureEntry] = [
-            buildEntry(from: result, date: now),
-            .dormant(date: dormantDate, stationName: stationName)
-        ]
-
-        completion(Timeline(entries: entries, policy: .after(dormantDate)))
+        // One entry per remaining minute so the countdown ticks down; a mid-window reload
+        // (favourite toggle, switch intent) re-enters here and emits only what's left.
+        var entries: [DepartureEntry] = []
+        var t = now
+        while t < windowEnd {
+            entries.append(DepartureEntry.make(date: t, result: result, favourites: favs, isDormant: false))
+            t = t.addingTimeInterval(60)
+        }
+        entries.append(DepartureEntry.make(date: windowEnd, result: result, favourites: favs, isDormant: true))
+        completion(Timeline(entries: entries, policy: .after(windowEnd)))
     }
 
-    private func buildEntry(from result: WidgetFetchResult, date: Date) -> DepartureEntry {
-        let station = result.currentStation
-        let stns = result.stations(for: result.selectedMode)
-        return DepartureEntry(
-            date: date,
-            stationName: station?.name,
-            departures: station?.departures ?? [],
-            isDormant: false,
-            currentMode: result.selectedMode,
-            availableModes: result.availableModes,
-            stationIndex: min(result.selectedStationIndex, max(stns.count - 1, 0)),
-            stationCount: stns.count
-        )
+    private func favourites(for result: WidgetFetchResult) -> [Favourite] {
+        guard let id = result.currentStation?.id else { return [] }
+        return FavouritesStore.shared.favouritesForStation(id)
     }
 }

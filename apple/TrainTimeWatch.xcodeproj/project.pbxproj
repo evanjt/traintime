@@ -101,6 +101,7 @@
 		P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		W0A100000000000000000006 /* SwitchModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000007 /* SwitchModeIntent.swift */; };
 		W0A100000000000000000007 /* SwitchStationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000008 /* SwitchStationIntent.swift */; };
+		W0A100000000000000000008 /* WidgetAccessoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000009 /* WidgetAccessoryViews.swift */; };
 
 		/* Watch embedded in Phone */
 		WEA10000000000000000EMBED /* TrainTimeWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = C61B777553FC4244B48F82CE /* TrainTimeWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -204,6 +205,7 @@
 		P0F10000000000000000000E /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000F /* GarminConnectIQService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminConnectIQService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000011 /* TrainTimePhone.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrainTimePhone.entitlements; sourceTree = "<group>"; };
 
 		/* Widget */
 		W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainTimeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -215,6 +217,8 @@
 		W0F100000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		W0F100000000000000000007 /* SwitchModeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchModeIntent.swift; sourceTree = "<group>"; };
 		W0F100000000000000000008 /* SwitchStationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchStationIntent.swift; sourceTree = "<group>"; };
+		W0F100000000000000000009 /* WidgetAccessoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetAccessoryViews.swift; sourceTree = "<group>"; };
+		W0F10000000000000000000A /* TrainTimeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TrainTimeWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -354,6 +358,7 @@
 				P0G100000000000000000004 /* Services */,
 				P0F10000000000000000000B /* Assets.xcassets */,
 				P0F10000000000000000000C /* Info.plist */,
+				P0F100000000000000000011 /* TrainTimePhone.entitlements */,
 			);
 			path = TrainTimePhone;
 			sourceTree = "<group>";
@@ -403,8 +408,10 @@
 				W0F100000000000000000004 /* RefreshIntent.swift */,
 				W0F100000000000000000007 /* SwitchModeIntent.swift */,
 				W0F100000000000000000008 /* SwitchStationIntent.swift */,
+				W0F100000000000000000009 /* WidgetAccessoryViews.swift */,
 				W0F100000000000000000005 /* Assets.xcassets */,
 				W0F100000000000000000006 /* Info.plist */,
+				W0F10000000000000000000A /* TrainTimeWidget.entitlements */,
 			);
 			path = TrainTimeWidget;
 			sourceTree = "<group>";
@@ -619,6 +626,7 @@
 				W0A100000000000000000004 /* RefreshIntent.swift in Sources */,
 				W0A100000000000000000006 /* SwitchModeIntent.swift in Sources */,
 				W0A100000000000000000007 /* SwitchStationIntent.swift in Sources */,
+				W0A100000000000000000008 /* WidgetAccessoryViews.swift in Sources */,
 				W0A100000000000000000101 /* Station.swift in Sources */,
 				W0A100000000000000000102 /* Departure.swift in Sources */,
 				W0A100000000000000000103 /* TransportMode.swift in Sources */,
@@ -772,6 +780,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.2.8;
+				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -802,6 +811,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.2.8;
+				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -835,6 +845,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.8;
+				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -864,6 +875,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.8;
+				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

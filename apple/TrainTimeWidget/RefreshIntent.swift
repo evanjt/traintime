@@ -7,6 +7,7 @@ struct RefreshIntent: AppIntent {
     static var description: IntentDescription = "Fetches nearby departures"
 
     func perform() async throws -> some IntentResult {
+        FavouritesStore.shared.reload() // pick up app-side favourite changes in this process
         let coordinate = try await getLocation()
 
         let result = try await TrainAPIService.fetchStations(
@@ -57,11 +58,10 @@ struct RefreshIntent: AppIntent {
             let station = selectedStations[stationIdx]
             let favParam = FavouritesStore.shared.favouritesParam(forStation: station.id)
             if let result = try? await TrainAPIService.fetchDepartures(stationId: station.id, favourites: favParam) {
-                // Server returns favourites separately when param is sent; fall back to client-side extraction
-                let favDeps = !result.favourites.isEmpty
-                    ? result.favourites
-                    : FavouritesStore.shared.extractFavourites(from: result.departures, stationId: station.id)
-                let allDeps = favDeps + result.departures
+                // Store one clean, time-ordered list. Favourites are flagged later at
+                // timeline-build time; merging only re-inserts any server favourite that
+                // departs beyond the regular list horizon.
+                let allDeps = FavouritesStore.shared.merging(favourites: result.favourites, into: result.departures)
                 let deps = allDeps.map { dep in
                     WidgetDeparture(
                         destination: dep.destination,
@@ -138,23 +138,25 @@ struct RefreshIntent: AppIntent {
     }
 }
 
-/// Shared storage between intent and timeline provider via UserDefaults
+/// Shared storage between intent and timeline provider via the App Group container.
 enum WidgetStorage {
-    private static let key = "widget_fetch_result_v2"
+    // v3: favourites are no longer pre-prepended into the stored list (the provider derives
+    // them per entry), so the old v2 cache has incompatible semantics and is abandoned.
+    private static let key = "widget_fetch_result_v3"
 
     static func save(_ result: WidgetFetchResult) {
         if let data = try? JSONEncoder().encode(result) {
-            UserDefaults.standard.set(data, forKey: key)
+            SharedDefaults.store.set(data, forKey: key)
         }
     }
 
     static func load() -> WidgetFetchResult? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        guard let data = SharedDefaults.store.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(WidgetFetchResult.self, from: data)
     }
 
     static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
+        SharedDefaults.store.removeObject(forKey: key)
     }
 
     static func updateSelection(_ result: WidgetFetchResult, modeRaw: Int, stationIndex: Int) -> WidgetFetchResult {

@@ -6,6 +6,24 @@ struct WidgetEntryView: View {
     let entry: DepartureEntry
 
     var body: some View {
+        if isAccessory {
+            accessoryView
+                .containerBackground(for: .widget) { Color.clear }
+        } else {
+            systemView
+                .containerBackground(.fill.tertiary, for: .widget)
+        }
+    }
+
+    private var isAccessory: Bool {
+        switch family {
+        case .accessoryRectangular, .accessoryInline, .accessoryCircular: return true
+        default: return false
+        }
+    }
+
+    @ViewBuilder
+    private var systemView: some View {
         if entry.isDormant {
             dormantView
         } else {
@@ -13,12 +31,28 @@ struct WidgetEntryView: View {
         }
     }
 
+    @ViewBuilder
+    private var accessoryView: some View {
+        switch family {
+        case .accessoryInline: AccessoryInlineView(entry: entry)
+        case .accessoryCircular: AccessoryCircularView(entry: entry)
+        default: AccessoryRectangularView(entry: entry)
+        }
+    }
+
     // MARK: - Dormant View
 
     @ViewBuilder
     private var dormantView: some View {
+        if entry.departures.isEmpty {
+            simpleDormantView
+        } else {
+            staleDormantView
+        }
+    }
+
+    private var simpleDormantView: some View {
         VStack(spacing: 8) {
-            // Branding
             HStack(spacing: 4) {
                 Image(systemName: "tram.fill")
                     .font(.caption2)
@@ -36,80 +70,92 @@ struct WidgetEntryView: View {
             }
 
             Spacer()
-
-            Button(intent: RefreshIntent()) {
-                Label("Refresh", systemImage: "arrow.clockwise")
-                    .font(.caption.weight(.medium))
-            }
-            .buttonStyle(.bordered)
-            .tint(.blue)
-
+            refreshButton
             Spacer()
         }
         .padding(12)
     }
 
-    // MARK: - Active View
-
-    @ViewBuilder
-    private var activeView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Header row: mode icon | station name | refresh
-            HStack(spacing: 6) {
-                // Mode icon — tappable if multiple modes
-                if let mode = entry.currentMode {
-                    if entry.availableModes.count > 1 {
-                        Button(intent: SwitchModeIntent()) {
-                            Image(systemName: mode.sfSymbol)
-                                .font(.caption2)
-                                .foregroundStyle(.blue)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Image(systemName: mode.sfSymbol)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Station name — tappable if multiple stations
-                if entry.stationCount > 1 {
-                    Button(intent: SwitchStationIntent()) {
-                        HStack(spacing: 3) {
-                            Text(entry.stationName ?? "Station")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                            Text("\(entry.stationIndex + 1)/\(entry.stationCount)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Text(entry.stationName ?? "Station")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                }
-
+    private var staleDormantView: some View {
+        let rows = entry.displayDepartures(limit: max(1, maxDepartureRows - 1))
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "tram.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(entry.stationName ?? "TrainTime")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 Spacer()
-
-                Button(intent: RefreshIntent()) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                if let asOf = entry.asOf {
+                    // Clock time, not a stale minute count — a dormant widget can sit for hours.
+                    Text("as of \(asOf, style: .time)")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
                 }
-                .buttonStyle(.plain)
             }
 
             Divider()
 
-            // Departures
-            let maxRows = maxDepartureRows
-            let activeDeps = entry.departures.filter { !$0.isGone }.prefix(maxRows)
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, dep in
+                staleRow(dep)
+            }
 
-            if activeDeps.isEmpty {
+            Spacer(minLength: 0)
+            refreshButton
+        }
+        .padding(12)
+    }
+
+    private func staleRow(_ dep: WidgetDeparture) -> some View {
+        HStack(spacing: 4) {
+            Text(dep.clockTimeText)
+                .font(.system(.caption, design: .rounded, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 36, alignment: .trailing)
+            if family != .systemSmall, !dep.lineNumber.isEmpty {
+                Text(dep.lineNumber)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, alignment: .leading)
+            }
+            Text(dep.destination)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 0)
+            if entry.isFavourite(dep) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 1)
+    }
+
+    private var refreshButton: some View {
+        Button(intent: RefreshIntent()) {
+            Label("Refresh", systemImage: "arrow.clockwise")
+                .font(.caption.weight(.medium))
+        }
+        .buttonStyle(.bordered)
+        .tint(.blue)
+    }
+
+    // MARK: - Active View
+
+    private var activeView: some View {
+        let maxRows = maxDepartureRows
+        let favShown = entry.favouriteRows(limit: maxRows)
+        let regularShown = entry.regularRows(limit: maxRows - favShown.count)
+        return VStack(alignment: .leading, spacing: 4) {
+            headerRow
+
+            Divider()
+
+            if favShown.isEmpty && regularShown.isEmpty {
                 Spacer()
                 Text("No departures")
                     .font(.caption)
@@ -117,8 +163,17 @@ struct WidgetEntryView: View {
                     .frame(maxWidth: .infinity)
                 Spacer()
             } else {
-                ForEach(Array(activeDeps.enumerated()), id: \.offset) { _, dep in
-                    widgetDepartureRow(dep)
+                ForEach(Array(favShown.enumerated()), id: \.offset) { _, dep in
+                    widgetDepartureRow(dep, isFavourite: true)
+                }
+                if !favShown.isEmpty && !regularShown.isEmpty {
+                    Rectangle()
+                        .fill(AppColors.favouriteSeparator)
+                        .frame(height: 1)
+                        .padding(.vertical, 1)
+                }
+                ForEach(Array(regularShown.enumerated()), id: \.offset) { _, dep in
+                    widgetDepartureRow(dep, isFavourite: entry.isFavourite(dep))
                 }
                 Spacer(minLength: 0)
             }
@@ -126,14 +181,63 @@ struct WidgetEntryView: View {
         .padding(12)
     }
 
-    @ViewBuilder
-    private func widgetDepartureRow(_ dep: WidgetDeparture) -> some View {
+    private var headerRow: some View {
+        HStack(spacing: 6) {
+            // Mode icon — tappable if multiple modes
+            if let mode = entry.currentMode {
+                if entry.availableModes.count > 1 {
+                    Button(intent: SwitchModeIntent()) {
+                        Image(systemName: mode.sfSymbol)
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: mode.sfSymbol)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Station name — tappable if multiple stations
+            if entry.stationCount > 1 {
+                Button(intent: SwitchStationIntent()) {
+                    HStack(spacing: 3) {
+                        Text(entry.stationName ?? "Station")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text("\(entry.stationIndex + 1)/\(entry.stationCount)")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text(entry.stationName ?? "Station")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button(intent: RefreshIntent()) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func widgetDepartureRow(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
         let deepLink = URL(string: "traintime://track?destination=\(dep.destination.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&timestamp=\(dep.departureTimestamp)")
 
-        Link(destination: deepLink ?? URL(string: "traintime://")!) {
+        return Link(destination: deepLink ?? URL(string: "traintime://")!) {
             HStack(spacing: 4) {
                 // Minutes
-                Text(dep.minutesText)
+                Text(dep.minutesText(at: entry.date))
                     .font(.system(.caption, design: .rounded, weight: .bold))
                     .foregroundStyle(minutesColor(dep))
                     .frame(width: 30, alignment: .trailing)
@@ -168,14 +272,26 @@ struct WidgetEntryView: View {
                     .truncationMode(.tail)
 
                 Spacer(minLength: 0)
+
+                if isFavourite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 8))
+                        .foregroundStyle(AppColors.favouriteStar)
+                }
             }
             .padding(.vertical, 2)
+            .background {
+                if isFavourite {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(AppColors.favouriteBackground)
+                }
+            }
         }
     }
 
     private func minutesColor(_ dep: WidgetDeparture) -> Color {
-        if dep.isGone { return .secondary }
-        if dep.minutesUntil <= 2 { return AppColors.minutesNow }
+        if dep.isGone(at: entry.date) { return .secondary }
+        if dep.minutesUntil(at: entry.date) <= 2 { return AppColors.minutesNow }
         return AppColors.minutesSoon
     }
 

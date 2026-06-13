@@ -52,3 +52,7 @@ apple/fastlane/.bundle/
 local.properties
 *.apk
 *.aab
+
+# Local simulator screenshots (scoped so tracked asset PNGs are unaffected)
+/screenshots/
+/*.png
