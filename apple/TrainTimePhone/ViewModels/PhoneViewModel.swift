@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreLocation
 import Combine
+import WidgetKit
 
 class PhoneViewModel: ObservableObject {
     // MARK: - Services
@@ -144,6 +145,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     func onDisappear() {
+        updateWidgetCache() // the widget is only visible once we background; seed it with what was on screen
         location.stop()
         stopTimer()
         watchService.shutdown()
@@ -755,6 +757,53 @@ class PhoneViewModel: ObservableObject {
     private func extractFavouritesFromCurrent(_ deps: [Departure]) -> [Departure] {
         guard let stationId = currentStation?.id else { return [] }
         return favouritesStore.extractFavourites(from: deps, stationId: stationId)
+    }
+
+    // MARK: - Widget Cache
+
+    /// Seed the widget's App Group cache with what the user last saw, so the widget shows live
+    /// data without its own Refresh tap. Called on background (the widget is only visible then).
+    /// Piggybacks on fetches the user already triggered, so it adds no polling, and the fresh
+    /// fetchTime re-arms the widget's active window before it goes dormant — the breaker holds.
+    private func updateWidgetCache() {
+        guard currentStation != nil else { return }
+        let result = WidgetFetchResult(
+            train: widgetStations(trainStations, mode: .train),
+            bus: widgetStations(busStations, mode: .bus),
+            tram: widgetStations(tramStations, mode: .tram),
+            special: widgetStations(specialStations, mode: .special),
+            selectedModeRaw: currentMode.rawValue,
+            selectedStationIndex: stationIndex,
+            fetchTime: Date().timeIntervalSince1970
+        )
+        result.cache()
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+    }
+
+    /// The selected station carries the full, freshly-fetched departure list; the rest carry
+    /// whatever the nearby search embedded.
+    private func widgetStations(_ list: [Station], mode: TransportMode) -> [WidgetStation] {
+        list.compactMap { station in
+            guard let id = station.id, let name = station.name else { return nil }
+            let deps: [Departure]
+            if mode == currentMode, id == currentStation?.id, !departures.isEmpty {
+                deps = departures
+            } else {
+                deps = station.embeddedDepartures ?? []
+            }
+            return WidgetStation(id: id, name: name, departures: deps.map(widgetDeparture))
+        }
+    }
+
+    private func widgetDeparture(_ dep: Departure) -> WidgetDeparture {
+        WidgetDeparture(
+            destination: dep.destination,
+            departureTimestamp: dep.departureTimestamp ?? 0,
+            delay: dep.delay,
+            platform: dep.platform,
+            platformChanged: dep.platformChanged,
+            lineNumber: dep.lineNumber
+        )
     }
 
     // MARK: - Deep Link

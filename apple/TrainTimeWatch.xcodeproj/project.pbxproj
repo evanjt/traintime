@@ -80,6 +80,7 @@
 		/* === Widget Target === */
 		W0A100000000000000000001 /* TrainTimeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000001 /* TrainTimeWidget.swift */; };
 		W0A100000000000000000002 /* WidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000002 /* WidgetEntry.swift */; };
+		P0A100000000000000000203 /* WidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000002 /* WidgetEntry.swift */; };
 		W0A100000000000000000003 /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000003 /* WidgetViews.swift */; };
 		W0A100000000000000000004 /* RefreshIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000004 /* RefreshIntent.swift */; };
 		W0A100000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000005 /* Assets.xcassets */; };
@@ -600,6 +601,7 @@
 				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
 				P0A100000000000000000201 /* Favourite.swift in Sources */,
 				P0A100000000000000000202 /* FavouritesStore.swift in Sources */,
+				P0A100000000000000000203 /* WidgetEntry.swift in Sources */,
 				P0A100000000000000000107 /* GeoUtils.swift in Sources */,
 				P0A100000000000000000108 /* Constants.swift in Sources */,
 				P0A100000000000000000109 /* Secrets.swift in Sources */,

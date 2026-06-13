@@ -79,6 +79,23 @@ struct WidgetFetchResult: Codable {
     }
 }
 
+/// App Group cache shared by the widget and the phone app. The single key + codec live here
+/// so both processes agree on the format; the phone seeds it on background, the widget reads it.
+extension WidgetFetchResult {
+    static let cacheKey = "widget_fetch_result_v3"
+
+    static func loadCached() -> WidgetFetchResult? {
+        guard let data = SharedDefaults.store.data(forKey: cacheKey) else { return nil }
+        return try? JSONDecoder().decode(WidgetFetchResult.self, from: data)
+    }
+
+    func cache() {
+        if let data = try? JSONEncoder().encode(self) {
+            SharedDefaults.store.set(data, forKey: WidgetFetchResult.cacheKey)
+        }
+    }
+}
+
 /// Favourite extraction for the widget. Lives here (not in FavouritesStore) because it
 /// operates on WidgetDeparture, which is not compiled into the watch target.
 enum WidgetFavourites {
