@@ -6,7 +6,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color(uiColor: .systemBackground).ignoresSafeArea()
 
             switch viewModel.appState {
             case 2:
@@ -35,7 +35,6 @@ struct ContentView: View {
                 PhoneStationView(viewModel: viewModel)
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }
         .onChange(of: scenePhase) { _, phase in

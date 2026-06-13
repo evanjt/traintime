@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PhoneSettingsView: View {
     @ObservedObject var viewModel: PhoneViewModel
+    @ObservedObject private var favouritesStore = FavouritesStore.shared
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
@@ -27,20 +28,20 @@ struct PhoneSettingsView: View {
                     }
                 }
 
-                if !viewModel.favouritesStore.favourites.isEmpty {
-                    Section("Favourites (\(viewModel.favouritesStore.favourites.count))") {
-                        ForEach(viewModel.favouritesStore.favourites) { fav in
+                if !favouritesStore.favourites.isEmpty {
+                    Section("Favourites (\(favouritesStore.favourites.count))") {
+                        ForEach(favouritesStore.favourites) { fav in
                             HStack {
                                 Image(systemName: "star.fill")
                                     .font(.caption)
-                                    .foregroundStyle(.yellow)
+                                    .foregroundStyle(AppColors.favouriteStar)
                                 Text(fav.displayString)
                                     .font(.body)
                             }
                         }
                         .onDelete { offsets in
-                            let toRemove = offsets.map { viewModel.favouritesStore.favourites[$0] }
-                            toRemove.forEach { viewModel.favouritesStore.remove($0) }
+                            let toRemove = offsets.map { favouritesStore.favourites[$0] }
+                            toRemove.forEach { favouritesStore.remove($0) }
                         }
                     }
                 }

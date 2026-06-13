@@ -128,8 +128,8 @@ module Renderer {
                             var sepY2 = startY + sepRow * rowSpacing + tinyH + 1;
                             var sepUsable2 = DrawUtils.getUsableWidth(sepY2, width, height) - 20;
                             var sepX2 = (width - sepUsable2) / 2;
-                            dc.setColor(0x665500, Graphics.COLOR_TRANSPARENT);
-                            dc.fillRectangle(sepX2, sepY2, sepUsable2, 1);
+                            dc.setColor(0x998800, Graphics.COLOR_TRANSPARENT);
+                            dc.fillRectangle(sepX2, sepY2, sepUsable2, 2);
                         }
                     }
                 } else {
@@ -149,8 +149,8 @@ module Renderer {
                         var sepY = startY + (rowIdx - 1) * rowSpacing + tinyH + 1;
                         var sepUsable = DrawUtils.getUsableWidth(sepY, width, height) - 20;
                         var sepX = (width - sepUsable) / 2;
-                        dc.setColor(0x665500, Graphics.COLOR_TRANSPARENT);
-                        dc.fillRectangle(sepX, sepY, sepUsable, 1);
+                        dc.setColor(0x998800, Graphics.COLOR_TRANSPARENT);
+                        dc.fillRectangle(sepX, sepY, sepUsable, 2);
                     }
 
                     // Draw regular departure rows (favourites in list get gold bg too)

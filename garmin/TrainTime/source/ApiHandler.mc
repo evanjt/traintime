@@ -233,6 +233,47 @@ module ApiHandler {
         return result;
     }
 
+    // Ensure favourite departures appear in the regular list so they repeat in time order.
+    // Client-side extraction already pulls favourites from trainData; this covers a server
+    // that returns favourites as a separate array without keeping them in "departures".
+    function mergeFavourites(trainData, favData) {
+        if (favData == null || favData.size() == 0) {
+            return trainData;
+        }
+        if (trainData == null) {
+            trainData = [];
+        }
+        for (var f = 0; f < favData.size(); f++) {
+            var fav = favData[f];
+            var present = false;
+            for (var i = 0; i < trainData.size(); i++) {
+                var t = trainData[i];
+                if (t["line"] != null && t["line"].equals(fav["line"])
+                        && t["dest"] != null && t["dest"].equals(fav["dest"])
+                        && t["depTs"] == fav["depTs"]) {
+                    present = true;
+                    break;
+                }
+            }
+            if (!present) {
+                trainData.add(fav);
+            }
+        }
+        // Sort by departure time
+        for (var i = 0; i < trainData.size() - 1; i++) {
+            for (var j = i + 1; j < trainData.size(); j++) {
+                var a = trainData[i]["depTs"];
+                var b = trainData[j]["depTs"];
+                if (a != null && b != null && a > b) {
+                    var tmp = trainData[i];
+                    trainData[i] = trainData[j];
+                    trainData[j] = tmp;
+                }
+            }
+        }
+        return trainData;
+    }
+
     function fetchFormation(view, trainNumber, stationId, operatorRef) {
         // Format today's date as YYYY-MM-DD
         var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
@@ -300,6 +341,7 @@ module ApiHandler {
             if (data.hasKey("favourites") && data["favourites"] != null
                     && data["favourites"] instanceof Lang.Array && data["favourites"].size() > 0) {
                 view.mFavouriteData = parseDepartureArray(data["favourites"]);
+                view.mTrainData = mergeFavourites(view.mTrainData, view.mFavouriteData);
             } else {
                 view.mFavouriteData = extractFavourites(view.mTrainData, view.mStationId);
             }

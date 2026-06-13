@@ -6,13 +6,13 @@ struct PhoneDepartureRowView: View {
     var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: { onTap?() }) {
+        Button(action: { if !departure.isGone { onTap?() } }) {
             HStack(spacing: 8) {
                 // Minutes
                 Text(departure.minutesText)
-                    .font(departure.minutesUntil <= 0
-                        ? .system(.subheadline, design: .rounded, weight: .bold)
-                        : .system(.title3, design: .rounded, weight: .bold))
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
                     .foregroundStyle(minutesColor)
                     .frame(width: 50, alignment: .trailing)
 
@@ -46,6 +46,13 @@ struct PhoneDepartureRowView: View {
 
                 Spacer(minLength: 0)
 
+                // Favourite marker
+                if isFavourite {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.favouriteStar)
+                }
+
                 // Chevron
                 if !departure.isGone {
                     Image(systemName: "chevron.right")
@@ -54,11 +61,9 @@ struct PhoneDepartureRowView: View {
                 }
             }
             .padding(.vertical, 14)
-            .background(isFavourite ? AppColors.favouriteBackground : Color.clear)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(departure.isGone)
     }
 
     private var minutesColor: Color {

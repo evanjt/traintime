@@ -56,3 +56,5 @@ local.properties
 *.keystore
 android/.idea/
 android/captures/
+/screenshots/
+/*.png

@@ -6,6 +6,7 @@ struct SwitchModeIntent: AppIntent {
     static var description: IntentDescription = "Cycles to next transport mode"
 
     func perform() async throws -> some IntentResult {
+        FavouritesStore.shared.reload()
         guard var result = WidgetStorage.load() else { return .result() }
 
         let modes = result.availableModes
@@ -20,8 +21,10 @@ struct SwitchModeIntent: AppIntent {
         // Fetch departures for the new station if it has none
         let stations = result.stations(for: nextMode)
         if !stations.isEmpty && stations[0].departures.isEmpty {
-            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: stations[0].id) {
-                let deps = fetched.map { dep in
+            let favParam = FavouritesStore.shared.favouritesParam(forStation: stations[0].id)
+            if let fetched = try? await TrainAPIService.fetchDepartures(stationId: stations[0].id, favourites: favParam) {
+                let merged = FavouritesStore.shared.merging(favourites: fetched.favourites, into: fetched.departures)
+                let deps = merged.map { dep in
                     WidgetDeparture(
                         destination: dep.destination,
                         departureTimestamp: dep.departureTimestamp ?? 0,

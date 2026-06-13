@@ -1,14 +1,35 @@
 import SwiftUI
+#if !os(watchOS)
+import UIKit
+#endif
 
 enum AppColors {
+    // On watchOS the dark value is used verbatim (no trait-based resolution), keeping
+    // the watch look byte-identical. On iOS/widget the colour follows light/dark.
+    #if os(watchOS)
+    private static func adaptive(light: Color, dark: Color) -> Color { dark }
+    #else
+    private static func adaptive(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light) })
+    }
+    #endif
+
     static let stationName = Color.white
     static let walkInfo = Color(red: 0xAA/255, green: 0xAA/255, blue: 0xAA/255)
     static let separator = Color(red: 0x44/255, green: 0x44/255, blue: 0x44/255)
     static let minutesGone = Color(red: 0x66/255, green: 0x66/255, blue: 0x66/255)
-    static let minutesNow = Color(red: 1.0, green: 1.0, blue: 0.0)
-    static let minutesSoon = Color(red: 0.0, green: 1.0, blue: 0.0)
-    static let delay = Color(red: 1.0, green: 0x55/255, blue: 0.0)
-    static let platform = Color(red: 0x55/255, green: 0xAA/255, blue: 1.0)
+    static let minutesNow = adaptive(
+        light: Color(red: 0xB5/255, green: 0x89/255, blue: 0x00/255),
+        dark: Color(red: 1.0, green: 1.0, blue: 0.0))
+    static let minutesSoon = adaptive(
+        light: Color(red: 0x1E/255, green: 0x7D/255, blue: 0x32/255),
+        dark: Color(red: 0.0, green: 1.0, blue: 0.0))
+    static let delay = adaptive(
+        light: Color(red: 0xC7/255, green: 0x3E/255, blue: 0x00/255),
+        dark: Color(red: 1.0, green: 0x55/255, blue: 0.0))
+    static let platform = adaptive(
+        light: Color(red: 0x00/255, green: 0x61/255, blue: 0xC2/255),
+        dark: Color(red: 0x55/255, green: 0xAA/255, blue: 1.0))
     static let platformChanged = Color.red
     static let platformChangedText = Color.white
     static let bodyStatus = Color(red: 0xAA/255, green: 0xAA/255, blue: 0xAA/255)
@@ -19,22 +40,64 @@ enum AppColors {
     static let selectionAccent = Color(red: 0x55/255, green: 0xAA/255, blue: 0xFF/255)
 
     // Platform changed in tracking mode
-    static let platformChangedOrange = Color(red: 0xFF/255, green: 0x44/255, blue: 0x00/255)
+    static let platformChangedOrange = adaptive(
+        light: Color(red: 0xC5/255, green: 0x30/255, blue: 0x00/255),
+        dark: Color(red: 0xFF/255, green: 0x44/255, blue: 0x00/255))
 
     // Favourite highlight
-    static let favouriteBackground = Color(red: 0x33/255, green: 0x28/255, blue: 0x00/255)
+    static let favouriteBackground = adaptive(
+        light: Color(red: 0xF7/255, green: 0xEF/255, blue: 0xD2/255),
+        dark: Color(red: 0x33/255, green: 0x28/255, blue: 0x00/255))
+    static let favouriteSeparator = adaptive(
+        light: Color(red: 0xB8/255, green: 0x9B/255, blue: 0x00/255),
+        dark: Color(red: 0x99/255, green: 0x88/255, blue: 0x00/255))
+    static let favouriteStar = adaptive(
+        light: Color(red: 0xA0/255, green: 0x78/255, blue: 0x00/255),
+        dark: Color(red: 1.0, green: 0xD7/255, blue: 0x00/255))
 
     // Tracking bar colors
-    static let darkGreen = Color(red: 0.0, green: 1.0, blue: 0.0)
-    static let lightGreen = Color(red: 0x55/255, green: 0xFF/255, blue: 0x55/255)
-    static let darkRed = Color(red: 1.0, green: 0.0, blue: 0.0)
-    static let amber = Color(red: 1.0, green: 0xAA/255, blue: 0.0)
-    static let barGray = Color(red: 0x44/255, green: 0x44/255, blue: 0x44/255)
+    static let darkGreen = adaptive(
+        light: Color(red: 0x1E/255, green: 0x8E/255, blue: 0x3E/255),
+        dark: Color(red: 0.0, green: 1.0, blue: 0.0))
+    static let lightGreen = adaptive(
+        light: Color(red: 0x6F/255, green: 0xCF/255, blue: 0x82/255),
+        dark: Color(red: 0x55/255, green: 0xFF/255, blue: 0x55/255))
+    static let darkRed = adaptive(
+        light: Color(red: 0xD3/255, green: 0x2F/255, blue: 0x2F/255),
+        dark: Color(red: 1.0, green: 0.0, blue: 0.0))
+    static let amber = adaptive(
+        light: Color(red: 0xE0/255, green: 0x8A/255, blue: 0x00/255),
+        dark: Color(red: 1.0, green: 0xAA/255, blue: 0.0))
+    static let barGray = adaptive(
+        light: Color(red: 0xC7/255, green: 0xC7/255, blue: 0xCC/255),
+        dark: Color(red: 0x44/255, green: 0x44/255, blue: 0x44/255))
+    static let trackingBarBackground = adaptive(
+        light: Color(red: 0xE5/255, green: 0xE5/255, blue: 0xEA/255),
+        dark: Color.black)
 
     // Status colors
-    static let ahead = Color.green
-    static let onTime = Color.yellow
-    static let behind = Color.red
+    static let ahead = adaptive(light: Color(red: 0x1B/255, green: 0x7D/255, blue: 0x2C/255), dark: Color.green)
+    static let onTime = adaptive(light: Color(red: 0xB5/255, green: 0x89/255, blue: 0x00/255), dark: Color.yellow)
+    static let behind = adaptive(light: Color(red: 0xC6/255, green: 0x28/255, blue: 0x28/255), dark: Color.red)
+}
+
+enum SharedDefaults {
+    static let appGroupId = "group.com.evanjt.traintime"
+
+    // The widget process has its own standard defaults, so favourites and the widget
+    // cache must live in the shared App Group container to cross the process boundary.
+    // watchOS has no App Group with the phone (different device) and keeps standard defaults.
+    static var store: UserDefaults {
+        #if os(watchOS)
+        return .standard
+        #else
+        if let suite = UserDefaults(suiteName: appGroupId) {
+            return suite
+        }
+        print("[SharedDefaults] App Group \(appGroupId) unavailable, falling back to .standard")
+        return .standard
+        #endif
+    }
 }
 
 enum SwissBounds {
