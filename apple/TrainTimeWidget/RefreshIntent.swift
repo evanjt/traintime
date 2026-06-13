@@ -159,6 +159,15 @@ enum WidgetStorage {
         SharedDefaults.store.removeObject(forKey: key)
     }
 
+    // Display preference (not fetched data): when true the widget hides the favourites block
+    // and shows departures in pure time order, with favourites still starred inline.
+    private static let hideFavKey = "widget_hide_favourites_block"
+
+    static var hideFavouritesBlock: Bool {
+        get { SharedDefaults.store.bool(forKey: hideFavKey) }
+        set { SharedDefaults.store.set(newValue, forKey: hideFavKey) }
+    }
+
     static func updateSelection(_ result: WidgetFetchResult, modeRaw: Int, stationIndex: Int) -> WidgetFetchResult {
         WidgetFetchResult(
             train: result.train, bus: result.bus, tram: result.tram, special: result.special,
@@ -181,5 +190,17 @@ enum WidgetStorage {
             selectedModeRaw: result.selectedModeRaw, selectedStationIndex: result.selectedStationIndex,
             fetchTime: result.fetchTime
         )
+    }
+}
+
+/// Toggles the favourites-grouping display mode. No network — flips a flag and reloads.
+struct ToggleFavouritesIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle Favourites Grouping"
+    static var description: IntentDescription = "Show favourites first, or all departures in time order"
+
+    func perform() async throws -> some IntentResult {
+        WidgetStorage.hideFavouritesBlock.toggle()
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+        return .result()
     }
 }

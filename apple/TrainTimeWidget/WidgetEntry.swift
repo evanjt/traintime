@@ -113,18 +113,20 @@ struct DepartureEntry: TimelineEntry {
     let availableModes: [TransportMode]
     let stationIndex: Int
     let stationCount: Int
+    let hideFavouritesBlock: Bool
 
     static func dormant(date: Date = .now, stationName: String? = nil) -> DepartureEntry {
         DepartureEntry(
             date: date, stationName: stationName, departures: [], favouriteDepartures: [],
             favouriteKeys: [], asOf: nil, isDormant: true,
-            currentMode: nil, availableModes: [], stationIndex: 0, stationCount: 0
+            currentMode: nil, availableModes: [], stationIndex: 0, stationCount: 0,
+            hideFavouritesBlock: false
         )
     }
 
     /// Build an entry from cache for a given render date, flagging favourites per that date.
     /// Used for both active and stale-dormant entries (the dormant view ignores the switcher).
-    static func make(date: Date, result: WidgetFetchResult, favourites: [Favourite], isDormant: Bool) -> DepartureEntry {
+    static func make(date: Date, result: WidgetFetchResult, favourites: [Favourite], isDormant: Bool, hideFavouritesBlock: Bool) -> DepartureEntry {
         let station = result.currentStation
         let deps = station?.departures ?? []
         let stns = result.stations(for: result.selectedMode)
@@ -139,7 +141,8 @@ struct DepartureEntry: TimelineEntry {
             currentMode: result.selectedMode,
             availableModes: result.availableModes,
             stationIndex: min(result.selectedStationIndex, max(stns.count - 1, 0)),
-            stationCount: stns.count
+            stationCount: stns.count,
+            hideFavouritesBlock: hideFavouritesBlock
         )
     }
 
@@ -177,7 +180,8 @@ struct DepartureEntry: TimelineEntry {
             currentMode: .train,
             availableModes: [.train],
             stationIndex: 0,
-            stationCount: 1
+            stationCount: 1,
+            hideFavouritesBlock: false
         )
     }
 }

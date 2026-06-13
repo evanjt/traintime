@@ -52,7 +52,7 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         FavouritesStore.shared.reload()
         let now = Date()
         let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
-        completion(DepartureEntry.make(date: now, result: result, favourites: favourites(for: result), isDormant: now >= windowEnd))
+        completion(DepartureEntry.make(date: now, result: result, favourites: favourites(for: result), isDormant: now >= windowEnd, hideFavouritesBlock: WidgetStorage.hideFavouritesBlock))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<DepartureEntry>) -> Void) {
@@ -62,6 +62,7 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         }
         FavouritesStore.shared.reload() // fresh favourite flags, no network
         let favs = favourites(for: result)
+        let hideFav = WidgetStorage.hideFavouritesBlock
 
         let windowEnd = Date(timeIntervalSince1970: result.fetchTime).addingTimeInterval(activeWindow)
         let now = Date()
@@ -69,7 +70,7 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         // Past the window: rich dormant view, breaker open (no refresh until the user taps).
         guard now < windowEnd else {
             completion(Timeline(
-                entries: [DepartureEntry.make(date: now, result: result, favourites: favs, isDormant: true)],
+                entries: [DepartureEntry.make(date: now, result: result, favourites: favs, isDormant: true, hideFavouritesBlock: hideFav)],
                 policy: .never
             ))
             return
@@ -80,10 +81,10 @@ struct TrainTimeTimelineProvider: TimelineProvider {
         var entries: [DepartureEntry] = []
         var t = now
         while t < windowEnd {
-            entries.append(DepartureEntry.make(date: t, result: result, favourites: favs, isDormant: false))
+            entries.append(DepartureEntry.make(date: t, result: result, favourites: favs, isDormant: false, hideFavouritesBlock: hideFav))
             t = t.addingTimeInterval(60)
         }
-        entries.append(DepartureEntry.make(date: windowEnd, result: result, favourites: favs, isDormant: true))
+        entries.append(DepartureEntry.make(date: windowEnd, result: result, favourites: favs, isDormant: true, hideFavouritesBlock: hideFav))
         completion(Timeline(entries: entries, policy: .after(windowEnd)))
     }
 

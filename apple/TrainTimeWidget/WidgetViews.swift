@@ -122,7 +122,8 @@ struct WidgetEntryView: View {
     }
 
     private var staleDormantView: some View {
-        let rows = entry.displayDepartures(limit: max(1, maxDepartureRows - 1))
+        let limit = max(1, maxDepartureRows - 1)
+        let rows = entry.hideFavouritesBlock ? entry.regularRows(limit: limit) : entry.displayDepartures(limit: limit)
         return GeometryReader { geo in
             VStack(spacing: 0) {
                 HStack(spacing: 6) {
@@ -198,7 +199,9 @@ struct WidgetEntryView: View {
 
     private var activeView: some View {
         let maxRows = maxDepartureRows
-        let favShown = entry.favouriteRows(limit: maxRows)
+        // Classic mode: no favourites block, just the next departures in time order
+        // (favourites among them stay starred). Otherwise favourites are pulled to the top.
+        let favShown = entry.hideFavouritesBlock ? [] : entry.favouriteRows(limit: maxRows)
         let regularShown = entry.regularRows(limit: maxRows - favShown.count)
         return GeometryReader { geo in
             VStack(spacing: 0) {
@@ -283,6 +286,17 @@ struct WidgetEntryView: View {
             }
 
             Spacer()
+
+            // Toggle favourites grouping — only useful (and only room) when there are
+            // favourites at this station and on the larger families.
+            if family != .systemSmall && !entry.favouriteKeys.isEmpty {
+                Button(intent: ToggleFavouritesIntent()) {
+                    Image(systemName: entry.hideFavouritesBlock ? "star.slash" : "star.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(entry.hideFavouritesBlock ? Color.secondary : AppColors.favouriteStar)
+                }
+                .buttonStyle(.plain)
+            }
 
             Button(intent: RefreshIntent()) {
                 Image(systemName: "arrow.clockwise")
