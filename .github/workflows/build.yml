@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_profiles:
+        description: "Regenerate provisioning profiles (run after changing App ID capabilities)"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -91,6 +96,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+          MATCH_FORCE: ${{ github.event.inputs.force_profiles || 'false' }}
         working-directory: apple/fastlane
         run: bundle exec fastlane certificates
 

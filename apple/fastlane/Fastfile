@@ -30,9 +30,12 @@ platform :ios do
           UI.success("Created App ID: #{bundle_id}")
         end
       end
+      # Regenerate profiles after an App ID capability change (such as the App
+      # Group), since match reuses the stale profile that lacks the entitlement.
       match(
         type: "appstore",
         api_key: api_key,
+        force: ENV["MATCH_FORCE"] == "true",
         app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget"]
       )
     else
