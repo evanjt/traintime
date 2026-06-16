@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# Enforce the unified version model before a version tag leaves the machine.
+# A strict X.Y.Z tag must match every platform's version string, and the
+# Apple/Android store build numbers must exceed the previous tag's.
+# Bypass in emergencies with: git push --no-verify
+
+PBXPROJ="apple/TrainTimeWatch.xcodeproj/project.pbxproj"
+GRADLE="android/app/build.gradle.kts"
+MANIFEST="garmin/TrainTime/manifest.xml"
+VERSION_MC="garmin/TrainTime/source/Version.mc"
+
+errors=()
+record() { errors+=("$1"); }
+is_int() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
+
+# Extractors: read a single value from a path at a given commit.
+android_version_name() {
+    git show "$1:$GRADLE" 2>/dev/null | grep -E 'versionName *= *"' | head -1 \
+        | sed -E 's/.*versionName *= *"([^"]*)".*/\1/'
+}
+android_version_code() {
+    git show "$1:$GRADLE" 2>/dev/null | grep -E 'versionCode *= *[0-9]' | head -1 \
+        | sed -E 's/.*versionCode *= *([0-9]+).*/\1/'
+}
+apple_marketing_lines() {
+    git show "$1:$PBXPROJ" 2>/dev/null | grep -E 'MARKETING_VERSION *=' \
+        | sed -E 's/.*MARKETING_VERSION *= *([^;]*);.*/\1/' | tr -d ' '
+}
+apple_build_lines() {
+    git show "$1:$PBXPROJ" 2>/dev/null | grep -E 'CURRENT_PROJECT_VERSION *=' \
+        | sed -E 's/.*CURRENT_PROJECT_VERSION *= *([0-9]+);.*/\1/' | tr -d ' '
+}
+garmin_manifest_version() {
+    # The iq:application line also carries minSdkVersion="..."; strip it first.
+    git show "$1:$MANIFEST" 2>/dev/null | grep 'iq:application' | head -1 \
+        | sed -E 's/minSdkVersion="[^"]*"//' \
+        | sed -E 's/.*[[:space:]]version="([^"]*)".*/\1/'
+}
+garmin_mc_version() {
+    git show "$1:$VERSION_MC" 2>/dev/null | grep -E 'VERSION *= *"' | head -1 \
+        | sed -E 's/.*VERSION *= *"([^"]*)".*/\1/'
+}
+
+validate_tag() {
+    tag="$1"
+    commit="$(git rev-parse "${2}^{commit}" 2>/dev/null)"
+    if [ -z "$commit" ]; then
+        record "tag '$tag': cannot resolve its commit"
+        return
+    fi
+
+    # --- Check A: every platform's version string equals the tag ---
+    a_vn="$(android_version_name "$commit")"
+    g_man="$(garmin_manifest_version "$commit")"
+    g_mc="$(garmin_mc_version "$commit")"
+
+    mv_distinct="$(apple_marketing_lines "$commit" | sort -u)"
+    if [ "$(printf '%s\n' "$mv_distinct" | grep -c .)" -gt 1 ]; then
+        record "apple MARKETING_VERSION differs across targets ($(echo $mv_distinct)) in $PBXPROJ"
+        mv="<inconsistent>"
+    else
+        mv="$mv_distinct"
+    fi
+
+    [ "$a_vn" = "$tag" ]  || record "android versionName is '${a_vn:-<empty>}' but tag is '$tag' ($GRADLE)"
+    [ "$mv" = "$tag" ]    || record "apple MARKETING_VERSION is '${mv:-<empty>}' but tag is '$tag' ($PBXPROJ)"
+    [ "$g_man" = "$tag" ] || record "garmin manifest version is '${g_man:-<empty>}' but tag is '$tag' ($MANIFEST)"
+    [ "$g_mc" = "$tag" ]  || record "garmin Version.mc is '${g_mc:-<empty>}' but tag is '$tag' ($VERSION_MC)"
+
+    # --- Check B: build numbers strictly greater than the previous tag's ---
+    prev="$(git tag --list --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -vFx "$tag" | head -1)"
+    if [ -z "$prev" ]; then
+        echo "pre-push: no previous version tag, skipping build-number checks for $tag" >&2
+        return
+    fi
+    prev_commit="$(git rev-parse "${prev}^{commit}" 2>/dev/null)"
+
+    cur_cpv="$(apple_build_lines "$commit" | sort -u | head -1)"
+    prev_cpv="$(apple_build_lines "$prev_commit" | sort -u | head -1)"
+    cur_vc="$(android_version_code "$commit")"
+    prev_vc="$(android_version_code "$prev_commit")"
+
+    if is_int "$cur_cpv" && is_int "$prev_cpv"; then
+        [ "$cur_cpv" -gt "$prev_cpv" ] || record "apple CURRENT_PROJECT_VERSION must increase: $prev=$prev_cpv -> $tag=$cur_cpv ($PBXPROJ)"
+    else
+        record "apple CURRENT_PROJECT_VERSION unreadable (cur='$cur_cpv' prev='$prev_cpv')"
+    fi
+    if is_int "$cur_vc" && is_int "$prev_vc"; then
+        [ "$cur_vc" -gt "$prev_vc" ] || record "android versionCode must increase: $prev=$prev_vc -> $tag=$cur_vc ($GRADLE)"
+    else
+        record "android versionCode unreadable (cur='$cur_vc' prev='$prev_vc')"
+    fi
+}
+
+# Read the refs being pushed from stdin.
+while read -r localref localsha remoteref remotesha; do
+    [ -z "$localref" ] && continue
+    # Deletion (all-zero sha) -> allow.
+    printf '%s' "$localsha" | grep -qE '^0+$' && continue
+    # Tags only.
+    case "$remoteref" in
+        refs/tags/*) tag="${remoteref#refs/tags/}" ;;
+        *) continue ;;
+    esac
+    # Leave non-version tags alone.
+    printf '%s' "$tag" | grep -qE '^v?[0-9]+\.[0-9]+' || continue
+    # Enforce strict X.Y.Z.
+    if ! printf '%s' "$tag" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+        record "tag '$tag' must be strict X.Y.Z (no 'v' prefix, three numeric components)"
+        continue
+    fi
+    validate_tag "$tag" "$localsha"
+done
+
+if [ "${#errors[@]}" -gt 0 ]; then
+    {
+        echo ""
+        echo "pre-push: version tag checks failed:"
+        for e in "${errors[@]}"; do echo "  - $e"; done
+        echo ""
+        echo "All platforms must equal the tag, and Apple/Android build numbers must increase."
+        echo "Bypass with: git push --no-verify"
+    } >&2
+    exit 1
+fi
+exit 0
