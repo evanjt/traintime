@@ -299,7 +299,15 @@ jobs:
         env:
           TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
         working-directory: android
-        run: ./gradlew assembleDebug testDebugUnitTest
+        run: ./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug
+
+      - name: Upload screenshot diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roborazzi-diffs
+          path: android/app/build/outputs/roborazzi/**
+          retention-days: 7
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
