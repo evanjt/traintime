@@ -1,0 +1,78 @@
+default_platform(:android)
+
+# Build and ship TrainTime to Google Play. Signing comes from
+# android/keystore.properties or the KEYSTORE_* env vars (see app/build.gradle.kts).
+# The Play service-account JSON is referenced by the Appfile via SUPPLY_JSON_KEY.
+# Track names must match those configured in the Play Console
+# (internal | alpha = closed | beta = open | production).
+platform :android do
+  desc "Build a signed release AAB (gradle bundleRelease)"
+  lane :build do
+    gradle(
+      project_dir: File.expand_path("..", __dir__),
+      task: "bundle",
+      build_type: "Release",
+    )
+  end
+
+  desc "Upload an AAB to a Play track. Options: track:<name> aab:<path> mapping:<path>"
+  lane :deploy do |options|
+    track = options[:track] || "internal"
+    aab_path = options[:aab] ||
+      File.expand_path("../app/build/outputs/bundle/release/app-release.aab", __dir__)
+
+    mapping_path = options[:mapping]
+    if mapping_path.nil?
+      default_mapping = File.expand_path("../app/build/outputs/mapping/release/mapping.txt", __dir__)
+      mapping_path = default_mapping if File.exist?(default_mapping)
+    end
+
+    UI.user_error!("AAB not found: #{aab_path}. Run `fastlane build` first.") unless File.exist?(aab_path)
+    UI.message("Uploading #{aab_path} to #{track} track")
+
+    supply(
+      track: track,
+      aab: aab_path,
+      mapping: mapping_path,
+      metadata_path: File.expand_path("metadata/android", __dir__),
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "completed",
+    )
+  end
+
+  desc "Promote the latest internal build to the closed (alpha) track"
+  lane :promote_to_closed do
+    supply(
+      track: "internal",
+      track_promote_to: "alpha",
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Promote the closed (alpha) track to production (10% staged rollout)"
+  lane :promote_to_production do
+    supply(
+      track: "alpha",
+      track_promote_to: "production",
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: "0.1",
+    )
+  end
+
+  desc "Upload store metadata only, no binary"
+  lane :metadata do
+    supply(
+      metadata_path: File.expand_path("metadata/android", __dir__),
+      skip_upload_aab: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+end

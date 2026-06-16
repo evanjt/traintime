@@ -1,0 +1,27 @@
+TrainTime puts live Swiss public transport departures in your pocket. See what's leaving from nearby train, tram and bus stops, ferries, cable cars and funiculars, with real-time delays, platform numbers and walking distance. A haptic nudge when you're running behind keeps you from missing a departure.
+
+<b>Nearby departures</b>
+TrainTime uses your location to find the closest Swiss stations and shows upcoming departures with destination, platform, delay and direction of travel.
+
+<b>Focused tracking</b>
+Tap a departure to track it. A live countdown shows your remaining time based on your walking distance to the station, so you know whether you'll make it. See the full train formation diagram so you know exactly where to stand on the platform.
+
+<b>Home screen widget</b>
+Add the widget to see your next departure at a glance. Tap it to open straight into tracking mode.
+
+<b>Multiple transport modes</b>
+Switch between trains, buses, trams, boats, funiculars and cable cars. Browse up to 5 nearby stations per mode across 4 transport types. TrainTime only shows what's around you.
+
+<b>Works across Switzerland</b>
+Powered by real-time data from opentransportdata.swiss, covering 51,000+ stations across the entire country.
+
+<b>Also on Garmin and Apple</b>
+TrainTime also runs on Garmin watches, Apple Watch and iPhone, available from their respective stores.
+
+<b>Privacy first</b>
+No account needed. No tracking. No analytics. Your coordinates are processed in-memory by our API and immediately discarded, never stored or shared. Full privacy policy at traintime.ch/privacy.
+
+<b>Open source</b>
+Both the app and API are open source.
+
+This app is not affiliated with or endorsed by SBB or any Swiss transit operator. Departure data is sourced from opentransportdata.swiss and may not always be accurate or up to date.

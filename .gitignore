@@ -46,14 +46,20 @@ xcuserdata/
 # Fastlane
 apple/fastlane/vendor/
 apple/fastlane/.bundle/
+android/fastlane/vendor/
+android/fastlane/.bundle/
+android/fastlane/report.xml
 
 # Android / Gradle
 .gradle/
 .kotlin/
 local.properties
+keystore.properties
+play-service-account.json
 *.apk
 *.aab
 *.keystore
+*.jks
 android/.idea/
 android/captures/
 /screenshots/

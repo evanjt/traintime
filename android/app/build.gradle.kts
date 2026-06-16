@@ -21,6 +21,18 @@ val traintimeApiKey: String = run {
     fromFile ?: System.getenv("TRAINTIME_API_KEY") ?: ""
 }
 
+// Release signing. Local builds read android/keystore.properties; CI passes the
+// same values via env. Without either, release falls back to debug signing so
+// bundleRelease still runs for local R8 testing (Play rejects debug-signed
+// uploads, so a real upload keystore is required to actually ship).
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun signingValue(prop: String, env: String): String? =
+    keystoreProperties.getProperty(prop) ?: System.getenv(env)
+val releaseStoreFile: String? = signingValue("storeFile", "KEYSTORE_FILE")
+
 android {
     namespace = "com.evanjt.traintime"
     compileSdk = 35
@@ -29,14 +41,28 @@ android {
         applicationId = "com.evanjt.traintime"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.3.1"
 
         buildConfigField("String", "TRAINTIME_API_KEY", "\"$traintimeApiKey\"")
     }
 
+    signingConfigs {
+        create("release") {
+            if (releaseStoreFile != null) {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName(
+                if (releaseStoreFile != null) "release" else "debug",
+            )
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
