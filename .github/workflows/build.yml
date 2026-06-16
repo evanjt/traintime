@@ -113,6 +113,16 @@ jobs:
           }
           EOF
 
+      - name: Run iOS unit tests
+        working-directory: apple
+        run: |
+          xcodebuild test \
+            -project TrainTimeWatch.xcodeproj \
+            -scheme TrainTimePhone \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -only-testing:TrainTimePhoneTests \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Build unsigned (PR validation)
         if: steps.check_signing.outputs.has_signing != 'true' || (github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch')
         working-directory: apple
