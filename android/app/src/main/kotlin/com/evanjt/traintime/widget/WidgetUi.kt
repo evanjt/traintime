@@ -290,19 +290,24 @@ private fun DepartureRow(
             modifier = GlanceModifier.width(if (small) 30.dp else 38.dp),
         )
         if (!small) {
-            if (dep.delay > 0) {
-                Text(
-                    "+${dep.delay}",
-                    style = TextStyle(color = ColorProvider(androidx.compose.ui.graphics.Color.White), fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                    modifier = GlanceModifier
-                        .background(WidgetColors.delay)
-                        .cornerRadius(8.dp)
-                        .padding(horizontal = 5.dp, vertical = 1.dp),
-                )
-                Spacer(GlanceModifier.width(4.dp))
-            } else {
-                Spacer(GlanceModifier.width(30.dp))
+            // Fixed-width slot so the line number and destination columns line up
+            // whether or not a delay badge is present (badge width varies by digits).
+            Box(
+                modifier = GlanceModifier.width(38.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (dep.delay > 0) {
+                    Text(
+                        "+${dep.delay}",
+                        style = TextStyle(color = ColorProvider(androidx.compose.ui.graphics.Color.White), fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                        modifier = GlanceModifier
+                            .background(WidgetColors.delay)
+                            .cornerRadius(8.dp)
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    )
+                }
             }
+            Spacer(GlanceModifier.width(4.dp))
         }
         Text(
             lineLabel(dep),
