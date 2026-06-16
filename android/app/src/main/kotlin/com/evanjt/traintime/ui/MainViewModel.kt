@@ -19,10 +19,12 @@ import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.LatLon
+import com.evanjt.traintime.data.model.PinnedStation
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
+import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
@@ -40,6 +42,7 @@ enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
+    val myStationsStore = MyStationsStore(application)
     val location = LocationService(application, prefs)
     val haptics = HapticService(application)
     private val api = TrainApi.shared
@@ -76,6 +79,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var favouriteDepartures by mutableStateOf(listOf<Departure>())
         private set
     var favouritesList by mutableStateOf(listOf<Favourite>())
+        private set
+
+    // Pinned "My stations" — bubble to the front of the nearby list.
+    var pinnedStations by mutableStateOf(listOf<PinnedStation>())
+        private set
+    var pinnedStationIds by mutableStateOf(setOf<String>())
         private set
 
     // Selection & tracking
@@ -136,6 +145,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             favouritesStore.favourites.collect {
                 favouritesList = it
                 favouriteDepartures = extractFavouritesFromCurrent(departures)
+            }
+        }
+        viewModelScope.launch {
+            // Keep pinned stations live: reorder the loaded lists so pins stay at
+            // the front the moment the set changes (no refetch needed).
+            myStationsStore.stations.collect { list ->
+                pinnedStations = list
+                pinnedStationIds = list.map { it.id }.toSet()
+                applyPinnedReorder()
             }
         }
         viewModelScope.launch {
@@ -453,6 +471,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Pinned "My stations"
+
+    fun isStationPinned(id: String): Boolean = id in pinnedStationIds
+
+    fun togglePinnedStation(station: Station) {
+        lastInteractionTime = now()
+        viewModelScope.launch { myStationsStore.toggle(station) }
+    }
+
+    // Re-sort the already-loaded mode lists so pinned stations sit at the front,
+    // keeping the currently-shown station selected (pinning is a default, it
+    // doesn't yank the user off the station they're looking at).
+    private fun applyPinnedReorder() {
+        if (trainStations.isEmpty() && busStations.isEmpty() &&
+            tramStations.isEmpty() && specialStations.isEmpty()
+        ) {
+            return
+        }
+        val selectedId = currentStation?.id
+        trainStations = MyStationsStore.reorder(trainStations, pinnedStationIds)
+        busStations = MyStationsStore.reorder(busStations, pinnedStationIds)
+        tramStations = MyStationsStore.reorder(tramStations, pinnedStationIds)
+        specialStations = MyStationsStore.reorder(specialStations, pinnedStationIds)
+        selectedId?.let { id -> locate(id)?.let { (m, i) -> currentMode = m; stationIndex = i } }
+    }
+
     // Find a station by id across all mode arrays.
     private fun locate(stationId: String): Pair<TransportMode, Int>? {
         val groups = listOf(
@@ -605,10 +649,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 requestInFlight = false
                 requestStartTime = null
                 val prevStationId = currentStation?.id
-                trainStations = result.train
-                busStations = result.bus
-                tramStations = result.tram
-                specialStations = result.special
+                trainStations = MyStationsStore.reorder(result.train, pinnedStationIds)
+                busStations = MyStationsStore.reorder(result.bus, pinnedStationIds)
+                tramStations = MyStationsStore.reorder(result.tram, pinnedStationIds)
+                specialStations = MyStationsStore.reorder(result.special, pinnedStationIds)
                 lastSearchCoordinate = LatLon(lat, lon)
                 location.saveLastKnownCoordinate()
                 rebuildModesAndSelect(preserveStationId = prevStationId)

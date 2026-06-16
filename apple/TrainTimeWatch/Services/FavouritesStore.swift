@@ -151,3 +151,92 @@ class FavouritesStore: ObservableObject {
         reloadWidget()
     }
 }
+
+/// Unified "My stations" (pinned). Mirrors FavouritesStore's storage + WCSession
+/// sync path. A pinned station bubbles to the front of the nearby list and becomes
+/// the default shown station. Lives in this file to ride its all-targets membership.
+class MyStationsStore: ObservableObject {
+    static let shared = MyStationsStore()
+
+    private static let key = "myStations_v1"
+    private static let maxPinned = 10
+
+    @Published private(set) var pinned: [PinnedStation] = []
+
+    init() {
+        pinned = Self.load()
+    }
+
+    func reload() {
+        pinned = Self.load()
+    }
+
+    func ids() -> Set<String> { Set(pinned.map { $0.id }) }
+
+    func isPinned(_ id: String) -> Bool { pinned.contains { $0.id == id } }
+
+    func toggle(_ station: Station) {
+        guard let id = station.id, let name = station.name else { return }
+        if pinned.contains(where: { $0.id == id }) {
+            pinned.removeAll { $0.id == id }
+        } else if pinned.count < Self.maxPinned {
+            pinned.append(PinnedStation(id: id, name: name, lat: station.lat, lon: station.lon))
+        }
+        save()
+    }
+
+    func remove(_ id: String) {
+        pinned.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Bubble pinned ids to the front, preserving the API's distance order. Shared
+    /// by the app view models and the widget refresh intent.
+    static func reorder(_ stations: [Station], pinnedIds: Set<String>) -> [Station] {
+        guard !pinnedIds.isEmpty else { return stations }
+        let isPinned: (Station) -> Bool = { $0.id.map(pinnedIds.contains) ?? false }
+        return stations.filter(isPinned) + stations.filter { !isPinned($0) }
+    }
+
+    // MARK: - Persistence
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(pinned) {
+            SharedDefaults.store.set(data, forKey: Self.key)
+        }
+        syncToCounterpart()
+        reloadWidget()
+    }
+
+    private static func load() -> [PinnedStation] {
+        guard let data = SharedDefaults.store.data(forKey: key) else { return [] }
+        return (try? JSONDecoder().decode([PinnedStation].self, from: data)) ?? []
+    }
+
+    private func reloadWidget() {
+        #if os(iOS)
+        WidgetCenter.shared.reloadTimelines(ofKind: "TrainTimeWidget")
+        #endif
+    }
+
+    // MARK: - WCSession Sync
+
+    func syncToCounterpart() {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
+        if let data = try? JSONEncoder().encode(pinned) {
+            var context = WCSession.default.applicationContext
+            context["myStations"] = data
+            try? WCSession.default.updateApplicationContext(context)
+        }
+    }
+
+    func handleReceivedContext(_ context: [String: Any]) {
+        guard let data = context["myStations"] as? Data,
+              let decoded = try? JSONDecoder().decode([PinnedStation].self, from: data) else { return }
+        pinned = decoded
+        if let encoded = try? JSONEncoder().encode(pinned) {
+            SharedDefaults.store.set(encoded, forKey: Self.key)
+        }
+        reloadWidget()
+    }
+}

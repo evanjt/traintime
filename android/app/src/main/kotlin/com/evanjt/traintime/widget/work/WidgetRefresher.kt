@@ -11,6 +11,7 @@ import com.evanjt.traintime.data.model.LatLon
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.widget.TrainTimeWidget
 import com.evanjt.traintime.widget.WidgetFetchResult
 import com.evanjt.traintime.widget.WidgetStateDefinition
@@ -44,12 +45,13 @@ object WidgetRefresher {
             }
 
             val previous = WidgetStateDefinition.read(context).result
+            val pinnedIds = MyStationsStore(context).ids()
 
             var snapshot = WidgetFetchResult(
-                train = result.train.toWidgetStations(),
-                bus = result.bus.toWidgetStations(),
-                tram = result.tram.toWidgetStations(),
-                special = result.special.toWidgetStations(),
+                train = MyStationsStore.reorder(result.train, pinnedIds).toWidgetStations(),
+                bus = MyStationsStore.reorder(result.bus, pinnedIds).toWidgetStations(),
+                tram = MyStationsStore.reorder(result.tram, pinnedIds).toWidgetStations(),
+                special = MyStationsStore.reorder(result.special, pinnedIds).toWidgetStations(),
                 selectedModeRaw = previous?.selectedModeRaw ?: TransportMode.TRAIN.raw,
                 selectedStationIndex = previous?.selectedStationIndex ?: 0,
                 fetchTime = System.currentTimeMillis() / 1000,

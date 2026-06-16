@@ -58,5 +58,6 @@ class AppPrefs(context: Context) {
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")
+        val KEY_MY_STATIONS = stringPreferencesKey("myStations_v1")
     }
 }

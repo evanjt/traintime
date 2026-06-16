@@ -13,3 +13,13 @@ struct Favourite: Codable, Equatable, Identifiable {
         "\(lineNumber) → \(destination) @ \(stationName)"
     }
 }
+
+/// A pinned station ("My stations"). Stored with coordinates so proximity can be
+/// computed offline. Defined here (rather than a new file) to ride the existing
+/// all-targets membership of Favourite.swift.
+struct PinnedStation: Codable, Equatable, Identifiable {
+    let id: String
+    let name: String
+    let lat: Double?
+    let lon: Double?
+}

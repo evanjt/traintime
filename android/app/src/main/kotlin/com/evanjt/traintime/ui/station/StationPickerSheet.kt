@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -59,9 +62,18 @@ fun StationPickerSheet(viewModel: MainViewModel) {
                             fontSize = 12.sp,
                         )
                     }
-                    Spacer(Modifier.padding(4.dp))
+                    val pinned = viewModel.isStationPinned(station.id)
+                    IconButton(onClick = { viewModel.togglePinnedStation(station) }) {
+                        Icon(
+                            if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = if (pinned) "Unpin station" else "Pin station",
+                            tint = if (pinned) palette.platform else secondary,
+                        )
+                    }
                     if (index == viewModel.stationIndex) {
                         Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
+                    } else {
+                        Spacer(Modifier.padding(12.dp))
                     }
                 }
             }

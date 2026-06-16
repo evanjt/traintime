@@ -8,6 +8,7 @@ struct RefreshIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         FavouritesStore.shared.reload() // pick up app-side favourite changes in this process
+        MyStationsStore.shared.reload()
         let coordinate = try await getLocation()
 
         let result = try await TrainAPIService.fetchStations(
@@ -17,10 +18,17 @@ struct RefreshIntent: AppIntent {
 
         let previous = WidgetStorage.load()
 
-        var trainStations = convertStations(result.train)
-        var busStations = convertStations(result.bus)
-        var tramStations = convertStations(result.tram)
-        var specialStations = convertStations(result.special)
+        // Bubble pinned stations to the front so the widget's 1/N cycling starts
+        // on the pinned station, matching the app.
+        let pinnedIds = MyStationsStore.shared.ids()
+        func reorderPinned(_ s: [WidgetStation]) -> [WidgetStation] {
+            guard !pinnedIds.isEmpty else { return s }
+            return s.filter { pinnedIds.contains($0.id) } + s.filter { !pinnedIds.contains($0.id) }
+        }
+        var trainStations = reorderPinned(convertStations(result.train))
+        var busStations = reorderPinned(convertStations(result.bus))
+        var tramStations = reorderPinned(convertStations(result.tram))
+        var specialStations = reorderPinned(convertStations(result.special))
 
         // Determine mode/station selection, preserving previous if still valid
         var modeRaw = previous?.selectedModeRaw ?? TransportMode.train.rawValue

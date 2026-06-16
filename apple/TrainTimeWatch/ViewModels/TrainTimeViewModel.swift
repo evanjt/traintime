@@ -139,6 +139,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
             }
             self?.favouritesStore.handleReceivedContext(applicationContext)
+            MyStationsStore.shared.handleReceivedContext(applicationContext)
         }
     }
 
@@ -502,10 +503,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     requestInFlight = false
                     requestStartTime = nil
                     let prevStationId = currentStation?.id
-                    trainStations = result.train
-                    busStations = result.bus
-                    tramStations = result.tram
-                    specialStations = result.special
+                    let pinnedIds = MyStationsStore.shared.ids()
+                    trainStations = MyStationsStore.reorder(result.train, pinnedIds: pinnedIds)
+                    busStations = MyStationsStore.reorder(result.bus, pinnedIds: pinnedIds)
+                    tramStations = MyStationsStore.reorder(result.tram, pinnedIds: pinnedIds)
+                    specialStations = MyStationsStore.reorder(result.special, pinnedIds: pinnedIds)
                     lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                     location.saveLastKnownCoordinate()
                     rebuildModesAndSelect(preserveStationId: prevStationId)

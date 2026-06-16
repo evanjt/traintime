@@ -58,7 +58,7 @@ class FavouritesMenuDelegate extends WatchUi.Menu2InputDelegate {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         } else if (id == :openSettings) {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-            SettingsMenu.open();
+            SettingsMenu.open(mView);
         }
     }
 }

@@ -53,6 +53,8 @@ class TrainTimeView extends WatchUi.View {
     var mFavouriteData; // favourite departures from API (separate from mTrainData)
     var mMapError;      // error message to show as toast overlay
     var mMapErrorTick;  // timestamp when error was set
+    var mManualStation; // true when a station was picked via quick-launch (suppress GPS re-search)
+    var mPendingFavTrack; // {line, dest} awaiting a fetch to jump into tracking
 
     function initialize() {
         View.initialize();
@@ -101,6 +103,8 @@ class TrainTimeView extends WatchUi.View {
         mFavouriteData = null;
         mMapError = null;
         mMapErrorTick = null;
+        mManualStation = false;
+        mPendingFavTrack = null;
     }
 
     function onLayout(dc) {
@@ -207,6 +211,8 @@ class TrainTimeView extends WatchUi.View {
         mCursorIndex = 0;
         mScrollOffset = 0;
         mFocusedTrain = null;
+        mManualStation = false;
+        mPendingFavTrack = null;
     }
 
     function getStationsForMode(mode) {
@@ -715,6 +721,117 @@ class TrainTimeView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    // --- Quick launch (pinned stations & favourite trains) ---
+
+    // Pin/unpin the currently shown station ("My stations").
+    function togglePinCurrentStation() {
+        if (mStationId == null) { return; }
+        MyStationsManager.toggle(mStationId, mStationName, mStationLat, mStationLon);
+    }
+
+    // Open a pinned station directly, bypassing the GPS nearby search.
+    function launchStation(stationId, name, lat, lon) {
+        if (stationId == null) { return; }
+        mManualStation = true;
+        mPendingFavTrack = null;
+        mAppState = 0;
+        mCursorIndex = 0;
+        mScrollOffset = 0;
+        mFocusedTrain = null;
+        mStationId = stationId;
+        mStationName = name;
+        mStationLat = lat;
+        mStationLon = lon;
+        mStations = [ { "id" => stationId, "label" => name, "lat" => lat, "lon" => lon, "dist" => 0 } ];
+        mStationIndex = 0;
+        mAvailableModes = [ mCurrentMode ];
+        mTrainData = null;
+        mFavouriteData = null;
+        mWalkInfo = "";
+        if (mLocationInfo != null) { updateWalkDistance(); }
+        mStatus = (name != null) ? name : "Station";
+        mLastInteractionTime = Time.now().value();
+        mLastFetchTime = 0;
+        mRequestInFlight = true;
+        mRequestStartTime = Time.now().value();
+        ApiHandler.fetchDepartures(self, stationId);
+        WatchUi.requestUpdate();
+    }
+
+    // Fetch a station and jump straight onto the tracking bar for a favourite
+    // line+destination once the data arrives (see tryEnterPendingFavTrack).
+    function enterTrackingForFavourite(stationId, name, line, dest) {
+        if (stationId == null) { return; }
+        mManualStation = true;
+        mAppState = 0;
+        mFocusedTrain = null;
+        mStationId = stationId;
+        mStationName = name;
+        mStations = [ { "id" => stationId, "label" => name, "lat" => null, "lon" => null, "dist" => 0 } ];
+        mStationIndex = 0;
+        mAvailableModes = [ mCurrentMode ];
+        mTrainData = null;
+        mFavouriteData = null;
+        mStatus = (name != null) ? name : "Station";
+        mPendingFavTrack = { "line" => line, "dest" => dest };
+        mLastInteractionTime = Time.now().value();
+        mLastFetchTime = 0;
+        mRequestInFlight = true;
+        mRequestStartTime = Time.now().value();
+        ApiHandler.fetchDepartures(self, stationId);
+        WatchUi.requestUpdate();
+    }
+
+    // Called from the departures response when a favourite-train launch is
+    // pending: match the line+dest and enter focused tracking (state 2).
+    function tryEnterPendingFavTrack() {
+        if (mPendingFavTrack == null || mTrainData == null) { return; }
+        var line = mPendingFavTrack["line"];
+        var dest = mPendingFavTrack["dest"];
+        var match = null;
+        for (var i = 0; i < mTrainData.size(); i++) {
+            var t = mTrainData[i];
+            if (t["line"] != null && t["line"].equals(line)
+                    && t["dest"] != null && t["dest"].equals(dest)) {
+                match = t;
+                break;
+            }
+        }
+        mPendingFavTrack = null;
+        if (match == null) {
+            mStatus = (mStationName != null) ? mStationName : "Station";
+            return;
+        }
+        mFocusedTrain = {
+            "dest" => match["dest"],
+            "min" => match["min"],
+            "depTs" => match["depTs"],
+            "delay" => match["delay"],
+            "plat" => match["plat"],
+            "platChg" => match["platChg"],
+            "line" => match["line"],
+            "cat" => match["cat"],
+            "trainNum" => match["trainNum"],
+            "opRef" => match["opRef"]
+        };
+        mAppState = 2;
+        mConsecutiveErrors = 0;
+        mLastFetchTime = Time.now().value();
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
+        var trainNum = match["trainNum"];
+        var cat = match["cat"];
+        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
+            ApiHandler.fetchFormation(self, trainNum, mStationId, match["opRef"]);
+        }
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer.start(method(:onTimerTick), 1000, true);
+        }
+        Haptics.vibrateShort();
+    }
+
     // --- Position & Timer ---
 
     function onPosition(info as Position.Info) as Void {
@@ -763,6 +880,14 @@ class TrainTimeView extends WatchUi.View {
 
         // Skip station search in tracking/inactive (still update GPS + walk distance)
         if (mAppState >= 2) {
+            updateWalkDistance();
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        // A quick-launched station is the user's explicit choice — don't let a
+        // GPS re-search replace it (still keep the walk distance live).
+        if (mManualStation) {
             updateWalkDistance();
             WatchUi.requestUpdate();
             return;
@@ -837,7 +962,7 @@ class TrainTimeView extends WatchUi.View {
                 }
 
                 // Re-search stations if moved >500m from last search (only in station/selection view)
-                if (mAppState <= 1 && hasMovedSignificantly(lat, lon)) {
+                if (mAppState <= 1 && !mManualStation && hasMovedSignificantly(lat, lon)) {
                     clearStationState();
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();

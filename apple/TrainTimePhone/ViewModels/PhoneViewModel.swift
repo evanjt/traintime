@@ -33,6 +33,10 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Favourites
     let favouritesStore = FavouritesStore.shared
 
+    // MARK: - My stations (pinned)
+    let myStationsStore = MyStationsStore.shared
+    private var myStationsCancellable: AnyCancellable?
+
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
     @Published var focusedTrain: FocusedDeparture? = nil
@@ -119,6 +123,7 @@ class PhoneViewModel: ObservableObject {
                     UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
                 }
                 self?.favouritesStore.handleReceivedContext(context)
+                self?.myStationsStore.handleReceivedContext(context)
             }
         }
 
@@ -133,6 +138,13 @@ class PhoneViewModel: ObservableObject {
                 guard let self else { return }
                 self.favouriteDepartures = self.extractFavouritesFromCurrent(self.departures)
             }
+
+        // Pins changing (local toggle or a synced context) reorder the loaded
+        // lists so pinned stations stay at the front without a refetch.
+        myStationsCancellable = myStationsStore.$pinned
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.applyPinnedReorder() }
     }
 
     // MARK: - Lifecycle
@@ -452,6 +464,37 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Pinned "My stations"
+
+    func isStationPinned(_ id: String?) -> Bool {
+        guard let id else { return false }
+        return myStationsStore.isPinned(id)
+    }
+
+    func togglePinnedStation(_ station: Station) {
+        lastInteractionTime = Date()
+        myStationsStore.toggle(station)
+        // The $pinned subscription also reorders, but call directly so the
+        // change is immediate even if publishing is coalesced.
+        applyPinnedReorder()
+    }
+
+    /// Re-sort the already-loaded lists so pinned stations sit at the front,
+    /// keeping the currently-shown station selected (pinning is a default, it
+    /// doesn't yank the user off the station they're looking at).
+    private func applyPinnedReorder() {
+        let pinnedIds = myStationsStore.ids()
+        let selectedId = currentStation?.id
+        trainStations = MyStationsStore.reorder(trainStations, pinnedIds: pinnedIds)
+        busStations = MyStationsStore.reorder(busStations, pinnedIds: pinnedIds)
+        tramStations = MyStationsStore.reorder(tramStations, pinnedIds: pinnedIds)
+        specialStations = MyStationsStore.reorder(specialStations, pinnedIds: pinnedIds)
+        if let selectedId, let (mode, idx) = locate(stationId: selectedId) {
+            currentMode = mode
+            stationIndex = idx
+        }
+    }
+
     /// Find a station by id across all mode arrays, returning its (mode, index).
     private func locate(stationId: String) -> (TransportMode, Int)? {
         let groups: [(TransportMode, [Station])] = [
@@ -617,10 +660,11 @@ class PhoneViewModel: ObservableObject {
                     requestInFlight = false
                     requestStartTime = nil
                     let prevStationId = currentStation?.id
-                    trainStations = result.train
-                    busStations = result.bus
-                    tramStations = result.tram
-                    specialStations = result.special
+                    let pinnedIds = myStationsStore.ids()
+                    trainStations = MyStationsStore.reorder(result.train, pinnedIds: pinnedIds)
+                    busStations = MyStationsStore.reorder(result.bus, pinnedIds: pinnedIds)
+                    tramStations = MyStationsStore.reorder(result.tram, pinnedIds: pinnedIds)
+                    specialStations = MyStationsStore.reorder(result.special, pinnedIds: pinnedIds)
                     lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
                     location.saveLastKnownCoordinate()
                     rebuildModesAndSelect(preserveStationId: prevStationId)

@@ -84,6 +84,13 @@ module ApiHandler {
     }
 
     function rebuildModesAndSelect(view) {
+        // Bubble pinned "My stations" to the front of each mode list so the
+        // default shown station (index 0) becomes the pinned one when present.
+        view.mTrainStations = MyStationsManager.reorderStations(view.mTrainStations);
+        view.mBusStations = MyStationsManager.reorderStations(view.mBusStations);
+        view.mTramStations = MyStationsManager.reorderStations(view.mTramStations);
+        view.mSpecialStations = MyStationsManager.reorderStations(view.mSpecialStations);
+
         // Build available modes from non-empty categories
         view.mAvailableModes = [];
         if (view.mTrainStations.size() > 0) { view.mAvailableModes.add(0); }
@@ -348,6 +355,12 @@ module ApiHandler {
 
             if (view.mStationName != null) {
                 view.mStatus = view.mStationName;
+            }
+
+            // Quick-launch a favourite train: match line+dest in the fresh data
+            // and jump straight onto the tracking bar.
+            if (view.mPendingFavTrack != null) {
+                view.tryEnterPendingFavTrack();
             }
 
             // Clamp cursor in selection mode (combined: favourites + regular)
