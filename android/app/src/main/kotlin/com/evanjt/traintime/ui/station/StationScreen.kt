@@ -28,9 +28,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -89,15 +91,6 @@ fun StationScreen(
             }
         }
 
-        // Walk info
-        Text(
-            viewModel.walkInfo,
-            color = secondary,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        )
-
         // Station name — tappable to open picker
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -105,12 +98,12 @@ fun StationScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { viewModel.showStationPicker = true }
-                .padding(top = 4.dp),
+                .padding(top = 10.dp),
         ) {
             Text(
                 viewModel.stationName,
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -125,9 +118,13 @@ fun StationScreen(
             }
         }
 
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        // Walk info
+        Text(
+            viewModel.walkInfo,
+            color = secondary,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp),
         )
 
         // Departure list
@@ -146,58 +143,69 @@ fun StationScreen(
                 }
             }
         } else {
-            PullToRefreshBox(
-                isRefreshing = refreshing,
-                onRefresh = {
-                    scope.launch {
-                        refreshing = true
-                        viewModel.forceRefresh()
-                        refreshing = false
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 12.dp),
             ) {
-                LazyColumn {
-                    // Favourite departures at top
-                    items(
-                        viewModel.favouriteDepartures,
-                        key = { "fav-${it.stableId}" },
-                    ) { departure ->
-                        DepartureListItem(
-                            departure = departure,
-                            isFavourite = true,
-                            onSelect = { viewModel.selectFavouriteDeparture(departure) },
-                            onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
-                        )
-                    }
-                    // Separator line under favourites
-                    if (viewModel.favouriteDepartures.isNotEmpty() && viewModel.departures.isNotEmpty()) {
-                        item(key = "fav-separator") {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                                    .height(2.dp)
-                                    .background(palette.favouriteSeparator),
+                PullToRefreshBox(
+                    isRefreshing = refreshing,
+                    onRefresh = {
+                        scope.launch {
+                            refreshing = true
+                            viewModel.forceRefresh()
+                            refreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    LazyColumn {
+                        // Favourite departures at top
+                        items(
+                            viewModel.favouriteDepartures,
+                            key = { "fav-${it.stableId}" },
+                        ) { departure ->
+                            DepartureListItem(
+                                departure = departure,
+                                isFavourite = true,
+                                mode = viewModel.currentMode,
+                                onSelect = { viewModel.selectFavouriteDeparture(departure) },
+                                onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
                             )
                         }
-                    }
-                    // Regular departures
-                    itemsIndexed(
-                        viewModel.departures,
-                        key = { _, dep -> "dep-${dep.stableId}" },
-                    ) { index, departure ->
-                        DepartureListItem(
-                            departure = departure,
-                            isFavourite = viewModel.isDepartureFavourite(departure),
-                            onSelect = { viewModel.selectDeparture(index) },
-                            onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
-                        )
-                        if (index < viewModel.departures.size - 1) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                modifier = Modifier.padding(horizontal = 16.dp),
+                        // Separator line under favourites
+                        if (viewModel.favouriteDepartures.isNotEmpty() && viewModel.departures.isNotEmpty()) {
+                            item(key = "fav-separator") {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                                        .height(2.dp)
+                                        .background(palette.favouriteSeparator),
+                                )
+                            }
+                        }
+                        // Regular departures
+                        itemsIndexed(
+                            viewModel.departures,
+                            key = { _, dep -> "dep-${dep.stableId}" },
+                        ) { index, departure ->
+                            DepartureListItem(
+                                departure = departure,
+                                isFavourite = viewModel.isDepartureFavourite(departure),
+                                mode = viewModel.currentMode,
+                                onSelect = { viewModel.selectDeparture(index) },
+                                onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
                             )
+                            if (index < viewModel.departures.size - 1) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -213,6 +221,7 @@ fun StationScreen(
 private fun DepartureListItem(
     departure: Departure,
     isFavourite: Boolean,
+    mode: com.evanjt.traintime.data.model.TransportMode,
     onSelect: () -> Unit,
     onToggleFavourite: () -> Unit,
 ) {
@@ -254,13 +263,13 @@ private fun DepartureListItem(
     ) {
         Box(
             Modifier
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .combinedClickable(
                     onClick = { if (!departure.isGone) onSelect() },
                     onLongClick = onToggleFavourite,
                 ),
         ) {
-            DepartureRow(departure = departure, isFavourite = isFavourite)
+            DepartureRow(departure = departure, isFavourite = isFavourite, mode = mode)
         }
     }
 }

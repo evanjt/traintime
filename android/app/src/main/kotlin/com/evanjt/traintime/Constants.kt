@@ -2,6 +2,7 @@ package com.evanjt.traintime
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.evanjt.traintime.data.model.TransportMode
 
 // Adaptive accent palette, ported from apple/TrainTimeWatch/Constants.swift.
 // Plain text/secondary colours come from MaterialTheme.colorScheme instead so
@@ -25,6 +26,13 @@ data class AppPalette(
     val ahead: Color,
     val onTime: Color,
     val behind: Color,
+    // SBB-style line-pill fills (white text sits on top). Colour carries the
+    // product category, not decoration. Deep enough for white text on both
+    // light and dark backgrounds.
+    val lineLongDistance: Color,
+    val lineRegional: Color,
+    val lineBus: Color,
+    val lineTram: Color,
 )
 
 val LightPalette = AppPalette(
@@ -45,6 +53,10 @@ val LightPalette = AppPalette(
     ahead = Color(0xFF1B7D2C),
     onTime = Color(0xFFB58900),
     behind = Color(0xFFC62828),
+    lineLongDistance = Color(0xFFD5001C),
+    lineRegional = Color(0xFF0061C2),
+    lineBus = Color(0xFF4E6273),
+    lineTram = Color(0xFF007A87),
 )
 
 val DarkPalette = AppPalette(
@@ -65,9 +77,32 @@ val DarkPalette = AppPalette(
     ahead = Color(0xFF00FF00),
     onTime = Color(0xFFFFFF00),
     behind = Color(0xFFFF0000),
+    lineLongDistance = Color(0xFFE63950),
+    lineRegional = Color(0xFF2E86E0),
+    lineBus = Color(0xFF6E8597),
+    lineTram = Color(0xFF1AA2B0),
 )
 
 val LocalAppPalette = staticCompositionLocalOf { DarkPalette }
+
+// Broad SBB product categories → line-pill fill. Long-distance vs regional by
+// the line's letter prefix; number-only lines (bus/tram) fall back to the mode.
+// One place to retune the mapping.
+private val LONG_DISTANCE_PREFIXES =
+    setOf("IC", "ICE", "EC", "ICN", "IR", "RJ", "RJX", "TGV", "EN", "NJ", "PE")
+
+fun AppPalette.linePill(line: String, mode: TransportMode): Color {
+    val prefix = line.takeWhile { it.isLetter() }.uppercase()
+    return when {
+        prefix.isEmpty() -> when (mode) {
+            TransportMode.BUS -> lineBus
+            TransportMode.TRAM -> lineTram
+            else -> lineRegional
+        }
+        prefix in LONG_DISTANCE_PREFIXES -> lineLongDistance
+        else -> lineRegional
+    }
+}
 
 object SwissBounds {
     const val LAT_MIN = 45.8

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,11 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.linePill
 
 @Composable
 fun DepartureRow(
     departure: Departure,
     isFavourite: Boolean,
+    mode: TransportMode,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalAppPalette.current
@@ -60,7 +65,7 @@ fun DepartureRow(
 
         Spacer(Modifier.width(8.dp))
 
-        Box(Modifier.width(36.dp)) {
+        Box(Modifier.width(34.dp)) {
             if (departure.delay > 0 && !departure.isGone) {
                 Text(
                     "+${departure.delay}",
@@ -76,16 +81,31 @@ fun DepartureRow(
 
         Spacer(Modifier.width(8.dp))
 
-        Text(
-            departure.lineNumber,
-            color = if (departure.isGone) secondary else palette.platform,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            modifier = Modifier.width(36.dp),
-        )
+        // Line number as a filled pill, kept in a fixed slot so destinations
+        // still align down the column.
+        Box(Modifier.width(52.dp), contentAlignment = Alignment.CenterStart) {
+            if (departure.lineNumber.isNotEmpty()) {
+                Text(
+                    departure.lineNumber,
+                    color = if (departure.isGone) secondary else Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            if (departure.isGone) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                palette.linePill(departure.lineNumber, mode)
+                            },
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
 
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(10.dp))
 
         Text(
             departure.destination,

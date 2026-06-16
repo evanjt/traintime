@@ -55,6 +55,37 @@ enum AppColors {
         light: Color(red: 0xA0/255, green: 0x78/255, blue: 0x00/255),
         dark: Color(red: 1.0, green: 0xD7/255, blue: 0x00/255))
 
+    // SBB-style line-pill fills (white text on top); colour = product category.
+    // Deep enough for white text in both light and dark.
+    static let lineLongDistance = adaptive(
+        light: Color(red: 0xD5/255, green: 0x00/255, blue: 0x1C/255),
+        dark: Color(red: 0xE6/255, green: 0x39/255, blue: 0x50/255))
+    static let lineRegional = adaptive(
+        light: Color(red: 0x00/255, green: 0x61/255, blue: 0xC2/255),
+        dark: Color(red: 0x2E/255, green: 0x86/255, blue: 0xE0/255))
+    static let lineBus = adaptive(
+        light: Color(red: 0x4E/255, green: 0x62/255, blue: 0x73/255),
+        dark: Color(red: 0x6E/255, green: 0x85/255, blue: 0x97/255))
+    static let lineTram = adaptive(
+        light: Color(red: 0x00/255, green: 0x7A/255, blue: 0x87/255),
+        dark: Color(red: 0x1A/255, green: 0xA2/255, blue: 0xB0/255))
+
+    private static let longDistancePrefixes: Set<String> =
+        ["IC", "ICE", "EC", "ICN", "IR", "RJ", "RJX", "TGV", "EN", "NJ", "PE"]
+
+    // Long-distance vs regional by line prefix; number-only lines (bus/tram) by mode.
+    static func linePill(_ line: String, mode: TransportMode) -> Color {
+        let prefix = line.prefix { $0.isLetter }.uppercased()
+        if prefix.isEmpty {
+            switch mode {
+            case .bus: return lineBus
+            case .tram: return lineTram
+            default: return lineRegional
+            }
+        }
+        return longDistancePrefixes.contains(prefix) ? lineLongDistance : lineRegional
+    }
+
     // Tracking bar colors
     static let darkGreen = adaptive(
         light: Color(red: 0x1E/255, green: 0x8E/255, blue: 0x3E/255),

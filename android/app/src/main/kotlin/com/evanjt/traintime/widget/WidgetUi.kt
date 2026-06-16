@@ -28,6 +28,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.widget.actions.RefreshAction
 import com.evanjt.traintime.widget.actions.StopAction
 import com.evanjt.traintime.widget.actions.SwitchModeAction
@@ -238,7 +239,7 @@ internal fun ActiveView(
                 Text("No departures", style = TextStyle(color = WidgetColors.secondary, fontSize = 12.sp))
             }
         } else {
-            favRows.forEach { dep -> DepartureRow(dep, isFavourite = true, favKeys, nowEpochSeconds, small) }
+            favRows.forEach { dep -> DepartureRow(dep, isFavourite = true, favKeys, nowEpochSeconds, small, result.selectedMode) }
             if (favRows.isNotEmpty() && regularRows.isNotEmpty()) {
                 Box(
                     GlanceModifier
@@ -249,7 +250,7 @@ internal fun ActiveView(
                 ) {}
             }
             regularRows.forEach { dep ->
-                DepartureRow(dep, isFavourite = dep.favKey in favKeys, favKeys, nowEpochSeconds, small)
+                DepartureRow(dep, isFavourite = dep.favKey in favKeys, favKeys, nowEpochSeconds, small, result.selectedMode)
             }
         }
     }
@@ -262,6 +263,7 @@ private fun DepartureRow(
     favKeys: Set<String>,
     now: Long,
     small: Boolean,
+    mode: TransportMode,
 ) {
     val minutesColor = when {
         dep.isGone(now) -> WidgetColors.secondary
@@ -309,13 +311,30 @@ private fun DepartureRow(
             }
             Spacer(GlanceModifier.width(4.dp))
         }
-        Text(
-            lineLabel(dep),
-            style = TextStyle(color = lineColor(dep), fontSize = if (small) 11.sp else 13.sp, fontWeight = FontWeight.Medium),
-            maxLines = 1,
-            modifier = GlanceModifier.width(if (small) 28.dp else 38.dp),
-        )
-        Spacer(GlanceModifier.width(4.dp))
+        // Line number as a filled pill (white text), in a fixed slot so the
+        // destination column still lines up.
+        Box(
+            modifier = GlanceModifier.width(if (small) 30.dp else 44.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            val label = lineLabel(dep)
+            if (label.isNotEmpty()) {
+                Text(
+                    label,
+                    style = TextStyle(
+                        color = ColorProvider(androidx.compose.ui.graphics.Color.White),
+                        fontSize = if (small) 11.sp else 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    maxLines = 1,
+                    modifier = GlanceModifier
+                        .background(WidgetColors.linePill(dep.lineNumber, mode))
+                        .cornerRadius(5.dp)
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                )
+            }
+        }
+        Spacer(GlanceModifier.width(6.dp))
         Text(
             dep.destination,
             style = TextStyle(color = WidgetColors.onSurface, fontSize = if (small) 13.sp else 14.sp),
@@ -393,9 +412,6 @@ private fun lineLabel(dep: WidgetDeparture): String = when {
     dep.platform.isNotEmpty() -> "P${dep.platform}"
     else -> ""
 }
-
-private fun lineColor(dep: WidgetDeparture): ColorProvider =
-    if (dep.lineNumber.isEmpty() && dep.platformChanged) WidgetColors.platformChanged else WidgetColors.platform
 
 private fun asOfText(fetchTimeSeconds: Long): String {
     val time = java.time.Instant.ofEpochSecond(fetchTimeSeconds).atZone(java.time.ZoneId.systemDefault())

@@ -62,21 +62,21 @@ struct WidgetEntryView: View {
                 minutesFont: .system(size: 16, weight: .bold, design: .rounded),
                 clockFont: .system(size: 13, weight: .semibold, design: .rounded),
                 minutesWidth: 26, showDelay: false, delayWidth: 0,
-                lineFont: .system(size: 12, weight: .semibold), lineWidth: 28,
+                lineFont: .system(size: 12, weight: .semibold), lineWidth: 34,
                 destFont: .subheadline, starSize: 9, hSpacing: 5)
         case .systemLarge:
             return RowMetrics(
                 minutesFont: .system(size: 19, weight: .bold, design: .rounded),
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 40, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 40,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
                 destFont: .body, starSize: 12, hSpacing: 8)
         default: // medium
             return RowMetrics(
                 minutesFont: .system(size: 20, weight: .bold, design: .rounded),
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 42, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 40,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
                 destFont: .body, starSize: 12, hSpacing: 8)
         }
     }
@@ -384,13 +384,29 @@ struct WidgetEntryView: View {
                 }
             }
 
-            // Line (reserved column, wide enough for 4-char lines like IR95)
-            Text(lineLabel(dep))
-                .font(m.lineFont)
-                .foregroundStyle(lineColor(dep))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: m.lineWidth, alignment: .leading)
+            // Line — filled pill in a reserved column so destinations line up.
+            Group {
+                if !dep.lineNumber.isEmpty {
+                    Text(dep.lineNumber)
+                        .font(m.lineFont)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(AppColors.linePill(dep.lineNumber, mode: entry.currentMode ?? .train))
+                        )
+                } else if !dep.platform.isEmpty {
+                    Text(lineLabel(dep))
+                        .font(m.lineFont)
+                        .foregroundStyle(lineColor(dep))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+            }
+            .frame(width: m.lineWidth, alignment: .leading)
 
             // Destination
             Text(dep.destination)

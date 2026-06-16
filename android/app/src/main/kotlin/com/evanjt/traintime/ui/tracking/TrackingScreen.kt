@@ -32,8 +32,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.AppPalette
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.linePill
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.GeoUtils
@@ -109,9 +112,13 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 if (focused != null && focused.lineNumber.isNotEmpty()) {
                     Text(
                         focused.lineNumber,
-                        color = palette.platform,
-                        fontSize = 22.sp,
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(palette.linePill(focused.lineNumber, viewModel.currentMode))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
                     )
                 }
                 Text(

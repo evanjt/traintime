@@ -3,6 +3,7 @@ import SwiftUI
 struct PhoneDepartureRowView: View {
     let departure: Departure
     var isFavourite: Bool = false
+    var mode: TransportMode = .train
     var onTap: (() -> Void)? = nil
 
     var body: some View {
@@ -32,9 +33,9 @@ struct PhoneDepartureRowView: View {
                 // Connection ID
                 if !departure.lineNumber.isEmpty {
                     lineBadge
-                        .frame(width: 36, alignment: .leading)
+                        .frame(width: 52, alignment: .leading)
                 } else {
-                    Spacer().frame(width: 36)
+                    Spacer().frame(width: 52)
                 }
 
                 // Destination
@@ -74,9 +75,21 @@ struct PhoneDepartureRowView: View {
 
     @ViewBuilder
     private var lineBadge: some View {
-        Text(departure.lineNumber)
-            .font(.system(.caption, weight: .medium))
-            .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
+        if departure.isGone {
+            Text(departure.lineNumber)
+                .font(.system(.caption, weight: .medium))
+                .foregroundStyle(.secondary)
+        } else {
+            Text(departure.lineNumber)
+                .font(.system(.caption, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(AppColors.linePill(departure.lineNumber, mode: mode))
+                )
+        }
     }
 
 }

@@ -22,8 +22,14 @@ struct PhoneFocusedTrackingView: View {
                     HStack(spacing: 6) {
                         if let f = focused, !f.lineNumber.isEmpty {
                             Text(f.lineNumber)
-                                .font(.title2.weight(.bold))
-                                .foregroundStyle(AppColors.platform)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 7)
+                                        .fill(AppColors.linePill(f.lineNumber, mode: viewModel.currentMode))
+                                )
                         }
                         Text(focused?.destination ?? "?")
                             .font(.title2.weight(.bold))

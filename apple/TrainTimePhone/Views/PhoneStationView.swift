@@ -28,19 +28,13 @@ struct PhoneStationView: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
 
-            // Walk info
-            Text(viewModel.walkInfo)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
-
             // Station name — tappable to open picker
             Button {
                 viewModel.showStationPicker = true
             } label: {
                 HStack(spacing: 6) {
                     Text(viewModel.stationName)
-                        .font(.title2.weight(.bold))
+                        .font(.title.weight(.bold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -52,11 +46,14 @@ struct PhoneStationView: View {
                 }
             }
             .buttonStyle(.plain)
-            .padding(.top, 4)
+            .padding(.top, 10)
 
-            Divider()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+            // Walk info
+            Text(viewModel.walkInfo)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+                .padding(.bottom, 8)
 
             // Departure list
             if viewModel.departures.isEmpty {
@@ -102,7 +99,7 @@ struct PhoneStationView: View {
                         }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
                 .environment(\.defaultMinListRowHeight, 2)
                 .refreshable { await viewModel.forceRefresh() }
@@ -125,7 +122,7 @@ struct PhoneStationView: View {
 
     @ViewBuilder
     private func departureRow(_ departure: Departure, isFavourite: Bool, onTap: @escaping () -> Void) -> some View {
-        PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, onTap: onTap)
+        PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, mode: viewModel.currentMode, onTap: onTap)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             .listRowBackground(isFavourite ? AppColors.favouriteBackground : nil)
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
