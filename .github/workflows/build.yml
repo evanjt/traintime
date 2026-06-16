@@ -246,6 +246,11 @@ jobs:
           echo ""
           ls -la ../builds/
 
+      - name: Compile unit tests
+        if: steps.check_creds.outputs.has_creds == 'true'
+        working-directory: garmin/TrainTime
+        run: monkeyc -d fenix6pro -f monkey.jungle -o /tmp/test.prg -y ~/.Garmin/developer_key.der -t
+
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
         uses: actions/upload-artifact@v4
