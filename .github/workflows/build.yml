@@ -261,10 +261,10 @@ jobs:
           echo ""
           ls -la ../builds/
 
-      - name: Compile unit tests
+      - name: Run unit tests
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: garmin/TrainTime
-        run: monkeyc -d fenix6pro -f monkey.jungle -o /tmp/test.prg -y ~/.Garmin/developer_key.der -t
+        run: tester.sh fenix6pro ~/.Garmin/developer_key.der
 
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
