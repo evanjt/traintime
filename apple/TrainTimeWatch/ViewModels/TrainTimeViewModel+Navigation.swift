@@ -80,6 +80,36 @@ extension TrainTimeViewModel {
         }
     }
 
+    // MARK: - Pinned "My stations"
+
+    func isStationPinned(_ id: String?) -> Bool {
+        guard let id else { return false }
+        return MyStationsStore.shared.isPinned(id)
+    }
+
+    func togglePinnedStation(_ station: Station) {
+        lastInteractionTime = Date()
+        MyStationsStore.shared.toggle(station)
+        // Reorder now so the picker reflects the pin without waiting for the next fetch.
+        // The store's toggle() already syncs the change back to the phone over WCSession.
+        applyPinnedReorder()
+    }
+
+    /// Re-sort the loaded lists so pinned stations sit at the front, keeping the
+    /// currently-shown station selected (pinning sets a default, it doesn't jump).
+    private func applyPinnedReorder() {
+        let pinnedIds = MyStationsStore.shared.ids()
+        let selectedId = currentStation?.id
+        trainStations = MyStationsStore.reorder(trainStations, pinnedIds: pinnedIds)
+        busStations = MyStationsStore.reorder(busStations, pinnedIds: pinnedIds)
+        tramStations = MyStationsStore.reorder(tramStations, pinnedIds: pinnedIds)
+        specialStations = MyStationsStore.reorder(specialStations, pinnedIds: pinnedIds)
+        if let selectedId, let (mode, idx) = locate(stationId: selectedId) {
+            currentMode = mode
+            stationIndex = idx
+        }
+    }
+
     // MARK: - Mode Rebuilding
 
     /// Find a station by id across all mode arrays, returning its (mode, index).
