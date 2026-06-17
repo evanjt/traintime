@@ -277,6 +277,13 @@ jobs:
           mkdir -p bin
           monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t
 
+          # matco bakes the CIQ devices under /root/.Garmin, but GitHub forces
+          # HOME=/github/home for container jobs, so the simulator looks there and
+          # finds none (monkeyc resolves devices via the SDK, hence builds still pass).
+          mkdir -p ~/.Garmin
+          rm -rf ~/.Garmin/ConnectIQ
+          ln -s /root/.Garmin/ConnectIQ ~/.Garmin/ConnectIQ
+
           simulator >/tmp/sim.log 2>&1 &
           ready=0
           for i in $(seq 1 60); do
