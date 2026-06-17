@@ -264,18 +264,20 @@ jobs:
       - name: Run unit tests
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: garmin/TrainTime
-        # tester.sh forces strict type-check (-l 3); inline its sim run at the
-        # project's type-check level instead. monkeydo always exits 1, so the
-        # result is parsed from the final PASSED/FAILED line.
+        shell: bash
+        # tester.sh forces strict type-check (-l 3) the project doesn't use; this
+        # is its sim run at the default level, with a timeout so a non-exiting
+        # monkeydo can't stall the job. monkeydo always exits 1, so parse PASSED.
         run: |
+          trap 'kill $(jobs -p) 2>/dev/null' EXIT
           export DISPLAY=:1
           Xvfb :1 -screen 0 1280x1024x24 &
           mkdir -p bin
-          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t -l 0
-          simulator > /dev/null 2>&1 &
-          sleep 5
-          monkeydo bin/app.prg fenix6pro -t | tee /tmp/result.txt
-          tail -1 /tmp/result.txt | grep -q "^PASSED"
+          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t
+          simulator >/dev/null 2>&1 &
+          sleep 8
+          timeout 180 monkeydo bin/app.prg fenix6pro -t | tee result.txt || true
+          tail -1 result.txt | grep -q '^PASSED'
 
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
