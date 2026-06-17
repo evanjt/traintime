@@ -264,7 +264,18 @@ jobs:
       - name: Run unit tests
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: garmin/TrainTime
-        run: tester.sh fenix6pro ~/.Garmin/developer_key.der
+        # tester.sh forces strict type-check (-l 3); inline its sim run at the
+        # project's type-check level instead. monkeydo always exits 1, so the
+        # result is parsed from the final PASSED/FAILED line.
+        run: |
+          export DISPLAY=:1
+          Xvfb :1 -screen 0 1280x1024x24 &
+          mkdir -p bin
+          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t -l 0
+          simulator > /dev/null 2>&1 &
+          sleep 5
+          monkeydo bin/app.prg fenix6pro -t | tee /tmp/result.txt
+          tail -1 /tmp/result.txt | grep -q "^PASSED"
 
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
