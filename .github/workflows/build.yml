@@ -116,10 +116,15 @@ jobs:
       - name: Run iOS unit tests
         working-directory: apple
         run: |
+          # Pick whatever iPhone simulator the runner image ships (avoids
+          # hard-coding a model that disappears on the next Xcode bump).
+          DEVICE_ID=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name | startswith("iPhone")) | .udid] | first')
+          echo "Using simulator $DEVICE_ID"
           xcodebuild test \
             -project TrainTimeWatch.xcodeproj \
             -scheme TrainTimePhone \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -only-testing:TrainTimePhoneTests \
             CODE_SIGNING_ALLOWED=NO
 
