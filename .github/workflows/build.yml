@@ -265,19 +265,34 @@ jobs:
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: garmin/TrainTime
         shell: bash
-        # tester.sh forces strict type-check (-l 3) the project doesn't use; this
-        # is its sim run at the default level, with a timeout so a non-exiting
-        # monkeydo can't stall the job. monkeydo always exits 1, so parse PASSED.
+        # tester.sh forces strict type-check (-l 3) the project doesn't use, so we
+        # run the sim at the default level. A blind sleep races the sim boot on slow
+        # runners (the prior cause of empty output and a failed grep), so poll the
+        # sim's IPC port instead; ss/netstat aren't in the image, hence /dev/tcp.
+        # monkeydo always exits 1, so judge by the PASSED summary line.
         run: |
-          trap 'kill $(jobs -p) 2>/dev/null' EXIT
+          trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
           export DISPLAY=:1
-          Xvfb :1 -screen 0 1280x1024x24 &
+          Xvfb :1 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
           mkdir -p bin
           monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t
-          simulator >/dev/null 2>&1 &
-          sleep 8
-          timeout 180 monkeydo bin/app.prg fenix6pro -t | tee result.txt || true
-          tail -1 result.txt | grep -q '^PASSED'
+
+          simulator >/tmp/sim.log 2>&1 &
+          ready=0
+          for i in $(seq 1 60); do
+            if (exec 3<>/dev/tcp/127.0.0.1/1234) 2>/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::Simulator never opened port 1234"; cat /tmp/sim.log; exit 1
+          fi
+          echo "Simulator ready after ${i}s"
+
+          timeout 120 monkeydo bin/app.prg fenix6pro -t | tee result.txt || true
+          if ! grep -Eq '^PASSED \(passed=[0-9]+, failed=0, errors=0\)' result.txt; then
+            echo "::error::Garmin unit tests did not pass"; cat /tmp/sim.log; exit 1
+          fi
+          echo "Garmin unit tests passed"
 
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
