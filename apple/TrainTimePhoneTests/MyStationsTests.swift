@@ -30,6 +30,13 @@ final class MyStationsTests: XCTestCase {
         )
     }
 
+    func testReorderAllPinnedKeepsOrder() {
+        XCTAssertEqual(
+            MyStationsStore.reorder(nearby, pinnedIds: ["near", "big", "far"]).compactMap { $0.id },
+            ["near", "big", "far"],
+        )
+    }
+
     func testPinnedStationCodableRoundTrip() throws {
         let pin = PinnedStation(id: "8500074", name: "Sion", lat: 46.23, lon: 7.36)
         let data = try JSONEncoder().encode([pin])

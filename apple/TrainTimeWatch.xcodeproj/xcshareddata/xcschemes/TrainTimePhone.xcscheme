@@ -38,6 +38,16 @@
                ReferencedContainer = "container:TrainTimeWatch.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "227299A02C621B0849FCB58C"
+               BuildableName = "TrainTimeWidgetTests.xctest"
+               BlueprintName = "TrainTimeWidgetTests"
+               ReferencedContainer = "container:TrainTimeWatch.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

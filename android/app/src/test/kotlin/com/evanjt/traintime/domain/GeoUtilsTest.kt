@@ -23,4 +23,22 @@ class GeoUtilsTest {
         assertEquals("<1 min walk - 50m", GeoUtils.formatWalkInfo(50.0))
         assertEquals("5 min walk - 100m", GeoUtils.formatWalkInfo(100.0, walkTimeSeconds = 300.0))
     }
+
+    @Test
+    fun `distance between real stations is deterministic and symmetric`() {
+        // Place de la Planta -> Gare de Sion, ~376 m by the flat-earth model.
+        val d = GeoUtils.haversineDistance(46.2306, 7.3576, 46.2275, 7.3596)
+        assertEquals(376.0, d, 1.0)
+        assertEquals(d, GeoUtils.haversineDistance(46.2275, 7.3596, 46.2306, 7.3576), 0.001)
+    }
+
+    @Test
+    fun `distance is zero at the same point`() {
+        assertEquals(0.0, GeoUtils.haversineDistance(46.2306, 7.3576, 46.2306, 7.3576), 0.001)
+    }
+
+    @Test
+    fun `walk minutes derive from distance over walk speed`() {
+        assertEquals(376.0 / 83.0, GeoUtils.walkMinutes(376.0), 0.001)
+    }
 }

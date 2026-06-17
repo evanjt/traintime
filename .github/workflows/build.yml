@@ -121,11 +121,15 @@ jobs:
           DEVICE_ID=$(xcrun simctl list devices available --json \
             | jq -r '[.devices[][] | select(.name | startswith("iPhone")) | .udid] | first')
           echo "Using simulator $DEVICE_ID"
+          # TrainTimePhoneTests holds the logic + phone component snapshots; TrainTimeWidgetTests
+          # holds the widget-only logic + WidgetKit entry-view snapshots. Snapshot goldens are
+          # recorded on a build host with this same dynamic device pick, so the runner matches.
           xcodebuild test \
             -project TrainTimeWatch.xcodeproj \
             -scheme TrainTimePhone \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -only-testing:TrainTimePhoneTests \
+            -only-testing:TrainTimeWidgetTests \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Build unsigned (PR validation)
@@ -261,10 +265,45 @@ jobs:
           echo ""
           ls -la ../builds/
 
-      - name: Compile unit tests
+      - name: Run unit tests
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: garmin/TrainTime
-        run: monkeyc -d fenix6pro -f monkey.jungle -o /tmp/test.prg -y ~/.Garmin/developer_key.der -t
+        shell: bash
+        # tester.sh forces strict type-check (-l 3) the project doesn't use, so we
+        # run the sim at the default level. A blind sleep races the sim boot on slow
+        # runners (the prior cause of empty output and a failed grep), so poll the
+        # sim's IPC port instead; ss/netstat aren't in the image, hence /dev/tcp.
+        # monkeydo always exits 1, so judge by the PASSED summary line.
+        run: |
+          trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
+          export DISPLAY=:1
+          Xvfb :1 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
+          mkdir -p bin
+          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t
+
+          # matco bakes the CIQ devices under /root/.Garmin, but GitHub forces
+          # HOME=/github/home for container jobs, so the simulator looks there and
+          # finds none (monkeyc resolves devices via the SDK, hence builds still pass).
+          mkdir -p ~/.Garmin
+          rm -rf ~/.Garmin/ConnectIQ
+          ln -s /root/.Garmin/ConnectIQ ~/.Garmin/ConnectIQ
+
+          simulator >/tmp/sim.log 2>&1 &
+          ready=0
+          for i in $(seq 1 60); do
+            if (exec 3<>/dev/tcp/127.0.0.1/1234) 2>/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::Simulator never opened port 1234"; cat /tmp/sim.log; exit 1
+          fi
+          echo "Simulator ready after ${i}s"
+
+          timeout 120 monkeydo bin/app.prg fenix6pro -t | tee result.txt || true
+          if ! grep -Eq '^PASSED \(passed=[0-9]+, failed=0, errors=0\)' result.txt; then
+            echo "::error::Garmin unit tests did not pass"; cat /tmp/sim.log; exit 1
+          fi
+          echo "Garmin unit tests passed"
 
       - name: Upload Garmin builds
         if: steps.check_creds.outputs.has_creds == 'true'
