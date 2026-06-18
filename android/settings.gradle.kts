@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TrainTime"
-include(":app")
+include(":app", ":core", ":wear")

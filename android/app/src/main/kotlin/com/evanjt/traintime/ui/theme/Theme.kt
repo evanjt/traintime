@@ -10,6 +10,17 @@ import androidx.compose.ui.graphics.Color
 import com.evanjt.traintime.DarkPalette
 import com.evanjt.traintime.LightPalette
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.data.model.GpsQuality
+
+// GPS quality → indicator tint. Lives in the UI layer so GpsQuality stays
+// Compose-free in :core.
+val GpsQuality.tint: Color
+    get() = when (this) {
+        GpsQuality.UNAVAILABLE -> Color.Red
+        GpsQuality.LAST_KNOWN -> Color.Gray
+        GpsQuality.POOR -> Color(0xFFFFA500)
+        GpsQuality.GOOD -> Color.Green
+    }
 
 // Pure black/white backgrounds match iOS's systemBackground (the watch-first
 // look in dark, a clean white in light).

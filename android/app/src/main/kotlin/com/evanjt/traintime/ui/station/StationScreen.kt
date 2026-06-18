@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.theme.tint
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,7 +85,7 @@ fun StationScreen(
             Icon(
                 Icons.Filled.LocationOn,
                 contentDescription = "GPS quality",
-                tint = viewModel.gpsQuality.color,
+                tint = viewModel.gpsQuality.tint,
             )
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)

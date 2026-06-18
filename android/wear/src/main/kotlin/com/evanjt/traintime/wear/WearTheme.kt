@@ -1,14 +1,18 @@
-package com.evanjt.traintime
+package com.evanjt.traintime.wear
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.wear.compose.material.MaterialTheme
+import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
 
-// Adaptive accent palette, ported from apple/TrainTimeWatch/Constants.swift.
-// Plain text/secondary colours come from MaterialTheme.colorScheme instead so
-// they follow the system light/dark theme; only the meaningful accents (minutes,
-// delay, platform, favourites, tracking bar) live here.
-data class AppPalette(
+// Wear-side accent palette — the same meaningful colours as the phone's
+// AppPalette (minutes, delay, platform, favourites, tracking bar), defined here
+// so :core stays Compose-free and :wear owns its own theme.
+data class WearPalette(
     val minutesNow: Color,
     val minutesSoon: Color,
     val delay: Color,
@@ -26,16 +30,13 @@ data class AppPalette(
     val ahead: Color,
     val onTime: Color,
     val behind: Color,
-    // SBB-style line-pill fills (white text sits on top). Colour carries the
-    // product category, not decoration. Deep enough for white text on both
-    // light and dark backgrounds.
     val lineLongDistance: Color,
     val lineRegional: Color,
     val lineBus: Color,
     val lineTram: Color,
 )
 
-val LightPalette = AppPalette(
+val WearLightPalette = WearPalette(
     minutesNow = Color(0xFFB58900),
     minutesSoon = Color(0xFF1E7D32),
     delay = Color(0xFFC73E00),
@@ -59,7 +60,7 @@ val LightPalette = AppPalette(
     lineTram = Color(0xFF007A87),
 )
 
-val DarkPalette = AppPalette(
+val WearDarkPalette = WearPalette(
     minutesNow = Color(0xFFFFFF00),
     minutesSoon = Color(0xFF00FF00),
     delay = Color(0xFFFF5500),
@@ -83,15 +84,12 @@ val DarkPalette = AppPalette(
     lineTram = Color(0xFF1AA2B0),
 )
 
-val LocalAppPalette = staticCompositionLocalOf { DarkPalette }
+val LocalWearPalette = staticCompositionLocalOf { WearDarkPalette }
 
-// Broad SBB product categories → line-pill fill. Long-distance vs regional by
-// the line's letter prefix; number-only lines (bus/tram) fall back to the mode.
-// One place to retune the mapping.
 private val LONG_DISTANCE_PREFIXES =
     setOf("IC", "ICE", "EC", "ICN", "IR", "RJ", "RJX", "TGV", "EN", "NJ", "PE")
 
-fun AppPalette.linePill(line: String, mode: TransportMode): Color {
+fun WearPalette.linePill(line: String, mode: TransportMode): Color {
     val prefix = line.takeWhile { it.isLetter() }.uppercase()
     return when {
         prefix.isEmpty() -> when (mode) {
@@ -104,5 +102,18 @@ fun AppPalette.linePill(line: String, mode: TransportMode): Color {
     }
 }
 
-// SwissBounds / Timing / Thresholds moved to :core (com.evanjt.traintime,
-// shared with :wear). Imports are unchanged — same package, different module.
+val GpsQuality.tint: Color
+    get() = when (this) {
+        GpsQuality.UNAVAILABLE -> Color.Red
+        GpsQuality.LAST_KNOWN -> Color.Gray
+        GpsQuality.POOR -> Color(0xFFFFA500)
+        GpsQuality.GOOD -> Color.Green
+    }
+
+@Composable
+fun TrainTimeWearTheme(content: @Composable () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    CompositionLocalProvider(LocalWearPalette provides if (dark) WearDarkPalette else WearLightPalette) {
+        MaterialTheme(content = content)
+    }
+}

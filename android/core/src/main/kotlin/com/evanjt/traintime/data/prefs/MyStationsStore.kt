@@ -42,6 +42,12 @@ class MyStationsStore(context: Context) {
         update { list -> list.filterNot { it.id == id } }
     }
 
+    // Overwrite the whole list — used by the Wearable Data Layer sync when the
+    // companion device pushes its pinned stations.
+    suspend fun replaceAll(stations: List<PinnedStation>) {
+        dataStore.edit { it[AppPrefs.KEY_MY_STATIONS] = json.encodeToString(stations) }
+    }
+
     private suspend fun update(transform: (List<PinnedStation>) -> List<PinnedStation>) {
         dataStore.edit { prefs ->
             val current = prefs[AppPrefs.KEY_MY_STATIONS]?.let { decode(it) } ?: emptyList()

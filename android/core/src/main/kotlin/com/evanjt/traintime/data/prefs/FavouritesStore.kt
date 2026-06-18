@@ -45,6 +45,12 @@ class FavouritesStore(context: Context) {
         }
     }
 
+    // Overwrite the whole list — used by the Wearable Data Layer sync when the
+    // companion device pushes its favourites.
+    suspend fun replaceAll(favourites: List<Favourite>) {
+        dataStore.edit { it[AppPrefs.KEY_FAVOURITES] = json.encodeToString(favourites) }
+    }
+
     suspend fun favouritesForStation(stationId: String): List<Favourite> =
         all().filter { it.stationId == stationId }
 

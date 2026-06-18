@@ -1,6 +1,6 @@
 package com.evanjt.traintime.data.api
 
-import com.evanjt.traintime.BuildConfig
+import com.evanjt.traintime.core.BuildConfig
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.data.model.Departure

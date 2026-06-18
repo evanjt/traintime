@@ -8,19 +8,8 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
-// API key comes from local.properties (traintime.apiKey) or the
-// TRAINTIME_API_KEY env var, matching Secrets.swift / Secrets.mc.
-val traintimeApiKey: String = run {
-    val localProperties = rootProject.file("local.properties")
-    val fromFile = if (localProperties.exists()) {
-        Properties()
-            .apply { localProperties.inputStream().use { load(it) } }
-            .getProperty("traintime.apiKey")
-    } else {
-        null
-    }
-    fromFile ?: System.getenv("TRAINTIME_API_KEY") ?: ""
-}
+// The TRAINTIME_API_KEY buildConfigField now lives in :core (read by TrainApi via
+// com.evanjt.traintime.core.BuildConfig), shared with :wear.
 
 // Release signing. Local builds read android/keystore.properties; CI passes the
 // same values via env. Without either, release falls back to debug signing so
@@ -44,8 +33,6 @@ android {
         targetSdk = 35
         versionCode = 5
         versionName = "0.4.0"
-
-        buildConfigField("String", "TRAINTIME_API_KEY", "\"$traintimeApiKey\"")
     }
 
     signingConfigs {
@@ -101,6 +88,8 @@ dependencies {
         // InvalidFragmentVersionForActivityResult lint check.
         implementation("androidx.fragment:fragment:1.8.5")
     }
+
+    implementation(project(":core"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

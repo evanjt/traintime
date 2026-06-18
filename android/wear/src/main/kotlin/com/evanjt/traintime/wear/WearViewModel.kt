@@ -1,16 +1,15 @@
-package com.evanjt.traintime.ui
+package com.evanjt.traintime.wear
 
 import android.app.Application
-import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.evanjt.traintime.SwissBounds
-import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
+import com.evanjt.traintime.core.sync.TrackCommand
+import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -22,8 +21,6 @@ import com.evanjt.traintime.data.model.LatLon
 import com.evanjt.traintime.data.model.PinnedStation
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
-import com.evanjt.traintime.core.sync.TrackCommand
-import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
@@ -39,9 +36,11 @@ import kotlinx.coroutines.launch
 
 enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 
-// Port of apple/TrainTimePhone/ViewModels/PhoneViewModel.swift.
-// appState: 0 = station view, 2 = focused tracking, 3 = inactive.
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+// Wear port of PhoneViewModel.swift / MainViewModel — the watch fetches
+// independently (not a thin client) and keeps the same orchestration. Drops the
+// phone-only widget seeding, deep links and Glance. appState: 0 = station view,
+// 2 = focused tracking, 3 = inactive.
+class WearViewModel(application: Application) : AndroidViewModel(application) {
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
     val myStationsStore = MyStationsStore(application)
@@ -50,13 +49,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val api = TrainApi.shared
     private val wearSync = WearStateSync.get(application)
 
-    // App state
     var appState by mutableStateOf(0)
         private set
     var status by mutableStateOf("GPS: Searching...")
         private set
 
-    // Station data (per mode)
     var trainStations by mutableStateOf(listOf<Station>())
         private set
     var busStations by mutableStateOf(listOf<Station>())
@@ -68,7 +65,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var stationIndex by mutableStateOf(0)
         private set
 
-    // Transport modes
     var currentMode by mutableStateOf(TransportMode.TRAIN)
         private set
     var availableModes by mutableStateOf(listOf<TransportMode>())
@@ -76,7 +72,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var defaultMode by mutableStateOf(TransportMode.TRAIN)
         private set
 
-    // Departures
     var departures by mutableStateOf(listOf<Departure>())
         private set
     var favouriteDepartures by mutableStateOf(listOf<Departure>())
@@ -84,27 +79,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var favouritesList by mutableStateOf(listOf<Favourite>())
         private set
 
-    // Pinned "My stations" — bubble to the front of the nearby list.
     var pinnedStations by mutableStateOf(listOf<PinnedStation>())
         private set
     var pinnedStationIds by mutableStateOf(setOf<String>())
         private set
 
-    // Selection & tracking
-    var showStationPicker by mutableStateOf(false)
     var focusedTrain by mutableStateOf<FocusedDeparture?>(null)
         private set
     var formation by mutableStateOf<Formation?>(null)
         private set
 
-    // GPS
     var gpsQuality by mutableStateOf(GpsQuality.UNAVAILABLE)
         private set
     var lastWalkDist by mutableStateOf(0.0)
         private set
-    private var lastWalkTime: Double? = null
 
-    // Internal state
     private var requestInFlight = false
     private var requestStartTime: Long? = null
     private var lastFetchTime = 0L
@@ -113,13 +102,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var lastVibeTick = 0L
     private var loadedFromCache = false
     private var lastInteractionTime = now()
-    private var pendingDeepLink: Uri? = null
     private var timerJob: Job? = null
 
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
-    // Computed
     val stations: List<Station>
         get() = when (currentMode) {
             TransportMode.TRAIN -> trainStations
@@ -143,16 +130,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             currentMode = defaultMode
         }
         viewModelScope.launch {
-            // Keep the default mode live and synced — a watch-originated change
-            // arrives through this flow once the listener service writes it.
             prefs.defaultMode.collect {
                 defaultMode = it
                 wearSync.pushState()
             }
         }
         viewModelScope.launch {
-            // Re-extract the top section immediately on a toggle rather than waiting
-            // for the next fetch (the 30 s cooldown), and refresh star tints.
             favouritesStore.favourites.collect {
                 favouritesList = it
                 favouriteDepartures = extractFavouritesFromCurrent(departures)
@@ -160,8 +143,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
-            // Keep pinned stations live: reorder the loaded lists so pins stay at
-            // the front the moment the set changes (no refetch needed).
             myStationsStore.stations.collect { list ->
                 pinnedStations = list
                 pinnedStationIds = list.map { it.id }.toSet()
@@ -191,19 +172,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onDisappear() {
-        // The widget is only visible once we background; seed its cache with what
-        // was on screen so it shows live data without its own refresh tap.
-        seedWidgetCache()
         location.stop()
         stopTimer()
     }
 
     fun onPermissionResult(granted: Boolean) {
-        if (granted) {
-            onAppear()
-        } else {
-            location.onPermissionDenied()
+        if (granted) onAppear() else location.onPermissionDenied()
+    }
+
+    // Track command from the phone (MessageClient) — enter tracking directly.
+    fun handleTrackCommand(cmd: TrackCommand) {
+        val focused = cmd.toFocusedDeparture()
+        focusedTrain = focused
+        appState = 2
+        location.setTrackingAccuracy(true)
+        consecutiveErrors = 0
+        lastVibeTick = 0
+        lastFetchTime = 0
+        formation = null
+        if (cmd.trainNumber != null && Formation.isRailCategory(cmd.category) && cmd.stationId != null) {
+            val date = formationDateString()
+            viewModelScope.launch {
+                formation = runCatching {
+                    api.fetchFormation(cmd.trainNumber!!, date, cmd.stationId!!, cmd.operatorRef)
+                }.getOrNull()
+            }
         }
+        TrackingService.start(getApplication(), focused.destination)
+        startTimer(Timing.TRACKING_REFRESH_INTERVAL)
+        haptics.shortPulse()
     }
 
     // Timer
@@ -223,8 +220,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         timerJob = null
     }
 
-    // Location update
-
     private fun onLocationUpdate(coord: LatLon?) {
         gpsQuality = location.gpsQuality
 
@@ -232,13 +227,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (stations.isEmpty()) status = "GPS: Searching..."
             return
         }
-
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
             status = "Not in Switzerland"
             return
         }
-
-        // Skip station search in tracking/inactive (still update GPS above)
         if (appState >= 2) return
 
         if (loadedFromCache && (location.gpsQuality == GpsQuality.GOOD || location.gpsQuality == GpsQuality.POOR)) {
@@ -249,19 +241,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             return
         }
-
         if (stations.isEmpty() && !requestInFlight) {
             status = "Finding stations..."
             fetchStations(coord.lat, coord.lon)
         }
     }
 
-    // Timer tick
-
     private fun onTimerTick() {
         gpsQuality = location.gpsQuality
 
-        // Request timeout check
         val startTime = requestStartTime
         if (requestInFlight && startTime != null && now() - startTime > Timing.REQUEST_TIMEOUT * 1000) {
             requestInFlight = false
@@ -271,23 +259,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val coord = location.coordinate.value ?: return
 
-        // Movement detection (station view only) — refresh in place
         val lastSearch = lastSearchCoordinate
         if (appState <= 1 && lastSearch != null && location.hasMovedSignificantly(lastSearch)) {
             fetchStations(coord.lat, coord.lon)
             return
         }
 
-        // Update walk distance to current station. lat/lon are nullable :core
-        // properties, so capture locals — cross-module props don't smart-cast.
         val stationLat = currentStation?.lat
         val stationLon = currentStation?.lon
         if (stationLat != null && stationLon != null) {
             lastWalkDist = GeoUtils.haversineDistance(coord.lat, coord.lon, stationLat, stationLon)
-            lastWalkTime = null
         }
 
-        // State 2: auto-exit check and heartbeat
         if (appState == 2) {
             val focused = focusedTrain
             if (focused != null) {
@@ -297,8 +280,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     exitToStationView()
                     return
                 }
-
-                val walkMin = lastWalkTime?.let { it / 60.0 } ?: GeoUtils.walkMinutes(lastWalkDist)
+                val walkMin = GeoUtils.walkMinutes(lastWalkDist)
                 val effectBuf = minutesLeft - walkMin + focused.delay.toDouble()
                 if (effectBuf < -0.5) {
                     val nowS = nowSeconds()
@@ -311,15 +293,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Inactivity timeout in station view
         if (appState == 0 && now() - lastInteractionTime >= Timing.INACTIVITY_TIMEOUT * 1000) {
             enterInactiveState()
             return
         }
-
         if (appState == 3) return
 
-        // Fetch departures if cooldown elapsed
         val cooldown = if (appState == 2) Timing.FETCH_COOLDOWN_TRACKING else Timing.FETCH_COOLDOWN_NORMAL
         if (!requestInFlight && now() - lastFetchTime >= cooldown * 1000) {
             val current = currentStation
@@ -331,21 +310,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Departure selection & tracking
-
-    fun selectFavouriteDeparture(dep: Departure) {
-        selectDepartureImpl(dep)
-    }
+    // Selection & tracking
 
     fun selectDeparture(index: Int) {
         departures.getOrNull(index)?.let { selectDepartureImpl(it) }
     }
 
+    // Favourite rows in the top block carry a Departure directly.
+    fun selectDeparture(departure: Departure) = selectDepartureImpl(departure)
+
     private fun selectDepartureImpl(dep: Departure) {
         val depTs = dep.departureTimestamp ?: return
         if (dep.isGone) return
 
-        val focused = FocusedDeparture(
+        focusedTrain = FocusedDeparture(
             destination = dep.destination,
             departureTimestamp = depTs,
             lineNumber = dep.lineNumber,
@@ -356,10 +334,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             platform = dep.platform,
             platformChanged = dep.platformChanged,
         )
-        focusedTrain = focused
-        // Mirror to the watch so it enters tracking too, like PhoneWatchService.
-        val trackStationId = currentStation?.id
-        viewModelScope.launch { wearSync.sendTrack(TrackCommand.from(focused, trackStationId)) }
         appState = 2
         location.setTrackingAccuracy(true)
         consecutiveErrors = 0
@@ -367,7 +341,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         lastFetchTime = 0
         formation = null
 
-        // Fetch formation for rail departures
         val trainNumber = dep.trainNumber
         val stationId = currentStation?.id
         if (trainNumber != null && Formation.isRailCategory(dep.category) && stationId != null) {
@@ -379,6 +352,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        TrackingService.start(getApplication(), dep.destination)
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
     }
@@ -389,6 +363,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = null
         formation = null
         consecutiveErrors = 0
+        TrackingService.stop(getApplication())
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
     }
 
@@ -413,7 +388,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun toggleFavourite(lineNumber: String, destination: String) {
         val station = currentStation ?: return
-        lastInteractionTime = now() // curating favourites shouldn't trip the inactivity timeout
+        lastInteractionTime = now()
         viewModelScope.launch {
             favouritesStore.toggle(
                 stationId = station.id,
@@ -456,10 +431,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         focusedTrain = null
         formation = null
         consecutiveErrors = 0
+        TrackingService.stop(getApplication())
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
     }
 
-    // Mode navigation
+    // Mode / station navigation
 
     fun selectMode(mode: TransportMode) {
         lastInteractionTime = now()
@@ -473,7 +449,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         lastInteractionTime = now()
         if (index < 0 || index >= stations.size) return
         stationIndex = index
-        showStationPicker = false
         adoptEmbeddedOrFetch()
     }
 
@@ -490,8 +465,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Pinned "My stations"
-
     fun isStationPinned(id: String): Boolean = id in pinnedStationIds
 
     fun togglePinnedStation(station: Station) {
@@ -499,9 +472,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { myStationsStore.toggle(station) }
     }
 
-    // Re-sort the already-loaded mode lists so pinned stations sit at the front,
-    // keeping the currently-shown station selected (pinning is a default, it
-    // doesn't yank the user off the station they're looking at).
     private fun applyPinnedReorder() {
         if (trainStations.isEmpty() && busStations.isEmpty() &&
             tramStations.isEmpty() && specialStations.isEmpty()
@@ -516,7 +486,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         selectedId?.let { id -> locate(id)?.let { (m, i) -> currentMode = m; stationIndex = i } }
     }
 
-    // Find a station by id across all mode arrays.
     private fun locate(stationId: String): Pair<TransportMode, Int>? {
         val groups = listOf(
             TransportMode.TRAIN to trainStations,
@@ -531,9 +500,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return null
     }
 
-    // Rebuild the mode list after a station fetch. When preserveStationId still
-    // exists in the new results, keep the user on that station/mode (in-place
-    // refresh); otherwise select the nearest.
     private fun rebuildModesAndSelect(preserveStationId: String? = null) {
         val modes = buildList {
             if (trainStations.isNotEmpty()) add(TransportMode.TRAIN)
@@ -551,18 +517,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             preserved = true
         } else {
             if (stations.isEmpty()) {
-                if (modes.contains(defaultMode)) {
-                    currentMode = defaultMode
-                } else {
-                    modes.firstOrNull()?.let { currentMode = it }
-                }
+                if (modes.contains(defaultMode)) currentMode = defaultMode
+                else modes.firstOrNull()?.let { currentMode = it }
             }
             stationIndex = 0
         }
 
-        // Adopt fresh embedded departures if present. On the non-preserved path,
-        // blank and refetch. On the preserved path with no fresh embedded
-        // departures, leave the existing list untouched (no flash).
         val deps = currentStation?.embeddedDepartures
         if (!deps.isNullOrEmpty()) {
             departures = deps
@@ -573,15 +533,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             favouriteDepartures = emptyList()
             currentStation?.let { fetchDepartures(it.id) }
         }
-
-        // Handle pending deep link after stations load
-        pendingDeepLink?.let {
-            pendingDeepLink = null
-            handleDeepLink(it)
-        }
     }
-
-    // Focused train update
 
     private fun updateFocusedTrain() {
         val focused = focusedTrain ?: return
@@ -612,8 +564,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val trackingScheduledBuffer: Double
         get() {
             val focused = focusedTrain ?: return 0.0
-            val walkMin = lastWalkTime?.let { it / 60.0 } ?: GeoUtils.walkMinutes(lastWalkDist)
-            return focused.minutesUntil(nowSeconds()) - walkMin
+            return focused.minutesUntil(nowSeconds()) - GeoUtils.walkMinutes(lastWalkDist)
         }
 
     val trackingEffectiveBuffer: Double
@@ -632,7 +583,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return if (buf > 0) "$unit ahead" else "$unit behind"
         }
 
-    // Resolved to a palette colour in the composable so it follows light/dark.
     val trackingStatus: TrackingStatus
         get() {
             if (gpsQuality == GpsQuality.UNAVAILABLE) return TrackingStatus.NO_GPS
@@ -675,7 +625,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 lastSearchCoordinate = LatLon(lat, lon)
                 location.saveLastKnownCoordinate()
                 rebuildModesAndSelect(preserveStationId = prevStationId)
-
                 if (stations.isEmpty()) status = "No stations nearby"
             } catch (e: Exception) {
                 requestInFlight = false
@@ -711,7 +660,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 favouritesStore.extractFavourites(result.departures, stationId)
             }
-
             if (appState == 2) updateFocusedTrain()
         } catch (e: Exception) {
             requestInFlight = false
@@ -720,11 +668,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Pull-to-refresh: bypasses the timer cooldown by fetching directly.
     suspend fun forceRefresh() {
         lastInteractionTime = now()
         var waited = 0
-        while (requestInFlight && waited < 100) { // ride out an in-flight timer fetch (≤10s)
+        while (requestInFlight && waited < 100) {
             delay(100)
             waited += 1
         }
@@ -732,15 +679,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         fetchDeparturesAsync(id)
     }
 
-    // Error handling
-
     private fun handleError(error: Exception, context: String) {
         if (appState == 2) {
-            // In tracking mode: keep existing data, continue countdown
             consecutiveErrors += 1
             return
         }
-
         status = when (error) {
             is TrainApiException.RateLimited -> "Rate limited"
             is TrainApiException.Http -> "$context: ${error.code}"
@@ -752,92 +695,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         favouriteDepartures = emptyList()
     }
 
-    // Formation
-
     private fun formationDateString(): String =
         LocalDate.now(ZoneId.of("Europe/Zurich")).toString()
 
     private suspend fun extractFavouritesFromCurrent(deps: List<Departure>): List<Departure> {
         val stationId = currentStation?.id ?: return emptyList()
         return favouritesStore.extractFavourites(deps, stationId)
-    }
-
-    // Widget cache
-
-    // Seed the widget's shared snapshot with what the user last saw, with a fresh
-    // fetchTime that re-arms the widget's active window. The selected station carries
-    // the full fetched list; the rest carry whatever the nearby search embedded.
-    private fun seedWidgetCache() {
-        if (currentStation == null) return
-        val snapshot = com.evanjt.traintime.widget.WidgetFetchResult(
-            train = widgetStations(trainStations, TransportMode.TRAIN),
-            bus = widgetStations(busStations, TransportMode.BUS),
-            tram = widgetStations(tramStations, TransportMode.TRAM),
-            special = widgetStations(specialStations, TransportMode.SPECIAL),
-            selectedModeRaw = currentMode.raw,
-            selectedStationIndex = stationIndex,
-            fetchTime = nowSeconds(),
-        )
-        val context = getApplication<Application>().applicationContext
-        viewModelScope.launch {
-            com.evanjt.traintime.widget.WidgetStateDefinition.update(context) {
-                it.copy(result = snapshot, refreshStartedAt = 0, dormant = false)
-            }
-            com.evanjt.traintime.widget.TrainTimeWidget().updateAll(context)
-            com.evanjt.traintime.widget.work.WidgetRefresher.scheduleTick(context)
-        }
-    }
-
-    private fun widgetStations(list: List<Station>, mode: TransportMode): List<com.evanjt.traintime.widget.WidgetStation> =
-        list.mapNotNull { station ->
-            val name = station.name ?: return@mapNotNull null
-            val deps = if (mode == currentMode && station.id == currentStation?.id && departures.isNotEmpty()) {
-                departures
-            } else {
-                station.embeddedDepartures ?: emptyList()
-            }
-            com.evanjt.traintime.widget.WidgetStation(
-                id = station.id,
-                name = name,
-                departures = deps.map {
-                    com.evanjt.traintime.widget.WidgetDeparture(
-                        destination = it.destination,
-                        departureTimestamp = it.departureTimestamp ?: 0,
-                        delay = it.delay,
-                        platform = it.platform,
-                        platformChanged = it.platformChanged,
-                        lineNumber = it.lineNumber,
-                    )
-                },
-            )
-        }
-
-    // Deep link
-
-    fun handleDeepLink(uri: Uri) {
-        lastInteractionTime = now()
-        if (uri.scheme != "traintime") return
-
-        // traintime://sbbshare — just open the app (SBB share trigger)
-        if (uri.host == "sbbshare") {
-            if (appState == 3) resumeFromInactive()
-            return
-        }
-
-        // traintime://track?destination=DEST&timestamp=TS
-        if (uri.host != "track") return
-        val destination = uri.getQueryParameter("destination") ?: return
-        val timestamp = uri.getQueryParameter("timestamp")?.toLongOrNull() ?: return
-
-        // If we don't have departures yet, save for later
-        if (departures.isEmpty()) {
-            pendingDeepLink = uri
-            return
-        }
-
-        val index = departures.indexOfFirst {
-            it.destination == destination && it.departureTimestamp == timestamp
-        }
-        if (index >= 0) selectDeparture(index)
     }
 }
