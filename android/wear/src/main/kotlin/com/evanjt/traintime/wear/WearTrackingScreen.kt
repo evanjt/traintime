@@ -67,14 +67,15 @@ fun WearTrackingScreen(vm: WearViewModel) {
         timeText = { TimeText() },
         positionIndicator = { PositionIndicator(scrollState = scrollState) },
     ) {
+        val config = androidx.compose.ui.platform.LocalConfiguration.current
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 12.dp, vertical = 24.dp),
+                .padding(horizontal = 12.dp, vertical = (config.screenHeightDp * 0.16f).dp),
         ) {
-            Text(vm.stationName, color = secondary, fontSize = 12.sp, maxLines = 1)
+            Text(vm.stationName, color = secondary, fontSize = 11.sp, maxLines = 1)
 
             val platChanged = focused?.platformChanged == true
 
@@ -83,20 +84,26 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 modifier = Modifier.padding(top = 6.dp),
             ) {
-                if (focused != null) {
-                    LinePill(focused.lineNumber, vm.currentMode, isGone = false)
+                if (focused != null && focused.lineNumber.isNotEmpty()) {
+                    Text(
+                        focused.lineNumber,
+                        color = palette.platform,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
                 }
                 Text(
                     focused?.destination ?: "?",
                     color = if (platChanged) palette.platformChangedOrange else MaterialTheme.colors.onBackground,
-                    fontSize = 18.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
                 Text(
                     if (vm.isFocusedTrainFavourite) "★" else "☆",
                     color = if (vm.isFocusedTrainFavourite) palette.favouriteStar else secondary,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     modifier = Modifier.clickable { vm.toggleFavourite() },
                 )
             }
@@ -108,15 +115,15 @@ fun WearTrackingScreen(vm: WearViewModel) {
             ) {
                 if (focused != null && focused.platform.isNotEmpty()) {
                     Text(
-                        "Platform ${focused.platform}",
+                        "Pl. ${focused.platform}",
                         color = if (platChanged) palette.platformChangedOrange else secondary,
-                        fontSize = 12.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
                     )
                 }
                 if (focused != null) {
-                    Text("·", color = secondary)
-                    Text(formatDepartureTime(focused.departureTimestamp), color = secondary, fontSize = 11.sp)
+                    Text("·", color = secondary, fontSize = 10.sp)
+                    Text(formatDepartureTime(focused.departureTimestamp), color = secondary, fontSize = 10.sp)
                 }
             }
 
@@ -128,7 +135,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 Text(
                     focused?.countdownText(nowSeconds) ?: "—",
                     color = countdownColor(focused, nowSeconds, palette, secondary, MaterialTheme.colors.onBackground),
-                    fontSize = 44.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 if (focused != null && focused.delay > 0 && focused.minutesUntil(nowSeconds) >= -0.5) {

@@ -18,7 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +77,9 @@ fun TrackingScreen(viewModel: MainViewModel) {
     }
 
     BackHandler { viewModel.exitToStationView() }
+
+    // Discover connected Wear watches for the "Send to Watch" control.
+    LaunchedEffect(Unit) { viewModel.refreshConnectedWatches() }
 
     // Local 1 s clock so the countdown ticks even when no state changes.
     var nowSeconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
@@ -242,6 +247,26 @@ fun TrackingScreen(viewModel: MainViewModel) {
                     Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("Show on Map", modifier = Modifier.padding(start = 6.dp))
                 }
+            }
+
+            // Send to Watch — only when a Wear watch is connected (mirrors the
+            // iOS PhoneFocusedTrackingView). The track command goes over the
+            // Wearable Data Layer to start tracking on the watch.
+            if (viewModel.connectedWatches.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
+                OutlinedButton(onClick = { viewModel.sendToWatch() }) {
+                    Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                }
+                viewModel.watchSendStatus?.let { status ->
+                    Text(status, color = secondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+                Text(
+                    "Watch app must be open",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
         }
 

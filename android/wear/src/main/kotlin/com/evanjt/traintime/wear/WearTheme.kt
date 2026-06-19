@@ -1,6 +1,5 @@
 package com.evanjt.traintime.wear
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -112,8 +111,10 @@ val GpsQuality.tint: Color
 
 @Composable
 fun TrainTimeWearTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    CompositionLocalProvider(LocalWearPalette provides if (dark) WearDarkPalette else WearLightPalette) {
+    // Wear's MaterialTheme is a dark scheme (black background, white text) and
+    // watches run dark by default, so always pair it with the dark palette —
+    // otherwise the light favourite background renders under white text.
+    CompositionLocalProvider(LocalWearPalette provides WearDarkPalette) {
         MaterialTheme(content = content)
     }
 }

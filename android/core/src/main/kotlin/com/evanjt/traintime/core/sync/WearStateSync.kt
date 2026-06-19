@@ -84,12 +84,20 @@ class WearStateSync private constructor(context: Context) {
         if (mode != null && mode != current.defaultMode) prefs.setDefaultMode(TransportMode.fromRaw(mode))
     }
 
-    suspend fun sendTrack(cmd: TrackCommand) {
+    // Display names of connected watches, for the phone's "Send to Watch" UI.
+    suspend fun connectedWatchNames(): List<String> =
+        runCatching { nodeClient.connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
+
+    // Send the track command to every connected watch; returns how many it reached.
+    suspend fun sendTrack(cmd: TrackCommand): Int {
         val bytes = WearSync.encodeTrack(cmd)
-        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return 0
+        var sent = 0
         for (node in nodes) {
-            runCatching { messageClient.sendMessage(node.id, WearSync.TRACK_PATH, bytes).await() }
+            val ok = runCatching { messageClient.sendMessage(node.id, WearSync.TRACK_PATH, bytes).await() }.isSuccess
+            if (ok) sent += 1
         }
+        return sent
     }
 
     companion object {

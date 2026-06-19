@@ -97,6 +97,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var formation by mutableStateOf<Formation?>(null)
         private set
 
+    // Connected Wear watches + last send status, for the "Send to Watch" control.
+    var connectedWatches by mutableStateOf(listOf<String>())
+        private set
+    var watchSendStatus by mutableStateOf<String?>(null)
+        private set
+
     // GPS
     var gpsQuality by mutableStateOf(GpsQuality.UNAVAILABLE)
         private set
@@ -357,9 +363,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             platformChanged = dep.platformChanged,
         )
         focusedTrain = focused
-        // Mirror to the watch so it enters tracking too, like PhoneWatchService.
-        val trackStationId = currentStation?.id
-        viewModelScope.launch { wearSync.sendTrack(TrackCommand.from(focused, trackStationId)) }
         appState = 2
         location.setTrackingAccuracy(true)
         consecutiveErrors = 0
@@ -447,6 +450,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeFavourite(favourite: Favourite) {
         viewModelScope.launch { favouritesStore.remove(favourite) }
+    }
+
+    // Send to Watch (mirrors iOS PhoneViewModel.sendToWatch). The Wearable Data
+    // Layer delivers the track command to a connected Wear watch.
+    fun refreshConnectedWatches() {
+        viewModelScope.launch { connectedWatches = wearSync.connectedWatchNames() }
+    }
+
+    fun sendToWatch() {
+        val focused = focusedTrain ?: return
+        val stationId = currentStation?.id
+        viewModelScope.launch {
+            val names = wearSync.connectedWatchNames()
+            connectedWatches = names
+            if (names.isEmpty()) {
+                showWatchStatus("No watch connected")
+                return@launch
+            }
+            val sent = wearSync.sendTrack(TrackCommand.from(focused, stationId))
+            showWatchStatus(
+                when {
+                    sent <= 0 -> "Failed to send"
+                    names.size == 1 -> "Sent to ${names.first()}"
+                    else -> "Sent to watch"
+                },
+            )
+        }
+    }
+
+    private fun showWatchStatus(status: String) {
+        watchSendStatus = status
+        viewModelScope.launch {
+            delay(2000)
+            watchSendStatus = null
+        }
     }
 
     fun exitToStationView() {

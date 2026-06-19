@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,11 +37,18 @@ import com.evanjt.traintime.domain.GeoUtils
 @Composable
 fun WearStationPickerScreen(vm: WearViewModel, onClose: () -> Unit) {
     val listState = rememberScalingLazyListState()
+    val config = LocalConfiguration.current
+    val sidePad = (config.screenWidthDp * 0.06f).dp
+    val vertPad = (config.screenHeightDp * 0.14f).dp
     Scaffold(
         timeText = { TimeText() },
         positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
     ) {
-        ScalingLazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        ScalingLazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(start = sidePad, end = sidePad, top = vertPad, bottom = vertPad),
+            modifier = Modifier.fillMaxSize(),
+        ) {
             item {
                 Text(
                     "Nearby stations",

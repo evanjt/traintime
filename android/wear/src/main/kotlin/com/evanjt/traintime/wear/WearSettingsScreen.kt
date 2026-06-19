@@ -1,5 +1,6 @@
 package com.evanjt.traintime.wear
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -8,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,12 +33,19 @@ fun WearSettingsScreen(vm: WearViewModel) {
     val listState = rememberScalingLazyListState()
     val scope = rememberCoroutineScope()
     val useRouted by vm.prefs.useRoutedDistance.collectAsState(initial = false)
+    val config = LocalConfiguration.current
+    val sidePad = (config.screenWidthDp * 0.06f).dp
+    val vertPad = (config.screenHeightDp * 0.14f).dp
 
     Scaffold(
         timeText = { TimeText() },
         positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
     ) {
-        ScalingLazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        ScalingLazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(start = sidePad, end = sidePad, top = vertPad, bottom = vertPad),
+            modifier = Modifier.fillMaxSize(),
+        ) {
             item {
                 Text(
                     "Default mode",

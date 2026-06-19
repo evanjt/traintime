@@ -1,27 +1,33 @@
 package com.evanjt.traintime.wear
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.itemsIndexed
-import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
-import androidx.wear.compose.material.ChipColors
-import androidx.wear.compose.material.ChipDefaults
-import androidx.wear.compose.material.CompactChip
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.PositionIndicator
 import androidx.wear.compose.material.Scaffold
@@ -29,29 +35,83 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
-import com.evanjt.traintime.data.model.TransportMode
 
+// Flat, dense list (like the Apple watch) rather than a ScalingLazyColumn, so
+// several departures are visible at once. The Vignette fades the round top/bottom
+// edges so flat rows don't look clipped. Insets are percentage-based to scale
+// across watch sizes.
 @Composable
 fun WearStationListScreen(
     vm: WearViewModel,
     onOpenPicker: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val listState = rememberScalingLazyListState()
+    val listState = rememberLazyListState()
+    val config = LocalConfiguration.current
+    val sidePad = (config.screenWidthDp * 0.07f).dp
+    val topPad = (config.screenHeightDp * 0.16f).dp
+    val bottomPad = (config.screenHeightDp * 0.16f).dp
+
     Scaffold(
         timeText = { TimeText() },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) },
-        positionIndicator = { PositionIndicator(scalingLazyListState = listState) },
+        positionIndicator = { PositionIndicator(lazyListState = listState) },
     ) {
-        ScalingLazyColumn(
+        LazyColumn(
             state = listState,
+            contentPadding = PaddingValues(start = sidePad, end = sidePad, top = topPad, bottom = bottomPad),
             modifier = Modifier.fillMaxSize(),
         ) {
-            item { StationHeader(vm, onOpenPicker) }
-
-            if (vm.availableModes.size > 1) {
-                item { ModeChips(vm) }
+            // Mode selector — centred so it clears the round top bezel.
+            item {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                ) { ModeIconRow(vm) }
             }
+
+            // Station name (tap to switch) + GPS dot + settings gear.
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = vm.stations.size > 1) { onOpenPicker() },
+                ) {
+                    GpsIcon(vm.gpsQuality, Modifier.padding(end = 4.dp))
+                    Text(
+                        vm.stationName.uppercase(),
+                        color = MaterialTheme.colors.onBackground,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                    if (vm.stations.size > 1) {
+                        Icon(
+                            Icons.Filled.KeyboardArrowDown,
+                            contentDescription = "Switch station",
+                            tint = MaterialTheme.colors.onSurfaceVariant,
+                            modifier = Modifier.size(13.dp),
+                        )
+                    }
+                }
+            }
+
+            if (vm.walkInfo.isNotEmpty()) {
+                item {
+                    Text(
+                        vm.walkInfo,
+                        color = MaterialTheme.colors.onSurfaceVariant,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    )
+                }
+            }
+
+            item { Divider() }
 
             val favourites = vm.favouriteDepartures
             if (favourites.isNotEmpty()) {
@@ -72,9 +132,9 @@ fun WearStationListScreen(
                     Text(
                         vm.status,
                         color = MaterialTheme.colors.onSurfaceVariant,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     )
                 }
             } else {
@@ -90,77 +150,29 @@ fun WearStationListScreen(
             }
 
             item {
-                CompactChip(
-                    onClick = onOpenSettings,
-                    label = { Text("Settings") },
-                    colors = ChipDefaults.secondaryChipColors(),
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp).clickable { onOpenSettings() },
+                ) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colors.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StationHeader(vm: WearViewModel, onOpenPicker: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-    ) {
-        Text(
-            vm.stationName,
-            color = MaterialTheme.colors.onBackground,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(top = 2.dp),
-        ) {
-            GpsDot(vm.gpsQuality)
-            if (vm.walkInfo.isNotEmpty()) {
-                Spacer(Modifier.width(6.dp))
-                Text(vm.walkInfo, color = MaterialTheme.colors.onSurfaceVariant, fontSize = 12.sp, maxLines = 1)
-            }
-        }
-        if (vm.stations.size > 1) {
-            CompactChip(
-                onClick = onOpenPicker,
-                label = { Text("Switch station") },
-                colors = ChipDefaults.secondaryChipColors(),
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-    }
+private fun Divider() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 3.dp)
+            .height(1.dp)
+            .background(MaterialTheme.colors.onSurfaceVariant.copy(alpha = 0.3f)),
+    )
 }
-
-@Composable
-private fun ModeChips(vm: WearViewModel) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        vm.availableModes.forEach { mode ->
-            val selected = mode == vm.currentMode
-            val colors: ChipColors =
-                if (selected) ChipDefaults.primaryChipColors() else ChipDefaults.secondaryChipColors()
-            CompactChip(
-                onClick = { vm.selectMode(mode) },
-                label = { Text(mode.shortLabel, fontSize = 11.sp) },
-                colors = colors,
-            )
-        }
-    }
-}
-
-private val TransportMode.shortLabel: String
-    get() = when (this) {
-        TransportMode.TRAIN -> "Train"
-        TransportMode.BUS -> "Bus"
-        TransportMode.TRAM -> "Tram"
-        TransportMode.SPECIAL -> "Spec"
-    }
