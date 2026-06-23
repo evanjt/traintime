@@ -172,6 +172,7 @@ internal fun ActiveView(
     favKeys: Set<String>,
     hideFavourites: Boolean,
     refreshing: Boolean,
+    outsideSwitzerland: Boolean = false,
 ) {
     val size = LocalSize.current
     val small = isSmall(size.width)
@@ -235,8 +236,9 @@ internal fun ActiveView(
         Divider()
 
         if (favRows.isEmpty() && regularRows.isEmpty()) {
+            val emptyMessage = if (outsideSwitzerland) "Outside of Switzerland" else "No departures"
             Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No departures", style = TextStyle(color = WidgetColors.secondary, fontSize = 12.sp))
+                Text(emptyMessage, style = TextStyle(color = WidgetColors.secondary, fontSize = 12.sp))
             }
         } else {
             favRows.forEach { dep -> DepartureRow(dep, isFavourite = true, favKeys, nowEpochSeconds, small, result.selectedMode) }

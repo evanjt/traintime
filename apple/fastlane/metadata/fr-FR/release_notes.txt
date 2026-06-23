@@ -1,1 +1,1 @@
-Épinglez vos stations. Épinglez les arrêts que vous utilisez le plus pour les garder en haut de la liste des arrêts à proximité — sur iPhone, Apple Watch et le widget.
+Le widget affiche désormais « En dehors de la Suisse » au lieu de « Pas de départs » lorsque vous êtes hors du pays.

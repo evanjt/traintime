@@ -119,6 +119,7 @@ data class WidgetState(
     val refreshStartedAt: Long = 0,
     val dormant: Boolean = false,
     val hideFavourites: Boolean = false,
+    val outsideSwitzerland: Boolean = false,
 ) {
     fun isRefreshing(nowEpochSeconds: Long): Boolean =
         refreshStartedAt > 0 && nowEpochSeconds - refreshStartedAt < 15

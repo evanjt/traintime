@@ -819,7 +819,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val context = getApplication<Application>().applicationContext
         viewModelScope.launch {
             com.evanjt.traintime.widget.WidgetStateDefinition.update(context) {
-                it.copy(result = snapshot, refreshStartedAt = 0, dormant = false)
+                it.copy(result = snapshot, refreshStartedAt = 0, dormant = false, outsideSwitzerland = false)
             }
             com.evanjt.traintime.widget.TrainTimeWidget().updateAll(context)
             com.evanjt.traintime.widget.work.WidgetRefresher.scheduleTick(context)

@@ -34,7 +34,7 @@ final class WidgetEntrySnapshotTests: XCTestCase {
     private func entry(dormant: Bool) -> DepartureEntry {
         let favs = [Favourite(stationId: "8507000", stationName: "Bern", lineNumber: "IC8", destination: "Brig")]
         return DepartureEntry.make(date: now, result: result(), favourites: favs,
-                                   isDormant: dormant, hideFavouritesBlock: false)
+                                   isDormant: dormant, hideFavouritesBlock: false, outsideSwitzerland: false)
     }
 
     private func widget(_ family: WidgetFamily, dormant: Bool = false) -> AnyView {

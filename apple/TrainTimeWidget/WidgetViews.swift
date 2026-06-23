@@ -222,7 +222,7 @@ struct WidgetEntryView: View {
 
                 if favShown.isEmpty && regularShown.isEmpty {
                     Spacer()
-                    Text("No departures")
+                    Text(entry.outsideSwitzerland ? "Outside of Switzerland" : "No departures")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)

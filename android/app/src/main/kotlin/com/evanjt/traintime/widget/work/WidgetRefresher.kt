@@ -6,6 +6,7 @@ import androidx.glance.appwidget.updateAll
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.model.LatLon
 import com.evanjt.traintime.data.model.Station
@@ -35,6 +36,7 @@ object WidgetRefresher {
                 finish(context)
                 return
             }
+            val outsideSwitzerland = !SwissBounds.contains(coordinate.lat, coordinate.lon)
 
             val result = runCatching {
                 TrainApi.shared.fetchStations(coordinate.lat, coordinate.lon)
@@ -77,7 +79,7 @@ object WidgetRefresher {
 
             val final = snapshot
             WidgetStateDefinition.update(context) {
-                it.copy(result = final, refreshStartedAt = 0, dormant = false)
+                it.copy(result = final, refreshStartedAt = 0, dormant = false, outsideSwitzerland = outsideSwitzerland)
             }
             TrainTimeWidget().updateAll(context)
             scheduleTick(context)

@@ -1,1 +1,1 @@
-Stationen anheften. Hefte die Haltestellen an, die du am häufigsten nutzt, damit sie oben in der Liste der Haltestellen in der Nähe bleiben — auf iPhone, Apple Watch und im Widget.
+Das Widget zeigt jetzt "Ausserhalb der Schweiz" statt "Keine Abfahrten" an, wenn du dich ausserhalb des Landes befindest.

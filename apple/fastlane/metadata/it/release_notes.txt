@@ -1,1 +1,1 @@
-Fissa le tue stazioni. Fissa le fermate che usi di più per tenerle in cima all'elenco delle fermate nelle vicinanze — su iPhone, Apple Watch e widget.
+Il widget ora mostra "Fuori dalla Svizzera" invece di "Nessuna partenza" quando ti trovi fuori dal paese.

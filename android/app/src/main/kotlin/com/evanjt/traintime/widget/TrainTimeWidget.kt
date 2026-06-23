@@ -73,6 +73,7 @@ private fun WidgetContent(state: WidgetState, favKeys: Set<String>) {
             favKeys = favKeys,
             hideFavourites = state.hideFavourites,
             refreshing = refreshing,
+            outsideSwitzerland = state.outsideSwitzerland,
         )
     }
 }

@@ -10,6 +10,7 @@ struct RefreshIntent: AppIntent {
         FavouritesStore.shared.reload() // pick up app-side favourite changes in this process
         MyStationsStore.shared.reload()
         let coordinate = try await getLocation()
+        WidgetStorage.outsideSwitzerland = !SwissBounds.contains(lat: coordinate.latitude, lon: coordinate.longitude)
 
         let result = try await TrainAPIService.fetchStations(
             lat: coordinate.latitude,
@@ -161,6 +162,13 @@ enum WidgetStorage {
 
     // Display preference (not fetched data): when true the widget hides the favourites block
     // and shows departures in pure time order, with favourites still starred inline.
+    private static let outsideKey = "widget_outside_switzerland"
+
+    static var outsideSwitzerland: Bool {
+        get { SharedDefaults.store.bool(forKey: outsideKey) }
+        set { SharedDefaults.store.set(newValue, forKey: outsideKey) }
+    }
+
     private static let hideFavKey = "widget_hide_favourites_block"
 
     static var hideFavouritesBlock: Bool {

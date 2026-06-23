@@ -41,7 +41,7 @@ struct AccessoryRectangularView: View {
 
         let rows = entry.displayDepartures(limit: 2)
         if rows.isEmpty {
-            Text("No departures").font(.caption2).foregroundStyle(.secondary)
+            Text(entry.outsideSwitzerland ? "Outside of Switzerland" : "No departures").font(.caption2).foregroundStyle(.secondary)
         } else {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, dep in
                 HStack(spacing: 4) {
@@ -98,7 +98,7 @@ struct AccessoryInlineView: View {
             let prefix = dep.lineNumber.isEmpty ? "" : "\(dep.lineNumber) "
             Text("\(prefix)\(dep.destination) · \(dep.minutesText(at: entry.date))")
         } else {
-            Text("No departures")
+            Text(entry.outsideSwitzerland ? "Outside of Switzerland" : "No departures")
         }
     }
 }
