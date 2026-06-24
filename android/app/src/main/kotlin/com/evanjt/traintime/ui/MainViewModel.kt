@@ -405,6 +405,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.setDefaultMode(mode) }
     }
 
+    fun updateAppearanceMode(mode: String) {
+        viewModelScope.launch { prefs.setAppearanceMode(mode) }
+    }
+
+    fun markOnboardingSeen() {
+        viewModelScope.launch { prefs.markOnboardingSeen() }
+    }
+
+    fun incrementReviewTrackCount() {
+        viewModelScope.launch { prefs.incrementReviewTrackCount() }
+    }
+
+    fun markReviewPrompted(version: String) {
+        viewModelScope.launch { prefs.setReviewPromptedVersion(version) }
+    }
+
     fun toggleFavourite() {
         val focused = focusedTrain ?: return
         toggleFavourite(focused.lineNumber, focused.destination)

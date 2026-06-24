@@ -42,9 +42,14 @@ private val LightColors = lightColorScheme(
     onSurface = Color.Black,
 )
 
+// appearanceMode "system" follows the OS; "light" and "dark" force the theme.
 @Composable
-fun TrainTimeTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+fun TrainTimeTheme(appearanceMode: String = "system", content: @Composable () -> Unit) {
+    val dark = when (appearanceMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
     CompositionLocalProvider(LocalAppPalette provides if (dark) DarkPalette else LightPalette) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,

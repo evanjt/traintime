@@ -56,4 +56,8 @@ dependencies {
     api(libs.kotlinx.coroutines.play.services)
     api(libs.play.services.location)
     api(libs.play.services.wearable)
+
+    // ReviewLauncher (in :core) drives the Play in-app review flow; :app and
+    // :wear call the launcher, so they don't need this directly.
+    implementation(libs.play.review.ktx)
 }

@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -14,15 +15,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.evanjt.traintime.review.ReviewGate
+import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.onboarding.OnboardingScreen
 import com.evanjt.traintime.ui.settings.SettingsSheet
 import com.evanjt.traintime.ui.station.InactiveScreen
 import com.evanjt.traintime.ui.station.StationPickerSheet
@@ -42,7 +51,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            TrainTimeTheme {
+            val appearanceMode by viewModel.prefs.appearanceMode.collectAsState(initial = "system")
+            // values-night/themes.xml keys the status-bar icon colour on the system
+            // night mode, so a manual override needs the bars set to match.
+            val dark = when (appearanceMode) {
+                "light" -> false
+                "dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .isAppearanceLightStatusBars = !dark
+            }
+            TrainTimeTheme(appearanceMode = appearanceMode) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     RootView(viewModel)
                 }
@@ -83,6 +104,32 @@ private fun RootView(viewModel: MainViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Auto-prompt for a review once the user has tracked a few departures, and
+    // only once per version. Increment on each fresh entry into tracking (state
+    // 2), guarding the transition so a recomposition mid-tracking doesn't recount.
+    val appState = viewModel.appState
+    var wasTracking by remember { mutableStateOf(false) }
+    LaunchedEffect(appState) {
+        if (appState == 2 && !wasTracking) {
+            viewModel.incrementReviewTrackCount()
+        }
+        wasTracking = appState == 2
+    }
+
+    val activity = LocalContext.current as? android.app.Activity
+    val reviewCount by viewModel.prefs.reviewTrackCount.collectAsState(initial = 0)
+    val promptedVersion by viewModel.prefs.reviewPromptedVersion.collectAsState(initial = BuildConfig.VERSION_NAME)
+    var reviewPrompted by remember { mutableStateOf(false) }
+    LaunchedEffect(appState, reviewCount, promptedVersion) {
+        if (appState == 2 && !reviewPrompted && activity != null &&
+            ReviewGate.shouldPrompt(reviewCount, promptedVersion, BuildConfig.VERSION_NAME)
+        ) {
+            reviewPrompted = true
+            viewModel.markReviewPrompted(BuildConfig.VERSION_NAME)
+            ReviewLauncher.launch(activity)
+        }
+    }
+
     var showSettings by remember { mutableStateOf(false) }
 
     // targetSdk 35 forces edge-to-edge, so inset the content below the status
@@ -100,5 +147,11 @@ private fun RootView(viewModel: MainViewModel) {
     }
     if (showSettings) {
         SettingsSheet(viewModel, onDismiss = { showSettings = false })
+    }
+
+    // First-launch walkthrough sits above everything until completed or skipped.
+    val hasSeenOnboarding by viewModel.prefs.hasSeenOnboarding.collectAsState(initial = true)
+    if (!hasSeenOnboarding) {
+        OnboardingScreen(onComplete = { viewModel.markOnboardingSeen() })
     }
 }

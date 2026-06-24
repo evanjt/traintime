@@ -38,6 +38,40 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_USE_ROUTED_DISTANCE] = value }
     }
 
+    // First-launch walkthrough flag (phone only). False until the user finishes
+    // or skips onboarding.
+    val hasSeenOnboarding: Flow<Boolean> =
+        dataStore.data.map { it[KEY_HAS_SEEN_ONBOARDING] ?: false }
+
+    suspend fun markOnboardingSeen() {
+        dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = true }
+    }
+
+    // Manual appearance override (phone only): "system" follows the OS, "light"
+    // and "dark" force the theme.
+    val appearanceMode: Flow<String> =
+        dataStore.data.map { it[KEY_APPEARANCE_MODE] ?: "system" }
+
+    suspend fun setAppearanceMode(value: String) {
+        dataStore.edit { it[KEY_APPEARANCE_MODE] = value }
+    }
+
+    // Review gating: count tracking sessions so a brand-new user isn't prompted,
+    // and remember the version we last prompted on so we only ask once per release.
+    val reviewTrackCount: Flow<Int> =
+        dataStore.data.map { it[KEY_REVIEW_TRACK_COUNT] ?: 0 }
+
+    suspend fun incrementReviewTrackCount() {
+        dataStore.edit { it[KEY_REVIEW_TRACK_COUNT] = (it[KEY_REVIEW_TRACK_COUNT] ?: 0) + 1 }
+    }
+
+    val reviewPromptedVersion: Flow<String> =
+        dataStore.data.map { it[KEY_REVIEW_PROMPTED_VERSION] ?: "" }
+
+    suspend fun setReviewPromptedVersion(value: String) {
+        dataStore.edit { it[KEY_REVIEW_PROMPTED_VERSION] = value }
+    }
+
     suspend fun lastCoordinate(): Pair<Double, Double>? {
         val prefs = dataStore.data.first()
         val lat = prefs[KEY_LAST_LAT] ?: 0.0
@@ -55,6 +89,10 @@ class AppPrefs(context: Context) {
     companion object {
         val KEY_DEFAULT_MODE = intPreferencesKey("defaultMode")
         val KEY_USE_ROUTED_DISTANCE = booleanPreferencesKey("useRoutedDistance")
+        val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
+        val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
+        val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")
+        val KEY_REVIEW_PROMPTED_VERSION = stringPreferencesKey("reviewPromptedVersion")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")

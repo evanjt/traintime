@@ -18,13 +18,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.BuildConfig
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.station.icon
 
@@ -60,6 +64,24 @@ fun SettingsSheet(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     Text(mode.label, color = onSurface, modifier = Modifier.padding(start = 12.dp))
                     Spacer(Modifier.weight(1f))
                     if (viewModel.defaultMode == mode) {
+                        Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
+                    }
+                }
+            }
+
+            val appearanceMode by viewModel.prefs.appearanceMode.collectAsState(initial = "system")
+            Text("Appearance", color = secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp))
+            appearanceOptions.forEach { (value, label) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.updateAppearanceMode(value) }
+                        .padding(vertical = 10.dp),
+                ) {
+                    Text(label, color = onSurface)
+                    Spacer(Modifier.weight(1f))
+                    if (appearanceMode == value) {
                         Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
                     }
                 }
@@ -104,6 +126,23 @@ fun SettingsSheet(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 Spacer(Modifier.weight(1f))
                 Text(BuildConfig.VERSION_NAME, color = secondary)
             }
+
+            val activity = LocalContext.current as? android.app.Activity
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { activity?.let { ReviewLauncher.launch(it) } }
+                    .padding(top = 16.dp, bottom = 4.dp),
+            ) {
+                Text("Rate this app", color = onSurface)
+            }
         }
     }
 }
+
+private val appearanceOptions = listOf(
+    "system" to "System",
+    "light" to "Light",
+    "dark" to "Dark",
+)
