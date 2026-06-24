@@ -1,7 +1,13 @@
 using Toybox.WatchUi;
 using Toybox.Application.Storage;
+using Toybox.Communications;
 
 module SettingsMenu {
+
+    // openWebPage surfaces this on the paired phone via Garmin Connect Mobile.
+    // There is no on-device review API, so the listing opens in the store there.
+    // Placeholder, set to the real Connect IQ Store listing URL from the dashboard.
+    const STORE_URL = "https://apps.garmin.com/apps/REPLACE-WITH-APP-UUID";
 
     function modeLabel(mode) {
         if (mode == 1) { return "Bus"; }
@@ -52,6 +58,12 @@ module SettingsMenu {
                 {}
             ));
         }
+        menu.addItem(new WatchUi.MenuItem(
+            "Rate this app",
+            "Opens on your phone",
+            :rate,
+            {}
+        ));
         menu.addItem(new WatchUi.MenuItem(
             "Version",
             AppVersion.VERSION,
@@ -130,6 +142,11 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
                 ));
             }
             WatchUi.pushView(subMenu, new FavouritesListDelegate(), WatchUi.SLIDE_LEFT);
+        } else if (item.getId() == :rate) {
+            // Opens the Connect IQ Store listing on the paired phone.
+            if (Communications has :openWebPage) {
+                Communications.openWebPage(SettingsMenu.STORE_URL, null, null);
+            }
         }
     }
 }
