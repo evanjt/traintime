@@ -1,1 +1,3 @@
-The widget now shows "Outside of Switzerland" instead of "No departures" when you're outside the country.
+A quick walkthrough now introduces the app on first launch.
+Choose a light, dark or system appearance in Settings.
+Rate TrainTime from Settings if you like it.

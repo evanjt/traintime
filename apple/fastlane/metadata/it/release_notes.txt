@@ -1,1 +1,3 @@
-Il widget ora mostra "Fuori dalla Svizzera" invece di "Nessuna partenza" quando ti trovi fuori dal paese.
+Una breve introduzione ti guida al primo avvio.
+Scegli un aspetto chiaro, scuro o di sistema nelle impostazioni.
+Valuta TrainTime dalle impostazioni se ti piace.

@@ -1,1 +1,3 @@
-Le widget affiche désormais « En dehors de la Suisse » au lieu de « Pas de départs » lorsque vous êtes hors du pays.
+Une présentation rapide vous guide lors du premier lancement.
+Choisissez un thème clair, sombre ou système dans les réglages.
+Notez TrainTime dans les réglages si elle vous plaît.

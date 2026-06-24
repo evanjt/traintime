@@ -1,1 +1,3 @@
-Das Widget zeigt jetzt "Ausserhalb der Schweiz" statt "Keine Abfahrten" an, wenn du dich ausserhalb des Landes befindest.
+Eine kurze Einführung führt dich beim ersten Start durch die App.
+Wähle in den Einstellungen ein helles, dunkles oder systembasiertes Erscheinungsbild.
+Bewerte TrainTime in den Einstellungen, wenn sie dir gefällt.
