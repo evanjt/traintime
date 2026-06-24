@@ -16,8 +16,8 @@ android {
         applicationId = "com.evanjt.traintime"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1006
-        versionName = "0.4.1"
+        versionCode = 1007
+        versionName = "0.4.2"
     }
 
     buildFeatures {
