@@ -12,6 +12,7 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
+    @Published var reviewRequestTick = 0 // bumped to ask the view to request an App Store review
     @Published var status: String = "GPS: Searching..."
 
     // MARK: - Station Data (per mode)
@@ -347,6 +348,7 @@ class PhoneViewModel: ObservableObject {
 
         startTimer(interval: Timing.trackingRefreshInterval)
         PhoneHapticService.shortPulse()
+        maybeRequestReview()
     }
 
     func enterInactiveState() {
@@ -372,6 +374,17 @@ class PhoneViewModel: ObservableObject {
         defaultMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "defaultMode")
         watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
+    }
+
+    /// Count tracking sessions and ask for a review once the user has tracked a few
+    /// departures, at most once per app version. The system sheet is itself rate limited.
+    private func maybeRequestReview() {
+        let count = UserDefaults.standard.integer(forKey: "reviewTrackCount") + 1
+        UserDefaults.standard.set(count, forKey: "reviewTrackCount")
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        guard count >= 3, UserDefaults.standard.string(forKey: "reviewPromptedVersion") != version else { return }
+        UserDefaults.standard.set(version, forKey: "reviewPromptedVersion")
+        reviewRequestTick += 1
     }
 
     func toggleFavourite() {

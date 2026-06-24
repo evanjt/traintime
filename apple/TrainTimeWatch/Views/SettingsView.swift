@@ -46,6 +46,8 @@ struct SettingsView: View {
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")
                         .foregroundStyle(.secondary)
                 }
+            } footer: {
+                Text("Rate TrainTime in the iPhone app.")
             }
         }
         .navigationTitle("Settings")

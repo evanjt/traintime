@@ -1,9 +1,12 @@
 import SwiftUI
+import StoreKit
 
 struct PhoneSettingsView: View {
     @ObservedObject var viewModel: PhoneViewModel
     @ObservedObject private var favouritesStore = FavouritesStore.shared
     @Environment(\.dismiss) var dismiss
+    @Environment(\.requestReview) private var requestReview
+    @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
 
     var body: some View {
         NavigationStack {
@@ -19,6 +22,26 @@ struct PhoneSettingsView: View {
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if viewModel.defaultMode == mode {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Section("Appearance") {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Button {
+                            appAppearance = appearance.rawValue
+                        } label: {
+                            HStack {
+                                Image(systemName: appearance.symbol)
+                                Text(appearance.label)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if appAppearance == appearance.rawValue {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.blue)
                                 }
@@ -44,6 +67,21 @@ struct PhoneSettingsView: View {
                             toRemove.forEach { favouritesStore.remove($0) }
                         }
                     }
+                }
+
+                Section {
+                    Button {
+                        requestReview()
+                    } label: {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(AppColors.favouriteStar)
+                            Text("Rate TrainTime")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Section {
