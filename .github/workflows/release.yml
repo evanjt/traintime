@@ -117,11 +117,83 @@ jobs:
           retention-days: 30
 
   # ============================================
+  # Build Android .aab package
+  # ============================================
+  build-android:
+    name: Build Android App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for Android signing credentials
+        id: check_creds
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "::notice::ANDROID_KEYSTORE_BASE64 not configured - skipping Android build"
+          else
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: actions/checkout@v4
+
+      - name: Verify tag matches versionName
+        if: steps.check_creds.outputs.has_creds == 'true'
+        run: |
+          VN=$(grep 'versionName = ' android/app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          echo "Tag: ${{ github.ref_name }} | versionName: $VN"
+          if [ "$VN" != "${{ github.ref_name }}" ]; then
+            echo "::error::Tag ${{ github.ref_name }} does not match versionName $VN. Bump versionName (and versionCode) in android/app/build.gradle.kts before tagging."
+            exit 1
+          fi
+
+      - name: Setup Java
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing keystore
+        if: steps.check_creds.outputs.has_creds == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload-keystore.jks
+
+      - name: Build release AAB
+        if: steps.check_creds.outputs.has_creds == 'true'
+        working-directory: android
+        env:
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          KEYSTORE_FILE: upload-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:bundleRelease
+          echo "Built app-release.aab ($(stat -c%s app/build/outputs/bundle/release/app-release.aab) bytes)"
+
+      - name: Upload Android artifact
+        if: steps.check_creds.outputs.has_creds == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+  # ============================================
   # Create Release
   # ============================================
   release:
     name: Create Release
-    needs: [find-and-wait, build-garmin]
+    needs: [find-and-wait, build-garmin, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -149,6 +221,13 @@ jobs:
         with:
           name: garmin-iq
           path: artifacts/garmin
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: android-aab
+          path: artifacts/android
 
       - name: Prepare release artifacts
         id: prepare
@@ -178,6 +257,14 @@ jobs:
             echo "::notice::No Garmin .iq found"
           fi
 
+          AAB=$(find artifacts -name "*.aab" | head -1)
+          if [ -n "$AAB" ]; then
+            cp "$AAB" "release/traintime-${VERSION}.aab"
+            echo "Android: traintime-${VERSION}.aab"
+          else
+            echo "::notice::No Android .aab found"
+          fi
+
           echo ""
           echo "=== Release artifacts ==="
           ls -la release/
@@ -192,6 +279,7 @@ jobs:
             ## Downloads
             - **iOS IPA**: For TestFlight / App Store (includes iOS app, watchOS companion, widget)
             - **Garmin .iq**: Upload to [Connect IQ Store](https://apps.garmin.com/developer/dashboard)
+            - **Android .aab**: Signed release bundle for the [Play Console](https://play.google.com/console)
 
             ---
             Built from commit: ${{ github.sha }}
@@ -343,6 +431,7 @@ jobs:
   # ============================================
   deploy-android:
     name: Deploy to Google Play
+    needs: [release, build-android]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -350,11 +439,10 @@ jobs:
         id: check_creds
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ] || [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
-            echo "::notice::Skipping Google Play - credentials not configured"
+            echo "::notice::Skipping Google Play - PLAY_SERVICE_ACCOUNT_JSON not configured"
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
@@ -362,27 +450,6 @@ jobs:
       - name: Checkout repository
         if: steps.check_creds.outputs.skip != 'true'
         uses: actions/checkout@v4
-
-      - name: Verify tag matches versionName
-        if: steps.check_creds.outputs.skip != 'true'
-        run: |
-          VN=$(grep 'versionName = ' android/app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-          echo "Tag: ${{ github.ref_name }} | versionName: $VN"
-          if [ "$VN" != "${{ github.ref_name }}" ]; then
-            echo "::error::Tag ${{ github.ref_name }} does not match versionName $VN. Bump versionName (and versionCode) in android/app/build.gradle.kts before tagging."
-            exit 1
-          fi
-
-      - name: Setup Java
-        if: steps.check_creds.outputs.skip != 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        if: steps.check_creds.outputs.skip != 'true'
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Setup Ruby
         if: steps.check_creds.outputs.skip != 'true'
@@ -392,33 +459,26 @@ jobs:
           working-directory: android
           bundler-cache: true
 
-      - name: Decode signing + Play credentials
+      - name: Download Android AAB
         if: steps.check_creds.outputs.skip != 'true'
-        working-directory: android
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload-keystore.jks
-          echo "$PLAY_SERVICE_ACCOUNT_JSON" > play-service-account.json
+        uses: actions/download-artifact@v4
+        with:
+          name: android-aab
+          path: android/release
 
-      - name: Build release AAB
+      - name: Write Play credentials
         if: steps.check_creds.outputs.skip != 'true'
         working-directory: android
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
-          KEYSTORE_FILE: upload-keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: echo "$PLAY_SERVICE_ACCOUNT_JSON" > play-service-account.json
 
       - name: Upload to Google Play
         if: steps.check_creds.outputs.skip != 'true'
         working-directory: android
         env:
           SUPPLY_JSON_KEY: ${{ github.workspace }}/android/play-service-account.json
-        run: bundle exec fastlane android deploy track:"${{ vars.ANDROID_PLAY_TRACK || 'internal' }}"
+        run: bundle exec fastlane android deploy track:"${{ vars.ANDROID_PLAY_TRACK || 'internal' }}" aab:"${{ github.workspace }}/android/release/app-release.aab"
 
       - name: Summary
         if: steps.check_creds.outputs.skip != 'true'
