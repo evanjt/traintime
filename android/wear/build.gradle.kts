@@ -36,6 +36,12 @@ android {
 }
 
 dependencies {
+    constraints {
+        // Wear/activity-compose drags in an old fragment transitively, which trips
+        // the InvalidFragmentVersionForActivityResult lint check (same as :app).
+        implementation("androidx.fragment:fragment:1.8.5")
+    }
+
     implementation(project(":core"))
 
     implementation(platform(libs.compose.bom))
