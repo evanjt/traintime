@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Frame screenshots in device mockups for all platforms."""
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import io
 import os
@@ -10,6 +10,23 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 APPLE_DIR = os.path.join(SCRIPT_DIR, "apple")
 GARMIN_DIR = os.path.join(SCRIPT_DIR, "garmin")
 IPHONE_DIR = os.path.join(SCRIPT_DIR, "iphone")
+REPO_SCREENSHOTS = os.path.join(SCRIPT_DIR, "..", "..", "screenshots")
+STORE_DIR = os.path.join(SCRIPT_DIR, "store")
+
+# Captioned store frames are built from the editorial captures in repo screenshots/.
+# Light theme keeps the set cohesive; swap to the -dark variants for a dark set.
+STORE_FRAMES = [
+    ("01-station-light.png", "Live departures, to the second"),
+    ("24-active-light.png", "Know exactly when to leave"),
+    ("04-station-light-fav.png", "Your favourites, up top"),
+    ("08-widgets-light.png", "A widget for your home screen"),
+]
+STORE_BG = (245, 246, 248)
+STORE_FG = (18, 20, 24)
+FONT_CANDIDATES = [
+    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+]
 
 
 def frame_apple_watch():
@@ -244,6 +261,70 @@ def frame_iphone():
         print(f"  Framed: {src_name} -> {dst_name}")
 
 
+def _store_font(size):
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
+def _draw_caption(draw, text, width, band_h, pad, color, font):
+    max_w = width - 2 * pad
+    lines, cur = [], ""
+    for word in text.split():
+        trial = (cur + " " + word).strip()
+        if draw.textlength(trial, font=font) <= max_w:
+            cur = trial
+        else:
+            if cur:
+                lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+
+    ascent, descent = font.getmetrics()
+    line_h = ascent + descent
+    y = (band_h - line_h * len(lines)) // 2
+    for line in lines:
+        lw = draw.textlength(line, font=font)
+        draw.text(((width - lw) // 2, y), line, font=font, fill=color)
+        y += line_h
+
+
+def frame_store_phone(target, out_subdir):
+    """Compose captioned store screenshots: a feature caption above the app screen,
+    scaled to fit the frame. App Store 6.9" wants 1320x2868; Play stays within 2:1."""
+    width, height = target
+    out_dir = os.path.join(STORE_DIR, out_subdir)
+    os.makedirs(out_dir, exist_ok=True)
+    band_h = int(height * 0.16)
+    pad = int(width * 0.06)
+    font = _store_font(int(width * 0.058))
+
+    for i, (src, caption) in enumerate(STORE_FRAMES, 1):
+        src_path = os.path.join(REPO_SCREENSHOTS, src)
+        if not os.path.exists(src_path):
+            print(f"  Skipping {src} (not found)")
+            continue
+
+        canvas = Image.new("RGB", (width, height), STORE_BG)
+        draw = ImageDraw.Draw(canvas)
+        _draw_caption(draw, caption, width, band_h, pad, STORE_FG, font)
+
+        shot = Image.open(src_path).convert("RGB")
+        area_w = width - 2 * pad
+        area_h = height - band_h - pad
+        scale = min(area_w / shot.width, area_h / shot.height)
+        shot = shot.resize((int(shot.width * scale), int(shot.height * scale)), Image.LANCZOS)
+        x = (width - shot.width) // 2
+        y = band_h + (area_h - shot.height) // 2
+        canvas.paste(shot, (x, y))
+
+        out_path = os.path.join(out_dir, f"{i:02d}.png")
+        canvas.save(out_path)
+        print(f"  Store frame: {src} -> {out_subdir}/{i:02d}.png")
+
+
 if __name__ == "__main__":
     print("Framing Apple Watch screenshots...")
     frame_apple_watch()
@@ -253,5 +334,9 @@ if __name__ == "__main__":
     print()
     print("Framing iPhone screenshots...")
     frame_iphone()
+    print()
+    print("Framing store phone screenshots...")
+    frame_store_phone((1320, 2868), "appstore")
+    frame_store_phone((1080, 2160), "play")
     print()
     print("Done!")
