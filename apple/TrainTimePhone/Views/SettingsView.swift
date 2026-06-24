@@ -1,11 +1,10 @@
 import SwiftUI
-import StoreKit
 
 struct PhoneSettingsView: View {
     @ObservedObject var viewModel: PhoneViewModel
     @ObservedObject private var favouritesStore = FavouritesStore.shared
     @Environment(\.dismiss) var dismiss
-    @Environment(\.requestReview) private var requestReview
+    @Environment(\.openURL) private var openURL
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
 
     var body: some View {
@@ -71,7 +70,9 @@ struct PhoneSettingsView: View {
 
                 Section {
                     Button {
-                        requestReview()
+                        if let url = URL(string: "https://apps.apple.com/app/id6760388620?action=write-review") {
+                            openURL(url)
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "star.fill")

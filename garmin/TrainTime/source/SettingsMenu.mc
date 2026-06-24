@@ -6,8 +6,7 @@ module SettingsMenu {
 
     // openWebPage surfaces this on the paired phone via Garmin Connect Mobile.
     // There is no on-device review API, so the listing opens in the store there.
-    // Placeholder, set to the real Connect IQ Store listing URL from the dashboard.
-    const STORE_URL = "https://apps.garmin.com/apps/REPLACE-WITH-APP-UUID";
+    const STORE_URL = "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb";
 
     function modeLabel(mode) {
         if (mode == 1) { return "Bus"; }
