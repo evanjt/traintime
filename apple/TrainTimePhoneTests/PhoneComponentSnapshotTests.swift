@@ -75,4 +75,10 @@ final class PhoneComponentSnapshotTests: XCTestCase {
             .background(Color(uiColor: .systemBackground))
         assertLightDark(AnyView(view), "phone_formation")
     }
+
+    func testOnboarding() {
+        let view = OnboardingView(onFinish: {})
+            .frame(width: 390, height: 844)
+        assertLightDark(AnyView(view), "phone_onboarding")
+    }
 }
