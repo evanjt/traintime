@@ -1,7 +1,6 @@
 package com.evanjt.traintime.review
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import com.google.android.play.core.ktx.launchReview
@@ -31,17 +30,10 @@ object ReviewLauncher {
 
     private fun openStoreListing(activity: Activity) {
         val id = activity.packageName
-        try {
-            activity.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$id")),
-            )
-        } catch (_: ActivityNotFoundException) {
-            activity.startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://play.google.com/store/apps/details?id=$id"),
-                ),
-            )
-        }
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$id"))
+        val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$id"))
+        // No Play app falls back to the browser; a device with neither must not crash.
+        runCatching { activity.startActivity(market) }
+            .onFailure { runCatching { activity.startActivity(web) } }
     }
 }
