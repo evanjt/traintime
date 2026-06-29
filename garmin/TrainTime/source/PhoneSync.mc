@@ -19,6 +19,13 @@ module PhoneSync {
         transmit({ "kind" => "state", "defaultMode" => mode });
     }
 
+    // Ask the phone to send its current location. Used as a GPS fallback when the
+    // watch's own signal is weak or it's outside Switzerland. The phone replies
+    // with an {action:"loc", lat, lon} message handled by onPhoneLocation.
+    function requestLocation() {
+        transmit({ "kind" => "reqLoc" });
+    }
+
     // The watch entered tracking for a departure. Lets the phone reflect the same
     // focused train. Keys mirror the inbound track contract (line/dest/depTs/...).
     function sendTrackStarted(focused, stationId) {

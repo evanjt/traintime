@@ -30,7 +30,7 @@ class TrainTimeApp extends Application.AppBase {
 
     function onPhoneMessage(msg as Communications.PhoneAppMessage) as Void {
         if (mView != null) {
-            mView.enterTrackingFromPhone(msg.data);
+            mView.handlePhoneMessage(msg.data);
         }
     }
 

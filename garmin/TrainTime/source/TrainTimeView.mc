@@ -55,6 +55,10 @@ class TrainTimeView extends WatchUi.View {
     var mMapErrorTick;  // timestamp when error was set
     var mManualStation; // true when a station was picked via quick-launch (suppress GPS re-search)
     var mPendingFavTrack; // {line, dest} awaiting a fetch to jump into tracking
+    var mPhoneLat;        // last location pushed by the phone (backfill when watch GPS is weak)
+    var mPhoneLon;
+    var mPhoneLocTs;      // epoch seconds the phone location arrived
+    var mLastLocRequestTs; // epoch seconds we last asked the phone for its location (throttle)
 
     function initialize() {
         View.initialize();
@@ -86,6 +90,10 @@ class TrainTimeView extends WatchUi.View {
         mStationLon = null;
         mTickCount = 0;
         mLastWalkDist = null;
+        mPhoneLat = null;
+        mPhoneLon = null;
+        mPhoneLocTs = null;
+        mLastLocRequestTs = null;
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
@@ -538,6 +546,136 @@ class TrainTimeView extends WatchUi.View {
         mMapActive = false;
     }
 
+    // Single inbound entry point for everything the phone sends. Each action is
+    // an optional overlay: with no phone, or an unknown action, this is a no-op
+    // and the watch keeps running entirely on its own.
+    function handlePhoneMessage(data) {
+        if (data == null || !data.hasKey("action")) { return; }
+        var action = data["action"];
+        if (action.equals("track")) {
+            enterTrackingFromPhone(data);
+        } else if (action.equals("mode")) {
+            setModeFromPhone(data.hasKey("mode") ? data["mode"].toNumber() : null);
+        } else if (action.equals("station")) {
+            showStationFromPhone(data);
+        } else if (action.equals("loc")) {
+            onPhoneLocation(data);
+        }
+    }
+
+    // Mirror a mode switch made on the phone. Switches among the nearby station
+    // groups the watch already holds; if it has none for that mode (e.g. relying
+    // on phone-backfilled location), pulls a fresh search.
+    function setModeFromPhone(mode) {
+        if (mode == null) { return; }
+        var stations = getStationsForMode(mode);
+        if (stations != null && stations.size() > 0) {
+            mCurrentMode = mode;
+            mManualStation = false;
+            mStations = stations;
+            mStationIndex = 0;
+            selectStation(0);
+        } else {
+            mCurrentMode = mode;
+            var pos = effectivePosition();
+            if (pos != null && !mRequestInFlight) {
+                mStatus = "Finding stations...";
+                mRequestInFlight = true;
+                mRequestStartTime = Time.now().value();
+                ApiHandler.fetchStations(self, pos[0], pos[1]);
+            }
+        }
+        WatchUi.requestUpdate();
+    }
+
+    // Mirror a station the phone picked. Reuses the quick-launch path, so the
+    // station is shown exactly as a pinned station would be.
+    function showStationFromPhone(data) {
+        if (data == null) { return; }
+        var stId = data.hasKey("stId") ? data["stId"] : null;
+        if (stId == null) { return; }
+        var name = data.hasKey("name") ? data["name"] : "Station";
+        var lat = data.hasKey("lat") ? data["lat"] : null;
+        var lon = data.hasKey("lon") ? data["lon"] : null;
+        launchStation(stId, name, lat, lon);
+    }
+
+    // The phone pushed its current location. Supplemental only — recorded for use
+    // when the watch's own GPS is unusable or outside Switzerland.
+    function onPhoneLocation(data) {
+        if (data == null) { return; }
+        var lat = data.hasKey("lat") ? data["lat"] : null;
+        var lon = data.hasKey("lon") ? data["lon"] : null;
+        if (lat == null || lon == null) { return; }
+        mPhoneLat = lat;
+        mPhoneLon = lon;
+        mPhoneLocTs = Time.now().value();
+        // Use it straight away if our own GPS isn't giving a usable in-bounds fix.
+        if (!gpsUsableInBounds()) {
+            searchFromPhoneLocation();
+            if (mAppState >= 2) { updateWalkDistance(); }
+        }
+        WatchUi.requestUpdate();
+    }
+
+    // True when the watch's own GPS is good enough AND inside Switzerland. A fix
+    // like this is always preferred over the phone — the watch stays primary.
+    function gpsUsableInBounds() {
+        if (mLocationInfo == null || mLocationInfo.position == null) { return false; }
+        if (mGpsQuality == null || mGpsQuality < Position.QUALITY_POOR) { return false; }
+        var c = mLocationInfo.position.toDegrees();
+        var lat = c[0];
+        var lon = c[1];
+        return lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
+    }
+
+    function phoneLocFresh() {
+        if (mPhoneLat == null || mPhoneLon == null || mPhoneLocTs == null) { return false; }
+        return (Time.now().value() - mPhoneLocTs) < 120;
+    }
+
+    // Best-known user position: a usable in-bounds watch fix wins; else a fresh
+    // phone location; else any watch fix we hold; else the last search point.
+    // Never lets phone coords override a good watch fix.
+    function effectivePosition() {
+        if (gpsUsableInBounds()) {
+            return mLocationInfo.position.toDegrees();
+        }
+        if (phoneLocFresh()) {
+            return [ mPhoneLat, mPhoneLon ];
+        }
+        if (mLocationInfo != null && mLocationInfo.position != null) {
+            return mLocationInfo.position.toDegrees();
+        }
+        if (mLastSearchLat != null && mLastSearchLon != null) {
+            return [ mLastSearchLat, mLastSearchLon ];
+        }
+        return null;
+    }
+
+    // When the watch has no station and a fresh phone location exists, kick off a
+    // nearby search from the phone's coordinates. Returns true if it handled it.
+    function searchFromPhoneLocation() {
+        if (!phoneLocFresh()) { return false; }
+        if (mStationId != null || mManualStation || mAppState >= 2) { return false; }
+        if (mRequestInFlight) { return true; }
+        mStatus = "Finding stations...";
+        mRequestInFlight = true;
+        mRequestStartTime = Time.now().value();
+        ApiHandler.fetchStations(self, mPhoneLat, mPhoneLon);
+        return true;
+    }
+
+    // Ask the phone for its location when the watch GPS is weak. Throttled so a
+    // run of bad fixes doesn't spam the channel.
+    function requestPhoneLocation() {
+        if (mLastLocRequestTs != null && (Time.now().value() - mLastLocRequestTs) < 30) {
+            return;
+        }
+        mLastLocRequestTs = Time.now().value();
+        PhoneSync.requestLocation();
+    }
+
     function enterTrackingFromPhone(data) {
         if (data == null) { return; }
         if (!data.hasKey("action") || !data["action"].equals("track")) { return; }
@@ -620,15 +758,9 @@ class TrainTimeView extends WatchUi.View {
 
     function getWalkMinutes() {
         if (mStationLat != null && mStationLon != null) {
-            if (mLocationInfo != null && mLocationInfo.position != null) {
-                var coords = mLocationInfo.position.toDegrees();
-                var dist = GeoMath.calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
-                mLastWalkDist = dist;
-                return dist / 83.0;
-            }
-            // Fallback to cached search position
-            if (mLastSearchLat != null && mLastSearchLon != null) {
-                var dist = GeoMath.calculateDistance(mLastSearchLat, mLastSearchLon, mStationLat, mStationLon);
+            var pos = effectivePosition();
+            if (pos != null) {
+                var dist = GeoMath.calculateDistance(pos[0], pos[1], mStationLat, mStationLon);
                 mLastWalkDist = dist;
                 return dist / 83.0;
             }
@@ -653,11 +785,11 @@ class TrainTimeView extends WatchUi.View {
         if (mStationLat == null || mStationLon == null) {
             return;
         }
-        if (mLocationInfo == null || mLocationInfo.position == null) {
+        var pos = effectivePosition();
+        if (pos == null) {
             return;
         }
-        var coords = mLocationInfo.position.toDegrees();
-        var dist = GeoMath.calculateDistance(coords[0], coords[1], mStationLat, mStationLon);
+        var dist = GeoMath.calculateDistance(pos[0], pos[1], mStationLat, mStationLon);
         mWalkInfo = formatWalkInfo(dist);
     }
 
@@ -843,6 +975,11 @@ class TrainTimeView extends WatchUi.View {
         if (info == null || info.position == null
                 || info.accuracy == Position.QUALITY_NOT_AVAILABLE) {
             if (mStationId == null && !mLoadedFromCache) {
+                // No usable watch GPS — lean on the phone if it offered one,
+                // else ask the phone for it.
+                if (!searchFromPhoneLocation()) {
+                    requestPhoneLocation();
+                }
                 WatchUi.requestUpdate();
             }
             return;
@@ -874,7 +1011,12 @@ class TrainTimeView extends WatchUi.View {
         // Switzerland bounding box check — don't clear loaded stations (border hysteresis)
         if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
             if (mStationId == null) {
-                mStatus = "Not in Switzerland";
+                // Outside Switzerland with no station — fall back to the phone's
+                // location if it has one, else ask for it.
+                if (!searchFromPhoneLocation()) {
+                    mStatus = "Not in Switzerland";
+                    requestPhoneLocation();
+                }
                 WatchUi.requestUpdate();
             }
             return;
@@ -957,7 +1099,10 @@ class TrainTimeView extends WatchUi.View {
 
                 if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
                     if (mStationId == null) {
-                        mStatus = "Not in Switzerland";
+                        if (!searchFromPhoneLocation()) {
+                            mStatus = "Not in Switzerland";
+                            requestPhoneLocation();
+                        }
                         WatchUi.requestUpdate();
                     }
                     return;
@@ -970,6 +1115,11 @@ class TrainTimeView extends WatchUi.View {
                     mRequestStartTime = Time.now().value();
                     ApiHandler.fetchStations(self, lat, lon);
                 }
+            }
+        } else if (mStationId == null && mAppState <= 1 && !mManualStation) {
+            // No usable watch GPS this tick — backfill from the phone if we can.
+            if (!searchFromPhoneLocation()) {
+                requestPhoneLocation();
             }
         }
 
