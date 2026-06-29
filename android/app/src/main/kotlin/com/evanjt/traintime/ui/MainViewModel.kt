@@ -147,6 +147,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var lastPushedLoc: LatLon? = null
     private var lastLocPushTime = 0L
 
+    // Watch-app liveness. The watch announces itself (hello/alive/bye); the phone never
+    // pings (a phone message can wake a closed watch-app). A fresh alive → green, a stale
+    // one or a bye → amber, and a press shows the spinner until the watch says hello.
+    private var heartbeatJob: Job? = null
+    private var lastAliveTime = 0L
+    var watchChecking by mutableStateOf(false)
+        private set
+    var watchAlive by mutableStateOf(false)
+        private set
+
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
@@ -242,27 +252,64 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminTargetIds = garmin.map { it.id }
             watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
             pushLocationNow()
+            startHeartbeat()
         }
     }
 
-    // Launch TrainTime on the connected Garmin watch(es), then feed the current location so it
-    // lands inside Switzerland straight away. Triggered by the header watch indicator. openApp
-    // is best-effort over BLE; if nothing happens, tapping again retries.
+    // Launch TrainTime on the connected Garmin watch(es) — the one place we legitimately
+    // wake the watch, because the user asked. Then feed the current location so it lands
+    // inside Switzerland straight away. Shows the spinner until the watch announces itself
+    // (green) or a timeout elapses (amber). openApp is best-effort over BLE; tap again to retry.
     fun openWatchApp() {
         viewModelScope.launch {
             val garmin = garminService.eligibleDevices()
             garminTargetIds = garmin.map { it.id }
             if (garmin.isEmpty()) {
+                watchChecking = false
+                watchAlive = false
                 showWatchStatus("No watch connected")
                 return@launch
             }
+            // Already open — just push the current view to it, no relaunch needed.
+            if (watchAlive) {
+                syncCurrentStateToWatch()
+                return@launch
+            }
+            watchChecking = true
             garmin.forEach { garminService.openApp(it.id) }
-            showWatchStatus("Opening on watch")
-            // Let the watch app start and register its message handler before pushing coords.
-            delay(1500)
-            pushLocationNow()
+            // The watch sends "hello" once it starts, which flips us to alive and triggers
+            // a state sync. Give it a window; if nothing arrives, settle to amber.
+            delay(8000)
+            if (watchChecking) {
+                watchChecking = false
+                watchAlive = isAliveFresh()
+            }
         }
     }
+
+    // Passive liveness ticker. We never ping the watch (a phone message can wake a closed
+    // watch-app on Garmin); the watch announces itself with hello/alive/bye and this only
+    // recomputes the colour from the freshest signal. Sends nothing.
+    private fun startHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = viewModelScope.launch {
+            while (true) {
+                if (!watchChecking) {
+                    watchAlive = garminTargetIds.isNotEmpty() && isAliveFresh()
+                }
+                delay(3000)
+            }
+        }
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    // An alive/hello within the last few heartbeat intervals counts as alive (the watch
+    // beats every ~7s, so tolerate a couple of drops).
+    private fun isAliveFresh(): Boolean = now() - lastAliveTime <= 20_000
 
     fun onDisappear() {
         // The widget is only visible once we background; seed its cache with what
@@ -270,6 +317,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         seedWidgetCache()
         location.stop()
         stopTimer()
+        stopHeartbeat()
     }
 
     fun onPermissionResult(granted: Boolean) {
@@ -567,14 +615,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Push an action payload to every eligible Garmin watch when mirroring is on.
     // Optional overlay: off, or no watch → no-op. Fire-and-forget, never blocks.
     private fun mirrorToGarmin(payload: Map<String, Any?>) {
-        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        if (!canMessageWatch()) return
         viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
     }
+
+    // True only when we may send to the watch: mirroring on, a target exists, and the
+    // watch app is actually open. The last guard is what stops the phone from waking a
+    // closed watch-app.
+    private fun canMessageWatch(): Boolean = mirrorToWatch && garminTargetIds.isNotEmpty() && watchAlive
 
     // Debounced variant for rapid changes (mode cycling, station scrolling) — the
     // latest settled state wins, so the BLE channel isn't flooded.
     private fun mirrorToGarminDebounced(payload: () -> Map<String, Any?>) {
-        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        if (!canMessageWatch()) return
         mirrorJob?.cancel()
         mirrorJob = viewModelScope.launch {
             delay(300)
@@ -587,7 +640,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // the watch so it has a fallback for weak GPS. Debounced ≥10 s / ≥100 m so a
     // settled phone (or a mock-GPS app) keeps the watch fed without flooding.
     private fun maybePushLocationToWatch(coord: LatLon) {
-        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        if (!canMessageWatch()) return
         val last = lastPushedLoc
         val movedEnough = last == null ||
             GeoUtils.haversineDistance(last.lat, last.lon, coord.lat, coord.lon) >= 100.0
@@ -601,11 +654,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Force-push the current location to all eligible watches, bypassing the
     // movement/time debounce. Used on app open and when opening the watch app.
     private fun pushLocationNow() {
-        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        if (!canMessageWatch()) return
         val coord = location.coordinate.value ?: return
         lastPushedLoc = coord
         lastLocPushTime = now()
         val payload = WearSync.garminLocationPayload(coord.lat, coord.lon)
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+    }
+
+    // Bring a freshly-opened watch in line with the phone: the tracked train if we're
+    // tracking, otherwise the current station, plus the current location. This is what
+    // makes the watch button (header or tracking screen) open the watch onto the same view.
+    private fun syncCurrentStateToWatch() {
+        if (!canMessageWatch()) return
+        pushLocationNow()
+        val focused = focusedTrain
+        val payload = if (appState == 2 && focused != null) {
+            TrackCommand.from(focused, currentStation?.id).toGarminMap()
+        } else {
+            currentStation?.let { st ->
+                WearSync.garminStationPayload(st.id, st.name ?: "Station", st.lat, st.lon)
+            }
+        } ?: return
         viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
     }
 
@@ -654,6 +724,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Applies a state sync pushed from a watch (defaultMode). Garmin sends this via the
     // Connect IQ message channel; Wear arrives through the listener service / DataClient.
     private fun applyReceivedWatchContext(ctx: Map<String, Any?>) {
+        // Liveness announcement — the watch app is open and reachable (hello on launch,
+        // alive as its periodic heartbeat).
+        if (ctx["kind"] == "hello" || ctx["kind"] == "alive") {
+            val wasAlive = watchAlive
+            lastAliveTime = now()
+            watchAlive = true
+            watchChecking = false
+            // A freshly-online watch jumps to whatever the phone is showing (tracking
+            // train, or current station) and gets seeded with the phone's location.
+            if (!wasAlive) syncCurrentStateToWatch()
+            return
+        }
+        // The watch app is closing — flip the indicator straight away.
+        if (ctx["kind"] == "bye") {
+            lastAliveTime = 0L
+            watchAlive = false
+            watchChecking = false
+            return
+        }
         // The watch is asking for the phone's location (its own GPS is weak).
         if (ctx["kind"] == "reqLoc") {
             replyWithLocation()
@@ -677,6 +766,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun exitToStationView() {
+        val wasTracking = appState == 2
         lastInteractionTime = now()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -684,6 +774,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         formation = null
         consecutiveErrors = 0
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+        // Mirror the exit so the watch leaves tracking and returns to its station view.
+        if (wasTracking) mirrorToGarmin(mapOf("action" to "back"))
     }
 
     // Mode navigation

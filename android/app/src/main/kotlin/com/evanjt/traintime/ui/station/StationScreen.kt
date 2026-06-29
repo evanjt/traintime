@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.theme.tint
 import kotlinx.coroutines.launch
 
@@ -83,17 +84,49 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
-            // Watch link indicator — only when a watch is connected. Taps launch TrainTime
-            // on the watch and feed it the phone's current location.
+            // Watch link indicator — only when a watch is connected. For Garmin, the colour
+            // tracks liveness (green = app open and answering, amber = closed) and a tap
+            // launches TrainTime on the watch, showing a spinner until it answers a ping.
             if (viewModel.watchLinks.isNotEmpty()) {
-                Icon(
-                    Icons.Filled.Watch,
-                    contentDescription = "Open TrainTime on the watch",
-                    tint = palette.platform,
-                    modifier = Modifier
-                        .clickable { viewModel.openWatchApp() }
-                        .padding(end = 12.dp),
-                )
+                val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
+                if (hasGarmin) {
+                    // The status colour lives on the watch body; while checking, a spinner
+                    // runs inside the watch's screen so the whole control reads as "the watch
+                    // is working". Footprint is fixed so the header never shifts.
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .clickable { viewModel.openWatchApp() }
+                            .padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Watch,
+                            contentDescription = "Open TrainTime on the watch",
+                            tint = when {
+                                viewModel.watchChecking -> secondary
+                                viewModel.watchAlive -> Color(0xFF34C759)
+                                else -> Color(0xFFFFB300)
+                            },
+                            modifier = Modifier.size(30.dp),
+                        )
+                        if (viewModel.watchChecking) {
+                            CircularProgressIndicator(
+                                color = palette.platform,
+                                strokeWidth = 1.5.dp,
+                                modifier = Modifier.size(15.dp),
+                            )
+                        }
+                    }
+                } else {
+                    Icon(
+                        Icons.Filled.Watch,
+                        contentDescription = "Watch — open settings",
+                        tint = palette.platform,
+                        modifier = Modifier
+                            .clickable { onOpenSettings(true) }
+                            .padding(end = 12.dp),
+                    )
+                }
             }
             Icon(
                 Icons.Filled.LocationOn,
