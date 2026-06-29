@@ -19,6 +19,22 @@ module PhoneSync {
         transmit({ "kind" => "state", "defaultMode" => mode });
     }
 
+    // Liveness is announced by the watch, never polled by the phone — a phone message
+    // can wake a closed watch-app on Garmin, so the phone must stay silent until the
+    // user explicitly opens the watch. hello on launch, alive as a periodic heartbeat,
+    // bye on exit. The phone listens and colours its indicator from these.
+    function sendHello() {
+        transmit({ "kind" => "hello" });
+    }
+
+    function sendAlive() {
+        transmit({ "kind" => "alive" });
+    }
+
+    function sendClosing() {
+        transmit({ "kind" => "bye" });
+    }
+
     // Ask the phone to send its current location. Used as a GPS fallback when the
     // watch's own signal is weak or it's outside Switzerland. The phone replies
     // with an {action:"loc", lat, lon} message handled by onPhoneLocation.

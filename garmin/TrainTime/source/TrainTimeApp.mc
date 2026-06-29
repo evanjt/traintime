@@ -12,9 +12,14 @@ class TrainTimeApp extends Application.AppBase {
 
     function onStart(state) {
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
+        // Announce we're up so a listening phone greens its link indicator at once.
+        PhoneSync.sendHello();
     }
 
     function onStop(state) {
+        // Best-effort "closing" notice for the phone link indicator. Covers exits
+        // that go through the lifecycle rather than the Back-button System.exit path.
+        PhoneSync.sendClosing();
     }
 
     function getInitialView() {

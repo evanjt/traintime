@@ -59,6 +59,7 @@ class TrainTimeView extends WatchUi.View {
     var mPhoneLon;
     var mPhoneLocTs;      // epoch seconds the phone location arrived
     var mLastLocRequestTs; // epoch seconds we last asked the phone for its location (throttle)
+    var mLastAliveTs;      // epoch seconds we last sent a liveness heartbeat to the phone
 
     function initialize() {
         View.initialize();
@@ -94,6 +95,7 @@ class TrainTimeView extends WatchUi.View {
         mPhoneLon = null;
         mPhoneLocTs = null;
         mLastLocRequestTs = null;
+        mLastAliveTs = null;
         mAppState = 0;
         mCursorIndex = 0;
         mFocusedTrain = null;
@@ -560,6 +562,12 @@ class TrainTimeView extends WatchUi.View {
             showStationFromPhone(data);
         } else if (action.equals("loc")) {
             onPhoneLocation(data);
+        } else if (action.equals("back")) {
+            // The phone left tracking — follow it back to the station view.
+            if (mAppState == 2) {
+                exitToStationView();
+                WatchUi.requestUpdate();
+            }
         }
     }
 
@@ -1073,6 +1081,17 @@ class TrainTimeView extends WatchUi.View {
 
     function onTimerTick() as Void {
         mTickCount = mTickCount + 1;
+
+        // Liveness heartbeat to the phone every ~7s while a phone is connected. The
+        // phone never pings us (that could wake a closed app), so this is how it knows
+        // the app is open.
+        if (System.getDeviceSettings().phoneConnected) {
+            var nowSec = Time.now().value();
+            if (mLastAliveTs == null || (nowSec - mLastAliveTs) >= 7) {
+                mLastAliveTs = nowSec;
+                PhoneSync.sendAlive();
+            }
+        }
 
         // Request timeout: if in-flight for >30s, force-reset
         if (mRequestInFlight && mRequestStartTime != null) {
