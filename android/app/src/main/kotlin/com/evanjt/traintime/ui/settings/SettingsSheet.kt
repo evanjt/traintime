@@ -127,6 +127,19 @@ fun SettingsSheet(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 Text(BuildConfig.VERSION_NAME, color = secondary)
             }
 
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.replayOnboarding()
+                        onDismiss()
+                    }
+                    .padding(top = 16.dp),
+            ) {
+                Text("Replay walkthrough", color = onSurface)
+            }
+
             val activity = LocalContext.current as? android.app.Activity
             Row(
                 verticalAlignment = Alignment.CenterVertically,

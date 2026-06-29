@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -21,7 +23,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -31,13 +35,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
-import com.evanjt.traintime.ui.onboarding.OnboardingScreen
+import com.evanjt.traintime.ui.onboarding.OnboardingTour
 import com.evanjt.traintime.ui.settings.SettingsSheet
 import com.evanjt.traintime.ui.station.InactiveScreen
 import com.evanjt.traintime.ui.station.StationPickerSheet
 import com.evanjt.traintime.ui.station.StationScreen
 import com.evanjt.traintime.ui.theme.TrainTimeTheme
 import com.evanjt.traintime.ui.tracking.TrackingScreen
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -150,8 +155,22 @@ private fun RootView(viewModel: MainViewModel) {
     }
 
     // First-launch walkthrough sits above everything until completed or skipped.
+    // It never auto-shows again once seen; a snackbar points to the Settings replay.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     val hasSeenOnboarding by viewModel.prefs.hasSeenOnboarding.collectAsState(initial = true)
     if (!hasSeenOnboarding) {
-        OnboardingScreen(onComplete = { viewModel.markOnboardingSeen() })
+        OnboardingTour(
+            onComplete = {
+                viewModel.markOnboardingSeen()
+                snackbarScope.launch {
+                    snackbarHostState.showSnackbar("You can replay the tour anytime in Settings.")
+                }
+            },
+        )
+    }
+
+    Box(Modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.BottomCenter) {
+        SnackbarHost(snackbarHostState)
     }
 }

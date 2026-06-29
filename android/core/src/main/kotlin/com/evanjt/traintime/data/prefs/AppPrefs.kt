@@ -47,6 +47,11 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = true }
     }
 
+    // Re-arms the walkthrough so the "Replay walkthrough" Settings row can show it again.
+    suspend fun markOnboardingUnseen() {
+        dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = false }
+    }
+
     // Manual appearance override (phone only): "system" follows the OS, "light"
     // and "dark" force the theme.
     val appearanceMode: Flow<String> =

@@ -413,6 +413,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.markOnboardingSeen() }
     }
 
+    fun replayOnboarding() {
+        viewModelScope.launch { prefs.markOnboardingUnseen() }
+    }
+
     fun incrementReviewTrackCount() {
         viewModelScope.launch { prefs.incrementReviewTrackCount() }
     }

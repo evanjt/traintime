@@ -1,7 +1,9 @@
 package com.evanjt.traintime.ui.onboarding
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -16,9 +18,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// Visual regression for the first-launch onboarding carousel (first card) in light
-// and dark, driving the theme through the manual appearance override path. Renders
-// on the JVM via Robolectric — no emulator. A fixed box size keeps goldens stable.
+// Visual regression for the walkthrough's widget look-alike (the Compose replica
+// of the Glance widget shown in the tour's final step) in light and dark, driven
+// through the manual appearance override. Renders on the JVM via Robolectric.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -29,8 +31,8 @@ class OnboardingSnapshotTest {
     private fun capture(name: String, mode: String) {
         composeRule.setContent {
             TrainTimeTheme(appearanceMode = mode) {
-                Box(Modifier.size(411.dp, 891.dp)) {
-                    OnboardingScreen(onComplete = {})
+                Box(Modifier.background(MaterialTheme.colorScheme.background).padding(16.dp)) {
+                    TourWidgetMock()
                 }
             }
         }
@@ -38,15 +40,14 @@ class OnboardingSnapshotTest {
     }
 
     private companion object {
-        // Absorb minor anti-aliasing differences between local and CI rendering.
         val TOLERANT = RoborazziOptions(
             compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
         )
     }
 
     @Test
-    fun onboardingLight() = capture("onboarding_light", mode = "light")
+    fun tourWidgetLight() = capture("tour_widget_light", mode = "light")
 
     @Test
-    fun onboardingDark() = capture("onboarding_dark", mode = "dark")
+    fun tourWidgetDark() = capture("tour_widget_dark", mode = "dark")
 }
