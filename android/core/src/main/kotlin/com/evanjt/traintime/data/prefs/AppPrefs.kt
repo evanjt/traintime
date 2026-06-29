@@ -38,15 +38,14 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_USE_ROUTED_DISTANCE] = value }
     }
 
-    // When on, opening the phone app asks a connected Garmin watch to launch the
-    // TrainTime app (so a Send-to-Watch lands without manually opening it). Default on.
-    val garminAutoOpen: Flow<Boolean> =
-        dataStore.data.map { it[KEY_GARMIN_AUTO_OPEN] ?: true }
+    // When on, the phone mirrors its state (tracked train, mode, station) and its
+    // location to a connected watch. Optional overlay — off means the watch runs
+    // entirely on its own. Default on.
+    val mirrorToWatch: Flow<Boolean> =
+        dataStore.data.map { it[KEY_MIRROR_TO_WATCH] ?: true }
 
-    suspend fun garminAutoOpenNow(): Boolean = garminAutoOpen.first()
-
-    suspend fun setGarminAutoOpen(value: Boolean) {
-        dataStore.edit { it[KEY_GARMIN_AUTO_OPEN] = value }
+    suspend fun setMirrorToWatch(value: Boolean) {
+        dataStore.edit { it[KEY_MIRROR_TO_WATCH] = value }
     }
 
     // First-launch walkthrough flag (phone only). False until the user finishes
@@ -100,7 +99,7 @@ class AppPrefs(context: Context) {
     companion object {
         val KEY_DEFAULT_MODE = intPreferencesKey("defaultMode")
         val KEY_USE_ROUTED_DISTANCE = booleanPreferencesKey("useRoutedDistance")
-        val KEY_GARMIN_AUTO_OPEN = booleanPreferencesKey("garminAutoOpen")
+        val KEY_MIRROR_TO_WATCH = booleanPreferencesKey("mirrorToWatch")
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")

@@ -83,15 +83,15 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
-            // Watch link indicator — only when a watch is connected. Taps open Settings,
-            // where the link status and watch options live.
+            // Watch link indicator — only when a watch is connected. Taps launch TrainTime
+            // on the watch and feed it the phone's current location.
             if (viewModel.watchLinks.isNotEmpty()) {
                 Icon(
                     Icons.Filled.Watch,
-                    contentDescription = "Watch connected — open settings",
+                    contentDescription = "Open TrainTime on the watch",
                     tint = palette.platform,
                     modifier = Modifier
-                        .clickable { onOpenSettings(true) }
+                        .clickable { viewModel.openWatchApp() }
                         .padding(end = 12.dp),
                 )
             }

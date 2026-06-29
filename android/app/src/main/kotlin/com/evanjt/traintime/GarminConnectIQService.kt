@@ -101,7 +101,9 @@ class GarminConnectIQService(private val context: Context) {
         }
     }
 
-    suspend fun sendTrack(deviceId: String, payload: Map<String, Any?>): Boolean {
+    // Generic action-dispatched send to the watch (track / mode / station / loc).
+    // Every payload carries an "action" key the watch switches on in handlePhoneMessage.
+    suspend fun send(deviceId: String, payload: Map<String, Any?>): Boolean {
         if (!isAvailable) return false
         val device = devicesOrEmpty().firstOrNull { it.deviceIdentifier.toString() == deviceId } ?: return false
         ensureRegistered(device)
@@ -115,6 +117,9 @@ class GarminConnectIQService(private val context: Context) {
             }
         }
     }
+
+    suspend fun sendTrack(deviceId: String, payload: Map<String, Any?>): Boolean =
+        send(deviceId, payload)
 
     // Asks the watch to launch the TrainTime app. The watch may show a brief prompt if
     // the app isn't already running; a no-op (APP_IS_ALREADY_RUNNING) when it is.

@@ -160,19 +160,19 @@ fun SettingsSheet(viewModel: MainViewModel, focusWatch: Boolean = false, onDismi
                     }
                 }
 
-                // Auto-open the watch app on phone launch (Garmin only — Wear/Apple
-                // Watch can't be remote-launched the same way).
+                // Mirror phone state + location to the watch (Garmin only). The header
+                // watch icon launches the app on the watch on demand.
                 if (viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }) {
-                    val autoOpen by viewModel.prefs.garminAutoOpen.collectAsState(initial = true)
+                    val mirror by viewModel.prefs.mirrorToWatch.collectAsState(initial = true)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Auto-open watch app", color = onSurface)
-                            Text("Launch TrainTime on the watch when you open the phone app", color = secondary, fontSize = 12.sp)
+                            Text("Mirror to watch", color = onSurface)
+                            Text("Send your tracked train, mode, station and location to the watch", color = secondary, fontSize = 12.sp)
                         }
-                        Switch(checked = autoOpen, onCheckedChange = { viewModel.setGarminAutoOpen(it) })
+                        Switch(checked = mirror, onCheckedChange = { viewModel.setMirrorToWatch(it) })
                     }
                 }
               }

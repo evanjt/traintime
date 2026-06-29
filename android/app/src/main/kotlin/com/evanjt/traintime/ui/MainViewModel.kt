@@ -24,6 +24,7 @@ import com.evanjt.traintime.data.model.PinnedStation
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.core.sync.TrackCommand
+import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
@@ -137,6 +138,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var pendingDeepLink: Uri? = null
     private var timerJob: Job? = null
 
+    // Garmin mirroring (optional overlay; off → the watch runs entirely on its own).
+    // Cached eligible Garmin device IDs so mirror pushes skip a per-change BLE
+    // app-installed sweep; refreshed whenever watch links are.
+    private var garminTargetIds: List<String> = emptyList()
+    private var mirrorToWatch = true
+    private var mirrorJob: Job? = null
+    private var lastPushedLoc: LatLon? = null
+    private var lastLocPushTime = 0L
+
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
@@ -165,6 +175,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // eligibility, so the header indicator and settings update without reopening the app.
         garminService.onLinkChanged = { refreshWatchLinks() }
         garminService.initialize()
+
+        viewModelScope.launch { prefs.mirrorToWatch.collect { mirrorToWatch = it } }
 
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
@@ -216,24 +228,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (location.loadedFromCache) loadedFromCache = true
         }
         startTimer(if (appState == 2) Timing.TRACKING_REFRESH_INTERVAL else Timing.NORMAL_REFRESH_INTERVAL)
-        refreshWatchLinksAndAutoOpen()
+        refreshWatchLinksOnAppear()
     }
 
     // On foreground: find eligible watches (connected + TrainTime installed) for the header
-    // indicator and settings list, and — unless opted out — ask them to open TrainTime so a
-    // Send-to-Watch lands without manually launching it. A single BLE sweep does both. No-op
-    // when nothing eligible, or the app is already running on the watch.
-    private fun refreshWatchLinksAndAutoOpen() {
+    // indicator and settings list, then feed the current location to any already-open watch.
+    // The BLE sweep finishes after the first location emits, so without this push a watch
+    // sitting on "Not in Switzerland" would never pick up the phone's position until it moved.
+    private fun refreshWatchLinksOnAppear() {
         viewModelScope.launch {
             val wear = wearSync.connectedWatchNames().map { WatchLink(it, PhoneWatchType.WEAR, true) }
             val garmin = garminService.eligibleDevices()
+            garminTargetIds = garmin.map { it.id }
             watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
-            if (prefs.garminAutoOpenNow()) garmin.forEach { garminService.openApp(it.id) }
+            pushLocationNow()
         }
     }
 
-    fun setGarminAutoOpen(value: Boolean) {
-        viewModelScope.launch { prefs.setGarminAutoOpen(value) }
+    // Launch TrainTime on the connected Garmin watch(es), then feed the current location so it
+    // lands inside Switzerland straight away. Triggered by the header watch indicator. openApp
+    // is best-effort over BLE; if nothing happens, tapping again retries.
+    fun openWatchApp() {
+        viewModelScope.launch {
+            val garmin = garminService.eligibleDevices()
+            garminTargetIds = garmin.map { it.id }
+            if (garmin.isEmpty()) {
+                showWatchStatus("No watch connected")
+                return@launch
+            }
+            garmin.forEach { garminService.openApp(it.id) }
+            showWatchStatus("Opening on watch")
+            // Let the watch app start and register its message handler before pushing coords.
+            delay(1500)
+            pushLocationNow()
+        }
     }
 
     fun onDisappear() {
@@ -278,6 +306,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (stations.isEmpty()) status = "GPS: Searching..."
             return
         }
+
+        // Keep a connected watch fed with the phone's location as a GPS fallback.
+        maybePushLocationToWatch(coord)
 
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
             status = "Not in Switzerland"
@@ -424,6 +455,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
+
+        // Mirror the same focused train onto the watch (immediate — a tap is a
+        // strong, deliberate action). Keeps the manual "Send to Watch" too.
+        mirrorToGarmin(TrackCommand.from(focused, stationId).toGarminMap())
     }
 
     fun enterInactiveState() {
@@ -519,9 +554,67 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val wear = wearSync.connectedWatchNames().map { WatchLink(it, PhoneWatchType.WEAR, true) }
             // eligibleDevices are connected + have TrainTime installed, so all are reachable.
-            val garmin = garminService.eligibleDevices().map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
-            watchLinks = wear + garmin
+            val garmin = garminService.eligibleDevices()
+            garminTargetIds = garmin.map { it.id }
+            watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
         }
+    }
+
+    fun setMirrorToWatch(value: Boolean) {
+        viewModelScope.launch { prefs.setMirrorToWatch(value) }
+    }
+
+    // Push an action payload to every eligible Garmin watch when mirroring is on.
+    // Optional overlay: off, or no watch → no-op. Fire-and-forget, never blocks.
+    private fun mirrorToGarmin(payload: Map<String, Any?>) {
+        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+    }
+
+    // Debounced variant for rapid changes (mode cycling, station scrolling) — the
+    // latest settled state wins, so the BLE channel isn't flooded.
+    private fun mirrorToGarminDebounced(payload: () -> Map<String, Any?>) {
+        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        mirrorJob?.cancel()
+        mirrorJob = viewModelScope.launch {
+            delay(300)
+            val p = payload()
+            garminTargetIds.forEach { garminService.send(it, p) }
+        }
+    }
+
+    // Proactive location backfill: when mirroring, push the phone's coordinate to
+    // the watch so it has a fallback for weak GPS. Debounced ≥10 s / ≥100 m so a
+    // settled phone (or a mock-GPS app) keeps the watch fed without flooding.
+    private fun maybePushLocationToWatch(coord: LatLon) {
+        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        val last = lastPushedLoc
+        val movedEnough = last == null ||
+            GeoUtils.haversineDistance(last.lat, last.lon, coord.lat, coord.lon) >= 100.0
+        if (!movedEnough && now() - lastLocPushTime < 10_000) return
+        lastPushedLoc = coord
+        lastLocPushTime = now()
+        val payload = WearSync.garminLocationPayload(coord.lat, coord.lon)
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+    }
+
+    // Force-push the current location to all eligible watches, bypassing the
+    // movement/time debounce. Used on app open and when opening the watch app.
+    private fun pushLocationNow() {
+        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        val coord = location.coordinate.value ?: return
+        lastPushedLoc = coord
+        lastLocPushTime = now()
+        val payload = WearSync.garminLocationPayload(coord.lat, coord.lon)
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+    }
+
+    // Reply to a watch's explicit reqLoc with the phone's current coordinate.
+    private fun replyWithLocation() {
+        if (!mirrorToWatch || garminTargetIds.isEmpty()) return
+        val coord = location.coordinate.value ?: return
+        val payload = WearSync.garminLocationPayload(coord.lat, coord.lon)
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
     }
 
     private suspend fun currentConnectedWatches(): List<ConnectedWatch> {
@@ -561,6 +654,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Applies a state sync pushed from a watch (defaultMode). Garmin sends this via the
     // Connect IQ message channel; Wear arrives through the listener service / DataClient.
     private fun applyReceivedWatchContext(ctx: Map<String, Any?>) {
+        // The watch is asking for the phone's location (its own GPS is weak).
+        if (ctx["kind"] == "reqLoc") {
+            replyWithLocation()
+            return
+        }
         val modeRaw = (ctx["defaultMode"] as? Number)?.toInt() ?: return
         viewModelScope.launch { prefs.setDefaultMode(TransportMode.fromRaw(modeRaw)) }
     }
@@ -596,6 +694,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         currentMode = mode
         stationIndex = 0
         adoptEmbeddedOrFetch()
+        mirrorToGarminDebounced { WearSync.garminModePayload(mode.raw) }
     }
 
     fun selectStation(index: Int) {
@@ -604,6 +703,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         stationIndex = index
         showStationPicker = false
         adoptEmbeddedOrFetch()
+        currentStation?.let { st ->
+            mirrorToGarminDebounced { WearSync.garminStationPayload(st.id, st.name ?: "Station", st.lat, st.lon) }
+        }
     }
 
     private fun adoptEmbeddedOrFetch() {
