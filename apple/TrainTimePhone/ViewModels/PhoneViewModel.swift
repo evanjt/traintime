@@ -53,6 +53,14 @@ class PhoneViewModel: ObservableObject {
     let watchService = PhoneWatchService()
     @Published var connectedWatches: [PhoneConnectedWatch] = []
     @Published var watchSendStatus: String? = nil
+    // Mirror phone state + location to a Garmin watch. Optional overlay; off → the
+    // watch runs entirely on its own. Default on (absent key reads as true).
+    @Published var mirrorToWatch: Bool = (UserDefaults.standard.object(forKey: "mirrorToWatch") as? Bool) ?? true
+
+    // Garmin mirroring internals
+    private var mirrorWorkItem: DispatchWorkItem?
+    private var lastPushedLoc: CLLocationCoordinate2D?
+    private var lastLocPushTime: Date = .distantPast
 
     // MARK: - Internal State
     let routing = RoutingService.shared
@@ -149,6 +157,11 @@ class PhoneViewModel: ObservableObject {
     // Unknown keys (e.g. a Garmin "trackStarted" echo) are ignored.
     private func applyReceivedWatchContext(_ context: [String: Any]) {
         DispatchQueue.main.async {
+            // The watch is asking for the phone's location (its own GPS is weak).
+            if context["kind"] as? String == "reqLoc" {
+                self.replyWithLocation()
+                return
+            }
             if let modeRaw = context["defaultMode"] as? Int,
                let mode = TransportMode(rawValue: modeRaw) {
                 self.defaultMode = mode
@@ -166,6 +179,8 @@ class PhoneViewModel: ObservableObject {
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
         watchService.initialize()
+        // Feed an already-open watch the current location once device status has settled.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.pushLocationNow() }
     }
 
     func onDisappear() {
@@ -200,6 +215,9 @@ class PhoneViewModel: ObservableObject {
             }
             return
         }
+
+        // Keep a connected watch fed with the phone's location as a GPS fallback.
+        maybePushLocationToWatch(coord)
 
         guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
             if stations.isEmpty {
@@ -360,6 +378,12 @@ class PhoneViewModel: ObservableObject {
         startTimer(interval: Timing.trackingRefreshInterval)
         PhoneHapticService.shortPulse()
         maybeRequestReview()
+
+        // Mirror the same focused train onto the watch (immediate — a tap is a
+        // strong, deliberate action). The manual "Send to Watch" stays too.
+        if let focused = focusedTrain {
+            mirrorToGarmin(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
+        }
     }
 
     func enterInactiveState() {
@@ -467,6 +491,8 @@ class PhoneViewModel: ObservableObject {
                 fetchDepartures(stationId: id)
             }
         }
+
+        mirrorToGarminDebounced { PhoneWatchService.GarminPayload.mode(mode.rawValue) }
     }
 
     func selectStation(index: Int) {
@@ -484,6 +510,14 @@ class PhoneViewModel: ObservableObject {
             favouriteDepartures = []
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
+            }
+        }
+
+        if let st = currentStation, let id = st.id {
+            let name = st.name ?? "Station"
+            let coord = st.coordinate
+            mirrorToGarminDebounced {
+                PhoneWatchService.GarminPayload.station(id: id, name: name, lat: coord?.latitude, lon: coord?.longitude)
             }
         }
     }
@@ -811,6 +845,60 @@ class PhoneViewModel: ObservableObject {
             return
         }
         sendToWatch(watch)
+    }
+
+    // MARK: - Garmin mirroring
+
+    func setMirrorToWatch(_ value: Bool) {
+        mirrorToWatch = value
+        UserDefaults.standard.set(value, forKey: "mirrorToWatch")
+    }
+
+    // Immediate push (track — a deliberate tap). Optional overlay; off, or no
+    // Garmin watch → no-op.
+    private func mirrorToGarmin(_ data: [String: Any]) {
+        guard mirrorToWatch, watchService.hasGarminWatch else { return }
+        watchService.sendToGarminWatches(data)
+    }
+
+    // Debounced push (mode cycling / station scrolling) — the latest settled state
+    // wins, so the BLE channel isn't flooded.
+    private func mirrorToGarminDebounced(_ build: @escaping () -> [String: Any]) {
+        guard mirrorToWatch, watchService.hasGarminWatch else { return }
+        mirrorWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.watchService.sendToGarminWatches(build())
+        }
+        mirrorWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
+    }
+
+    // Proactive location backfill: feed the phone's coordinate to the watch as a
+    // GPS fallback. Debounced ≥10 s / ≥100 m so a settled phone (or a mock-GPS app)
+    // keeps the watch fed without flooding.
+    private func maybePushLocationToWatch(_ coord: CLLocationCoordinate2D) {
+        guard mirrorToWatch, watchService.hasGarminWatch else { return }
+        let movedEnough = lastPushedLoc.map { GeoUtils.haversineDistance(from: $0, to: coord) >= 100 } ?? true
+        if !movedEnough, Date().timeIntervalSince(lastLocPushTime) < 10 { return }
+        lastPushedLoc = coord
+        lastLocPushTime = Date()
+        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
+    }
+
+    // Force-push the current location to connected watches, bypassing the debounce.
+    // Used on app open so a watch sitting on "Not in Switzerland" picks up the phone's
+    // position without waiting for it to move.
+    private func pushLocationNow() {
+        guard mirrorToWatch, watchService.hasGarminWatch, let coord = location.coordinate else { return }
+        lastPushedLoc = coord
+        lastLocPushTime = Date()
+        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
+    }
+
+    // Reply to a watch's explicit reqLoc with the phone's current coordinate.
+    private func replyWithLocation() {
+        guard mirrorToWatch, watchService.hasGarminWatch, let coord = location.coordinate else { return }
+        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
     }
 
     // MARK: - Formation

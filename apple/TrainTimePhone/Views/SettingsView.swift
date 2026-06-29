@@ -81,6 +81,20 @@ struct PhoneSettingsView: View {
                             }
                         }
                         .buttonStyle(.plain)
+
+                        if viewModel.watchService.garminService.hasKnownDevices {
+                            Toggle(isOn: Binding(
+                                get: { viewModel.mirrorToWatch },
+                                set: { viewModel.setMirrorToWatch($0) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Mirror to watch")
+                                    Text("Send your tracked train, mode, station and location to the watch")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     } footer: {
                         Text("Send departures to a Garmin watch. Requires the Garmin Connect app.")
                     }
