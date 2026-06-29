@@ -14,6 +14,19 @@ struct PhoneStationView: View {
                     onSelect: { viewModel.selectMode($0) }
                 )
                 Spacer()
+                // Watch link indicator — tap launches/​re-syncs the primary watch (Garmin
+                // launches remotely; Apple Watch re-syncs when reachable, else shows guidance).
+                if viewModel.primaryWatchLiveness != .hidden {
+                    Button { viewModel.openWatchApp() } label: {
+                        WatchLivenessIndicator(
+                            liveness: viewModel.primaryWatchLiveness,
+                            isChecking: viewModel.watchChecking,
+                            isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 4)
+                }
                 Image(systemName: "location.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(viewModel.gpsQuality.color)

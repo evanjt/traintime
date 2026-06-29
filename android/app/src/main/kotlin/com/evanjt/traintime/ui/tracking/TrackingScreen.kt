@@ -264,7 +264,11 @@ fun TrackingScreen(viewModel: MainViewModel) {
                         Icon(
                             Icons.Filled.Watch,
                             contentDescription = null,
-                            tint = if (viewModel.watchAlive) Color(0xFF34C759) else Color(0xFFFFB300),
+                            tint = when {
+                                viewModel.watchAlive -> Color(0xFF34C759)
+                                viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93)
+                                else -> Color(0xFFFFB300)
+                            },
                             modifier = Modifier.size(18.dp),
                         )
                     }

@@ -53,14 +53,29 @@ class PhoneViewModel: ObservableObject {
     let watchService = PhoneWatchService()
     @Published var connectedWatches: [PhoneConnectedWatch] = []
     @Published var watchSendStatus: String? = nil
-    // Mirror phone state + location to a Garmin watch. Optional overlay; off → the
+    // Mirror phone state + location to the primary watch. Optional overlay; off → the
     // watch runs entirely on its own. Default on (absent key reads as true).
     @Published var mirrorToWatch: Bool = (UserDefaults.standard.object(forKey: "mirrorToWatch") as? Bool) ?? true
+    // Which backend to drive when both an Apple Watch and a Garmin are paired.
+    @Published var primaryWatch: PrimaryWatchPreference =
+        PrimaryWatchPreference(rawValue: UserDefaults.standard.string(forKey: "primaryWatch") ?? "") ?? .auto
 
-    // Garmin mirroring internals
+    // Mirroring internals
     private var mirrorWorkItem: DispatchWorkItem?
     private var lastPushedLoc: CLLocationCoordinate2D?
     private var lastLocPushTime: Date = .distantPast
+
+    // Watch-app liveness. Each backend announces itself (hello/alive/bye); the phone never
+    // pings (a message can wake a closed Garmin app, and Apple can't be launched at all).
+    // Garmin arrives over the Connect IQ channel, Apple over the WCSession message channel.
+    private var garminLastAlive: Date = .distantPast
+    private var appleLastAlive: Date = .distantPast
+    private var appleLastContact: Date = .distantPast // alive or bye — drives the amber window
+    private var livenessTimer: AnyCancellable?
+    // Bumped by the liveness ticker so the time-based indicator recomputes on each render.
+    @Published private var livenessTick = 0
+    // A Garmin open attempt is in flight (spinner). Apple can't be launched, so it's Garmin-only.
+    @Published var watchChecking = false
 
     // MARK: - Internal State
     let routing = RoutingService.shared
@@ -123,14 +138,24 @@ class PhoneViewModel: ObservableObject {
             currentMode = savedMode
         }
 
-        // Receive default mode + favourites sync from a watch. Apple Watch arrives via
-        // WCSession application context; Garmin arrives via the Connect IQ message channel.
-        // Both share one handler so the two ecosystems stay consistent.
+        // Persisted state sync (defaultMode / favourites / pinned) arrives over the Apple Watch
+        // application context. Liveness + reqLoc arrive over the live message channels: Garmin
+        // via Connect IQ, Apple via WCSession sendMessage. Each routes through applyReceivedWatch
+        // tagged with its source so the right backend's liveness updates.
         watchService.wcService.onApplicationContextReceived = { [weak self] context in
             self?.applyReceivedWatchContext(context)
         }
+        watchService.wcService.onMessageReceived = { [weak self] context in
+            self?.applyReceivedWatch(context, source: .appleWatch)
+        }
         watchService.garminService.onMessageReceived = { [weak self] context in
-            self?.applyReceivedWatchContext(context)
+            self?.applyReceivedWatch(context, source: .garmin)
+        }
+
+        // Live status: a Garmin watch connecting/disconnecting re-checks eligibility so the
+        // indicator and settings update without reopening the app.
+        watchService.garminService.onLinkChanged = { [weak self] in
+            DispatchQueue.main.async { self?.refreshConnectedWatches() }
         }
 
         // FavouritesStore is a separate ObservableObject the phone views reach through the
@@ -153,15 +178,54 @@ class PhoneViewModel: ObservableObject {
             .sink { [weak self] _ in self?.applyPinnedReorder() }
     }
 
+    // Live message from a watch (Garmin or Apple). Liveness announcements update that
+    // backend's freshness; reqLoc is answered; anything else falls through to state sync.
+    private func applyReceivedWatch(_ context: [String: Any], source: PhoneWatchType) {
+        DispatchQueue.main.async {
+            switch context["kind"] as? String {
+            case "hello", "alive":
+                self.markAlive(source)
+            case "bye":
+                self.markBye(source)
+            case "reqLoc":
+                self.replyWithLocation(to: source)
+            default:
+                self.applyReceivedWatchContext(context)
+            }
+        }
+    }
+
+    // A backend just announced it's open. Refresh its freshness and, on the transition into
+    // alive, push the phone's current view so the watch jumps straight to it.
+    private func markAlive(_ source: PhoneWatchType) {
+        switch source {
+        case .garmin:
+            let wasAlive = garminAlive
+            garminLastAlive = Date()
+            watchChecking = false
+            if !wasAlive { syncCurrentStateToWatch(to: .garmin) }
+        case .appleWatch:
+            let wasAlive = appleAlive
+            appleLastAlive = Date()
+            appleLastContact = Date()
+            if !wasAlive { syncCurrentStateToWatch(to: .appleWatch) }
+        }
+    }
+
+    private func markBye(_ source: PhoneWatchType) {
+        switch source {
+        case .garmin:
+            garminLastAlive = .distantPast
+        case .appleWatch:
+            appleLastAlive = .distantPast
+            appleLastContact = Date()
+        }
+    }
+
     // Applies a state sync pushed from any watch (defaultMode / favourites / pinned).
     // Unknown keys (e.g. a Garmin "trackStarted" echo) are ignored.
     private func applyReceivedWatchContext(_ context: [String: Any]) {
         DispatchQueue.main.async {
-            // The watch is asking for the phone's location (its own GPS is weak).
-            if context["kind"] as? String == "reqLoc" {
-                self.replyWithLocation()
-                return
-            }
             if let modeRaw = context["defaultMode"] as? Int,
                let mode = TransportMode(rawValue: modeRaw) {
                 self.defaultMode = mode
@@ -172,6 +236,54 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Watch liveness + primary resolution
+
+    private var garminAlive: Bool { Date().timeIntervalSince(garminLastAlive) <= 20 }
+    private var appleAlive: Bool { Date().timeIntervalSince(appleLastAlive) <= 20 }
+
+    /// The backend the phone drives. `auto` prefers Apple Watch when both are paired.
+    var resolvedPrimaryWatch: PhoneWatchType? {
+        let appleKnown = watchService.hasKnownAppleWatch
+        let garminKnown = watchService.hasKnownGarmin
+        switch primaryWatch {
+        case .appleWatch: return appleKnown ? .appleWatch : (garminKnown ? .garmin : nil)
+        case .garmin: return garminKnown ? .garmin : (appleKnown ? .appleWatch : nil)
+        case .auto:
+            if appleKnown { return .appleWatch }
+            if garminKnown { return .garmin }
+            return nil
+        }
+    }
+
+    /// Both backends paired — show the Settings primary-watch picker.
+    var bothWatchesKnown: Bool { watchService.hasKnownAppleWatch && watchService.hasKnownGarmin }
+
+    var garminLiveness: WatchLiveness {
+        _ = livenessTick
+        let connected = watchService.hasGarminWatch
+        if connected && garminAlive { return .green }
+        if connected { return .amber }
+        if watchService.hasKnownGarmin { return .grey }
+        return .hidden
+    }
+
+    var appleWatchLiveness: WatchLiveness {
+        _ = livenessTick
+        guard watchService.hasKnownAppleWatch else { return .hidden }
+        if watchService.wcService.isReachable && appleAlive { return .green }
+        if Date().timeIntervalSince(appleLastContact) < 60 { return .amber }
+        return .grey
+    }
+
+    /// Liveness of whichever backend is primary — what the header + tracking indicators show.
+    var primaryWatchLiveness: WatchLiveness {
+        switch resolvedPrimaryWatch {
+        case .garmin: return garminLiveness
+        case .appleWatch: return appleWatchLiveness
+        case .none: return .hidden
+        }
+    }
+
     // MARK: - Lifecycle
 
     func onAppear() {
@@ -179,15 +291,31 @@ class PhoneViewModel: ObservableObject {
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
         watchService.initialize()
+        startLivenessTicker()
         // Feed an already-open watch the current location once device status has settled.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.pushLocationNow() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            self?.refreshConnectedWatches()
+            self?.pushLocationNow()
+        }
     }
 
     func onDisappear() {
         updateWidgetCache() // the widget is only visible once we background; seed it with what was on screen
         location.stop()
         stopTimer()
+        livenessTimer?.cancel()
+        livenessTimer = nil
         watchService.shutdown()
+    }
+
+    // Passive ticker. Recomputes the time-based liveness indicator every 3 s without sending
+    // anything (a phone message can wake a closed Garmin app; Apple can't be launched). The
+    // watch announces itself with hello/alive/bye and the indicator follows.
+    private func startLivenessTicker() {
+        livenessTimer?.cancel()
+        livenessTimer = Timer.publish(every: 3, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.livenessTick &+= 1 }
     }
 
     // MARK: - Timer
@@ -380,9 +508,9 @@ class PhoneViewModel: ObservableObject {
         maybeRequestReview()
 
         // Mirror the same focused train onto the watch (immediate — a tap is a
-        // strong, deliberate action). The manual "Send to Watch" stays too.
+        // strong, deliberate action).
         if let focused = focusedTrain {
-            mirrorToGarmin(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
+            mirror(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
         }
     }
 
@@ -454,6 +582,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     func exitToStationView() {
+        let wasTracking = appState == 2
         lastInteractionTime = Date()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -461,6 +590,8 @@ class PhoneViewModel: ObservableObject {
         formation = nil
         consecutiveErrors = 0
         startTimer(interval: Timing.normalRefreshInterval)
+        // Mirror the exit so the watch leaves tracking and returns to its station view.
+        if wasTracking { mirror(["action": "back"]) }
     }
 
     // MARK: - Mode Navigation
@@ -492,7 +623,7 @@ class PhoneViewModel: ObservableObject {
             }
         }
 
-        mirrorToGarminDebounced { PhoneWatchService.GarminPayload.mode(mode.rawValue) }
+        mirrorDebounced { PhoneWatchService.GarminPayload.mode(mode.rawValue) }
     }
 
     func selectStation(index: Int) {
@@ -516,7 +647,7 @@ class PhoneViewModel: ObservableObject {
         if let st = currentStation, let id = st.id {
             let name = st.name ?? "Station"
             let coord = st.coordinate
-            mirrorToGarminDebounced {
+            mirrorDebounced {
                 PhoneWatchService.GarminPayload.station(id: id, name: name, lat: coord?.latitude, lon: coord?.longitude)
             }
         }
@@ -847,58 +978,137 @@ class PhoneViewModel: ObservableObject {
         sendToWatch(watch)
     }
 
-    // MARK: - Garmin mirroring
+    // MARK: - Watch mirroring (backend-dispatched to the primary watch)
 
     func setMirrorToWatch(_ value: Bool) {
         mirrorToWatch = value
         UserDefaults.standard.set(value, forKey: "mirrorToWatch")
     }
 
-    // Immediate push (track — a deliberate tap). Optional overlay; off, or no
-    // Garmin watch → no-op.
-    private func mirrorToGarmin(_ data: [String: Any]) {
-        guard mirrorToWatch, watchService.hasGarminWatch else { return }
-        watchService.sendToGarminWatches(data)
+    func setPrimaryWatch(_ value: PrimaryWatchPreference) {
+        primaryWatch = value
+        UserDefaults.standard.set(value.rawValue, forKey: "primaryWatch")
     }
 
-    // Debounced push (mode cycling / station scrolling) — the latest settled state
-    // wins, so the BLE channel isn't flooded.
-    private func mirrorToGarminDebounced(_ build: @escaping () -> [String: Any]) {
-        guard mirrorToWatch, watchService.hasGarminWatch else { return }
+    // Low-level send to a specific backend. Garmin: can't wake a closed app, so gate on
+    // liveness. Apple: WCSession.mirror sends live only when reachable, else drops (the
+    // watch re-syncs on its next launch via hello). Both no-op when mirroring is off.
+    private func send(_ data: [String: Any], to backend: PhoneWatchType) {
+        guard mirrorToWatch else { return }
+        switch backend {
+        case .garmin:
+            guard garminAlive else { return }
+            watchService.sendToGarminWatches(data)
+        case .appleWatch:
+            watchService.sendToAppleWatch(data)
+        }
+    }
+
+    // Immediate push (track / back — a deliberate action) to the primary watch.
+    private func mirror(_ data: [String: Any]) {
+        guard let backend = resolvedPrimaryWatch else { return }
+        send(data, to: backend)
+    }
+
+    // Debounced push (mode cycling / station scrolling) — the latest settled state wins,
+    // so the channel isn't flooded.
+    private func mirrorDebounced(_ build: @escaping () -> [String: Any]) {
+        guard let backend = resolvedPrimaryWatch else { return }
         mirrorWorkItem?.cancel()
         let item = DispatchWorkItem { [weak self] in
-            self?.watchService.sendToGarminWatches(build())
+            self?.send(build(), to: backend)
         }
         mirrorWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
     }
 
-    // Proactive location backfill: feed the phone's coordinate to the watch as a
-    // GPS fallback. Debounced ≥10 s / ≥100 m so a settled phone (or a mock-GPS app)
-    // keeps the watch fed without flooding.
+    // Proactive location backfill: feed the phone's coordinate to the watch as a GPS
+    // fallback. Debounced ≥10 s / ≥100 m so a settled phone (or a mock-GPS app) keeps the
+    // watch fed without flooding.
     private func maybePushLocationToWatch(_ coord: CLLocationCoordinate2D) {
-        guard mirrorToWatch, watchService.hasGarminWatch else { return }
+        guard resolvedPrimaryWatch != nil else { return }
         let movedEnough = lastPushedLoc.map { GeoUtils.haversineDistance(from: $0, to: coord) >= 100 } ?? true
         if !movedEnough, Date().timeIntervalSince(lastLocPushTime) < 10 { return }
         lastPushedLoc = coord
         lastLocPushTime = Date()
-        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
+        mirror(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
     }
 
-    // Force-push the current location to connected watches, bypassing the debounce.
-    // Used on app open so a watch sitting on "Not in Switzerland" picks up the phone's
-    // position without waiting for it to move.
+    // Force-push the current location to the primary watch, bypassing the debounce. Used on
+    // app open so a watch sitting on "Not in Switzerland" picks up the phone's position.
     private func pushLocationNow() {
-        guard mirrorToWatch, watchService.hasGarminWatch, let coord = location.coordinate else { return }
+        guard let coord = location.coordinate else { return }
         lastPushedLoc = coord
         lastLocPushTime = Date()
-        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
+        mirror(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
     }
 
-    // Reply to a watch's explicit reqLoc with the phone's current coordinate.
-    private func replyWithLocation() {
-        guard mirrorToWatch, watchService.hasGarminWatch, let coord = location.coordinate else { return }
-        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
+    // Reply to a backend's explicit reqLoc with the phone's current coordinate.
+    private func replyWithLocation(to source: PhoneWatchType) {
+        guard mirrorToWatch, let coord = location.coordinate else { return }
+        send(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude), to: source)
+    }
+
+    // Push the phone's current view onto a freshly-opened watch: location, plus either the
+    // tracked train or the current station. The peer of Android's syncCurrentStateToWatch.
+    private func syncCurrentStateToWatch(to backend: PhoneWatchType) {
+        guard mirrorToWatch, let coord = location.coordinate else {
+            // No location yet — still mirror the view if we have one.
+            sendCurrentView(to: backend)
+            return
+        }
+        send(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude), to: backend)
+        lastPushedLoc = coord
+        lastLocPushTime = Date()
+        sendCurrentView(to: backend)
+    }
+
+    private func sendCurrentView(to backend: PhoneWatchType) {
+        if appState == 2, let focused = focusedTrain {
+            send(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id), to: backend)
+        } else if let st = currentStation, let id = st.id {
+            let coord = st.coordinate
+            send(PhoneWatchService.GarminPayload.station(id: id, name: st.name ?? "Station", lat: coord?.latitude, lon: coord?.longitude), to: backend)
+        }
+    }
+
+    // Tap on the watch indicator / "Open on watch" button. Garmin can be launched remotely;
+    // Apple Watch cannot (no API), so it re-syncs when reachable or guides the user otherwise.
+    func openWatchApp() {
+        switch resolvedPrimaryWatch {
+        case .garmin:
+            refreshConnectedWatches()
+            if !watchService.hasGarminWatch {
+                showWatchStatus("No watch connected")
+                return
+            }
+            if garminAlive {
+                syncCurrentStateToWatch(to: .garmin)
+                return
+            }
+            watchChecking = true
+            watchService.openGarminApp()
+            // The watch sends hello once it starts, flipping us to alive + a state sync.
+            // Settle the spinner if nothing arrives.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+                self?.watchChecking = false
+            }
+        case .appleWatch:
+            if watchService.wcService.isReachable {
+                syncCurrentStateToWatch(to: .appleWatch)
+            } else {
+                showWatchStatus("Open TrainTime on your watch")
+            }
+        case .none:
+            showWatchStatus("No watch connected")
+        }
+    }
+
+    private func showWatchStatus(_ message: String) {
+        watchSendStatus = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            self?.watchSendStatus = nil
+        }
     }
 
     // MARK: - Formation

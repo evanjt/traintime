@@ -7,6 +7,15 @@ struct PhoneSettingsView: View {
     @Environment(\.openURL) private var openURL
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
 
+    private func watchStatusText(_ liveness: WatchLiveness) -> String {
+        switch liveness {
+        case .green: return "Open"
+        case .amber: return "App closed"
+        case .grey: return "Not connected"
+        case .hidden: return ""
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -68,35 +77,73 @@ struct PhoneSettingsView: View {
                     }
                 }
 
-                if viewModel.watchService.garminService.isAvailable {
+                let garminAvailable = viewModel.watchService.garminService.isAvailable
+                let appleKnown = viewModel.watchService.hasKnownAppleWatch
+                let garminKnown = viewModel.watchService.hasKnownGarmin
+                if garminAvailable || appleKnown {
                     Section {
-                        Button {
-                            viewModel.watchService.garminService.showDeviceSelection()
-                        } label: {
+                        if appleKnown {
                             HStack {
-                                Image(systemName: "watch.analog")
-                                Text("Pair a Garmin watch")
-                                    .foregroundStyle(.primary)
+                                WatchLivenessIndicator(liveness: viewModel.appleWatchLiveness, isAppleWatch: true)
+                                Text("Apple Watch")
                                 Spacer()
+                                Text(watchStatusText(viewModel.appleWatchLiveness))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
-                        .buttonStyle(.plain)
 
-                        if viewModel.watchService.garminService.hasKnownDevices {
+                        if garminAvailable {
+                            Button {
+                                viewModel.watchService.garminService.showDeviceSelection()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "watch.analog")
+                                    Text("Pair a Garmin watch")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if garminKnown {
+                                HStack {
+                                    WatchLivenessIndicator(liveness: viewModel.garminLiveness)
+                                    Text("Garmin")
+                                    Spacer()
+                                    Text(watchStatusText(viewModel.garminLiveness))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        if viewModel.bothWatchesKnown {
+                            Picker("Primary watch", selection: Binding(
+                                get: { viewModel.primaryWatch },
+                                set: { viewModel.setPrimaryWatch($0) }
+                            )) {
+                                Text("Auto").tag(PrimaryWatchPreference.auto)
+                                Text("Apple Watch").tag(PrimaryWatchPreference.appleWatch)
+                                Text("Garmin").tag(PrimaryWatchPreference.garmin)
+                            }
+                        }
+
+                        if appleKnown || garminKnown {
                             Toggle(isOn: Binding(
                                 get: { viewModel.mirrorToWatch },
                                 set: { viewModel.setMirrorToWatch($0) }
                             )) {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Mirror to watch")
-                                    Text("Send your tracked train, mode, station and location to the watch")
+                                    Text("Send your tracked train, mode, station and location to your watch")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
                         }
                     } footer: {
-                        Text("Send departures to a Garmin watch. Requires the Garmin Connect app.")
+                        Text("Mirror your departures to a watch. Garmin requires the Garmin Connect app.")
                     }
                 }
 

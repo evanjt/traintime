@@ -156,6 +156,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var watchAlive by mutableStateOf(false)
         private set
+    // A Garmin watch is paired but not currently connected (off / out of range) → grey.
+    var watchKnownButDisconnected by mutableStateOf(false)
+        private set
 
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
@@ -250,7 +253,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val wear = wearSync.connectedWatchNames().map { WatchLink(it, PhoneWatchType.WEAR, true) }
             val garmin = garminService.eligibleDevices()
             garminTargetIds = garmin.map { it.id }
-            watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
+            watchLinks = wear + buildGarminLinks(garmin)
+            updateGarminGrey(garmin)
             pushLocationNow()
             startHeartbeat()
         }
@@ -296,10 +300,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             while (true) {
                 if (!watchChecking) {
                     watchAlive = garminTargetIds.isNotEmpty() && isAliveFresh()
+                    // Grey when a watch is paired but not reachable. knownDevices is a local
+                    // SDK lookup (no BLE), so it's cheap to re-evaluate each tick.
+                    watchKnownButDisconnected =
+                        garminTargetIds.isEmpty() && !watchAlive && garminService.hasKnownDevices()
                 }
                 delay(3000)
             }
         }
+    }
+
+    // Connected Garmin devices render as live links; paired-but-disconnected ones render
+    // as grey "not connected" so the user knows the watch is known but currently off/away.
+    private fun buildGarminLinks(connected: List<GarminConnectIQService.GarminDevice>): List<WatchLink> {
+        val connectedIds = connected.map { it.id }.toSet()
+        val live = connected.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
+        val disconnected = garminService.knownDeviceNames()
+            .filter { it.id !in connectedIds }
+            .map { WatchLink(it.name, PhoneWatchType.GARMIN, false) }
+        return live + disconnected
+    }
+
+    private fun updateGarminGrey(connected: List<GarminConnectIQService.GarminDevice>) {
+        watchKnownButDisconnected =
+            connected.isEmpty() && !watchAlive && garminService.hasKnownDevices()
     }
 
     private fun stopHeartbeat() {
@@ -604,7 +628,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // eligibleDevices are connected + have TrainTime installed, so all are reachable.
             val garmin = garminService.eligibleDevices()
             garminTargetIds = garmin.map { it.id }
-            watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
+            watchLinks = wear + buildGarminLinks(garmin)
+            updateGarminGrey(garmin)
         }
     }
 

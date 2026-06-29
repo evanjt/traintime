@@ -1,8 +1,27 @@
 import Foundation
 
-enum PhoneWatchType {
+enum PhoneWatchType: Equatable {
     case appleWatch
     case garmin
+}
+
+/// Which watch backend the phone drives when more than one is paired. Persisted as the
+/// raw string under "primaryWatch". `auto` resolves to the only known backend, or Apple
+/// Watch when both are present.
+enum PrimaryWatchPreference: String {
+    case auto
+    case appleWatch
+    case garmin
+}
+
+/// Three-state liveness used by the header + tracking indicators, unified across both
+/// backends: green = open and synced, amber = connected/recent but app closed, grey =
+/// paired but unreachable, hidden = no watch known.
+enum WatchLiveness: Equatable {
+    case green
+    case amber
+    case grey
+    case hidden
 }
 
 struct PhoneConnectedWatch: Identifiable {
@@ -90,12 +109,32 @@ class PhoneWatchService: ObservableObject {
     /// True when a Garmin watch is currently reachable, so the phone can mirror to it.
     var hasGarminWatch: Bool { !garminService.getConnectedDevices().isEmpty }
 
+    /// A Garmin watch is paired (possibly off / out of range) — drives the grey indicator
+    /// and primary-watch resolution.
+    var hasKnownGarmin: Bool { garminService.hasKnownDevices }
+
+    /// An Apple Watch is paired with TrainTime installed (possibly with the app closed).
+    var hasKnownAppleWatch: Bool { wcService.isPaired && wcService.isWatchAppInstalled }
+
     /// Push a raw action payload to every connected Garmin watch (state mirroring +
     /// location backfill). Fire-and-forget; no watch → no-op.
     func sendToGarminWatches(_ data: [String: Any]) {
         for device in garminService.getConnectedDevices() {
             garminService.sendMessage(to: device, data: data) { _ in }
         }
+    }
+
+    /// Open TrainTime on the connected Garmin watch(es). No Apple Watch equivalent exists.
+    func openGarminApp() {
+        for device in garminService.getConnectedDevices() {
+            garminService.openApplication(on: device)
+        }
+    }
+
+    /// Mirror an action payload to the Apple Watch (live only when reachable). The peer of
+    /// sendToGarminWatches for the WCSession backend.
+    func sendToAppleWatch(_ data: [String: Any]) {
+        wcService.mirror(data)
     }
 
     func sendTrackCommand(

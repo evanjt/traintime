@@ -27,6 +27,9 @@ final class GarminConnectIQService: NSObject {
     /// via PhoneSync on the Garmin side). Shape matches WCSession's application context.
     var onMessageReceived: (([String: Any]) -> Void)?
 
+    /// Fires when a watch connects/disconnects (e.g. Bluetooth toggled), for live status.
+    var onLinkChanged: (() -> Void)?
+
     #if canImport(ConnectIQ)
 
     /// The Connect IQ SDK is linked, so pairing UI can be offered.
@@ -94,6 +97,15 @@ final class GarminConnectIQService: NSObject {
         }
     }
 
+    /// Asks the watch to launch TrainTime — the one place we legitimately wake the watch,
+    /// because the user tapped the indicator. Best-effort over BLE; a no-op when already
+    /// running. The Garmin peer of `openApp` on Android. (Apple Watch has no equivalent —
+    /// the iPhone cannot launch its watchOS app.)
+    func openApplication(on device: GarminDevice) {
+        guard let uuid = UUID(uuidString: device.id), let app = apps[uuid] else { return }
+        ConnectIQ.sharedInstance().openAppRequest(app) { _ in }
+    }
+
     // MARK: - Device registration + persistence
 
     private func registerAll() {
@@ -135,6 +147,7 @@ final class GarminConnectIQService: NSObject {
     func sendMessage(to device: GarminDevice, data: [String: Any], completion: @escaping (Bool) -> Void) {
         completion(false)
     }
+    func openApplication(on device: GarminDevice) {}
 
     #endif
 }
@@ -145,6 +158,7 @@ extension GarminConnectIQService: IQDeviceEventDelegate, IQAppMessageDelegate, I
     func deviceStatusChanged(_ device: IQDevice, status: IQDeviceStatus) {
         guard let uuid = device.uuid else { return }
         statuses[uuid] = status
+        DispatchQueue.main.async { self.onLinkChanged?() }
     }
 
     func receivedMessage(_ message: Any, from app: IQApp) {

@@ -46,6 +46,7 @@
 		AABB01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */; };
 		B42D488117A395EB3FA48A4C /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
 		B9CBE43DEA01B41E0CDA088F /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 5D45CBFFBA9E760ED0557D71 /* SnapshotTesting */; };
+		C1Q0000000000000000000C1 /* ConnectIQ in Frameworks */ = {isa = PBXBuildFile; productRef = C1Q0000000000000000000B1 /* ConnectIQ */; };
 		BBB580910213243546576F81 /* TrackingBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC6910213243546576F8192 /* TrackingBarView.swift */; };
 		C157F67C4DAA4D5F9A099407 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */; };
 		C29DB44BD26BE3B3E5C92570 /* WidgetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 225E12DB99F8E0FF6C52DDE3 /* WidgetStorageTests.swift */; };
@@ -84,6 +85,8 @@
 		P0A10000000000000000000A /* PhoneStationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000A /* PhoneStationPickerView.swift */; };
 		P0A10000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000B /* Assets.xcassets */; };
 		P0A10000000000000000000D /* PhoneWatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000D /* PhoneWatchService.swift */; };
+		P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000301 /* WatchLivenessIndicator.swift */; };
+		FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0F00000000000000000301 /* WatchPhoneSync.swift */; };
 		P0A10000000000000000000E /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000E /* WatchConnectivityService.swift */; };
 		P0A10000000000000000000F /* GarminConnectIQService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000F /* GarminConnectIQService.swift */; };
 		P0A100000000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000010 /* SettingsView.swift */; };
@@ -242,6 +245,8 @@
 		P0F10000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		P0F10000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		P0F10000000000000000000D /* PhoneWatchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchService.swift; sourceTree = "<group>"; };
+		P0F100000000000000000301 /* WatchLivenessIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLivenessIndicator.swift; sourceTree = "<group>"; };
+		FE0F00000000000000000301 /* WatchPhoneSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPhoneSync.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000E /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000F /* GarminConnectIQService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminConnectIQService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -290,6 +295,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1Q0000000000000000000C1 /* ConnectIQ in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,6 +317,7 @@
 				66C03B4C5D6E7F8091021324 /* HapticService.swift */,
 				5EFDB27D479A403E916113BF /* RoutingService.swift */,
 				FA0F00000000000000000002 /* FavouritesStore.swift */,
+				FE0F00000000000000000301 /* WatchPhoneSync.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -480,6 +487,7 @@
 				P0F100000000000000000009 /* PhoneModePickerView.swift */,
 				P0F10000000000000000000A /* PhoneStationPickerView.swift */,
 				P0F100000000000000000010 /* SettingsView.swift */,
+				P0F100000000000000000301 /* WatchLivenessIndicator.swift */,
 				F0F100000000000000000002 /* FormationDiagramView.swift */,
 			);
 			path = Views;
@@ -593,6 +601,9 @@
 				WED100000000000000000001 /* PBXTargetDependency */,
 			);
 			name = TrainTimePhone;
+			packageProductDependencies = (
+				C1Q0000000000000000000B1 /* ConnectIQ */,
+			);
 			productName = TrainTimePhone;
 			productReference = P0P100000000000000000001 /* TrainTimePhone.app */;
 			productType = "com.apple.product-type.application";
@@ -643,6 +654,7 @@
 			mainGroup = 8B1A4211B1894783A138DD95;
 			packageReferences = (
 				93100560CBD94E73F751AC73 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				C1Q0000000000000000000A1 /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */,
 			);
 			productRefGroup = 620CC025859F476183B6BC85 /* Products */;
 			projectDirPath = "";
@@ -704,6 +716,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2FD884A23B2F4EAA9E96D717 /* TrainTimeWatchApp.swift in Sources */,
+				FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */,
 				C157F67C4DAA4D5F9A099407 /* ContentView.swift in Sources */,
 				8D78A06DBFD449E5BD8820F5 /* Constants.swift in Sources */,
 				40B38B5AFDDD4E87B015AAB6 /* Station.swift in Sources */,
@@ -787,6 +800,7 @@
 				P0A100000000000000000004 /* PhoneLocationService.swift in Sources */,
 				P0A100000000000000000005 /* PhoneHapticService.swift in Sources */,
 				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
+				P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */,
 				P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */,
 				P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */,
 				P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */,
@@ -1230,6 +1244,14 @@
 				minimumVersion = 1.18.0;
 			};
 		};
+		C1Q0000000000000000000A1 /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/garmin/connectiq-companion-app-sdk-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1242,6 +1264,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 93100560CBD94E73F751AC73 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
 			productName = SnapshotTesting;
+		};
+		C1Q0000000000000000000B1 /* ConnectIQ */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1Q0000000000000000000A1 /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */;
+			productName = ConnectIQ;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

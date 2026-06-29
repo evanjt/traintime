@@ -84,9 +84,10 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
-            // Watch link indicator — only when a watch is connected. For Garmin, the colour
-            // tracks liveness (green = app open and answering, amber = closed) and a tap
-            // launches TrainTime on the watch, showing a spinner until it answers a ping.
+            // Watch link indicator — shown when a watch is known. For Garmin, the colour
+            // tracks liveness (green = open and synced, amber = connected but app closed,
+            // grey = paired but off/away) and a tap launches TrainTime on the watch, showing
+            // a spinner until it announces itself.
             if (viewModel.watchLinks.isNotEmpty()) {
                 val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
                 if (hasGarmin) {
@@ -104,8 +105,9 @@ fun StationScreen(
                             contentDescription = "Open TrainTime on the watch",
                             tint = when {
                                 viewModel.watchChecking -> secondary
-                                viewModel.watchAlive -> Color(0xFF34C759)
-                                else -> Color(0xFFFFB300)
+                                viewModel.watchAlive -> Color(0xFF34C759)            // open + synced
+                                viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93) // paired, off/away
+                                else -> Color(0xFFFFB300)                            // connected, app closed
                             },
                             modifier = Modifier.size(30.dp),
                         )

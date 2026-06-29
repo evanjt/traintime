@@ -57,6 +57,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private var loadedFromCache = false
     var lastInteractionTime: Date = Date()
 
+    // Phone location backfill (optional overlay). The phone pushes its coordinate as a GPS
+    // fallback; we only use it when our own fix is unusable or out of Switzerland, never to
+    // override a good in-bounds fix. Peer of the Garmin watch's mPhoneLat/mPhoneLon.
+    private var phoneLat: Double?
+    private var phoneLon: Double?
+    private var phoneLocTs: Date?
+    private var lastLocRequestTs: Date?
+    // Liveness heartbeat throttle (announce alive to the phone every ≥7 s while reachable).
+    private var lastAliveTsSec: Int = 0
+
     // MARK: - Computed
 
     var stations: [Station] {
@@ -116,7 +126,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - WatchConnectivity
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        if activationState == .activated { WatchPhoneSync.sendHello() }
+    }
+
+    func sessionReachabilityDidChange(_ session: WCSession) {
+        // The phone became reachable (e.g. it just opened) — re-announce so it greens promptly.
+        if session.isReachable { WatchPhoneSync.sendHello() }
+    }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         DispatchQueue.main.async { [weak self] in
@@ -143,8 +160,32 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    // Action-dispatched phone → watch contract, shared with the Garmin watch
+    // (handlePhoneMessage in TrainTimeView.mc). The watch stays standalone; these only apply
+    // an optional mirror when the phone drives it.
     private func handlePhoneMessage(_ data: [String: Any]) {
-        guard let action = data["action"] as? String, action == "track" else { return }
+        guard let action = data["action"] as? String else { return }
+        switch action {
+        case "track":
+            enterTrackingFromPhone(data)
+        case "mode":
+            if let raw = data["mode"] as? Int, let mode = TransportMode(rawValue: raw) {
+                setModeFromPhone(mode)
+            }
+        case "station":
+            showStationFromPhone(data)
+        case "loc":
+            if let lat = data["lat"] as? Double, let lon = data["lon"] as? Double {
+                onPhoneLocation(lat: lat, lon: lon)
+            }
+        case "back":
+            if appState == 2 { exitToStationView() }
+        default:
+            break
+        }
+    }
+
+    private func enterTrackingFromPhone(_ data: [String: Any]) {
         guard let dest = data["dest"] as? String,
               let depTs = data["depTs"] as? Int else { return }
 
@@ -199,18 +240,116 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         HapticService.shortPulse()
     }
 
+    // Phone switched mode. Reuse the standalone selectMode when the mode is already loaded;
+    // otherwise switch and fetch fresh stations from the effective position.
+    private func setModeFromPhone(_ mode: TransportMode) {
+        lastInteractionTime = Date()
+        if appState == 3 { resumeFromInactive() }
+        if availableModes.contains(mode) {
+            selectMode(mode)
+            return
+        }
+        currentMode = mode
+        stationIndex = 0
+        departures = []
+        favouriteDepartures = []
+        if let coord = effectivePosition(), !requestInFlight {
+            fetchStations(lat: coord.latitude, lon: coord.longitude)
+        }
+    }
+
+    // Phone selected a specific station. There's no standalone single-station path, so
+    // synthesise the station, show it as the sole entry for its mode, and fetch its departures.
+    private func showStationFromPhone(_ data: [String: Any]) {
+        guard let stId = data["stId"] as? String else { return }
+        lastInteractionTime = Date()
+        if appState == 3 { resumeFromInactive() }
+        let name = data["name"] as? String ?? "Station"
+        let lat = data["lat"] as? Double
+        let lon = data["lon"] as? Double
+        let station = Station(id: stId, name: name, lat: lat, lon: lon, mode: currentMode, dist: nil, embeddedDepartures: nil)
+        switch currentMode {
+        case .train: trainStations = [station]
+        case .bus: busStations = [station]
+        case .tram: tramStations = [station]
+        case .special: specialStations = [station]
+        }
+        if !availableModes.contains(currentMode) { availableModes = [currentMode] }
+        stationIndex = 0
+        appState = 0
+        if let lat, let lon {
+            lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        }
+        departures = []
+        favouriteDepartures = []
+        fetchDepartures(stationId: stId)
+    }
+
+    // MARK: - Phone location backfill
+
+    func onPhoneLocation(lat: Double, lon: Double) {
+        phoneLat = lat
+        phoneLon = lon
+        phoneLocTs = Date()
+        // Only act on it when our own GPS can't carry us — a good in-bounds fix stays primary.
+        if !gpsUsableInBounds() {
+            searchFromPhoneLocation()
+        }
+    }
+
+    // Our own fix is present, accurate enough, and inside Switzerland.
+    private func gpsUsableInBounds() -> Bool {
+        guard let coord = location.coordinate else { return false }
+        let usable = gpsQuality == .good || gpsQuality == .poor
+        return usable && SwissBounds.contains(lat: coord.latitude, lon: coord.longitude)
+    }
+
+    private func phoneLocFresh() -> Bool {
+        guard let ts = phoneLocTs else { return false }
+        return Date().timeIntervalSince(ts) < 120
+    }
+
+    // The coordinate to act on: a usable in-bounds GPS fix wins; otherwise a fresh phone
+    // location; otherwise any GPS fix; otherwise the last search anchor.
+    private func effectivePosition() -> CLLocationCoordinate2D? {
+        if gpsUsableInBounds() { return location.coordinate }
+        if phoneLocFresh(), let lat = phoneLat, let lon = phoneLon {
+            return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        }
+        if let coord = location.coordinate { return coord }
+        return lastSearchCoordinate
+    }
+
+    private func searchFromPhoneLocation() {
+        guard appState <= 1, phoneLocFresh(), let lat = phoneLat, let lon = phoneLon else { return }
+        guard !requestInFlight else { return }
+        if stations.isEmpty { status = "Updating stations..." }
+        fetchStations(lat: lat, lon: lon)
+    }
+
+    // Ask the phone for its location when our GPS is weak. Throttled so we don't spam.
+    private func requestPhoneLocation() {
+        if let ts = lastLocRequestTs, Date().timeIntervalSince(ts) < 30 { return }
+        lastLocRequestTs = Date()
+        WatchPhoneSync.requestLocation()
+    }
+
     // MARK: - Lifecycle
 
     func onAppear() {
         lastInteractionTime = Date()
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
+        // Announce we're up so a listening phone greens its link indicator at once.
+        WatchPhoneSync.sendHello()
     }
 
     func onDisappear() {
         location.stop()
         stopTimer()
         endExtendedSession()
+        // Tell the phone we're going away so it flips the indicator straight to amber.
+        WatchPhoneSync.sendBye()
     }
 
     // MARK: - Timer
@@ -248,7 +387,12 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         guard let coord = coord else {
             if stations.isEmpty {
-                status = "GPS: Searching..."
+                if phoneLocFresh() {
+                    searchFromPhoneLocation()
+                } else {
+                    requestPhoneLocation()
+                    status = "GPS: Searching..."
+                }
             }
             return
         }
@@ -256,7 +400,13 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         // Only gate initial search on Swiss bounds (border hysteresis)
         guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
             if stations.isEmpty {
-                status = "Not in Switzerland"
+                // Our own fix is outside Switzerland — fall back to the phone's location.
+                if phoneLocFresh() {
+                    searchFromPhoneLocation()
+                } else {
+                    requestPhoneLocation()
+                    status = "Not in Switzerland"
+                }
             }
             return
         }
@@ -286,6 +436,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         tickCount += 1
         gpsQuality = location.gpsQuality
 
+        // Liveness heartbeat: announce we're alive to a listening phone every ≥7 s. Sends
+        // nothing when no phone is reachable. Matches the Garmin cadence.
+        let nowSec = Int(Date().timeIntervalSince1970)
+        if nowSec - lastAliveTsSec >= 7 {
+            lastAliveTsSec = nowSec
+            WatchPhoneSync.sendAlive()
+        }
+
         // Request timeout check
         if requestInFlight, let startTime = requestStartTime,
            Date().timeIntervalSince(startTime) > Timing.requestTimeout {
@@ -296,7 +454,12 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             }
         }
 
-        guard let coord = location.coordinate else { return }
+        // Act on the effective position: our own fix when usable, else the phone's. When
+        // neither exists, ask the phone for one and wait.
+        guard let coord = effectivePosition() else {
+            requestPhoneLocation()
+            return
+        }
 
         // Movement detection (only in station/selection view) — refresh in place
         if appState <= 1,
@@ -368,6 +531,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 // No valid station selected
             } else if SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
+            } else {
+                // Out of Switzerland with no stations — ask the phone for its location.
+                requestPhoneLocation()
             }
         }
     }
@@ -418,6 +584,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         startTimer(interval: Timing.trackingRefreshInterval)
         startExtendedSession()
         HapticService.shortPulse()
+
+        // Reflect the same focused train on the phone (parity with the Garmin trackStarted echo).
+        if let focused = focusedTrain {
+            WatchPhoneSync.sendTrackStarted(focused, stationId: currentStation?.id)
+        }
     }
 
     func enterInactiveState() {

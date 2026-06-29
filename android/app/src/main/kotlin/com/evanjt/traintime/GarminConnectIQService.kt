@@ -129,6 +129,14 @@ class GarminConnectIQService(private val context: Context) {
         runCatching { connectIQ.openApplication(device, app) { _, _, _ -> } }
     }
 
+    // Paired devices regardless of connection state. Used for the grey "known but
+    // unreachable" indicator: a watch we've paired with but that's off / out of range.
+    fun hasKnownDevices(): Boolean = isAvailable && knownOrEmpty().isNotEmpty()
+
+    fun knownDeviceNames(): List<GarminDevice> =
+        if (!isAvailable) emptyList()
+        else knownOrEmpty().map { GarminDevice(it.deviceIdentifier.toString(), it.friendlyName ?: "Garmin Watch") }
+
     private fun ensureRegistered(device: IQDevice) {
         if (!registered.add(device.deviceIdentifier)) return
         runCatching {
