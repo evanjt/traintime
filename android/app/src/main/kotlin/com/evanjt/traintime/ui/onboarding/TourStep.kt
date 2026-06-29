@@ -3,7 +3,7 @@ package com.evanjt.traintime.ui.onboarding
 // The interactive walkthrough is a guided coach-mark tour: each step renders a
 // real, mocked app surface and spotlights one feature with an anchored callout.
 // Stages are the surfaces the steps run over; several steps share a surface.
-enum class TourStage { NEARBY, TRACK, FAVOURITE, PIN, SETTINGS, WIDGET }
+enum class TourStage { NEARBY, TRACK, FAVOURITE, PIN, SETTINGS, WATCH, WIDGET }
 
 data class TourStep(
     val stage: TourStage,
@@ -40,6 +40,13 @@ val tourSteps: List<TourStep> = listOf(
         TourStage.SETTINGS,
         "Choose your default mode",
         "In Settings, pick the mode you ride most. Train, bus or tram — it's what you'll see first.",
+    ),
+    TourStep(
+        TourStage.WATCH,
+        "Sync your watch",
+        "Pair a Garmin or Wear OS watch and TrainTime links to your wrist. The watch icon turns " +
+            "green when it's live, your tracked train, mode and station mirror across, and a tap " +
+            "opens it on the watch.",
     ),
     TourStep(
         TourStage.WIDGET,

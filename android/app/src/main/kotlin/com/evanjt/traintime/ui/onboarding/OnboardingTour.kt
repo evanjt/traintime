@@ -25,12 +25,14 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -144,6 +146,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
                         pinnedIds, onReport, onPin = { pinnedIds = pinnedIds + it.id },
                     )
                     TourStage.SETTINGS -> TourSettingsSurface(mode, onReport, onSelect = { mode = it })
+                    TourStage.WATCH -> TourWatchSurface(onReport)
                     TourStage.WIDGET -> TourWidgetSurface(onReport)
                 }
             }
@@ -469,6 +472,79 @@ private fun TourSettingsSurface(
                         Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
                     }
                 }
+            }
+        }
+    }
+}
+
+// Mocked watch-sync surface: a station header with the green (live) watch icon —
+// the spotlight target — over a Watch-link card mirroring SettingsSheet's section.
+// Self-contained: no real watch, the colours/labels match the bridge's watch UI.
+@Composable
+private fun TourWatchSurface(onReport: (Rect) -> Unit) {
+    val palette = LocalAppPalette.current
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val live = Color(0xFF34C759)
+    var mirror by remember { mutableStateOf(true) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            Text(
+                TourMockData.STATION_NAME,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.Filled.Watch,
+                contentDescription = "Watch linked",
+                tint = live,
+                modifier = Modifier.size(30.dp).onGloballyPositioned { onReport(it.boundsInRoot()) },
+            )
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+        ) {
+            Text("Watch link", color = secondary, fontSize = 13.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            ) {
+                Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
+                Text("Garmin watch", color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                Spacer(Modifier.weight(1f))
+                Text("Connected", color = palette.platform, fontSize = 13.sp)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Mirror to watch", color = onSurface)
+                    Text(
+                        "Send your tracked train, mode, station and location to the watch",
+                        color = secondary,
+                        fontSize = 12.sp,
+                    )
+                }
+                Switch(checked = mirror, onCheckedChange = { mirror = it })
             }
         }
     }
