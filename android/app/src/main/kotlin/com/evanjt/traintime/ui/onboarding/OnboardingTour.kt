@@ -480,8 +480,9 @@ private fun TourSettingsSurface(
 // Mocked watch-sync surface: a station header with the green (live) watch icon —
 // the spotlight target — over a Watch-link card mirroring SettingsSheet's section.
 // Self-contained: no real watch, the colours/labels match the bridge's watch UI.
+// internal (not private) so the onboarding snapshot test can render it.
 @Composable
-private fun TourWatchSurface(onReport: (Rect) -> Unit) {
+internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val onSurface = MaterialTheme.colorScheme.onSurface

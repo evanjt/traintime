@@ -3,6 +3,7 @@ package com.evanjt.traintime.ui.onboarding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -45,9 +46,26 @@ class OnboardingSnapshotTest {
         )
     }
 
+    private fun captureWatch(name: String, mode: String) {
+        composeRule.setContent {
+            TrainTimeTheme(appearanceMode = mode) {
+                Box(Modifier.size(411.dp, 600.dp).background(MaterialTheme.colorScheme.background)) {
+                    TourWatchSurface(onReport = {})
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/$name.png", roborazziOptions = TOLERANT)
+    }
+
     @Test
     fun tourWidgetLight() = capture("tour_widget_light", mode = "light")
 
     @Test
     fun tourWidgetDark() = capture("tour_widget_dark", mode = "dark")
+
+    @Test
+    fun tourWatchLight() = captureWatch("tour_watch_light", mode = "light")
+
+    @Test
+    fun tourWatchDark() = captureWatch("tour_watch_dark", mode = "dark")
 }
