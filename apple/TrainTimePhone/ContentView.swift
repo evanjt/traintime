@@ -54,6 +54,8 @@ struct ContentView: View {
             }
         }
         .onOpenURL { url in
+            // Garmin Connect returns the device-selection result through our custom scheme.
+            if viewModel.watchService.garminService.handleOpenURL(url) { return }
             viewModel.handleDeepLink(url)
         }
         .preferredColorScheme(AppAppearance(rawValue: appAppearance)?.colorScheme)

@@ -68,6 +68,24 @@ struct PhoneSettingsView: View {
                     }
                 }
 
+                if viewModel.watchService.garminService.isAvailable {
+                    Section {
+                        Button {
+                            viewModel.watchService.garminService.showDeviceSelection()
+                        } label: {
+                            HStack {
+                                Image(systemName: "watch.analog")
+                                Text("Pair a Garmin watch")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    } footer: {
+                        Text("Send departures to a Garmin watch. Requires the Garmin Connect app.")
+                    }
+                }
+
                 Section {
                     Button {
                         if let url = URL(string: "https://apps.apple.com/app/id6760388620?action=write-review") {

@@ -39,9 +39,9 @@ class PhoneWatchService: ObservableObject {
 
         // Garmin via Connect IQ
         let garminDevices = garminService.getConnectedDevices()
-        for (i, device) in garminDevices.enumerated() {
+        for device in garminDevices {
             watches.append(PhoneConnectedWatch(
-                id: "garmin_\(i)",
+                id: "garmin_\(device.id)",
                 name: device.name,
                 type: .garmin
             ))
@@ -63,7 +63,8 @@ class PhoneWatchService: ObservableObject {
             "delay": departure.delay,
             "plat": departure.platform,
             "platChg": departure.platformChanged,
-            "cat": departure.category
+            "cat": departure.category,
+            "line": departure.lineNumber
         ]
         if let tn = departure.trainNumber {
             data["trainNum"] = tn
@@ -80,8 +81,9 @@ class PhoneWatchService: ObservableObject {
             wcService.sendMessage(data, completion: completion)
         case .garmin:
             let garminDevices = garminService.getConnectedDevices()
-            // Find matching device by name
-            if let device = garminDevices.first(where: { $0.name == watch.name }) {
+            // watch.id is "garmin_<deviceId>"; match on the stable identifier.
+            let wantedId = String(watch.id.dropFirst("garmin_".count))
+            if let device = garminDevices.first(where: { $0.id == wantedId }) {
                 garminService.sendMessage(to: device, data: data, completion: completion)
             } else {
                 completion(false)

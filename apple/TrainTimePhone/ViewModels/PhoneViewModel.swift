@@ -115,17 +115,14 @@ class PhoneViewModel: ObservableObject {
             currentMode = savedMode
         }
 
-        // Receive default mode + favourites sync from watch
+        // Receive default mode + favourites sync from a watch. Apple Watch arrives via
+        // WCSession application context; Garmin arrives via the Connect IQ message channel.
+        // Both share one handler so the two ecosystems stay consistent.
         watchService.wcService.onApplicationContextReceived = { [weak self] context in
-            DispatchQueue.main.async {
-                if let modeRaw = context["defaultMode"] as? Int,
-                   let mode = TransportMode(rawValue: modeRaw) {
-                    self?.defaultMode = mode
-                    UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
-                }
-                self?.favouritesStore.handleReceivedContext(context)
-                self?.myStationsStore.handleReceivedContext(context)
-            }
+            self?.applyReceivedWatchContext(context)
+        }
+        watchService.garminService.onMessageReceived = { [weak self] context in
+            self?.applyReceivedWatchContext(context)
         }
 
         // FavouritesStore is a separate ObservableObject the phone views reach through the
@@ -146,6 +143,20 @@ class PhoneViewModel: ObservableObject {
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.applyPinnedReorder() }
+    }
+
+    // Applies a state sync pushed from any watch (defaultMode / favourites / pinned).
+    // Unknown keys (e.g. a Garmin "trackStarted" echo) are ignored.
+    private func applyReceivedWatchContext(_ context: [String: Any]) {
+        DispatchQueue.main.async {
+            if let modeRaw = context["defaultMode"] as? Int,
+               let mode = TransportMode(rawValue: modeRaw) {
+                self.defaultMode = mode
+                UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
+            }
+            self.favouritesStore.handleReceivedContext(context)
+            self.myStationsStore.handleReceivedContext(context)
+        }
     }
 
     // MARK: - Lifecycle
