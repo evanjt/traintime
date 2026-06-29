@@ -62,6 +62,23 @@ data class TrackCommand(
         platformChanged = platformChanged,
     )
 
+    // The Connect IQ phone-app message contract the Garmin watch reads in
+    // enterTrackingFromPhone (keys: action/dest/depTs/delay/plat/platChg/line, plus
+    // optional cat/trainNum/opRef/stId). Matches PhoneWatchService.sendTrackCommand on iOS.
+    fun toGarminMap(): Map<String, Any?> = buildMap {
+        put("action", "track")
+        put("dest", destination)
+        put("depTs", departureTimestamp)
+        put("delay", delay)
+        put("plat", platform)
+        put("platChg", platformChanged)
+        put("cat", category)
+        put("line", lineNumber)
+        trainNumber?.let { put("trainNum", it) }
+        operatorRef?.let { put("opRef", it) }
+        stationId?.let { put("stId", it) }
+    }
+
     companion object {
         fun from(focused: FocusedDeparture, stationId: String?) = TrackCommand(
             destination = focused.destination,

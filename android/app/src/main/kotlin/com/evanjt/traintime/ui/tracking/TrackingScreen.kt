@@ -249,14 +249,28 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // Send to Watch — only when a Wear watch is connected (mirrors the
-            // iOS PhoneFocusedTrackingView). The track command goes over the
-            // Wearable Data Layer to start tracking on the watch.
-            if (viewModel.connectedWatches.isNotEmpty()) {
+            // Send to Watch — only when a watch is reachable (mirrors the iOS
+            // PhoneFocusedTrackingView). Wear OS goes over the Wearable Data Layer,
+            // Garmin over the Connect IQ Mobile SDK. One button per watch when several
+            // are connected, otherwise a single button.
+            val watches = viewModel.connectedWatches
+            if (watches.isNotEmpty()) {
                 HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
-                OutlinedButton(onClick = { viewModel.sendToWatch() }) {
-                    Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                if (watches.size == 1) {
+                    OutlinedButton(onClick = { viewModel.sendToWatch() }) {
+                        Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                    }
+                } else {
+                    watches.forEach { watch ->
+                        OutlinedButton(
+                            onClick = { viewModel.sendToWatch(watch) },
+                            modifier = Modifier.padding(top = 4.dp),
+                        ) {
+                            Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(watch.name, modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
                 }
                 viewModel.watchSendStatus?.let { status ->
                     Text(status, color = secondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))

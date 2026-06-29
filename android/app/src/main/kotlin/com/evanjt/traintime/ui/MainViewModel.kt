@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.evanjt.traintime.GarminConnectIQService
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
@@ -41,6 +42,15 @@ enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 
 // Port of apple/TrainTimePhone/ViewModels/PhoneViewModel.swift.
 // appState: 0 = station view, 2 = focused tracking, 3 = inactive.
+enum class PhoneWatchType { WEAR, GARMIN }
+
+// A watch the phone can send to. Wear OS arrives over the Data Layer; Garmin over the
+// Connect IQ Mobile SDK. Mirrors iOS PhoneConnectedWatch.
+data class ConnectedWatch(val id: String, val name: String, val type: PhoneWatchType)
+
+// A paired watch and whether it's reachable now, for the settings link-status display.
+data class WatchLink(val name: String, val type: PhoneWatchType, val connected: Boolean)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
@@ -49,6 +59,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val haptics = HapticService(application)
     private val api = TrainApi.shared
     private val wearSync = WearStateSync.get(application)
+    val garminService = GarminConnectIQService(application)
 
     // App state
     var appState by mutableStateOf(0)
@@ -97,8 +108,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var formation by mutableStateOf<Formation?>(null)
         private set
 
-    // Connected Wear watches + last send status, for the "Send to Watch" control.
-    var connectedWatches by mutableStateOf(listOf<String>())
+    // Connected watches (Wear + Garmin) + last send status, for the "Send to Watch" control.
+    var connectedWatches by mutableStateOf(listOf<ConnectedWatch>())
+        private set
+
+    // Paired watches with live status, for the Settings link-status row.
+    var watchLinks by mutableStateOf(listOf<WatchLink>())
         private set
     var watchSendStatus by mutableStateOf<String?>(null)
         private set
@@ -144,6 +159,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         get() = currentStation?.name ?: "Station"
 
     init {
+        // Garmin watch link (no-op unless the Connect IQ SDK is linked + a watch paired).
+        garminService.onMessageReceived = { ctx -> applyReceivedWatchContext(ctx) }
+        // Live status: a watch connecting/disconnecting (e.g. Bluetooth toggled) re-checks
+        // eligibility, so the header indicator and settings update without reopening the app.
+        garminService.onLinkChanged = { refreshWatchLinks() }
+        garminService.initialize()
+
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
             currentMode = defaultMode
@@ -194,6 +216,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (location.loadedFromCache) loadedFromCache = true
         }
         startTimer(if (appState == 2) Timing.TRACKING_REFRESH_INTERVAL else Timing.NORMAL_REFRESH_INTERVAL)
+        refreshWatchLinksAndAutoOpen()
+    }
+
+    // On foreground: find eligible watches (connected + TrainTime installed) for the header
+    // indicator and settings list, and — unless opted out — ask them to open TrainTime so a
+    // Send-to-Watch lands without manually launching it. A single BLE sweep does both. No-op
+    // when nothing eligible, or the app is already running on the watch.
+    private fun refreshWatchLinksAndAutoOpen() {
+        viewModelScope.launch {
+            val wear = wearSync.connectedWatchNames().map { WatchLink(it, PhoneWatchType.WEAR, true) }
+            val garmin = garminService.eligibleDevices()
+            watchLinks = wear + garmin.map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
+            if (prefs.garminAutoOpenNow()) garmin.forEach { garminService.openApp(it.id) }
+        }
+    }
+
+    fun setGarminAutoOpen(value: Boolean) {
+        viewModelScope.launch { prefs.setGarminAutoOpen(value) }
     }
 
     fun onDisappear() {
@@ -468,31 +508,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { favouritesStore.remove(favourite) }
     }
 
-    // Send to Watch (mirrors iOS PhoneViewModel.sendToWatch). The Wearable Data
-    // Layer delivers the track command to a connected Wear watch.
+    // Send to Watch (mirrors iOS PhoneViewModel.sendToWatch). Wear OS is delivered over
+    // the Wearable Data Layer; Garmin over the Connect IQ Mobile SDK.
     fun refreshConnectedWatches() {
-        viewModelScope.launch { connectedWatches = wearSync.connectedWatchNames() }
+        viewModelScope.launch { connectedWatches = currentConnectedWatches() }
     }
 
-    fun sendToWatch() {
+    // For the Settings link-status display: paired watches and whether each is reachable.
+    fun refreshWatchLinks() {
+        viewModelScope.launch {
+            val wear = wearSync.connectedWatchNames().map { WatchLink(it, PhoneWatchType.WEAR, true) }
+            // eligibleDevices are connected + have TrainTime installed, so all are reachable.
+            val garmin = garminService.eligibleDevices().map { WatchLink(it.name, PhoneWatchType.GARMIN, true) }
+            watchLinks = wear + garmin
+        }
+    }
+
+    private suspend fun currentConnectedWatches(): List<ConnectedWatch> {
+        val wear = wearSync.connectedWatchNames().mapIndexed { i, name ->
+            ConnectedWatch("wear_$i", name, PhoneWatchType.WEAR)
+        }
+        val garmin = garminService.eligibleDevices().map { d ->
+            ConnectedWatch("garmin_${d.id}", d.name, PhoneWatchType.GARMIN)
+        }
+        return wear + garmin
+    }
+
+    // Single connected watch: send straight to it. Multiple: the UI calls this per target.
+    fun sendToWatch(target: ConnectedWatch? = null) {
         val focused = focusedTrain ?: return
         val stationId = currentStation?.id
         viewModelScope.launch {
-            val names = wearSync.connectedWatchNames()
-            connectedWatches = names
-            if (names.isEmpty()) {
+            val watches = currentConnectedWatches()
+            connectedWatches = watches
+            val watch = target ?: watches.singleOrNull()
+            if (watch == null) {
                 showWatchStatus("No watch connected")
                 return@launch
             }
-            val sent = wearSync.sendTrack(TrackCommand.from(focused, stationId))
-            showWatchStatus(
-                when {
-                    sent <= 0 -> "Failed to send"
-                    names.size == 1 -> "Sent to ${names.first()}"
-                    else -> "Sent to watch"
-                },
-            )
+            val cmd = TrackCommand.from(focused, stationId)
+            val ok = when (watch.type) {
+                PhoneWatchType.WEAR -> wearSync.sendTrack(cmd) > 0
+                PhoneWatchType.GARMIN -> {
+                    val deviceId = watch.id.removePrefix("garmin_")
+                    garminService.sendTrack(deviceId, cmd.toGarminMap())
+                }
+            }
+            showWatchStatus(if (ok) "Sent to ${watch.name}" else "Failed to send")
         }
+    }
+
+    // Applies a state sync pushed from a watch (defaultMode). Garmin sends this via the
+    // Connect IQ message channel; Wear arrives through the listener service / DataClient.
+    private fun applyReceivedWatchContext(ctx: Map<String, Any?>) {
+        val modeRaw = (ctx["defaultMode"] as? Number)?.toInt() ?: return
+        viewModelScope.launch { prefs.setDefaultMode(TransportMode.fromRaw(modeRaw)) }
+    }
+
+    override fun onCleared() {
+        garminService.shutdown()
+        super.onCleared()
     }
 
     private fun showWatchStatus(status: String) {

@@ -1,6 +1,7 @@
 using Toybox.WatchUi;
 using Toybox.Application.Storage;
 using Toybox.Communications;
+using Toybox.System;
 
 module SettingsMenu {
 
@@ -16,6 +17,15 @@ module SettingsMenu {
 
     function open(view) {
         var menu = new WatchUi.Menu2({:title => "Settings"});
+
+        // Phone link status — the channel the phone uses to send departures here.
+        var phoneConnected = System.getDeviceSettings().phoneConnected;
+        menu.addItem(new WatchUi.MenuItem(
+            "Phone",
+            phoneConnected ? "Connected" : "Not connected",
+            :phoneStatus,
+            {}
+        ));
 
         // Pin/unpin the currently shown station.
         if (view != null && view.mStationId != null) {
@@ -125,6 +135,7 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
             Storage.setValue("defaultMode", current);
             item.setSubLabel(SettingsMenu.modeLabel(current));
+            PhoneSync.sendDefaultMode(current);
         } else if (item.getId() == :quickLaunch) {
             SettingsMenu.openQuickLaunch(mView);
         } else if (item.getId() == :favourites) {

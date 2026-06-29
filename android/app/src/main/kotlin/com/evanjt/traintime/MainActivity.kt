@@ -131,6 +131,7 @@ private fun RootView(viewModel: MainViewModel) {
     }
 
     var showSettings by remember { mutableStateOf(false) }
+    var settingsFocusWatch by remember { mutableStateOf(false) }
 
     // targetSdk 35 forces edge-to-edge, so inset the content below the status
     // bar and above the nav bar (the Surface background still fills behind them).
@@ -138,7 +139,13 @@ private fun RootView(viewModel: MainViewModel) {
         when (viewModel.appState) {
             2 -> TrackingScreen(viewModel)
             3 -> InactiveScreen(onResume = { viewModel.resumeFromInactive() })
-            else -> StationScreen(viewModel, onOpenSettings = { showSettings = true })
+            else -> StationScreen(
+                viewModel,
+                onOpenSettings = { focusWatch ->
+                    settingsFocusWatch = focusWatch
+                    showSettings = true
+                },
+            )
         }
     }
 
@@ -146,7 +153,7 @@ private fun RootView(viewModel: MainViewModel) {
         StationPickerSheet(viewModel)
     }
     if (showSettings) {
-        SettingsSheet(viewModel, onDismiss = { showSettings = false })
+        SettingsSheet(viewModel, focusWatch = settingsFocusWatch, onDismiss = { showSettings = false })
     }
 
     // First-launch walkthrough sits above everything until completed or skipped.

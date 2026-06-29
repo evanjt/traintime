@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -60,7 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StationScreen(
     viewModel: MainViewModel,
-    onOpenSettings: () -> Unit,
+    onOpenSettings: (focusWatch: Boolean) -> Unit,
 ) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -82,12 +83,24 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
+            // Watch link indicator — only when a watch is connected. Taps open Settings,
+            // where the link status and watch options live.
+            if (viewModel.watchLinks.isNotEmpty()) {
+                Icon(
+                    Icons.Filled.Watch,
+                    contentDescription = "Watch connected — open settings",
+                    tint = palette.platform,
+                    modifier = Modifier
+                        .clickable { onOpenSettings(true) }
+                        .padding(end = 12.dp),
+                )
+            }
             Icon(
                 Icons.Filled.LocationOn,
                 contentDescription = "GPS quality",
                 tint = viewModel.gpsQuality.tint,
             )
-            IconButton(onClick = onOpenSettings) {
+            IconButton(onClick = { onOpenSettings(false) }) {
                 Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)
             }
         }

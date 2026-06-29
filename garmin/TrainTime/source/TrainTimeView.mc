@@ -378,6 +378,7 @@ class TrainTimeView extends WatchUi.View {
             mTimer.start(method(:onTimerTick), 1000, true);
         }
         Haptics.vibrateShort();
+        PhoneSync.sendTrackStarted(mFocusedTrain, mStationId);
         WatchUi.requestUpdate();
     }
 
@@ -830,6 +831,7 @@ class TrainTimeView extends WatchUi.View {
             mTimer.start(method(:onTimerTick), 1000, true);
         }
         Haptics.vibrateShort();
+        PhoneSync.sendTrackStarted(mFocusedTrain, mStationId);
     }
 
     // --- Position & Timer ---
