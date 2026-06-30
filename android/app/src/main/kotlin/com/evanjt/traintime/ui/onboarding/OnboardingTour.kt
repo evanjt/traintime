@@ -1,5 +1,7 @@
 package com.evanjt.traintime.ui.onboarding
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +49,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -516,6 +519,7 @@ internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
             )
         }
 
+        val context = LocalContext.current
         Column(
             Modifier
                 .fillMaxWidth()
@@ -529,13 +533,37 @@ internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             ) {
                 Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
-                Text("Garmin watch", color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                Text("Garmin", color = onSurface, modifier = Modifier.padding(start = 12.dp))
                 Spacer(Modifier.weight(1f))
-                Text("Connected", color = palette.platform, fontSize = 13.sp)
+                Text("Connected", color = live, fontSize = 13.sp)
             }
+            Text(
+                "Works on fēnix, Forerunner, venu, epix, vívoactive and more.",
+                color = secondary,
+                fontSize = 12.sp,
+            )
+            Text(
+                "View on Connect IQ store",
+                color = palette.platform,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clickable {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CONNECT_IQ_STORE_URL)))
+                        }
+                    },
+            )
+            Text(
+                "Wear OS support is coming soon.",
+                color = secondary.copy(alpha = 0.6f),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             ) {
                 Column(Modifier.weight(1f)) {
                     Text("Mirror to watch", color = onSurface)
@@ -550,6 +578,9 @@ internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
         }
     }
 }
+
+private const val CONNECT_IQ_STORE_URL =
+    "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
 
 @Composable
 private fun TourWidgetSurface(onReport: (Rect) -> Unit) {

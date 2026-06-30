@@ -17,8 +17,7 @@ val tourSteps: List<TourStep> = listOf(
     TourStep(
         TourStage.NEARBY,
         "Departures around you",
-        "TrainTime finds the stations nearest you and shows their live departures. " +
-            "Here's Bern Bahnhof.",
+        "The nearest stations and their live departures. Here's Bern Bahnhof.",
     ),
     TourStep(
         TourStage.TRACK,
@@ -28,33 +27,30 @@ val tourSteps: List<TourStep> = listOf(
     TourStep(
         TourStage.FAVOURITE,
         "Star your lines",
-        "Tap a line to favourite it. Favourites jump to the top so your usual trains are always first.",
+        "Tap a line to favourite it. Favourites jump to the top.",
     ),
     TourStep(
         TourStage.PIN,
         "Pin a station",
-        "Pin a station and it leads the list whenever it's among the five nearest — " +
-            "handy when you're standing closer to a smaller stop.",
+        "Pinned stations lead the list whenever they're among the five nearest.",
     ),
     TourStep(
         TourStage.SETTINGS,
-        "Choose your default mode",
-        "In Settings, pick the mode you ride most. Train, bus or tram — it's what you'll see first.",
+        "Set your default mode",
+        "Pick the mode you ride most. It shows first.",
     ),
     TourStep(
         TourStage.WATCH,
         "Sync your watch",
-        "Pair a Garmin or Wear OS watch and TrainTime links to your wrist. The watch icon turns " +
-            "green when it's live, your tracked train, mode and station mirror across, and a tap " +
-            "opens it on the watch.",
+        "Pair a Garmin and your tracked train, mode and station mirror to your wrist. " +
+            "The icon turns green when it's live.",
     ),
     TourStep(
         TourStage.WIDGET,
         "Add the widget",
-        "Put your next departures on your home screen — favourites and the next trains, at a glance.",
+        "Put your next departures on the home screen.",
     ),
 )
 
-// Shown once the IC1 row has been tapped and the tracking surface is up.
-const val TRACK_DETAIL_BODY =
-    "A live countdown, the platform, and how comfortably you'll make it on foot."
+// Shown once a departure row has been tapped and the tracking surface is up.
+const val TRACK_DETAIL_BODY = "A live countdown, the platform, and your walk time."
