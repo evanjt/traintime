@@ -6,6 +6,7 @@ struct PhoneSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.openURL) private var openURL
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     private func watchStatusText(_ liveness: WatchLiveness) -> String {
         switch liveness {
@@ -157,6 +158,19 @@ struct PhoneSettingsView: View {
                             Image(systemName: "star.fill")
                                 .foregroundStyle(AppColors.favouriteStar)
                             Text("Rate TrainTime")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        dismiss()
+                        hasSeenOnboarding = false
+                    } label: {
+                        HStack {
+                            Image(systemName: "questionmark.circle")
+                            Text("Replay walkthrough")
                                 .foregroundStyle(.primary)
                             Spacer()
                         }

@@ -86,6 +86,12 @@
 		P0A10000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000B /* Assets.xcassets */; };
 		P0A10000000000000000000D /* PhoneWatchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000D /* PhoneWatchService.swift */; };
 		P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000301 /* WatchLivenessIndicator.swift */; };
+		P0A100000000000000000401 /* OnboardingTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000401 /* OnboardingTour.swift */; };
+		P0A100000000000000000402 /* CalloutBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000402 /* CalloutBubble.swift */; };
+		P0A100000000000000000403 /* SpotlightScrim.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000403 /* SpotlightScrim.swift */; };
+		P0A100000000000000000404 /* TourStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000404 /* TourStep.swift */; };
+		P0A100000000000000000405 /* TourMockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000405 /* TourMockData.swift */; };
+		P0A100000000000000000406 /* TourWidgetMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000406 /* TourWidgetMock.swift */; };
 		FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0F00000000000000000301 /* WatchPhoneSync.swift */; };
 		P0A10000000000000000000E /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000E /* WatchConnectivityService.swift */; };
 		P0A10000000000000000000F /* GarminConnectIQService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F10000000000000000000F /* GarminConnectIQService.swift */; };
@@ -246,6 +252,12 @@
 		P0F10000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		P0F10000000000000000000D /* PhoneWatchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000301 /* WatchLivenessIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLivenessIndicator.swift; sourceTree = "<group>"; };
+		P0F100000000000000000401 /* OnboardingTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTour.swift; sourceTree = "<group>"; };
+		P0F100000000000000000402 /* CalloutBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalloutBubble.swift; sourceTree = "<group>"; };
+		P0F100000000000000000403 /* SpotlightScrim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightScrim.swift; sourceTree = "<group>"; };
+		P0F100000000000000000404 /* TourStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourStep.swift; sourceTree = "<group>"; };
+		P0F100000000000000000405 /* TourMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourMockData.swift; sourceTree = "<group>"; };
+		P0F100000000000000000406 /* TourWidgetMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourWidgetMock.swift; sourceTree = "<group>"; };
 		FE0F00000000000000000301 /* WatchPhoneSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPhoneSync.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000E /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000F /* GarminConnectIQService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminConnectIQService.swift; sourceTree = "<group>"; };
@@ -488,9 +500,23 @@
 				P0F10000000000000000000A /* PhoneStationPickerView.swift */,
 				P0F100000000000000000010 /* SettingsView.swift */,
 				P0F100000000000000000301 /* WatchLivenessIndicator.swift */,
+				P0G100000000000000000401 /* Onboarding */,
 				F0F100000000000000000002 /* FormationDiagramView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		P0G100000000000000000401 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				P0F100000000000000000401 /* OnboardingTour.swift */,
+				P0F100000000000000000402 /* CalloutBubble.swift */,
+				P0F100000000000000000403 /* SpotlightScrim.swift */,
+				P0F100000000000000000404 /* TourStep.swift */,
+				P0F100000000000000000405 /* TourMockData.swift */,
+				P0F100000000000000000406 /* TourWidgetMock.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		P0G100000000000000000004 /* Services */ = {
@@ -801,6 +827,12 @@
 				P0A100000000000000000005 /* PhoneHapticService.swift in Sources */,
 				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
 				P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */,
+				P0A100000000000000000401 /* OnboardingTour.swift in Sources */,
+				P0A100000000000000000402 /* CalloutBubble.swift in Sources */,
+				P0A100000000000000000403 /* SpotlightScrim.swift in Sources */,
+				P0A100000000000000000404 /* TourStep.swift in Sources */,
+				P0A100000000000000000405 /* TourMockData.swift in Sources */,
+				P0A100000000000000000406 /* TourWidgetMock.swift in Sources */,
 				P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */,
 				P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */,
 				P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */,
