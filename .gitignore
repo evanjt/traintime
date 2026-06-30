@@ -64,3 +64,4 @@ android/.idea/
 android/captures/
 /screenshots/
 /*.png
+.*
