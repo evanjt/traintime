@@ -53,6 +53,12 @@ data class ConnectedWatch(val id: String, val name: String, val type: PhoneWatch
 data class WatchLink(val name: String, val type: PhoneWatchType, val connected: Boolean)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        // Shown (and the gate for the faint Swiss-outline backdrop) when located outside
+        // Switzerland with no stations to show.
+        const val OUT_OF_BOUNDS_STATUS = "Not in Switzerland"
+    }
+
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
     val myStationsStore = MyStationsStore(application)
@@ -383,7 +389,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         maybePushLocationToWatch(coord)
 
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
-            status = "Not in Switzerland"
+            status = OUT_OF_BOUNDS_STATUS
             return
         }
 
@@ -441,9 +447,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val focused = focusedTrain
             if (focused != null) {
                 val minutesLeft = focused.minutesUntil(nowSeconds())
+                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
+                // station view, so polling stops right away. The watch expires on its own depTs.
                 if (minutesLeft < -1.0) {
                     haptics.shortPulse()
-                    exitToStationView()
+                    enterInactiveState()
                     return
                 }
 

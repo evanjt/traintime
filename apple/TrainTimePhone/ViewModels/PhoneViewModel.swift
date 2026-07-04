@@ -4,6 +4,10 @@ import Combine
 import WidgetKit
 
 class PhoneViewModel: ObservableObject {
+    // Shown (and used as the gate for the faint Swiss-outline backdrop) when the phone is
+    // located outside Switzerland with no stations to show.
+    static let outOfBoundsStatus = "Not in Switzerland"
+
     // MARK: - Services
     let location = PhoneLocationService()
     private var locationCancellable: AnyCancellable?
@@ -349,7 +353,7 @@ class PhoneViewModel: ObservableObject {
 
         guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
             if stations.isEmpty {
-                status = "Not in Switzerland"
+                status = Self.outOfBoundsStatus
             }
             return
         }
@@ -421,9 +425,11 @@ class PhoneViewModel: ObservableObject {
         if appState == 2 {
             if let focused = focusedTrain {
                 let minutesLeft = focused.minutesUntil
+                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
+                // station view, so polling stops right away. The watch expires on its own depTs.
                 if minutesLeft < -1.0 {
                     PhoneHapticService.shortPulse()
-                    exitToStationView()
+                    enterInactiveState()
                     return
                 }
 

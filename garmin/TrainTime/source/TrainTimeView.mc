@@ -1148,10 +1148,11 @@ class TrainTimeView extends WatchUi.View {
         // Heartbeat vibration when behind schedule in tracking mode
         if (mAppState == 2 && mFocusedTrain != null) {
             var focusedMin = getFocusedMinutesUntil();
-            // Auto-exit when train has departed for >1 minute
+            // Departed >1 min ago: drop straight to the inactive tap-to-refresh state, not the
+            // station view, so API polling stops instead of continuing every 30s.
             if (focusedMin < -1.0) {
                 Haptics.vibrateShort();
-                exitToStationView();
+                enterInactiveState();
             } else {
                 var walkMin = getWalkMinutes();
                 if (walkMin != null) {

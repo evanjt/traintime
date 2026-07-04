@@ -492,9 +492,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if appState == 2 {
             if let focused = focusedTrain {
                 let minutesLeft = focused.minutesUntil
+                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
+                // station view, so polling (and the extended session) stops right away.
                 if minutesLeft < -1.0 {
                     HapticService.shortPulse()
-                    exitToStationView()
+                    enterInactiveState()
                     return
                 }
 
