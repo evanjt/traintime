@@ -59,14 +59,14 @@ struct TrainAPIService {
             return ([], [])
         }
 
-        let deps = departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
+        let deps = departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }.dedupedForDisplay()
         let favDeps: [Departure]
         if let favArray = json?["favourites"] as? [[String: Any]] {
-            favDeps = favArray.map { Departure.from(json: $0) }
+            favDeps = favArray.map { Departure.from(json: $0) }.dedupedForDisplay()
         } else {
             favDeps = []
         }
-        return (Array(deps), favDeps)
+        return (deps, favDeps)
     }
 
     // MARK: - Formation

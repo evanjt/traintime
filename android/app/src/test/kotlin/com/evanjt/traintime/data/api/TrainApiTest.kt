@@ -143,6 +143,52 @@ class TrainApiTest {
     }
 
     @Test
+    fun `departures collapses twin publications of the same train`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "departures": [
+                    {"to": "Coppet", "category": "R", "number": "RL4", "departure": ${now + 300}, "platform": "2", "trainNumber": "23153"},
+                    {"to": "Coppet", "category": "R", "number": "RL4", "departure": ${now + 300}, "delay": 1, "platform": "2", "trainNumber": "93153"}
+                  ]
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val result = api.fetchDepartures("8501014")
+
+        assertEquals(1, result.departures.size)
+        assertEquals("93153", result.departures.first().trainNumber)
+        assertEquals(1, result.departures.first().delay)
+    }
+
+    @Test
+    fun `nearby collapses twin publications in embedded departures`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "train": [
+                    {"id": "8501014", "name": "Mies", "lat": 46.3, "lon": 6.17, "dist": 100.0, "departures": [
+                      {"to": "Coppet", "number": "RL4", "departure": ${now + 300}, "platform": "2", "trainNumber": "23153"},
+                      {"to": "Coppet", "number": "RL4", "departure": ${now + 300}, "delay": 1, "platform": "2", "trainNumber": "93153"}
+                    ]}
+                  ],
+                  "bus": [], "tram": [], "special": []
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val embedded = api.fetchStations(46.3, 6.17).train.first().embeddedDepartures!!
+
+        assertEquals(1, embedded.size)
+        assertEquals("93153", embedded.first().trainNumber)
+    }
+
+    @Test
     fun `departures without favourites field returns empty favourites`() = runTest {
         server.enqueue(MockResponse().setBody("""{"departures": []}"""))
         val result = api.fetchDepartures("8501120")

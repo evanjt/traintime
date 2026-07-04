@@ -138,7 +138,7 @@ fun WearStationListScreen(
                     )
                 }
             } else {
-                itemsIndexed(vm.departures, key = { _, d -> d.stableId }) { index, dep ->
+                itemsIndexed(vm.departures, key = { _, d -> "dep-${d.stableId}" }) { index, dep ->
                     WearDepartureRow(
                         departure = dep,
                         isFavourite = vm.isDepartureFavourite(dep),

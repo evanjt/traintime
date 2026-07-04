@@ -3,6 +3,7 @@ package com.evanjt.traintime.data.api
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.Formation
+import com.evanjt.traintime.data.model.dedupedForDisplay
 import com.evanjt.traintime.data.model.FormationWagon
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
@@ -56,6 +57,7 @@ data class StationDto(
             ?.takeIf { it.isNotEmpty() }
             ?.take(Thresholds.MAX_DEPARTURES)
             ?.map { it.toDeparture(nowEpochSeconds) }
+            ?.dedupedForDisplay()
         return Station(
             id = id,
             name = name,

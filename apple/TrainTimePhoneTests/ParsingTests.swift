@@ -38,6 +38,42 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(dep.delay, 0)
     }
 
+    private func coppetDep(trainNumber: String?, delay: Int? = nil, platform: String = "2", departure: Int = 1_783_171_320) -> Departure {
+        var json: [String: Any] = ["to": "Coppet", "category": "R", "number": "RL4", "departure": departure, "platform": platform]
+        if let trainNumber { json["trainNumber"] = trainNumber }
+        if let delay { json["delay"] = delay }
+        return Departure.from(json: json)
+    }
+
+    func testStableIdIncludesTrainNumberAndToleratesNil() {
+        XCTAssertEqual(coppetDep(trainNumber: "23153").stableId, "1783171320|RL4|Coppet|23153")
+        XCTAssertEqual(coppetDep(trainNumber: nil).stableId, "1783171320|RL4|Coppet|")
+    }
+
+    // Scenario: OJP publishes the same train under two journey numbers
+    // (RL4 → Coppet as 23153 and 93153); only one carries the live delay.
+    // Expected behaviour: one row survives, the delay-bearing one,
+    // regardless of input order.
+    func testDedupeCollapsesTwinPublicationsKeepingDelayBearingRow() {
+        let planned = coppetDep(trainNumber: "23153")
+        let tracked = coppetDep(trainNumber: "93153", delay: 1)
+        for input in [[planned, tracked], [tracked, planned]] {
+            let out = input.dedupedForDisplay()
+            XCTAssertEqual(out.count, 1)
+            XCTAssertEqual(out.first?.trainNumber, "93153")
+            XCTAssertEqual(out.first?.delay, 1)
+        }
+    }
+
+    func testDedupeKeepsRowsAPassengerCanTellApart() {
+        let quayOne = coppetDep(trainNumber: "23153", platform: "1")
+        let quayTwo = coppetDep(trainNumber: "93153", platform: "2")
+        let laterTrain = coppetDep(trainNumber: "23155", departure: 1_783_171_380)
+        let out = [quayOne, quayTwo, laterTrain].dedupedForDisplay()
+        XCTAssertEqual(out.count, 3)
+        XCTAssertEqual(Set(out.map(\.stableId)).count, 3)
+    }
+
     func testFormationParsesWagons() {
         let json: [String: Any] = [
             "track": "3", "sectors": ["A", "B"],

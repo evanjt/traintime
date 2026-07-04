@@ -17,9 +17,11 @@ data class Departure(
 ) {
     val isGone: Boolean get() = minutesUntil < 0
 
-    // Identity stable across fetches (the triple matches how favourites dedupe),
-    // so Compose list keys don't churn when a fresh fetch replaces the list.
-    val stableId: String get() = "${departureTimestamp ?: 0}|$lineNumber|$destination"
+    // Identity stable across fetches, so Compose list keys don't churn when a
+    // fresh fetch replaces the list. Includes trainNumber because OJP can list
+    // distinct journeys in the same minute; excludes platform, which mutates
+    // across fetches (platformChanged) and would churn keys.
+    val stableId: String get() = "${departureTimestamp ?: 0}|$lineNumber|$destination|${trainNumber ?: ""}"
 
     fun secondsUntil(nowEpochSeconds: Long): Long? =
         departureTimestamp?.let { it - nowEpochSeconds }
@@ -30,4 +32,20 @@ data class Departure(
             minutesUntil == 0 -> "now"
             else -> "$minutesUntil'"
         }
+}
+
+// OJP can publish the same physical train twice under different journey numbers
+// (seen live: Léman Express RL4 → Coppet as 23153 and 93153, only one carrying
+// the real-time delay). Collapse rows a passenger can't tell apart, keeping the
+// delay-bearing one. The key deliberately excludes trainNumber — it is the field
+// that differs on such twins.
+fun List<Departure>.dedupedForDisplay(): List<Departure> {
+    if (size < 2) return this
+    val best = LinkedHashMap<String, Departure>(size)
+    for (dep in this) {
+        val key = "${dep.departureTimestamp ?: 0}|${dep.lineNumber}|${dep.destination}|${dep.platform}"
+        val existing = best[key]
+        if (existing == null || dep.delay > existing.delay) best[key] = dep
+    }
+    return best.values.toList()
 }

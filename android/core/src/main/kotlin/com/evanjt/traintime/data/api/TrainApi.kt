@@ -5,6 +5,7 @@ import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.Formation
+import com.evanjt.traintime.data.model.dedupedForDisplay
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import java.io.IOException
@@ -83,8 +84,8 @@ class TrainApi(
         val dto = json.decodeFromString<DeparturesResponseDto>(body)
         val now = clock()
         return DeparturesResult(
-            departures = dto.departures.take(Thresholds.MAX_DEPARTURES).map { it.toDeparture(now) },
-            favourites = dto.favourites?.map { it.toDeparture(now) } ?: emptyList(),
+            departures = dto.departures.take(Thresholds.MAX_DEPARTURES).map { it.toDeparture(now) }.dedupedForDisplay(),
+            favourites = dto.favourites?.map { it.toDeparture(now) }?.dedupedForDisplay() ?: emptyList(),
         )
     }
 

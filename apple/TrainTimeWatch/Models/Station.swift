@@ -27,7 +27,7 @@ struct Station: Identifiable {
 
         var embeddedDeps: [Departure]?
         if let depsArray = json["departures"] as? [[String: Any]], !depsArray.isEmpty {
-            embeddedDeps = depsArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }
+            embeddedDeps = depsArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }.dedupedForDisplay()
         }
 
         return Station(id: id, name: name, lat: lat, lon: lon, mode: mode, dist: dist, embeddedDepartures: embeddedDeps)

@@ -54,9 +54,10 @@ struct Departure: Identifiable {
 
     var isGone: Bool { minutesUntil < 0 }
 
-    /// Identity stable across fetches (unlike `id`, a fresh UUID each parse). The triple
-    /// matches how `FavouritesStore.merging` dedupes, so it is unique within one list.
-    var stableId: String { "\(departureTimestamp ?? 0)|\(lineNumber)|\(destination)" }
+    /// Identity stable across fetches (unlike `id`, a fresh UUID each parse). Includes
+    /// trainNumber because OJP can list distinct journeys in the same minute; excludes
+    /// platform, which mutates across fetches (platformChanged) and would churn identity.
+    var stableId: String { "\(departureTimestamp ?? 0)|\(lineNumber)|\(destination)|\(trainNumber ?? "")" }
 
     /// Seconds until departure (more precise than minutesUntil for tracking)
     var secondsUntil: Int? {
@@ -68,5 +69,28 @@ struct Departure: Identifiable {
         if isGone { return "gone" }
         if minutesUntil == 0 { return "now" }
         return "\(minutesUntil)'"
+    }
+}
+
+extension Array where Element == Departure {
+    /// OJP can publish the same physical train twice under different journey numbers
+    /// (seen live: Léman Express RL4 → Coppet as 23153 and 93153, only one carrying
+    /// the real-time delay). Collapse rows a passenger can't tell apart, keeping the
+    /// delay-bearing one. The key deliberately excludes trainNumber — it is the field
+    /// that differs on such twins.
+    func dedupedForDisplay() -> [Departure] {
+        guard count > 1 else { return self }
+        var result: [Departure] = []
+        var indexByKey: [String: Int] = [:]
+        for dep in self {
+            let key = "\(dep.departureTimestamp ?? 0)|\(dep.lineNumber)|\(dep.destination)|\(dep.platform)"
+            if let existing = indexByKey[key] {
+                if dep.delay > result[existing].delay { result[existing] = dep }
+            } else {
+                indexByKey[key] = result.count
+                result.append(dep)
+            }
+        }
+        return result
     }
 }
