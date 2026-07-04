@@ -72,11 +72,16 @@ struct PhoneStationView: View {
             if viewModel.departures.isEmpty {
                 Spacer()
                 if viewModel.stations.isEmpty {
-                    Text(viewModel.status)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    ZStack {
+                        if viewModel.status == PhoneViewModel.outOfBoundsStatus {
+                            SwissOutlineBackdrop()
+                        }
+                        Text(viewModel.status)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
                 } else {
                     ProgressView()
                         .tint(.secondary)

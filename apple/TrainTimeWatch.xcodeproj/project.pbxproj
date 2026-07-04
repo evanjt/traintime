@@ -79,6 +79,8 @@
 		P0A100000000000000000004 /* PhoneLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000004 /* PhoneLocationService.swift */; };
 		P0A100000000000000000005 /* PhoneHapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000005 /* PhoneHapticService.swift */; };
 		P0A100000000000000000006 /* PhoneStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000006 /* PhoneStationView.swift */; };
+		P0A100000000000000000050 /* SwissOutline.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000050 /* SwissOutline.swift */; };
+		P0A100000000000000000051 /* PhoneAttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000051 /* PhoneAttributionView.swift */; };
 		P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */; };
 		P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000008 /* PhoneDepartureRowView.swift */; };
 		P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000009 /* PhoneModePickerView.swift */; };
@@ -244,6 +246,8 @@
 		P0F100000000000000000004 /* PhoneLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLocationService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000005 /* PhoneHapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHapticService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000006 /* PhoneStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationView.swift; sourceTree = "<group>"; };
+		P0F100000000000000000050 /* SwissOutline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwissOutline.swift; sourceTree = "<group>"; };
+		P0F100000000000000000051 /* PhoneAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneAttributionView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFocusedTrackingView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000008 /* PhoneDepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDepartureRowView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000009 /* PhoneModePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModePickerView.swift; sourceTree = "<group>"; };
@@ -494,6 +498,8 @@
 			isa = PBXGroup;
 			children = (
 				P0F100000000000000000006 /* PhoneStationView.swift */,
+				P0F100000000000000000050 /* SwissOutline.swift */,
+				P0F100000000000000000051 /* PhoneAttributionView.swift */,
 				P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */,
 				P0F100000000000000000008 /* PhoneDepartureRowView.swift */,
 				P0F100000000000000000009 /* PhoneModePickerView.swift */,
@@ -826,6 +832,8 @@
 				P0A100000000000000000004 /* PhoneLocationService.swift in Sources */,
 				P0A100000000000000000005 /* PhoneHapticService.swift in Sources */,
 				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
+				P0A100000000000000000050 /* SwissOutline.swift in Sources */,
+				P0A100000000000000000051 /* PhoneAttributionView.swift in Sources */,
 				P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */,
 				P0A100000000000000000401 /* OnboardingTour.swift in Sources */,
 				P0A100000000000000000402 /* CalloutBubble.swift in Sources */,

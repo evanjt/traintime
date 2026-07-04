@@ -180,6 +180,9 @@ fun StationScreen(
         if (viewModel.departures.isEmpty() && viewModel.favouriteDepartures.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (viewModel.stations.isEmpty()) {
+                    if (viewModel.status == MainViewModel.OUT_OF_BOUNDS_STATUS) {
+                        SwissOutlineBackdrop(color = secondary.copy(alpha = 0.3f))
+                    }
                     Text(
                         viewModel.status,
                         color = secondary,

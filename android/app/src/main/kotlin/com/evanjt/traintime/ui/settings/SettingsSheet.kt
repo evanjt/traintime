@@ -44,7 +44,12 @@ import com.evanjt.traintime.ui.station.icon
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun SettingsSheet(viewModel: MainViewModel, focusWatch: Boolean = false, onDismiss: () -> Unit) {
+fun SettingsSheet(
+    viewModel: MainViewModel,
+    focusWatch: Boolean = false,
+    onOpenAttribution: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val palette = LocalAppPalette.current
     val onSurface = MaterialTheme.colorScheme.onSurface
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -209,6 +214,16 @@ fun SettingsSheet(viewModel: MainViewModel, focusWatch: Boolean = false, onDismi
                     .padding(top = 16.dp, bottom = 4.dp),
             ) {
                 Text("Rate this app", color = onSurface)
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenAttribution() }
+                    .padding(top = 16.dp),
+            ) {
+                Text("Attribution", color = onSurface)
             }
         }
     }

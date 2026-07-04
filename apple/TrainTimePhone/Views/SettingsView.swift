@@ -176,6 +176,17 @@ struct PhoneSettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    NavigationLink {
+                        PhoneAttributionView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text")
+                            Text("Attribution")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
                 }
 
                 Section {

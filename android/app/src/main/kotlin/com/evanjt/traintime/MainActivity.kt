@@ -36,6 +36,7 @@ import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
+import com.evanjt.traintime.ui.settings.AttributionSheet
 import com.evanjt.traintime.ui.settings.SettingsSheet
 import com.evanjt.traintime.ui.station.InactiveScreen
 import com.evanjt.traintime.ui.station.StationPickerSheet
@@ -137,6 +138,7 @@ private fun RootView(viewModel: MainViewModel) {
 
     var showSettings by remember { mutableStateOf(false) }
     var settingsFocusWatch by remember { mutableStateOf(false) }
+    var showAttribution by remember { mutableStateOf(false) }
 
     // targetSdk 35 forces edge-to-edge, so inset the content below the status
     // bar and above the nav bar (the Surface background still fills behind them).
@@ -158,7 +160,15 @@ private fun RootView(viewModel: MainViewModel) {
         StationPickerSheet(viewModel)
     }
     if (showSettings) {
-        SettingsSheet(viewModel, focusWatch = settingsFocusWatch, onDismiss = { showSettings = false })
+        SettingsSheet(
+            viewModel,
+            focusWatch = settingsFocusWatch,
+            onOpenAttribution = { showSettings = false; showAttribution = true },
+            onDismiss = { showSettings = false },
+        )
+    }
+    if (showAttribution) {
+        AttributionSheet(onDismiss = { showAttribution = false })
     }
 
     // First-launch walkthrough sits above everything until completed or skipped.
