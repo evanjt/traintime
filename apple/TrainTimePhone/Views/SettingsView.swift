@@ -21,59 +21,42 @@ struct PhoneSettingsView: View {
         NavigationStack {
             List {
                 Section("Default Mode") {
-                    ForEach(TransportMode.allCases) { mode in
-                        Button {
-                            viewModel.setDefaultMode(mode)
-                        } label: {
-                            HStack {
-                                Image(systemName: mode.sfSymbol)
-                                Text(mode.label)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if viewModel.defaultMode == mode {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
+                    Picker("Default Mode", selection: Binding(
+                        get: { viewModel.defaultMode },
+                        set: { viewModel.setDefaultMode($0) }
+                    )) {
+                        ForEach(TransportMode.allCases) { mode in
+                            Text(mode.label).tag(mode)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
 
                 Section("Appearance") {
-                    ForEach(AppAppearance.allCases) { appearance in
-                        Button {
-                            appAppearance = appearance.rawValue
-                        } label: {
-                            HStack {
-                                Image(systemName: appearance.symbol)
-                                Text(appearance.label)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                if appAppearance == appearance.rawValue {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
+                    Picker("Appearance", selection: $appAppearance) {
+                        ForEach(AppAppearance.allCases) { appearance in
+                            Text(appearance.label).tag(appearance.rawValue)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
                 }
 
                 if !favouritesStore.favourites.isEmpty {
-                    Section("Favourites (\(favouritesStore.favourites.count))") {
-                        ForEach(favouritesStore.favourites) { fav in
+                    Section {
+                        NavigationLink {
+                            FavouritesManagementView(favouritesStore: favouritesStore)
+                        } label: {
                             HStack {
                                 Image(systemName: "star.fill")
                                     .font(.caption)
                                     .foregroundStyle(AppColors.favouriteStar)
-                                Text(fav.displayString)
-                                    .font(.body)
+                                Text("Favourites")
+                                Spacer()
+                                Text("\(favouritesStore.favourites.count)")
+                                    .foregroundStyle(.secondary)
                             }
-                        }
-                        .onDelete { offsets in
-                            let toRemove = offsets.map { favouritesStore.favourites[$0] }
-                            toRemove.forEach { favouritesStore.remove($0) }
                         }
                     }
                 }
@@ -203,6 +186,37 @@ struct PhoneSettingsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+        }
+    }
+}
+
+// Lives in this file: adding a Swift file means hand-editing project.pbxproj.
+private struct FavouritesManagementView: View {
+    @ObservedObject var favouritesStore: FavouritesStore
+
+    var body: some View {
+        List {
+            ForEach(favouritesStore.favourites) { fav in
+                HStack {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.favouriteStar)
+                    Text(fav.displayString)
+                        .font(.body)
+                }
+            }
+            .onDelete { offsets in
+                let toRemove = offsets.map { favouritesStore.favourites[$0] }
+                toRemove.forEach { favouritesStore.remove($0) }
+            }
+        }
+        .navigationTitle("Favourites")
+        .toolbar { EditButton() }
+        .overlay {
+            if favouritesStore.favourites.isEmpty {
+                Text("No favourites yet")
+                    .foregroundStyle(.secondary)
             }
         }
     }
