@@ -27,12 +27,13 @@ val tourSteps: List<TourStep> = listOf(
     TourStep(
         TourStage.FAVOURITE,
         "Star your lines",
-        "Tap a line to favourite it. Favourites jump to the top.",
+        "Hold a line to favourite it.",
     ),
     TourStep(
         TourStage.PIN,
         "Pin a station",
-        "Pinned stations lead the list whenever they're among the five nearest.",
+        "Pinned stations lead the list whenever they're among the five nearest. So when " +
+            "you're between Bern Bahnhof and Wankdorf, Bern stays first for a quick glance on launch.",
     ),
     TourStep(
         TourStage.SETTINGS,
@@ -41,9 +42,9 @@ val tourSteps: List<TourStep> = listOf(
     ),
     TourStep(
         TourStage.WATCH,
-        "Sync your watch",
-        "Pair a Garmin and your tracked train, mode and station mirror to your wrist. " +
-            "The icon turns green when it's live.",
+        "Take it to your watch",
+        "Have a Garmin? Track on your phone and send a departure to your wrist. " +
+            "There's an Apple Watch app too.",
     ),
     TourStep(
         TourStage.WIDGET,
@@ -53,4 +54,9 @@ val tourSteps: List<TourStep> = listOf(
 )
 
 // Shown once a departure row has been tapped and the tracking surface is up.
-const val TRACK_DETAIL_BODY = "A live countdown, the platform, and your walk time."
+const val TRACK_DETAIL_BODY =
+    "Your location and the departure time update live to tell you if you'll make it on foot."
+
+// Shown once a line has been favourited: it appears in the favourites block above and stays
+// in the list below.
+const val FAVOURITE_DETAIL_BODY = "It's now pinned above and still in the list below."

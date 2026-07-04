@@ -1,5 +1,6 @@
 package com.evanjt.traintime.ui.onboarding
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,16 +45,20 @@ fun CalloutBubble(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalAppPalette.current
+    // A touch lighter than the surface, with a faint border, so the callout reads as a raised
+    // sheet over the dimmed background rather than blending in.
+    val bubbleColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val bubbleBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     Column(
         modifier = modifier.widthIn(max = 380.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (caretUp) Caret(up = true, color = MaterialTheme.colorScheme.surface)
+        if (caretUp) Caret(up = true, color = bubbleColor)
 
         Surface(
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 3.dp,
+            color = bubbleColor,
+            border = bubbleBorder,
             shadowElevation = 8.dp,
         ) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
@@ -103,7 +108,7 @@ fun CalloutBubble(
             }
         }
 
-        if (!caretUp) Caret(up = false, color = MaterialTheme.colorScheme.surface)
+        if (!caretUp) Caret(up = false, color = bubbleColor)
     }
 }
 

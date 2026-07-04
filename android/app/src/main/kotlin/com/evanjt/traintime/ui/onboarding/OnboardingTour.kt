@@ -2,13 +2,16 @@ package com.evanjt.traintime.ui.onboarding
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,23 +21,23 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,17 +48,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.Station
@@ -88,12 +95,28 @@ fun OnboardingTour(onComplete: () -> Unit) {
     val base = remember { System.currentTimeMillis() / 1000 }
     val departures = remember(base) { TourMockData.departures(base) }
     val step = tourSteps[stepIndex]
+    val palette = LocalAppPalette.current
     val onReport: (Rect) -> Unit = { targetRect = it }
+
+    fun toggleFavourite(d: Departure) {
+        // Clear the spotlight so it re-anchors (or clears) for the new favourite state.
+        targetRect = null
+        val match = favourites.firstOrNull { it.lineNumber == d.lineNumber && it.destination == d.destination }
+        favourites = if (match != null) {
+            favourites - match
+        } else {
+            favourites + Favourite(TourMockData.STATION_ID, TourMockData.STATION_NAME, d.lineNumber, d.destination)
+        }
+    }
 
     fun goNext() {
         targetRect = null
         when {
             step.stage == TourStage.TRACK && !trackingActive -> trackingActive = true
+            // First Next on the favourite step stars the line (so the user sees it land above
+            // and below) before advancing.
+            step.stage == TourStage.FAVOURITE && favourites.isEmpty() ->
+                departures.firstOrNull { it.lineNumber == TourMockData.FAVOURITE_LINE }?.let { toggleFavourite(it) }
             stepIndex < tourSteps.lastIndex -> {
                 if (step.stage == TourStage.TRACK) trackingActive = false
                 stepIndex++
@@ -106,19 +129,11 @@ fun OnboardingTour(onComplete: () -> Unit) {
         targetRect = null
         when {
             step.stage == TourStage.TRACK && trackingActive -> trackingActive = false
+            step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> favourites = emptyList()
             stepIndex > 0 -> {
                 trackingActive = false
                 stepIndex--
             }
-        }
-    }
-
-    fun toggleFavourite(d: Departure) {
-        val match = favourites.firstOrNull { it.lineNumber == d.lineNumber && it.destination == d.destination }
-        favourites = if (match != null) {
-            favourites - match
-        } else {
-            favourites + Favourite(TourMockData.STATION_ID, TourMockData.STATION_NAME, d.lineNumber, d.destination)
         }
     }
 
@@ -156,20 +171,36 @@ fun OnboardingTour(onComplete: () -> Unit) {
 
             // Light dim of the surroundings, target stays bright. Drawn in root
             // coordinates so the cut-out aligns with boundsInRoot() of the target.
-            SpotlightScrim(targetRect, Modifier.fillMaxSize())
+            SpotlightScrim(targetRect, palette.platform, modifier = Modifier.fillMaxSize())
 
-            // Anchored callout, placed in the screen half opposite the target.
-            val targetCenterY = targetRect?.center?.y
-            val bubbleAtBottom = targetCenterY == null || targetCenterY < windowHeightPx / 2f
-            val bodyText = if (step.stage == TourStage.TRACK && trackingActive) TRACK_DETAIL_BODY else step.body
+            // Anchored callout. Place it below unless the target itself sits low on screen,
+            // so a tall target (eg. the full departures list) keeps the bubble at the bottom
+            // instead of overlapping the interface up top.
+            val targetTop = targetRect?.top
+            val bubbleAtBottom = targetTop == null || targetTop < windowHeightPx * 0.55f
+            val bodyText = when {
+                step.stage == TourStage.TRACK && trackingActive -> TRACK_DETAIL_BODY
+                step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> FAVOURITE_DETAIL_BODY
+                else -> step.body
+            }
             val nextLabel = if (stepIndex == tourSteps.lastIndex) "Done" else "Next"
+
+            // The tracking detail is its own page, so give it its own progress dot: total gains
+            // one, and everything from the track step on shifts by one once tracking is active.
+            val trackStep = tourSteps.indexOfFirst { it.stage == TourStage.TRACK }
+            val dotTotal = tourSteps.size + 1
+            val dotIndex = when {
+                stepIndex < trackStep -> stepIndex
+                stepIndex == trackStep -> if (trackingActive) trackStep + 1 else trackStep
+                else -> stepIndex + 1
+            }
 
             Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                 CalloutBubble(
                     title = step.title,
                     body = bodyText,
-                    index = stepIndex,
-                    total = tourSteps.size,
+                    index = dotIndex,
+                    total = dotTotal,
                     caretUp = bubbleAtBottom,
                     onBack = ::goBack,
                     onSkip = onComplete,
@@ -267,25 +298,21 @@ private fun TourStationSurface(
                     )
                 }
                 departures.forEachIndexed { index, d ->
-                    val isTarget = when (highlight) {
-                        StationHighlight.TRACK_ROW -> d.lineNumber == TourMockData.TRACK_LINE
-                        StationHighlight.FAV_ROW -> d.lineNumber == TourMockData.FAVOURITE_LINE
-                        StationHighlight.LIST -> false
-                    }
+                    val isTrackTarget = highlight == StationHighlight.TRACK_ROW && d.lineNumber == TourMockData.TRACK_LINE
+                    // The favourite target only spotlights until it's starred; afterwards the
+                    // line shows above and below with no dim, so both occurrences are visible.
+                    val isFavTarget = highlight == StationHighlight.FAV_ROW &&
+                        d.lineNumber == TourMockData.FAVOURITE_LINE && favourites.isEmpty()
+                    val isTarget = isTrackTarget || isFavTarget
                     val rowModifier = Modifier
                         .fillMaxWidth()
                         .then(if (isTarget) Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) } else Modifier)
                         .then(
-                            if (isTarget) {
-                                Modifier.clickable {
-                                    when (highlight) {
-                                        StationHighlight.TRACK_ROW -> onTrack()
-                                        StationHighlight.FAV_ROW -> onToggleFav(d)
-                                        StationHighlight.LIST -> {}
-                                    }
-                                }
-                            } else {
-                                Modifier
+                            when {
+                                isTrackTarget -> Modifier.clickable { onTrack() }
+                                // Favourite via long-press, the real station-screen gesture.
+                                isFavTarget -> Modifier.combinedClickable(onClick = {}, onLongClick = { onToggleFav(d) })
+                                else -> Modifier
                             },
                         )
                     Box(rowModifier) {
@@ -307,13 +334,38 @@ private fun TourStationSurface(
 private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect) -> Unit) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val focused = remember(base) { TourMockData.focused(base) }
+    val walkMin = GeoUtils.walkMinutes(TOUR_TRACK_DISTANCE_M)
+
+    // A live, looping simulation: the departure is a fixed runway ahead and counts down in real
+    // time. The buffer (time left minus walk time) drives the bar and status exactly like the
+    // real app, so the user sees it shift from comfortable to tight. Looping keeps it live and
+    // never freezes on "Departed".
+    var start by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
     var nowSeconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
     LaunchedEffect(Unit) {
         while (true) {
             nowSeconds = System.currentTimeMillis() / 1000
+            if (nowSeconds - start >= TOUR_TRACK_RUNWAY_SEC) start = nowSeconds
             delay(250)
         }
+    }
+    val depTs = start + TOUR_TRACK_RUNWAY_SEC
+    val focused = remember(base) { TourMockData.focused(base) }.copy(departureTimestamp = depTs)
+    val minutesLeft = (depTs - nowSeconds) / 60.0
+    val effectBuf = minutesLeft - walkMin
+    // Same status wording as the real tracking screen (MainViewModel.trackingStatusText).
+    val absBuf = kotlin.math.abs(effectBuf)
+    val statusText = when {
+        absBuf < 0.5 -> "On time"
+        else -> {
+            val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
+            if (effectBuf > 0) "$unit ahead" else "$unit behind"
+        }
+    }
+    val statusColor = when {
+        effectBuf > 0.5 -> palette.ahead
+        effectBuf < -0.5 -> palette.behind
+        else -> palette.onTime
     }
 
     Column(
@@ -367,20 +419,20 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
         ) {
             Text(
                 focused.countdownText(nowSeconds),
-                color = palette.minutesSoon,
+                color = if (minutesLeft < 2.0) palette.minutesNow else palette.minutesSoon,
                 fontSize = 56.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
             TrackingBar(
-                schedBuf = 1.5,
-                effectBuf = 2.5,
+                schedBuf = effectBuf,
+                effectBuf = effectBuf,
                 hasGps = true,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
             Text(
-                "3 min ahead",
-                color = palette.ahead,
+                statusText,
+                color = statusColor,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 12.dp),
@@ -393,7 +445,7 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
             modifier = Modifier.padding(top = 8.dp),
         ) {
             DirectionArrow(45.0)
-            Text(GeoUtils.formatWalkInfo(260.0), color = secondary, fontSize = 14.sp)
+            Text(GeoUtils.formatWalkInfo(TOUR_TRACK_DISTANCE_M), color = secondary, fontSize = 14.sp)
         }
 
         FormationDiagram(TourMockData.formation, Modifier.padding(top = 16.dp))
@@ -480,80 +532,55 @@ private fun TourSettingsSurface(
     }
 }
 
-// Mocked watch-sync surface: a station header with the green (live) watch icon —
-// the spotlight target — over a Watch-link card mirroring SettingsSheet's section.
-// Self-contained: no real watch, the colours/labels match the bridge's watch UI.
-// internal (not private) so the onboarding snapshot test can render it.
+// Mocked watch showcase: a real screenshot of each watch app, a graphical sync-capability badge,
+// the Connect IQ store link and a mirror summary. The card is the spotlight target. On Android the
+// Apple Watch app installs but can't sync (no iPhone), so its badge reads "No sync" — it's an
+// advert, not a pairing. internal (not private) so the onboarding snapshot test can render it.
 @Composable
 internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
-    val palette = LocalAppPalette.current
+    val context = LocalContext.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val live = Color(0xFF34C759)
-    var mirror by remember { mutableStateOf(true) }
 
     Column(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) {
-            Text(
-                TourMockData.STATION_NAME,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                Icons.Filled.Watch,
-                contentDescription = "Watch linked",
-                tint = live,
-                modifier = Modifier.size(30.dp).onGloballyPositioned { onReport(it.boundsInRoot()) },
-            )
-        }
-
-        val context = LocalContext.current
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp)
+                .onGloballyPositioned { onReport(it.boundsInRoot()) }
                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
                 .padding(16.dp),
         ) {
-            Text("Watch link", color = secondary, fontSize = 13.sp)
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
-                Text("Garmin", color = onSurface, modifier = Modifier.padding(start = 12.dp))
-                Spacer(Modifier.weight(1f))
-                Text("Connected", color = live, fontSize = 13.sp)
+                WatchTile(R.drawable.watch_garmin, name = "Garmin", synced = true)
+                WatchTile(R.drawable.watch_apple, name = "Apple Watch", synced = false)
+            }
+            Button(
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CONNECT_IQ_STORE_URL)))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            ) {
+                Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("View on Connect IQ store")
             }
             Text(
-                "Works on fēnix, Forerunner, venu, epix, vívoactive and more.",
+                "Track on your phone and a departure mirrors to a paired Garmin, which also reads " +
+                    "the phone's location, handy indoors. The watch icon turns green when it's live.",
                 color = secondary,
                 fontSize = 12.sp,
-            )
-            Text(
-                "View on Connect IQ store",
-                color = palette.platform,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clickable {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CONNECT_IQ_STORE_URL)))
-                        }
-                    },
+                modifier = Modifier.padding(top = 12.dp),
             )
             Text(
                 "Wear OS support is coming soon.",
@@ -561,26 +588,71 @@ internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 8.dp),
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Mirror to watch", color = onSurface)
-                    Text(
-                        "Send your tracked train, mode, station and location to the watch",
-                        color = secondary,
-                        fontSize = 12.sp,
-                    )
-                }
-                Switch(checked = mirror, onCheckedChange = { mirror = it })
-            }
         }
     }
 }
 
+// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name and a
+// sync badge. Shown whole (Fit) so the device reads as a real watch.
+@Composable
+private fun RowScope.WatchTile(resId: Int, name: String, synced: Boolean) {
+    Column(
+        modifier = Modifier.weight(1f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Image(
+            painter = painterResource(resId),
+            contentDescription = name,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.height(150.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            name,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(6.dp))
+        SyncBadge(synced)
+    }
+}
+
+// Graphical sync-capability chip: green tick when the watch syncs with this phone, grey cross when
+// the app installs but can't sync here (eg. an Apple Watch alongside an Android phone).
+@Composable
+private fun SyncBadge(synced: Boolean) {
+    val green = Color(0xFF34C759)
+    val tint = if (synced) green else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(tint.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Icon(
+            if (synced) Icons.Filled.Check else Icons.Filled.Close,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            if (synced) "Syncs live" else "No sync",
+            color = tint,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
 private const val CONNECT_IQ_STORE_URL =
-    "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
+    "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
+
+// Tracking demo: a short, looping countdown so the bar and status visibly shift.
+private const val TOUR_TRACK_RUNWAY_SEC = 165L
+private const val TOUR_TRACK_DISTANCE_M = 130.0
 
 @Composable
 private fun TourWidgetSurface(onReport: (Rect) -> Unit) {

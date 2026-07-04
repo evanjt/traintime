@@ -54,8 +54,13 @@ struct CalloutBubble: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(uiColor: .secondarySystemBackground))
+                    .fill(Color(uiColor: .tertiarySystemBackground))
                     .shadow(radius: 8, y: 2)
+            )
+            .overlay(
+                // Faint border so the callout reads as a raised sheet over the dimmed background.
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
             )
 
             if !caretUp { Caret(up: false) }
@@ -80,7 +85,7 @@ private struct Caret: View {
                 path.addLine(to: CGPoint(x: size.width / 2, y: size.height))
             }
             path.closeSubpath()
-            context.fill(path, with: .color(Color(uiColor: .secondarySystemBackground)))
+            context.fill(path, with: .color(Color(uiColor: .tertiarySystemBackground)))
         }
         .frame(width: 18, height: 9)
         .accessibilityHidden(true)

@@ -46,6 +46,12 @@ struct OnboardingTour: View {
         targetRect = nil
         if step.stage == .track && !trackingActive {
             trackingActive = true
+        } else if step.stage == .favourite && favourites.isEmpty {
+            // First Next on the favourite step stars the line (so the user sees it land above
+            // and below) before advancing.
+            if let d = departures.first(where: { $0.lineNumber == TourMockData.favouriteLine }) {
+                toggleFavourite(d)
+            }
         } else if stepIndex < tourSteps.count - 1 {
             if step.stage == .track { trackingActive = false }
             stepIndex += 1
@@ -58,6 +64,8 @@ struct OnboardingTour: View {
         targetRect = nil
         if step.stage == .track && trackingActive {
             trackingActive = false
+        } else if step.stage == .favourite && !favourites.isEmpty {
+            favourites.removeAll()
         } else if stepIndex > 0 {
             trackingActive = false
             stepIndex -= 1
@@ -65,6 +73,8 @@ struct OnboardingTour: View {
     }
 
     private func toggleFavourite(_ d: Departure) {
+        // Clear the spotlight so it re-anchors (or clears) for the new favourite state.
+        targetRect = nil
         let key = favKey(d)
         if favourites.contains(key) { favourites.remove(key) } else { favourites.insert(key) }
     }
@@ -76,7 +86,7 @@ struct OnboardingTour: View {
 
                 surface
 
-                SpotlightScrim(hole: targetRect)
+                SpotlightScrim(hole: targetRect, accent: AppColors.platform)
 
                 callout(height: geo.size.height)
                     .padding(16)
@@ -106,11 +116,25 @@ struct OnboardingTour: View {
     }
 
     @ViewBuilder private func callout(height: CGFloat) -> some View {
-        let atBottom = (targetRect?.midY).map { $0 < height / 2 } ?? true
-        let bodyText = (step.stage == .track && trackingActive) ? tourTrackDetailBody : step.body
+        // Place below unless the target sits low, so a tall target (eg. the full departures list)
+        // keeps the bubble at the bottom instead of overlapping the interface up top.
+        let atBottom = (targetRect?.minY).map { $0 < height * 0.55 } ?? true
+        let bodyText: String = {
+            if step.stage == .track && trackingActive { return tourTrackDetailBody }
+            if step.stage == .favourite && !favourites.isEmpty { return tourFavouriteDetailBody }
+            return step.body
+        }()
         let nextLabel = stepIndex == tourSteps.count - 1 ? "Done" : "Next"
+        // The tracking detail is its own page, so give it its own progress dot.
+        let trackStep = tourSteps.firstIndex(where: { $0.stage == .track }) ?? 0
+        let dotTotal = tourSteps.count + 1
+        let dotIndex: Int = {
+            if stepIndex < trackStep { return stepIndex }
+            if stepIndex == trackStep { return trackingActive ? trackStep + 1 : trackStep }
+            return stepIndex + 1
+        }()
         let bubble = CalloutBubble(
-            title: step.title, message: bodyText, index: stepIndex, total: tourSteps.count,
+            title: step.title, message: bodyText, index: dotIndex, total: dotTotal,
             caretUp: atBottom, nextLabel: nextLabel, onBack: goBack, onSkip: onFinish, onNext: goNext
         )
         VStack {
@@ -153,7 +177,9 @@ struct OnboardingTour: View {
                         let isTarget: Bool = {
                             switch highlight {
                             case .trackRow: return d.lineNumber == TourMockData.trackLine
-                            case .favRow: return d.lineNumber == TourMockData.favouriteLine
+                            // Spotlight the favourite row only until it's starred; afterwards the
+                            // line shows above and below with no dim, so both are visible.
+                            case .favRow: return d.lineNumber == TourMockData.favouriteLine && favourites.isEmpty
                             case .list: return false
                             }
                         }()
@@ -171,15 +197,11 @@ struct OnboardingTour: View {
     }
 
     @ViewBuilder private func row(_ d: Departure, isTarget: Bool, highlight: StationHighlight) -> some View {
-        let tap: (() -> Void)? = isTarget ? {
-            switch highlight {
-            case .trackRow: goNext()
-            case .favRow: toggleFavourite(d)
-            case .list: break
-            }
-        } : nil
+        // Track via tap; favourite via long-press, the real station-screen gesture.
+        let tap: (() -> Void)? = (isTarget && highlight == .trackRow) ? { goNext() } : nil
         PhoneDepartureRowView(departure: d, isFavourite: isFav(d), mode: mode, onTap: tap)
             .modifier(ConditionalTarget(active: isTarget))
+            .modifier(FavouriteLongPress(active: isTarget && highlight == .favRow) { toggleFavourite(d) })
     }
 
     private var trackingSurface: some View {
@@ -198,15 +220,24 @@ struct OnboardingTour: View {
                 Text("Platform \(focused.platform)").font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.secondary).padding(.top, 4)
 
-                TimelineView(.periodic(from: Date(), by: 1)) { _ in
+                // A live, looping countdown: the buffer (time left minus walk time) drives the
+                // bar and status exactly like the real app, so the user sees it shift from
+                // comfortable to tight. The modulo loops it so it never freezes on "Departed".
+                TimelineView(.periodic(from: Date(), by: 1)) { context in
+                    let now = Int(context.date.timeIntervalSince1970)
+                    let remaining = tourTrackRunwaySec - (max(0, now - base) % tourTrackRunwaySec)
+                    let minutesLeft = Double(remaining) / 60.0
+                    let walkMin = GeoUtils.walkMinutes(distanceMeters: tourTrackDistanceM)
+                    let effectBuf = minutesLeft - walkMin
                     VStack(spacing: 0) {
-                        Text(focused.countdownText)
-                            .font(.system(size: 56, weight: .bold)).foregroundStyle(AppColors.minutesSoon)
+                        Text(tourCountdownText(remaining))
+                            .font(.system(size: 56, weight: .bold))
+                            .foregroundStyle(minutesLeft < 2 ? AppColors.minutesNow : AppColors.minutesSoon)
                             .padding(.vertical, 8)
-                        TrackingBarView(schedBuf: 1.5, effectBuf: 2.5, hasGPS: true)
+                        TrackingBarView(schedBuf: effectBuf, effectBuf: effectBuf, hasGPS: true)
                             .frame(height: 16).padding(.horizontal, 24)
-                        Text("3 min ahead").font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(AppColors.ahead).padding(.top, 12)
+                        Text(tourStatusText(effectBuf)).font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(tourStatusColor(effectBuf)).padding(.top, 12)
                     }
                 }
                 .padding(.top, 8)
@@ -215,7 +246,7 @@ struct OnboardingTour: View {
 
                 HStack(spacing: 8) {
                     DirectionArrowView(degrees: 45)
-                    Text(GeoUtils.formatWalkInfo(distanceMeters: 260)).font(.system(size: 14)).foregroundStyle(.secondary)
+                    Text(GeoUtils.formatWalkInfo(distanceMeters: tourTrackDistanceM)).font(.system(size: 14)).foregroundStyle(.secondary)
                 }
                 .padding(.top, 8)
 
@@ -286,18 +317,12 @@ struct OnboardingTour: View {
     }
 
     private var watchSurface: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(TourMockData.stationName).font(.system(size: 22, weight: .bold)).lineLimit(1)
-                Spacer()
-                WatchLivenessIndicator(liveness: .green, isAppleWatch: true, size: 30).tourTarget()
-            }
-            .padding(.top, 8)
-
-            TourWatchCard().padding(.top, 24)
-
+        VStack(spacing: 20) {
+            Spacer()
+            TourWatchCard().tourTarget()
             Spacer()
         }
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 16).padding(.vertical, 24)
     }
 
@@ -313,35 +338,105 @@ struct OnboardingTour: View {
     }
 }
 
-// The watch-step card: supported watches, store link, mirror summary. Self-contained so the
-// onboarding snapshot test can render it. Peer of the Android internal TourWatchSurface.
+// The watch-step card: a screenshot of each watch app, a sync-capability badge, the Connect IQ
+// store link, and a mirror summary. On iOS both watches sync (appleSyncs default true). Self-
+// contained so the onboarding snapshot test can render it. Peer of the Android TourWatchSurface.
 struct TourWatchCard: View {
+    var appleSyncs = true
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Watch link").font(.system(size: 13)).foregroundStyle(.secondary)
-            HStack {
-                Image(systemName: "applewatch").foregroundStyle(.secondary).frame(width: 20)
-                Text("Apple Watch").padding(.leading, 12)
-                Spacer()
-                Text("installs with the app").font(.system(size: 13)).foregroundStyle(.secondary)
+        VStack(spacing: 16) {
+            HStack(alignment: .top, spacing: 18) {
+                WatchTile(image: "WatchGarmin", name: "Garmin", synced: true)
+                WatchTile(image: "WatchApple", name: "Apple Watch", synced: appleSyncs)
             }
-            .padding(.vertical, 8)
-            HStack {
-                Image(systemName: "watch.analog").foregroundStyle(.secondary).frame(width: 20)
-                Text("Garmin").padding(.leading, 12)
-                Spacer()
-                Text("Connected").font(.system(size: 13)).foregroundStyle(WatchLivenessIndicator.green)
+            Link(destination: connectIQStoreURL) {
+                HStack {
+                    Image(systemName: "arrow.up.forward.app")
+                    Text("View on Connect IQ store").fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
             }
-            Text("Works on fēnix, Forerunner, venu, epix, vívoactive and more.")
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+            Text("Track on your phone and a departure mirrors to a paired Garmin, which also reads the "
+                + "phone's location, handy indoors. The watch icon turns green when it's live.")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
-            Link("View on Connect IQ store", destination: connectIQStoreURL)
-                .font(.system(size: 13, weight: .medium)).foregroundStyle(AppColors.platform)
-                .padding(.top, 8)
-            Text("Send your tracked train, mode, station and location to the watch")
-                .font(.system(size: 12)).foregroundStyle(.secondary).padding(.top, 12)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 16).fill(Color(uiColor: .secondarySystemBackground)))
+    }
+}
+
+// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name and a
+// sync badge. Shown whole (scaledToFit) so the device reads as a real watch.
+private struct WatchTile: View {
+    let image: String
+    let name: String
+    let synced: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(image)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 150)
+            Text(name).font(.system(size: 13, weight: .semibold))
+            SyncBadge(synced: synced)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// Graphical sync-capability chip: green tick when the watch syncs with this phone, grey cross
+// when the app installs but can't sync here (eg. an Apple Watch alongside an Android phone).
+private struct SyncBadge: View {
+    let synced: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: synced ? "checkmark.circle.fill" : "xmark.circle.fill")
+            Text(synced ? "Syncs live" : "No sync")
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(synced ? WatchLivenessIndicator.green : Color.secondary)
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Capsule().fill((synced ? WatchLivenessIndicator.green : Color.secondary).opacity(0.15)))
+    }
+}
+
+// Live tracking-demo helpers. Mirror FocusedDeparture.countdownText + the real status logic.
+private func tourCountdownText(_ secs: Int) -> String {
+    if secs < 5 { return "now" }
+    let m = secs / 60, s = secs % 60
+    return m < 3 ? String(format: "%d:%02d", m, s) : "\(m) min"
+}
+
+private func tourStatusText(_ buffer: Double) -> String {
+    // Same status wording as the real tracking screen (PhoneViewModel.trackingStatusText).
+    let absBuf = abs(buffer)
+    if absBuf < 0.5 { return "On time" }
+    let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
+    return buffer > 0 ? "\(unit) ahead" : "\(unit) behind"
+}
+
+private func tourStatusColor(_ buffer: Double) -> Color {
+    if buffer >= 0.5 { return AppColors.ahead }
+    if buffer > -0.5 { return AppColors.onTime }
+    return AppColors.behind
+}
+
+// Adds a long-press handler only to the active favourite target.
+private struct FavouriteLongPress: ViewModifier {
+    let active: Bool
+    let action: () -> Void
+    func body(content: Content) -> some View {
+        if active {
+            content.onLongPressGesture { action() }
+        } else {
+            content
+        }
     }
 }
 
