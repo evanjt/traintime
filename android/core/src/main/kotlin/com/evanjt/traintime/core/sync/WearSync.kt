@@ -32,6 +32,28 @@ object WearSync {
 
     fun decodeTrackString(raw: String): TrackCommand? =
         runCatching { json.decodeFromString<TrackCommand>(raw) }.getOrNull()
+
+    // Connect IQ phone-app payloads for the action-dispatched Garmin contract
+    // (handlePhoneMessage on the watch). Track lives on TrackCommand.toGarminMap();
+    // these cover the remaining mirror + location-backfill actions.
+
+    // Switch the watch's live mode (0 train / 1 bus / 2 tram).
+    fun garminModePayload(mode: Int): Map<String, Any?> =
+        mapOf("action" to "mode", "mode" to mode)
+
+    // Show a specific station on the watch.
+    fun garminStationPayload(id: String, name: String, lat: Double?, lon: Double?): Map<String, Any?> =
+        buildMap {
+            put("action", "station")
+            put("stId", id)
+            put("name", name)
+            lat?.let { put("lat", it) }
+            lon?.let { put("lon", it) }
+        }
+
+    // Phone location used as a GPS fallback when the watch's own signal is weak.
+    fun garminLocationPayload(lat: Double, lon: Double): Map<String, Any?> =
+        mapOf("action" to "loc", "lat" to lat, "lon" to lon)
 }
 
 // The same fields PhoneWatchService.sendMessage carries on iOS. A superset of
@@ -61,6 +83,23 @@ data class TrackCommand(
         platform = platform,
         platformChanged = platformChanged,
     )
+
+    // The Connect IQ phone-app message contract the Garmin watch reads in
+    // enterTrackingFromPhone (keys: action/dest/depTs/delay/plat/platChg/line, plus
+    // optional cat/trainNum/opRef/stId). Matches PhoneWatchService.sendTrackCommand on iOS.
+    fun toGarminMap(): Map<String, Any?> = buildMap {
+        put("action", "track")
+        put("dest", destination)
+        put("depTs", departureTimestamp)
+        put("delay", delay)
+        put("plat", platform)
+        put("platChg", platformChanged)
+        put("cat", category)
+        put("line", lineNumber)
+        trainNumber?.let { put("trainNum", it) }
+        operatorRef?.let { put("opRef", it) }
+        stationId?.let { put("stId", it) }
+    }
 
     companion object {
         fun from(focused: FocusedDeparture, stationId: String?) = TrackCommand(

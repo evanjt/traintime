@@ -16,8 +16,13 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>traintime</string>
+				<string>traintime-ciq</string>
 			</array>
 		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>gcm-ciq</string>
 	</array>
 </dict>
 </plist>

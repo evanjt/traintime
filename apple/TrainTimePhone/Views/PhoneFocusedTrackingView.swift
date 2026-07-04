@@ -129,43 +129,35 @@ struct PhoneFocusedTrackingView: View {
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
 
-                    // Send to Watch (only when watches are connected)
-                    let watches = viewModel.connectedWatches
-                    if !watches.isEmpty {
+                    // Open on watch — launches/re-syncs the primary watch onto this train.
+                    // Colour tracks liveness (green = showing, amber/grey = closed/away); a
+                    // spinner shows during a Garmin open. Mirrors the Android tracking button.
+                    if viewModel.primaryWatchLiveness != .hidden {
                         Divider()
                             .padding(.vertical, 4)
 
-                        if watches.count == 1 {
-                            Button {
-                                viewModel.sendToWatch()
-                            } label: {
-                                Label("Send to Watch", systemImage: "applewatch")
+                        Button {
+                            viewModel.openWatchApp()
+                        } label: {
+                            HStack(spacing: 6) {
+                                WatchLivenessIndicator(
+                                    liveness: viewModel.primaryWatchLiveness,
+                                    isChecking: viewModel.watchChecking,
+                                    isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch,
+                                    size: 16
+                                )
+                                Text(viewModel.primaryWatchLiveness == .green ? "Showing on watch" : "Open on watch")
                                     .font(.subheadline)
-                                    .frame(maxWidth: 200)
                             }
-                            .buttonStyle(.bordered)
-                        } else {
-                            ForEach(watches) { watch in
-                                Button {
-                                    viewModel.sendToWatch(watch)
-                                } label: {
-                                    Label(watch.name, systemImage: watch.type == .appleWatch ? "applewatch" : "watch.analog")
-                                        .font(.subheadline)
-                                        .frame(maxWidth: 200)
-                                }
-                                .buttonStyle(.bordered)
-                            }
+                            .frame(maxWidth: 200)
                         }
+                        .buttonStyle(.bordered)
 
                         if let status = viewModel.watchSendStatus {
                             Text(status)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-
-                        Text("Watch app must be open")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
                     }
                 }
                 .padding(.horizontal, 16)

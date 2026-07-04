@@ -76,9 +76,18 @@ final class PhoneComponentSnapshotTests: XCTestCase {
         assertLightDark(AnyView(view), "phone_formation")
     }
 
-    func testOnboarding() {
-        let view = OnboardingView(onFinish: {})
-            .frame(width: 390, height: 844)
-        assertLightDark(AnyView(view), "phone_onboarding")
+    func testTourWatch() {
+        let view = TourWatchCard()
+            .padding(16)
+            .frame(width: 360)
+            .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(view), "tour_watch")
+    }
+
+    func testTourWidget() {
+        let view = TourWidgetMock()
+            .padding(24)
+            .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(view), "tour_widget")
     }
 }

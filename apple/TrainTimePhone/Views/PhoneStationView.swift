@@ -14,6 +14,19 @@ struct PhoneStationView: View {
                     onSelect: { viewModel.selectMode($0) }
                 )
                 Spacer()
+                // Watch link indicator — tap launches/​re-syncs the primary watch (Garmin
+                // launches remotely; Apple Watch re-syncs when reachable, else shows guidance).
+                if viewModel.primaryWatchLiveness != .hidden {
+                    Button { viewModel.openWatchApp() } label: {
+                        WatchLivenessIndicator(
+                            liveness: viewModel.primaryWatchLiveness,
+                            isChecking: viewModel.watchChecking,
+                            isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 4)
+                }
                 Image(systemName: "location.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(viewModel.gpsQuality.color)
@@ -59,11 +72,16 @@ struct PhoneStationView: View {
             if viewModel.departures.isEmpty {
                 Spacer()
                 if viewModel.stations.isEmpty {
-                    Text(viewModel.status)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    ZStack {
+                        if viewModel.status == PhoneViewModel.outOfBoundsStatus {
+                            SwissOutlineBackdrop()
+                        }
+                        Text(viewModel.status)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
                 } else {
                     ProgressView()
                         .tint(.secondary)

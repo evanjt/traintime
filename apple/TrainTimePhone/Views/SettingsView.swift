@@ -6,6 +6,16 @@ struct PhoneSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.openURL) private var openURL
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+
+    private func watchStatusText(_ liveness: WatchLiveness) -> String {
+        switch liveness {
+        case .green: return "Open"
+        case .amber: return "App closed"
+        case .grey: return "Not connected"
+        case .hidden: return ""
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -68,6 +78,76 @@ struct PhoneSettingsView: View {
                     }
                 }
 
+                let garminAvailable = viewModel.watchService.garminService.isAvailable
+                let appleKnown = viewModel.watchService.hasKnownAppleWatch
+                let garminKnown = viewModel.watchService.hasKnownGarmin
+                if garminAvailable || appleKnown {
+                    Section {
+                        if appleKnown {
+                            HStack {
+                                WatchLivenessIndicator(liveness: viewModel.appleWatchLiveness, isAppleWatch: true)
+                                Text("Apple Watch")
+                                Spacer()
+                                Text(watchStatusText(viewModel.appleWatchLiveness))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        if garminAvailable {
+                            Button {
+                                viewModel.watchService.garminService.showDeviceSelection()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "watch.analog")
+                                    Text("Pair a Garmin watch")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            if garminKnown {
+                                HStack {
+                                    WatchLivenessIndicator(liveness: viewModel.garminLiveness)
+                                    Text("Garmin")
+                                    Spacer()
+                                    Text(watchStatusText(viewModel.garminLiveness))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        if viewModel.bothWatchesKnown {
+                            Picker("Primary watch", selection: Binding(
+                                get: { viewModel.primaryWatch },
+                                set: { viewModel.setPrimaryWatch($0) }
+                            )) {
+                                Text("Auto").tag(PrimaryWatchPreference.auto)
+                                Text("Apple Watch").tag(PrimaryWatchPreference.appleWatch)
+                                Text("Garmin").tag(PrimaryWatchPreference.garmin)
+                            }
+                        }
+
+                        if appleKnown || garminKnown {
+                            Toggle(isOn: Binding(
+                                get: { viewModel.mirrorToWatch },
+                                set: { viewModel.setMirrorToWatch($0) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Mirror to watch")
+                                    Text("Send your tracked train, mode, station and location to your watch")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } footer: {
+                        Text("Mirror your departures to a watch. Garmin requires the Garmin Connect app.")
+                    }
+                }
+
                 Section {
                     Button {
                         if let url = URL(string: "https://apps.apple.com/app/id6760388620?action=write-review") {
@@ -83,6 +163,30 @@ struct PhoneSettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    Button {
+                        dismiss()
+                        hasSeenOnboarding = false
+                    } label: {
+                        HStack {
+                            Image(systemName: "questionmark.circle")
+                            Text("Replay walkthrough")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        PhoneAttributionView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text")
+                            Text("Attribution")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
                 }
 
                 Section {

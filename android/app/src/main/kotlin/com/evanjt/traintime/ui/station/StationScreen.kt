@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.theme.tint
 import kotlinx.coroutines.launch
 
@@ -60,7 +62,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StationScreen(
     viewModel: MainViewModel,
-    onOpenSettings: () -> Unit,
+    onOpenSettings: (focusWatch: Boolean) -> Unit,
 ) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -82,12 +84,58 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
+            // Watch link indicator — shown when a watch is known. For Garmin, the colour
+            // tracks liveness (green = open and synced, amber = connected but app closed,
+            // grey = paired but off/away) and a tap launches TrainTime on the watch, showing
+            // a spinner until it announces itself.
+            if (viewModel.watchLinks.isNotEmpty()) {
+                val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
+                if (hasGarmin) {
+                    // The status colour lives on the watch body; while checking, a spinner
+                    // runs inside the watch's screen so the whole control reads as "the watch
+                    // is working". Footprint is fixed so the header never shifts.
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .clickable { viewModel.openWatchApp() }
+                            .padding(end = 12.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Watch,
+                            contentDescription = "Open TrainTime on the watch",
+                            tint = when {
+                                viewModel.watchChecking -> secondary
+                                viewModel.watchAlive -> Color(0xFF34C759)            // open + synced
+                                viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93) // paired, off/away
+                                else -> Color(0xFFFFB300)                            // connected, app closed
+                            },
+                            modifier = Modifier.size(30.dp),
+                        )
+                        if (viewModel.watchChecking) {
+                            CircularProgressIndicator(
+                                color = palette.platform,
+                                strokeWidth = 1.5.dp,
+                                modifier = Modifier.size(15.dp),
+                            )
+                        }
+                    }
+                } else {
+                    Icon(
+                        Icons.Filled.Watch,
+                        contentDescription = "Watch — open settings",
+                        tint = palette.platform,
+                        modifier = Modifier
+                            .clickable { onOpenSettings(true) }
+                            .padding(end = 12.dp),
+                    )
+                }
+            }
             Icon(
                 Icons.Filled.LocationOn,
                 contentDescription = "GPS quality",
                 tint = viewModel.gpsQuality.tint,
             )
-            IconButton(onClick = onOpenSettings) {
+            IconButton(onClick = { onOpenSettings(false) }) {
                 Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)
             }
         }
@@ -132,6 +180,9 @@ fun StationScreen(
         if (viewModel.departures.isEmpty() && viewModel.favouriteDepartures.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (viewModel.stations.isEmpty()) {
+                    if (viewModel.status == MainViewModel.OUT_OF_BOUNDS_STATUS) {
+                        SwissOutlineBackdrop(color = secondary.copy(alpha = 0.3f))
+                    }
                     Text(
                         viewModel.status,
                         color = secondary,

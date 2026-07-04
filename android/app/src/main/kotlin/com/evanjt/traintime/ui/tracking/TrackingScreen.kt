@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +52,7 @@ import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.TrackingStatus
 import java.time.Instant
 import java.time.ZoneId
@@ -78,8 +80,8 @@ fun TrackingScreen(viewModel: MainViewModel) {
 
     BackHandler { viewModel.exitToStationView() }
 
-    // Discover connected Wear watches for the "Send to Watch" control.
-    LaunchedEffect(Unit) { viewModel.refreshConnectedWatches() }
+    // Keep the watch link/status fresh for the "Open on watch" button.
+    LaunchedEffect(Unit) { viewModel.refreshWatchLinks() }
 
     // Local 1 s clock so the countdown ticks even when no state changes.
     var nowSeconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
@@ -249,24 +251,32 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // Send to Watch — only when a Wear watch is connected (mirrors the
-            // iOS PhoneFocusedTrackingView). The track command goes over the
-            // Wearable Data Layer to start tracking on the watch.
-            if (viewModel.connectedWatches.isNotEmpty()) {
+            // Open on watch — for Garmin, the same button as the header: it launches
+            // TrainTime on the watch and syncs it onto this train. Colour tracks
+            // liveness (green = open, amber = closed) and a spinner shows while opening.
+            val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
+            if (hasGarmin) {
                 HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
-                OutlinedButton(onClick = { viewModel.sendToWatch() }) {
-                    Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                OutlinedButton(onClick = { viewModel.openWatchApp() }) {
+                    if (viewModel.watchChecking) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, color = palette.platform, modifier = Modifier.size(18.dp))
+                    } else {
+                        Icon(
+                            Icons.Filled.Watch,
+                            contentDescription = null,
+                            tint = when {
+                                viewModel.watchAlive -> Color(0xFF34C759)
+                                viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93)
+                                else -> Color(0xFFFFB300)
+                            },
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                    Text(
+                        if (viewModel.watchAlive) "Showing on watch" else "Open on watch",
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
                 }
-                viewModel.watchSendStatus?.let { status ->
-                    Text(status, color = secondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                }
-                Text(
-                    "Watch app must be open",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
             }
         }
 

@@ -8,6 +8,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
+    <!-- Connect IQ Mobile SDK binds to the Garmin Connect app; Android 11+ needs it
+         declared for package visibility. -->
+    <queries>
+        <package android:name="com.garmin.android.apps.connectmobile" />
+    </queries>
+
     <application
         android:name=".TrainTimeApp"
         android:label="@string/app_name"
