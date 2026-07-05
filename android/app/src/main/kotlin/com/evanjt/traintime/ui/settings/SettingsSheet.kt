@@ -189,7 +189,7 @@ fun SettingsSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { activity?.let { ReviewLauncher.launch(it) } }
+                    .clickable { activity?.let { ReviewLauncher.openStoreListing(it) } }
                     .padding(top = 16.dp, bottom = 4.dp),
             ) {
                 Text("Rate this app", color = onSurface)

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = TrainTimeViewModel()
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showRateHandoffHint = false
 
     var body: some View {
         NavigationStack {
@@ -48,6 +49,29 @@ struct ContentView: View {
                 viewModel.onAppear()
             } else {
                 viewModel.onDisappear()
+            }
+        }
+        .alert("Enjoying TrainTime?", isPresented: $viewModel.showReviewPrompt) {
+            Button("Yes, rate it") {
+                viewModel.rateOnPhone()
+                withAnimation { showRateHandoffHint = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation { showRateHandoffHint = false }
+                }
+            }
+            Button("Not now") { viewModel.snoozeReview() }
+            Button("Don't ask again", role: .destructive) { viewModel.optOutReview() }
+        } message: {
+            Text("A quick rating helps other commuters find the app.")
+        }
+        .overlay(alignment: .bottom) {
+            if showRateHandoffHint {
+                Text("The review page will open on your iPhone.")
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .transition(.opacity)
             }
         }
     }

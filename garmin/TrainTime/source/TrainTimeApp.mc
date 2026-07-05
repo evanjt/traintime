@@ -14,6 +14,8 @@ class TrainTimeApp extends Application.AppBase {
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
         // The hello announce lives in TrainTimeView.onShow (PhoneSync.activate):
         // transmitting from onStart hangs the sim's unit-test harness.
+        // Storage writes are safe here.
+        ReviewPrompt.ensureFirstLaunchTimestamp();
     }
 
     function onStop(state) {

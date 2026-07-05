@@ -79,6 +79,12 @@ class WatchConnectivityService: NSObject, WCSessionDelegate {
         replyHandler(["status": "ok"])
     }
 
+    // Queued messages (e.g. a rateApp sent while the phone was unreachable) arrive here on
+    // the next connect; route them into the same sink as live messages.
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { self.onMessageReceived?(userInfo) }
+    }
+
     func sessionDidBecomeInactive(_ session: WCSession) {}
 
     func sessionDidDeactivate(_ session: WCSession) {

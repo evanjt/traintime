@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.evanjt.traintime.data.model.TransportMode
@@ -87,6 +88,41 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_REVIEW_PROMPTED_VERSION] = value }
     }
 
+    // Stamped once at first start so the review prompt can wait out a minimum
+    // install age. For existing installs the clock starts at the first
+    // post-update launch, which is acceptable and self-correcting.
+    val firstLaunchTs: Flow<Long> =
+        dataStore.data.map { it[KEY_FIRST_LAUNCH_TS] ?: 0L }
+
+    suspend fun ensureFirstLaunchTimestamp(now: Long = System.currentTimeMillis()) {
+        dataStore.edit {
+            if ((it[KEY_FIRST_LAUNCH_TS] ?: 0L) == 0L) it[KEY_FIRST_LAUNCH_TS] = now
+        }
+    }
+
+    val reviewSnoozeUntil: Flow<Long> =
+        dataStore.data.map { it[KEY_REVIEW_SNOOZE_UNTIL] ?: 0L }
+
+    suspend fun setReviewSnoozeUntil(value: Long) {
+        dataStore.edit { it[KEY_REVIEW_SNOOZE_UNTIL] = value }
+    }
+
+    val reviewOptOut: Flow<Boolean> =
+        dataStore.data.map { it[KEY_REVIEW_OPT_OUT] ?: false }
+
+    suspend fun setReviewOptOut(value: Boolean) {
+        dataStore.edit { it[KEY_REVIEW_OPT_OUT] = value }
+    }
+
+    // A Wear watch has paired with this phone at least once — drives the grey
+    // "known but disconnected" indicator (no SDK lookup exists, unlike Garmin).
+    val hasKnownWearNode: Flow<Boolean> =
+        dataStore.data.map { it[KEY_HAS_KNOWN_WEAR_NODE] ?: false }
+
+    suspend fun markKnownWearNode() {
+        dataStore.edit { it[KEY_HAS_KNOWN_WEAR_NODE] = true }
+    }
+
     suspend fun lastCoordinate(): Pair<Double, Double>? {
         val prefs = dataStore.data.first()
         val lat = prefs[KEY_LAST_LAT] ?: 0.0
@@ -109,6 +145,10 @@ class AppPrefs(context: Context) {
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")
         val KEY_REVIEW_PROMPTED_VERSION = stringPreferencesKey("reviewPromptedVersion")
+        val KEY_FIRST_LAUNCH_TS = longPreferencesKey("firstLaunchTs")
+        val KEY_REVIEW_SNOOZE_UNTIL = longPreferencesKey("reviewSnoozeUntil")
+        val KEY_REVIEW_OPT_OUT = booleanPreferencesKey("reviewOptOut")
+        val KEY_HAS_KNOWN_WEAR_NODE = booleanPreferencesKey("hasKnownWearNode")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")

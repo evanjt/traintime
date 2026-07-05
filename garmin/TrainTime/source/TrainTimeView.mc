@@ -391,6 +391,9 @@ class TrainTimeView extends WatchUi.View {
         }
         Haptics.vibrateShort();
         PhoneSync.sendTrackStarted(mFocusedTrain, mStationId);
+        // Only user-initiated tracking counts toward the review ask; a
+        // phone-pushed track command doesn't route through here.
+        ReviewPrompt.incrementTrackCount();
         WatchUi.requestUpdate();
     }
 
@@ -405,6 +408,7 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function exitToStationView() {
+        var wasTracking = (mAppState == 2);
         if (mMapActive) {
             mMapActive = false;
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
@@ -422,6 +426,11 @@ class TrainTimeView extends WatchUi.View {
         if (mTimer != null) {
             mTimer.stop();
             mTimer.start(method(:onTimerTick), 5000, true);
+        }
+        // Ask here, not at tracking entry, so the prompt never covers a live
+        // countdown. The gate makes this rare.
+        if (wasTracking) {
+            ReviewPrompt.maybeShow();
         }
         WatchUi.requestUpdate();
     }
@@ -974,6 +983,7 @@ class TrainTimeView extends WatchUi.View {
         }
         Haptics.vibrateShort();
         PhoneSync.sendTrackStarted(mFocusedTrain, mStationId);
+        ReviewPrompt.incrementTrackCount();
     }
 
     // --- Position & Timer ---

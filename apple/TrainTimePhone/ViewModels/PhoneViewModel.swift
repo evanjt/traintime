@@ -16,8 +16,12 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
-    @Published var reviewRequestTick = 0 // bumped to ask the view to request an App Store review
+    @Published var showReviewPrompt = false // timed review ask (Yes / Not now / Don't ask again)
+    @Published var openWriteReviewTick = 0 // a watch asked to rate; the view opens the write-review page
     @Published var status: String = "GPS: Searching..."
+
+    static let writeReviewURL = URL(string: "https://apps.apple.com/app/id6760388620?action=write-review")!
+    let reviewStore = ReviewStore()
 
     // MARK: - Station Data (per mode)
     @Published var trainStations: [Station] = []
@@ -125,6 +129,8 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Init
 
     init() {
+        reviewStore.ensureFirstLaunchTimestamp()
+
         if location.coordinate != nil && location.horizontalAccuracy == -1 {
             loadedFromCache = true
         }
@@ -193,6 +199,9 @@ class PhoneViewModel: ObservableObject {
                 self.markBye(source)
             case "reqLoc":
                 self.replyWithLocation(to: source)
+            case "rateApp":
+                // The watch has no review page of its own; open ours.
+                self.openWriteReviewTick += 1
             default:
                 self.applyReceivedWatchContext(context)
             }
@@ -545,15 +554,21 @@ class PhoneViewModel: ObservableObject {
         watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
     }
 
-    /// Count tracking sessions and ask for a review once the user has tracked a few
-    /// departures, at most once per app version. The system sheet is itself rate limited.
+    /// Count tracking sessions and surface the timed review ask when the shared
+    /// gate passes. Shown counts as asked for this version, whatever button follows.
     private func maybeRequestReview() {
-        let count = UserDefaults.standard.integer(forKey: "reviewTrackCount") + 1
-        UserDefaults.standard.set(count, forKey: "reviewTrackCount")
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-        guard count >= 3, UserDefaults.standard.string(forKey: "reviewPromptedVersion") != version else { return }
-        UserDefaults.standard.set(version, forKey: "reviewPromptedVersion")
-        reviewRequestTick += 1
+        reviewStore.incrementTrackCount()
+        guard reviewStore.shouldPrompt() else { return }
+        reviewStore.markPrompted(version: ReviewStore.currentVersion)
+        showReviewPrompt = true
+    }
+
+    func snoozeReview() {
+        reviewStore.snooze()
+    }
+
+    func optOutReview() {
+        reviewStore.optOut()
     }
 
     func toggleFavourite() {

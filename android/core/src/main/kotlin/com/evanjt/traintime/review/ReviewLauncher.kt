@@ -10,12 +10,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-// Shared by :app and :wear. Drives the native Play in-app review where it works
-// and quietly falls back to the store listing otherwise (some Wear devices and
-// any error). The review flow may no-op when Play decides not to show it, which
-// is expected, so we never report success or failure to the caller.
+// Shared by :app and :wear. Two paths with different guarantees: the native
+// Play in-app review may silently show nothing (sideloads, quota), so it is
+// only used after the timed prompt's explicit "Yes" on the phone; every manual
+// "Rate" button goes straight to the store listing, which always opens.
 object ReviewLauncher {
-    fun launch(activity: Activity) {
+    fun launchInAppReview(activity: Activity) {
         val manager = ReviewManagerFactory.create(activity)
         // The flow must run with the Activity on the main thread.
         CoroutineScope(Dispatchers.Main).launch {
@@ -28,7 +28,7 @@ object ReviewLauncher {
         }
     }
 
-    private fun openStoreListing(activity: Activity) {
+    fun openStoreListing(activity: Activity) {
         val id = activity.packageName
         val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$id"))
         val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$id"))

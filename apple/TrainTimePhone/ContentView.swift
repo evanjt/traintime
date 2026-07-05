@@ -1,10 +1,9 @@
 import SwiftUI
-import StoreKit
 
 struct ContentView: View {
     @StateObject private var viewModel = PhoneViewModel()
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.requestReview) private var requestReview
+    @Environment(\.openURL) private var openURL
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @State private var showTourHint = false
@@ -60,8 +59,17 @@ struct ContentView: View {
             viewModel.handleDeepLink(url)
         }
         .preferredColorScheme(AppAppearance(rawValue: appAppearance)?.colorScheme)
-        .onChange(of: viewModel.reviewRequestTick) { _, _ in
-            requestReview()
+        .alert("Enjoying TrainTime?", isPresented: $viewModel.showReviewPrompt) {
+            // Deliberately the write-review page, not requestReview(): after an
+            // explicit yes the system sheet may silently no-op (rate limited).
+            Button("Yes, rate it") { openURL(PhoneViewModel.writeReviewURL) }
+            Button("Not now") { viewModel.snoozeReview() }
+            Button("Don't ask again", role: .destructive) { viewModel.optOutReview() }
+        } message: {
+            Text("A quick rating helps other commuters find the app.")
+        }
+        .onChange(of: viewModel.openWriteReviewTick) { _, _ in
+            openURL(PhoneViewModel.writeReviewURL)
         }
         .fullScreenCover(isPresented: Binding(
             get: { !hasSeenOnboarding },

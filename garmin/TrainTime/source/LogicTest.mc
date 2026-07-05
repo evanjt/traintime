@@ -53,3 +53,45 @@ function testBuildFavouritesParam(logger) {
     Storage.deleteValue("favourites");
     return param != null && param.equals("IC8:Brig");
 }
+
+// Review-prompt gate. Timestamps in seconds; NOW is arbitrary but fixed.
+const REVIEW_NOW = 1750000000;
+const REVIEW_OLD_ENOUGH = REVIEW_NOW - ReviewPrompt.MIN_AGE_SEC;
+
+(:test)
+function testReviewBelowThresholdNeverPrompts(logger) {
+    return !ReviewPrompt.shouldPrompt(2, null, "0.5.0", REVIEW_OLD_ENOUGH, 0, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewAtThresholdPrompts(logger) {
+    return ReviewPrompt.shouldPrompt(3, null, "0.5.0", REVIEW_OLD_ENOUGH, 0, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewOncePerVersion(logger) {
+    return !ReviewPrompt.shouldPrompt(9, "0.5.0", "0.5.0", REVIEW_OLD_ENOUGH, 0, false, REVIEW_NOW)
+        && ReviewPrompt.shouldPrompt(9, "0.4.2", "0.5.0", REVIEW_OLD_ENOUGH, 0, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewYoungInstallDoesNotPrompt(logger) {
+    return !ReviewPrompt.shouldPrompt(3, null, "0.5.0", REVIEW_OLD_ENOUGH + 1, 0, false, REVIEW_NOW)
+        && ReviewPrompt.shouldPrompt(3, null, "0.5.0", REVIEW_OLD_ENOUGH, 0, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewMissingFirstLaunchNeverPrompts(logger) {
+    return !ReviewPrompt.shouldPrompt(9, null, "0.5.0", null, 0, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewSnoozeWindow(logger) {
+    return !ReviewPrompt.shouldPrompt(3, null, "0.5.0", REVIEW_OLD_ENOUGH, REVIEW_NOW + 1, false, REVIEW_NOW)
+        && ReviewPrompt.shouldPrompt(3, null, "0.5.0", REVIEW_OLD_ENOUGH, REVIEW_NOW, false, REVIEW_NOW);
+}
+
+(:test)
+function testReviewOptOutWins(logger) {
+    return !ReviewPrompt.shouldPrompt(99, null, "0.5.0", REVIEW_OLD_ENOUGH, 0, true, REVIEW_NOW);
+}

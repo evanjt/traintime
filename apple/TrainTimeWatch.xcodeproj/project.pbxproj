@@ -71,6 +71,9 @@
 		F5261D412B808F5400CF1210 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
 		F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0998708C4748991F75B5 /* DepartureRowView.swift */; };
 		FA0A00000000000000000001 /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
+		RG0A00000000000000000001 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
+		RG0A00000000000000000002 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
+		RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000002 /* ReviewGateTests.swift */; };
 		FA0A00000000000000000002 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
 		P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000001 /* TrainTimePhoneApp.swift */; };
@@ -238,6 +241,8 @@
 		F0F100000000000000000002 /* FormationDiagramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormationDiagramView.swift; sourceTree = "<group>"; };
 		F0F100000000000000000003 /* WatchFormationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchFormationView.swift; sourceTree = "<group>"; };
 		FA0F00000000000000000001 /* Favourite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Favourite.swift; sourceTree = "<group>"; };
+		RG0F00000000000000000001 /* ReviewGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGate.swift; sourceTree = "<group>"; };
+		RG0F00000000000000000002 /* ReviewGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGateTests.swift; sourceTree = "<group>"; };
 		FA0F00000000000000000002 /* FavouritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavouritesStore.swift; sourceTree = "<group>"; };
 		FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSQuality.swift; sourceTree = "<group>"; };
 		P0F100000000000000000001 /* TrainTimePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimePhoneApp.swift; sourceTree = "<group>"; };
@@ -440,6 +445,7 @@
 				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
 				F0F100000000000000000001 /* Formation.swift */,
 				FA0F00000000000000000001 /* Favourite.swift */,
+				RG0F00000000000000000001 /* ReviewGate.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -453,6 +459,7 @@
 				17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */,
 				9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */,
 				EED5FAB58AD7A36A727159EA /* PhoneComponentSnapshotTests.swift */,
+				RG0F00000000000000000002 /* ReviewGateTests.swift */,
 			);
 			name = TrainTimePhoneTests;
 			path = TrainTimePhoneTests;
@@ -762,6 +769,7 @@
 				EE5F6A7B8C9D0E1F2A3B4C5D /* GPSQuality.swift in Sources */,
 				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
 				FA0A00000000000000000001 /* Favourite.swift in Sources */,
+				RG0A00000000000000000001 /* ReviewGate.swift in Sources */,
 				FA0A00000000000000000002 /* FavouritesStore.swift in Sources */,
 				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
 				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
@@ -819,6 +827,7 @@
 				6C1AB31CD092CDF147AAF318 /* FavouritesTests.swift in Sources */,
 				73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */,
 				C71D5AD83F433527CADD0101 /* PhoneComponentSnapshotTests.swift in Sources */,
+				RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -852,6 +861,7 @@
 				P0A100000000000000000105 /* GPSQuality.swift in Sources */,
 				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
 				P0A100000000000000000201 /* Favourite.swift in Sources */,
+				RG0A00000000000000000002 /* ReviewGate.swift in Sources */,
 				P0A100000000000000000202 /* FavouritesStore.swift in Sources */,
 				P0A100000000000000000203 /* WidgetEntry.swift in Sources */,
 				P0A100000000000000000107 /* GeoUtils.swift in Sources */,
