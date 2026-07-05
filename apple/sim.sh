@@ -89,9 +89,9 @@ fi
 # Open Simulator.app
 open -a Simulator
 
-# Set location to Sion old town, Switzerland
-echo "Setting location to Sion, Switzerland..."
-xcrun simctl location "$DEVICE" set "46.2325,7.3597"
+# Set location to Place de la Planta, Sion
+echo "Setting location to Place de la Planta, Sion..."
+xcrun simctl location "$DEVICE" set "46.2306,7.3576"
 
 # Install and launch
 echo "Installing and launching..."

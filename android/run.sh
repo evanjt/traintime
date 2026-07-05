@@ -4,8 +4,8 @@
 # the app actually shows departures. Override the location: ./run.sh <lat> <lon>
 set -euo pipefail
 
-LAT="${1:-46.5167}"   # Lausanne
-LON="${2:-6.6290}"
+LAT="${1:-46.2306}"   # Place de la Planta, Sion
+LON="${2:-7.3576}"
 AVD="${TT_AVD:-Pixel_5_API_35}"
 SDK="${ANDROID_HOME:-$HOME/Android/Sdk}"
 ADB="$SDK/platform-tools/adb"
