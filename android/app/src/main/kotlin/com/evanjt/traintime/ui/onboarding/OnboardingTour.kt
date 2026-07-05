@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,14 +25,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -532,13 +533,12 @@ private fun TourSettingsSurface(
     }
 }
 
-// Mocked watch showcase: a real screenshot of each watch app, a graphical sync-capability badge,
-// the Connect IQ store link and a mirror summary. The card is the spotlight target. On Android the
-// Apple Watch app installs but can't sync (no iPhone), so its badge reads "No sync" — it's an
-// advert, not a pairing. internal (not private) so the onboarding snapshot test can render it.
+// Mocked watch showcase: a real screenshot of each watch app with a capability badge and its own
+// store button beneath the face. The card is the spotlight target. On Android the Apple Watch app
+// installs but pairs with an iPhone, so its badge reads "Works with iPhone" — an advert, not a
+// pairing. internal (not private) so the onboarding snapshot test can render it.
 @Composable
 internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
-    val context = LocalContext.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
@@ -556,55 +556,72 @@ internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
                 .padding(16.dp),
         ) {
+            // 2 + 1: the Android-relevant pair first, the iPhone advert beneath.
+            // Three abreast truncates on 360 dp phones.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                WatchTile(R.drawable.watch_garmin, name = "Garmin", synced = true)
-                WatchTile(R.drawable.watch_apple, name = "Apple Watch", synced = false)
+                WatchTile(
+                    R.drawable.watch_garmin,
+                    name = "Garmin",
+                    badge = WatchBadgeKind.SYNCS_LIVE,
+                    modifier = Modifier.weight(1f),
+                    buttonLabel = "Connect IQ",
+                    url = CONNECT_IQ_STORE_URL,
+                )
+                WatchTile(
+                    R.drawable.watch_wear,
+                    name = "Wear OS",
+                    badge = WatchBadgeKind.COMING_SOON,
+                    modifier = Modifier.weight(1f),
+                )
             }
-            Button(
-                onClick = {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CONNECT_IQ_STORE_URL)))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
             ) {
-                Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("View on Connect IQ store")
+                WatchTile(
+                    R.drawable.watch_apple,
+                    name = "Apple Watch",
+                    badge = WatchBadgeKind.PHONE_APP,
+                    modifier = Modifier.fillMaxWidth(0.5f),
+                    buttonLabel = "App Store",
+                    url = APP_STORE_URL,
+                )
             }
             Text(
-                "Track on your phone and a departure mirrors to a paired Garmin, which also reads " +
+                "Track on your phone and a departure mirrors to a paired watch, which also reads " +
                     "the phone's location, handy indoors. The watch icon turns green when it's live.",
                 color = secondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 12.dp),
             )
-            Text(
-                "Wear OS support is coming soon.",
-                color = secondary.copy(alpha = 0.6f),
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 8.dp),
-            )
         }
     }
 }
 
-// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name and a
-// sync badge. Shown whole (Fit) so the device reads as a real watch.
+// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name, a
+// capability badge and an optional store button. Shown whole (Fit) so the device reads as a watch.
 @Composable
-private fun RowScope.WatchTile(resId: Int, name: String, synced: Boolean) {
+private fun WatchTile(
+    resId: Int,
+    name: String,
+    badge: WatchBadgeKind,
+    modifier: Modifier = Modifier,
+    buttonLabel: String? = null,
+    url: String? = null,
+) {
+    val context = LocalContext.current
     Column(
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
             painter = painterResource(resId),
             contentDescription = name,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.height(150.dp),
+            modifier = Modifier.height(120.dp),
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -614,16 +631,42 @@ private fun RowScope.WatchTile(resId: Int, name: String, synced: Boolean) {
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(6.dp))
-        SyncBadge(synced)
+        WatchBadge(badge)
+        if (buttonLabel != null && url != null) {
+            FilledTonalButton(
+                onClick = {
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.padding(top = 8.dp).height(30.dp),
+            ) {
+                Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(buttonLabel, fontSize = 12.sp)
+            }
+        }
     }
 }
 
-// Graphical sync-capability chip: green tick when the watch syncs with this phone, grey cross when
-// the app installs but can't sync here (eg. an Apple Watch alongside an Android phone).
+internal enum class WatchBadgeKind { SYNCS_LIVE, COMING_SOON, PHONE_APP }
+
+// Graphical capability chip: green tick when the watch syncs with this phone, a clock while Wear
+// support is unreleased, a neutral phone glyph for the iPhone-paired Apple Watch advert.
 @Composable
-private fun SyncBadge(synced: Boolean) {
+private fun WatchBadge(kind: WatchBadgeKind) {
     val green = Color(0xFF34C759)
-    val tint = if (synced) green else MaterialTheme.colorScheme.onSurfaceVariant
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val icon = when (kind) {
+        WatchBadgeKind.SYNCS_LIVE -> Icons.Filled.Check
+        WatchBadgeKind.COMING_SOON -> Icons.Filled.Schedule
+        WatchBadgeKind.PHONE_APP -> Icons.Filled.PhoneIphone
+    }
+    val label = when (kind) {
+        WatchBadgeKind.SYNCS_LIVE -> "Syncs live"
+        WatchBadgeKind.COMING_SOON -> "Coming soon"
+        WatchBadgeKind.PHONE_APP -> "For iPhone"
+    }
+    val tint = if (kind == WatchBadgeKind.SYNCS_LIVE) green else secondary
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -632,14 +675,14 @@ private fun SyncBadge(synced: Boolean) {
             .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Icon(
-            if (synced) Icons.Filled.Check else Icons.Filled.Close,
+            icon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(14.dp),
         )
         Spacer(Modifier.width(4.dp))
         Text(
-            if (synced) "Syncs live" else "No sync",
+            label,
             color = tint,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
@@ -649,6 +692,8 @@ private fun SyncBadge(synced: Boolean) {
 
 private const val CONNECT_IQ_STORE_URL =
     "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
+
+private const val APP_STORE_URL = "https://apps.apple.com/app/id6760388620"
 
 // Tracking demo: a short, looping countdown so the bar and status visibly shift.
 private const val TOUR_TRACK_RUNWAY_SEC = 165L

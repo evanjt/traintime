@@ -338,28 +338,37 @@ struct OnboardingTour: View {
     }
 }
 
-// The watch-step card: a screenshot of each watch app, a sync-capability badge, the Connect IQ
-// store link, and a mirror summary. On iOS both watches sync (appleSyncs default true). Self-
-// contained so the onboarding snapshot test can render it. Peer of the Android TourWatchSurface.
+// The watch-step card: a screenshot of each watch app, a sync-capability badge, a store button
+// beneath each face, and a mirror summary. On iOS both watches sync. Self-contained so the
+// onboarding snapshot test can render it. Peer of the Android TourWatchSurface.
 struct TourWatchCard: View {
-    var appleSyncs = true
-
     var body: some View {
         VStack(spacing: 16) {
             HStack(alignment: .top, spacing: 18) {
-                WatchTile(image: "WatchGarmin", name: "Garmin", synced: true)
-                WatchTile(image: "WatchApple", name: "Apple Watch", synced: appleSyncs)
-            }
-            Link(destination: connectIQStoreURL) {
-                HStack {
-                    Image(systemName: "arrow.up.forward.app")
-                    Text("View on Connect IQ store").fontWeight(.semibold)
+                WatchTile(image: "WatchGarmin", name: "Garmin", synced: true) {
+                    Link(destination: connectIQStoreURL) {
+                        WatchTileButtonLabel(icon: "arrow.up.forward.app", text: "Connect IQ")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
                 }
-                .frame(maxWidth: .infinity)
+                WatchTile(image: "WatchApple", name: "Apple Watch", synced: true) {
+                    // Ships embedded in this app, so the button points at the Watch app rather
+                    // than a circular App Store link. The caption below carries the meaning if
+                    // the scheme ever stops resolving (open just no-ops).
+                    Button {
+                        UIApplication.shared.open(URL(string: "itms-watchs://")!, options: [:], completionHandler: nil)
+                    } label: {
+                        WatchTileButtonLabel(icon: "applewatch", text: "Open Watch app")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            Text("Track on your phone and a departure mirrors to a paired Garmin, which also reads the "
+            Text("The Apple Watch app is included with TrainTime — install it from the Watch app.")
+                .font(.system(size: 12)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Track on your phone and a departure mirrors to a paired watch, which also reads the "
                 + "phone's location, handy indoors. The watch icon turns green when it's live.")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -369,12 +378,26 @@ struct TourWatchCard: View {
     }
 }
 
-// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name and a
-// sync badge. Shown whole (scaledToFit) so the device reads as a real watch.
-private struct WatchTile: View {
+private struct WatchTileButtonLabel: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(text).fontWeight(.semibold)
+        }
+        .font(.system(size: 12))
+    }
+}
+
+// One watch app: the framed device shot (bezel + bands, reused from the web docs), its name, a
+// sync badge and its store button. Shown whole (scaledToFit) so the device reads as a real watch.
+private struct WatchTile<Button: View>: View {
     let image: String
     let name: String
     let synced: Bool
+    @ViewBuilder let button: Button
 
     var body: some View {
         VStack(spacing: 8) {
@@ -384,6 +407,7 @@ private struct WatchTile: View {
                 .frame(height: 150)
             Text(name).font(.system(size: 13, weight: .semibold))
             SyncBadge(synced: synced)
+            button
         }
         .frame(maxWidth: .infinity)
     }

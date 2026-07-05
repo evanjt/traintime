@@ -44,7 +44,7 @@ val tourSteps: List<TourStep> = listOf(
         TourStage.WATCH,
         "Take it to your watch",
         "Have a Garmin? Track on your phone and send a departure to your wrist. " +
-            "There's an Apple Watch app too.",
+            "Wear OS is coming, and there's an Apple Watch app for iPhone.",
     ),
     TourStep(
         TourStage.WIDGET,

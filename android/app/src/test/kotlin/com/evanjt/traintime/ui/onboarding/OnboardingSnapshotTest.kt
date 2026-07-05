@@ -49,7 +49,8 @@ class OnboardingSnapshotTest {
     private fun captureWatch(name: String, mode: String) {
         composeRule.setContent {
             TrainTimeTheme(appearanceMode = mode) {
-                Box(Modifier.size(411.dp, 600.dp).background(MaterialTheme.colorScheme.background)) {
+                // 700 dp tall: the 2+1 tile layout is taller than the old pair.
+                Box(Modifier.size(411.dp, 700.dp).background(MaterialTheme.colorScheme.background)) {
                     TourWatchSurface(onReport = {})
                 }
             }
@@ -64,8 +65,10 @@ class OnboardingSnapshotTest {
     fun tourWidgetDark() = capture("tour_widget_dark", mode = "dark")
 
     @Test
+    @Config(qualifiers = "+h800dp")
     fun tourWatchLight() = captureWatch("tour_watch_light", mode = "light")
 
     @Test
+    @Config(qualifiers = "+h800dp")
     fun tourWatchDark() = captureWatch("tour_watch_dark", mode = "dark")
 }
