@@ -63,6 +63,7 @@ fun WearStationPickerScreen(vm: WearViewModel, onClose: () -> Unit) {
                 StationPickerRow(
                     station = station,
                     pinned = vm.isStationPinned(station.id),
+                    current = station.id == vm.currentStation?.id,
                     onClick = { vm.selectStation(index); onClose() },
                     onLongClick = { vm.togglePinnedStation(station) },
                 )
@@ -76,6 +77,7 @@ fun WearStationPickerScreen(vm: WearViewModel, onClose: () -> Unit) {
 private fun StationPickerRow(
     station: Station,
     pinned: Boolean,
+    current: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -105,6 +107,11 @@ private fun StationPickerRow(
             station.dist?.let {
                 Text(GeoUtils.formatWalkInfo(it), color = MaterialTheme.colors.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
             }
+        }
+        // Checkmark for the station currently shown, like the Apple watch picker.
+        if (current) {
+            Spacer(Modifier.width(6.dp))
+            Text("✓", color = MaterialTheme.colors.primary, fontSize = 13.sp)
         }
     }
 }

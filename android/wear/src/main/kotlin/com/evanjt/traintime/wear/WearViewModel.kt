@@ -9,7 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.core.sync.TrackCommand
+import com.evanjt.traintime.core.sync.WearCommand
+import com.evanjt.traintime.core.sync.WearCommandBus
 import com.evanjt.traintime.core.sync.WearStateSync
+import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -27,10 +30,12 @@ import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
+import com.evanjt.traintime.review.ReviewGate
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -53,6 +58,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var status by mutableStateOf("GPS: Searching...")
         private set
+    var showReviewPrompt by mutableStateOf(false)
+        private set
+    // Settings "Phone" row, the peer of Garmin's phoneConnected line. Null until queried.
+    var phoneConnected by mutableStateOf<Boolean?>(null)
+        private set
+    // True while a sub-screen (settings / picker) is up: reading it must not
+    // trip the station-view inactivity timeout underneath.
+    var subScreenOpen = false
 
     var trainStations by mutableStateOf(listOf<Station>())
         private set
@@ -104,6 +117,18 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     private var lastInteractionTime = now()
     private var timerJob: Job? = null
 
+    // Settings quick-launch of a favourite: entered once the fetched departures
+    // contain the matching line+destination (Garmin's mPendingFavTrack analog).
+    private var pendingFavTrack: Pair<String, String>? = null
+
+    // Phone location backfill + liveness (parity with the Apple watch's
+    // reqLoc / loc flow and hello/alive/bye announcements).
+    private var phoneLat: Double? = null
+    private var phoneLon: Double? = null
+    private var phoneLocTs = 0L
+    private var lastLocRequestTs = 0L
+    private var lastAliveSentTs = 0L
+
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
@@ -125,6 +150,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         get() = currentStation?.name ?: "Station"
 
     init {
+        viewModelScope.launch { prefs.ensureFirstLaunchTimestamp() }
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
             currentMode = defaultMode
@@ -158,6 +184,138 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
                 if (denied && stations.isEmpty()) status = "Location permission required"
             }
         }
+        viewModelScope.launch {
+            // Mirror commands relayed by WatchWearListenerService while the UI is up.
+            WearCommandBus.events.collect { handlePhoneCommand(it) }
+        }
+    }
+
+    // Action-dispatched phone -> watch contract, shared with the Apple and Garmin
+    // watches. The watch stays standalone; these only apply an optional mirror.
+    private fun handlePhoneCommand(cmd: WearCommand) {
+        when (cmd.action) {
+            "mode" -> cmd.mode?.let { setModeFromPhone(TransportMode.fromRaw(it)) }
+            "station" -> showStationFromPhone(cmd)
+            "loc" -> {
+                val lat = cmd.lat
+                val lon = cmd.lon
+                if (lat != null && lon != null) onPhoneLocation(lat, lon)
+            }
+            "back" -> if (appState == 2) exitToStationView()
+        }
+    }
+
+    // Phone switched mode. Reuse the standalone selectMode when the mode is already
+    // loaded; otherwise switch and fetch fresh stations from the effective position.
+    private fun setModeFromPhone(mode: TransportMode) {
+        lastInteractionTime = now()
+        if (appState == 3) resumeFromInactive()
+        if (mode in availableModes) {
+            selectMode(mode)
+            return
+        }
+        currentMode = mode
+        stationIndex = 0
+        departures = emptyList()
+        favouriteDepartures = emptyList()
+        val coord = effectivePosition()
+        if (coord != null && !requestInFlight) fetchStations(coord.lat, coord.lon)
+    }
+
+    // Phone selected a specific station. There's no nearby-search path for it,
+    // so synthesise the station, show it as the sole entry, and fetch its departures.
+    private fun showStationFromPhone(cmd: WearCommand) {
+        val stId = cmd.stId ?: return
+        launchStation(stId, cmd.name, cmd.lat, cmd.lon)
+    }
+
+    // Show a specific station directly (phone mirror or settings quick launch),
+    // the peer of Garmin's launchStation.
+    fun launchStation(stId: String, name: String?, lat: Double? = null, lon: Double? = null) {
+        lastInteractionTime = now()
+        if (appState == 3) resumeFromInactive()
+        val station = Station(
+            id = stId,
+            name = name ?: "Station",
+            lat = lat,
+            lon = lon,
+            mode = currentMode,
+        )
+        when (currentMode) {
+            TransportMode.TRAIN -> trainStations = listOf(station)
+            TransportMode.BUS -> busStations = listOf(station)
+            TransportMode.TRAM -> tramStations = listOf(station)
+            TransportMode.SPECIAL -> specialStations = listOf(station)
+        }
+        if (currentMode !in availableModes) availableModes = listOf(currentMode)
+        stationIndex = 0
+        appState = 0
+        if (lat != null && lon != null) lastSearchCoordinate = LatLon(lat, lon)
+        departures = emptyList()
+        favouriteDepartures = emptyList()
+        fetchDepartures(stId)
+    }
+
+    // Quick launch a favourite (settings), the peer of Garmin's
+    // enterTrackingForFavourite: fetch its station and jump straight onto the
+    // tracking bar once the matching departure arrives (tryEnterPendingFavTrack).
+    fun launchFavourite(fav: Favourite) {
+        pendingFavTrack = fav.lineNumber to fav.destination
+        launchStation(fav.stationId, fav.stationName)
+    }
+
+    private fun tryEnterPendingFavTrack() {
+        val (line, dest) = pendingFavTrack ?: return
+        pendingFavTrack = null
+        val match = departures.firstOrNull {
+            it.lineNumber == line && it.destination == dest && !it.isGone
+        } ?: return
+        selectDepartureImpl(match)
+    }
+
+    // Phone location backfill
+
+    private fun onPhoneLocation(lat: Double, lon: Double) {
+        phoneLat = lat
+        phoneLon = lon
+        phoneLocTs = now()
+        // Only act on it when our own GPS can't carry us — a good in-bounds fix stays primary.
+        if (!gpsUsableInBounds()) searchFromPhoneLocation()
+    }
+
+    // Our own fix is present, accurate enough, and inside Switzerland.
+    private fun gpsUsableInBounds(): Boolean {
+        val coord = location.coordinate.value ?: return false
+        val usable = gpsQuality == GpsQuality.GOOD || gpsQuality == GpsQuality.POOR
+        return usable && SwissBounds.contains(coord.lat, coord.lon)
+    }
+
+    private fun phoneLocFresh(): Boolean = phoneLocTs > 0 && now() - phoneLocTs < 120_000
+
+    // The coordinate to act on: a usable in-bounds GPS fix wins; otherwise a fresh
+    // phone location; otherwise any GPS fix; otherwise the last search anchor.
+    private fun effectivePosition(): LatLon? {
+        if (gpsUsableInBounds()) return location.coordinate.value
+        val lat = phoneLat
+        val lon = phoneLon
+        if (phoneLocFresh() && lat != null && lon != null) return LatLon(lat, lon)
+        return location.coordinate.value ?: lastSearchCoordinate
+    }
+
+    private fun searchFromPhoneLocation() {
+        val lat = phoneLat
+        val lon = phoneLon
+        if (appState > 1 || !phoneLocFresh() || lat == null || lon == null) return
+        if (requestInFlight) return
+        if (stations.isEmpty()) status = "Updating stations..."
+        fetchStations(lat, lon)
+    }
+
+    // Ask the phone for its location when our GPS is weak. Throttled so we don't spam.
+    private fun requestPhoneLocation() {
+        if (now() - lastLocRequestTs < 30_000) return
+        lastLocRequestTs = now()
+        viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_REQ_LOC) }
     }
 
     // Lifecycle
@@ -169,11 +327,16 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             if (location.loadedFromCache) loadedFromCache = true
         }
         startTimer(if (appState == 2) Timing.TRACKING_REFRESH_INTERVAL else Timing.NORMAL_REFRESH_INTERVAL)
+        // Announce we're up so a listening phone greens its link indicator at once.
+        viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_HELLO) }
     }
 
     fun onDisappear() {
         location.stop()
         stopTimer()
+        // The heartbeat stops with the timer, so the phone ambers while we're
+        // backgrounded — same semantics as the Apple watch's bye.
+        viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_BYE) }
     }
 
     fun onPermissionResult(granted: Boolean) {
@@ -224,7 +387,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         gpsQuality = location.gpsQuality
 
         if (coord == null) {
-            if (stations.isEmpty()) status = "GPS: Searching..."
+            if (stations.isEmpty()) {
+                status = "GPS: Searching..."
+                // No usable watch GPS — lean on the phone if it offered a fix,
+                // else ask it for one (throttled).
+                if (!requestInFlight) {
+                    if (phoneLocFresh()) searchFromPhoneLocation() else requestPhoneLocation()
+                }
+            }
             return
         }
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
@@ -250,6 +420,13 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     private fun onTimerTick() {
         gpsQuality = location.gpsQuality
 
+        // Heartbeat so the phone's link indicator stays green while we're open.
+        // Same ≥7 s cadence as the Apple watch; stops with the timer on background.
+        if (now() - lastAliveSentTs >= 7_000) {
+            lastAliveSentTs = now()
+            viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_ALIVE) }
+        }
+
         val startTime = requestStartTime
         if (requestInFlight && startTime != null && now() - startTime > Timing.REQUEST_TIMEOUT * 1000) {
             requestInFlight = false
@@ -257,7 +434,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             if (appState == 2) consecutiveErrors += 1
         }
 
-        val coord = location.coordinate.value ?: return
+        val coord = location.coordinate.value ?: effectivePosition() ?: run {
+            // No watch fix and no phone fallback yet — ask the phone (throttled).
+            if (stations.isEmpty()) requestPhoneLocation()
+            return
+        }
 
         val lastSearch = lastSearchCoordinate
         if (appState <= 1 && lastSearch != null && location.hasMovedSignificantly(lastSearch)) {
@@ -276,8 +457,10 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             if (focused != null) {
                 val minutesLeft = focused.minutesUntil(nowSeconds())
                 if (minutesLeft < -1.0) {
+                    // Train long gone: go inactive like the Apple watch, so the
+                    // next glance shows fresh data instead of a stale list.
                     haptics.shortPulse()
-                    exitToStationView()
+                    enterInactiveState()
                     return
                 }
                 val walkMin = GeoUtils.walkMinutes(lastWalkDist)
@@ -293,7 +476,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        if (appState == 0 && now() - lastInteractionTime >= Timing.INACTIVITY_TIMEOUT * 1000) {
+        if (appState == 0 && !subScreenOpen && now() - lastInteractionTime >= Timing.INACTIVITY_TIMEOUT * 1000) {
             enterInactiveState()
             return
         }
@@ -355,6 +538,49 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         TrackingService.start(getApplication(), dep.destination)
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
+
+        // Only user-initiated tracking counts toward the review ask; a
+        // phone-pushed track command in handleTrackCommand doesn't.
+        viewModelScope.launch {
+            prefs.incrementReviewTrackCount()
+            maybeShowReviewPrompt()
+        }
+    }
+
+    private suspend fun maybeShowReviewPrompt() {
+        val should = ReviewGate.shouldPrompt(
+            trackCount = prefs.reviewTrackCount.first(),
+            promptedVersion = prefs.reviewPromptedVersion.first(),
+            currentVersion = BuildConfig.VERSION_NAME,
+            firstLaunchTs = prefs.firstLaunchTs.first(),
+            snoozeUntil = prefs.reviewSnoozeUntil.first(),
+            optedOut = prefs.reviewOptOut.first(),
+            now = now(),
+        )
+        if (should) {
+            // Shown counts as asked for this version, whatever button follows.
+            prefs.setReviewPromptedVersion(BuildConfig.VERSION_NAME)
+            showReviewPrompt = true
+        }
+    }
+
+    fun dismissReviewPrompt() {
+        showReviewPrompt = false
+    }
+
+    // Refresh the settings "Phone" row (a connected node is the paired phone).
+    fun refreshPhoneLink() {
+        viewModelScope.launch { phoneConnected = wearSync.connectedWatchNames().isNotEmpty() }
+    }
+
+    fun snoozeReview() {
+        showReviewPrompt = false
+        viewModelScope.launch { prefs.setReviewSnoozeUntil(now() + ReviewGate.SNOOZE_MS) }
+    }
+
+    fun optOutReview() {
+        showReviewPrompt = false
+        viewModelScope.launch { prefs.setReviewOptOut(true) }
     }
 
     fun enterInactiveState() {
@@ -370,6 +596,10 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     fun resumeFromInactive() {
         lastInteractionTime = now()
         appState = 0
+    }
+
+    fun noteInteraction() {
+        lastInteractionTime = now()
     }
 
     fun updateDefaultMode(mode: TransportMode) {
@@ -661,9 +891,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
                 favouritesStore.extractFavourites(result.departures, stationId)
             }
             if (appState == 2) updateFocusedTrain()
+            tryEnterPendingFavTrack()
         } catch (e: Exception) {
             requestInFlight = false
             requestStartTime = null
+            pendingFavTrack = null
             handleError(e, "Departures")
         }
     }

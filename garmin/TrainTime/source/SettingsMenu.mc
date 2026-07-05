@@ -79,6 +79,13 @@ module SettingsMenu {
             :version,
             {}
         ));
+        // Data attribution, matching the Apple/Wear settings footers.
+        menu.addItem(new WatchUi.MenuItem(
+            "Data",
+            "opentransportdata.swiss",
+            :dataSource,
+            {}
+        ));
 
         WatchUi.pushView(menu, new SettingsMenuDelegate(view), WatchUi.SLIDE_UP);
     }

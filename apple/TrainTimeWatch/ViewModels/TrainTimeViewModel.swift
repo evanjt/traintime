@@ -39,6 +39,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var focusedTrain: FocusedDeparture? = nil
     @Published var formation: Formation? = nil
 
+    // Timed review ask (Yes hands off to the iPhone — the watch has no review page).
+    @Published var showReviewPrompt = false
+    let reviewStore = ReviewStore()
+
     // MARK: - GPS
     @Published var gpsQuality: GPSQuality = .unavailable
     @Published var lastWalkDist: Double = 0
@@ -66,6 +70,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private var lastLocRequestTs: Date?
     // Liveness heartbeat throttle (announce alive to the phone every ≥7 s while reachable).
     private var lastAliveTsSec: Int = 0
+    // Settings quick-launch of a favourite: entered once the fetched departures
+    // contain the matching line+destination (Garmin's mPendingFavTrack analog).
+    private var pendingFavTrack: (line: String, dest: String)?
 
     // MARK: - Computed
 
@@ -97,6 +104,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     override init() {
         super.init()
+
+        reviewStore.ensureFirstLaunchTimestamp()
 
         // Load default mode from UserDefaults
         if let savedRaw = UserDefaults.standard.object(forKey: "defaultMode") as? Int,
@@ -591,6 +600,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if let focused = focusedTrain {
             WatchPhoneSync.sendTrackStarted(focused, stationId: currentStation?.id)
         }
+
+        // Only user-initiated tracking counts toward the review ask; a
+        // phone-pushed track command doesn't route through here.
+        reviewStore.incrementTrackCount()
+        if reviewStore.shouldPrompt() {
+            reviewStore.markPrompted(version: ReviewStore.currentVersion)
+            showReviewPrompt = true
+        }
     }
 
     func enterInactiveState() {
@@ -606,6 +623,20 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+    }
+
+    // MARK: - Review ask
+
+    func rateOnPhone() {
+        WatchPhoneSync.sendRateRequest()
+    }
+
+    func snoozeReview() {
+        reviewStore.snooze()
+    }
+
+    func optOutReview() {
+        reviewStore.optOut()
     }
 
     func toggleRoutedDistance() {
@@ -725,15 +756,46 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     if appState == 2 {
                         updateFocusedTrain()
                     }
+                    tryEnterPendingFavTrack()
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
+                    pendingFavTrack = nil
                     handleError(error, context: "Departures")
                 }
             }
         }
+    }
+
+    // MARK: - Quick launch (settings), the peer of Garmin's quick-launch menu
+
+    /// Show a specific station directly. Reuses the phone-mirror path: synthesise
+    /// the station as the sole entry and fetch its departures.
+    func launchStation(id: String, name: String?, lat: Double? = nil, lon: Double? = nil) {
+        showStationFromPhone([
+            "stId": id,
+            "name": name ?? "Station",
+            "lat": lat as Any,
+            "lon": lon as Any,
+        ])
+    }
+
+    /// Jump straight onto the tracking bar for a favourite line+destination once
+    /// its station's departures arrive (tryEnterPendingFavTrack).
+    func launchFavourite(_ fav: Favourite) {
+        pendingFavTrack = (line: fav.lineNumber, dest: fav.destination)
+        launchStation(id: fav.stationId, name: fav.stationName)
+    }
+
+    private func tryEnterPendingFavTrack() {
+        guard let pending = pendingFavTrack else { return }
+        pendingFavTrack = nil
+        guard let index = departures.firstIndex(where: {
+            $0.lineNumber == pending.line && $0.destination == pending.dest && !$0.isGone
+        }) else { return }
+        selectDeparture(index: index)
     }
 
     // MARK: - Error Handling
