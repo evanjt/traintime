@@ -122,6 +122,8 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onShow() {
+        PhoneSync.activate();
+
         // Check for cached last-known position BEFORE enabling continuous GPS,
         // because enableLocationEvents can reset the cached position state.
         var info = Position.getInfo();

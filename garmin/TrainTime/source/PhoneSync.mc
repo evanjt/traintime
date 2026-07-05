@@ -1,4 +1,5 @@
 using Toybox.Communications;
+using Toybox.System;
 
 // Outbound watch -> phone messaging over the Connect IQ phone-app channel.
 // This is the Garmin analog of WCSession.updateApplicationContext (Apple) and
@@ -7,10 +8,24 @@ using Toybox.Communications;
 // transmit fails silently, so absence of a phone is a no-op, never an error.
 module PhoneSync {
 
+    // Flipped on by the first real view show (TrainTimeView.onShow). The unit-test
+    // harness never shows a view, and a transmit before then hangs the sim — CI
+    // stalls before running a single test. Until activated every send is a no-op.
+    var enabled = false;
+
+    function activate() {
+        if (enabled) { return; }
+        enabled = true;
+        // Announce we're up so a listening phone greens its link indicator at once.
+        sendHello();
+    }
+
     function transmit(data) {
-        if (Communications has :transmit) {
-            Communications.transmit(data, null, new PhoneSyncListener());
-        }
+        if (!enabled) { return; }
+        if (!(Communications has :transmit)) { return; }
+        // A phoneless watch can't deliver; skip rather than queue failures.
+        if (!System.getDeviceSettings().phoneConnected) { return; }
+        Communications.transmit(data, null, new PhoneSyncListener());
     }
 
     // The persisted default transport mode (0 train, 1 bus, 2 tram) changed in

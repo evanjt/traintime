@@ -12,8 +12,8 @@ class TrainTimeApp extends Application.AppBase {
 
     function onStart(state) {
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
-        // Announce we're up so a listening phone greens its link indicator at once.
-        PhoneSync.sendHello();
+        // The hello announce lives in TrainTimeView.onShow (PhoneSync.activate):
+        // transmitting from onStart hangs the sim's unit-test harness.
     }
 
     function onStop(state) {
