@@ -132,6 +132,16 @@ jobs:
             -only-testing:TrainTimeWidgetTests \
             CODE_SIGNING_ALLOWED=NO
 
+      # Snapshot mismatches are undebuggable from the log alone; ship the
+      # actual renders swift-snapshot-testing writes into the app sandbox.
+      - name: Upload snapshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-failures
+          path: /Users/runner/Library/Developer/CoreSimulator/Devices/*/data/Containers/Data/Application/*/tmp/*SnapshotTests*/
+          if-no-files-found: ignore
+
       - name: Build unsigned (PR validation)
         if: steps.check_signing.outputs.has_signing != 'true' || (github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch')
         working-directory: apple
