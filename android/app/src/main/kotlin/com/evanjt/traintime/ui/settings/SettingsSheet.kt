@@ -1,7 +1,6 @@
 package com.evanjt.traintime.ui.settings
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,7 +46,7 @@ import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(
     viewModel: MainViewModel,
@@ -60,20 +57,23 @@ fun SettingsSheet(
     val palette = LocalAppPalette.current
     val onSurface = MaterialTheme.colorScheme.onSurface
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    val watchRequester = remember { BringIntoViewRequester() }
-    // When opened via the header watch icon, scroll straight to the Watch link section.
-    LaunchedEffect(focusWatch, viewModel.watchLinks.size) {
-        if (focusWatch && viewModel.watchLinks.isNotEmpty()) watchRequester.bringIntoView()
-    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        var showFavourites by remember { mutableStateOf(false) }
-        // System back leaves the favourites page before it can dismiss the sheet.
-        BackHandler(enabled = showFavourites) { showFavourites = false }
-        if (showFavourites) {
-            FavouritesPage(viewModel = viewModel, onBack = { showFavourites = false })
+        // Opened via the header watch icon → straight onto the watch page.
+        var page by remember {
+            mutableStateOf(if (focusWatch) SettingsPage.WATCH else SettingsPage.MAIN)
+        }
+        // System back leaves a sub-page before it can dismiss the sheet.
+        BackHandler(enabled = page != SettingsPage.MAIN) { page = SettingsPage.MAIN }
+        LaunchedEffect(Unit) { viewModel.refreshWatchLinks() }
+        if (page == SettingsPage.FAVOURITES) {
+            FavouritesPage(viewModel = viewModel, onBack = { page = SettingsPage.MAIN })
+            return@ModalBottomSheet
+        }
+        if (page == SettingsPage.WATCH) {
+            WatchPage(viewModel = viewModel, onBack = { page = SettingsPage.MAIN })
             return@ModalBottomSheet
         }
         Column(
@@ -111,7 +111,7 @@ fun SettingsSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showFavourites = true }
+                        .clickable { page = SettingsPage.FAVOURITES }
                         .padding(top = 16.dp),
                 ) {
                     Icon(
@@ -131,44 +131,35 @@ fun SettingsSheet(
                 }
             }
 
-            // Watch link status — only shown when a watch is paired (Wear or Garmin),
-            // so nothing appears when no connection is possible.
-            LaunchedEffect(Unit) { viewModel.refreshWatchLinks() }
+            // Watch link — one row: the connected watch (or count), details on the page.
+            // Hidden entirely when no watch is paired (Wear or Garmin).
             if (viewModel.watchLinks.isNotEmpty()) {
-              Column(Modifier.bringIntoViewRequester(watchRequester)) {
-                Text("Watch link", color = secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp))
-                viewModel.watchLinks.forEach { link ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    ) {
-                        Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
-                        Text(link.name, color = onSurface, modifier = Modifier.padding(start = 12.dp))
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            if (link.connected) "Connected" else "Not connected",
-                            color = if (link.connected) palette.platform else secondary,
-                            fontSize = 13.sp,
-                        )
-                    }
+                val connected = viewModel.watchLinks.filter { it.connected }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { page = SettingsPage.WATCH }
+                        .padding(top = 16.dp),
+                ) {
+                    Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
+                    Text("Watch link", color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        when (connected.size) {
+                            0 -> "Not connected"
+                            1 -> connected.first().name
+                            else -> "${connected.size} connected"
+                        },
+                        color = if (connected.isEmpty()) secondary else palette.platform,
+                        fontSize = 14.sp,
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = secondary,
+                    )
                 }
-
-                // Mirror phone state + location to the watch (Garmin only). The header
-                // watch icon launches the app on the watch on demand.
-                if (viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }) {
-                    val mirror by viewModel.prefs.mirrorToWatch.collectAsState(initial = true)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Mirror to watch", color = onSurface)
-                            Text("Send your tracked train, mode, station and location to the watch", color = secondary, fontSize = 12.sp)
-                        }
-                        Switch(checked = mirror, onCheckedChange = { viewModel.setMirrorToWatch(it) })
-                    }
-                }
-              }
             }
 
             Row(
@@ -222,6 +213,69 @@ private val appearanceOptions = listOf(
     "light" to "Light",
     "dark" to "Dark",
 )
+
+private enum class SettingsPage { MAIN, FAVOURITES, WATCH }
+
+@Composable
+private fun WatchPage(viewModel: MainViewModel, onBack: () -> Unit) {
+    val palette = LocalAppPalette.current
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = onSurface)
+            }
+            Text(
+                "Watch link",
+                color = onSurface,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        // Every device paired in Garmin Connect (plus Wear watches) with live status.
+        // The phone only ever messages connected watches with TrainTime installed.
+        viewModel.watchLinks.forEach { link ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            ) {
+                Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
+                Text(link.name, color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                Spacer(Modifier.weight(1f))
+                Text(
+                    if (link.connected) "Connected" else "Not connected",
+                    color = if (link.connected) palette.platform else secondary,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+
+        // Mirror phone state + location to the watch (Garmin only). The header
+        // watch icon launches the app on the watch on demand.
+        if (viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }) {
+            val mirror by viewModel.prefs.mirrorToWatch.collectAsState(initial = true)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Mirror to watch", color = onSurface)
+                    Text("Send your tracked train, mode, station and location to the watch", color = secondary, fontSize = 12.sp)
+                }
+                Switch(checked = mirror, onCheckedChange = { viewModel.setMirrorToWatch(it) })
+            }
+        }
+    }
+}
 
 // One-line setting: label above a full-width segmented row, every option a
 // tile of equal width so the group spans edge to edge of the sheet content.
