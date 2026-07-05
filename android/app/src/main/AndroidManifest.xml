@@ -57,12 +57,13 @@
             android:foregroundServiceType="location" />
 
         <!-- Wearable Data Layer: receive favourites / pinned stations / default
-             mode pushed from the watch. -->
+             mode pushed from the watch, plus hello/alive/bye liveness messages. -->
         <service
             android:name=".PhoneWearListenerService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data
                     android:scheme="wear"
                     android:host="*"

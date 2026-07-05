@@ -1,6 +1,7 @@
 package com.evanjt.traintime.wear
 
 import android.content.Intent
+import com.evanjt.traintime.core.sync.WearCommandBus
 import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearSync
 import com.google.android.gms.wearable.DataEvent
@@ -28,12 +29,21 @@ class WatchWearListenerService : WearableListenerService() {
     }
 
     override fun onMessageReceived(event: MessageEvent) {
-        if (event.path != WearSync.TRACK_PATH) return
-        val cmd = WearSync.decodeTrack(event.data) ?: return
-        val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(MainActivity.EXTRA_TRACK, WearSync.encodeTrackString(cmd))
+        when (event.path) {
+            WearSync.TRACK_PATH -> {
+                val cmd = WearSync.decodeTrack(event.data) ?: return
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(MainActivity.EXTRA_TRACK, WearSync.encodeTrackString(cmd))
+                }
+                startActivity(intent)
+            }
+            // Mirror commands never wake the app: if no ViewModel is collecting,
+            // the emission is dropped (Apple parity — mirror() sends only when
+            // the watch app is reachable).
+            WearSync.CMD_PATH -> {
+                WearSync.decodeCommand(event.data)?.let { WearCommandBus.events.tryEmit(it) }
+            }
         }
-        startActivity(intent)
     }
 }

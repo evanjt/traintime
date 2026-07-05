@@ -88,6 +88,26 @@ class WearStateSync private constructor(context: Context) {
     suspend fun connectedWatchNames(): List<String> =
         runCatching { nodeClient.connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
 
+    // Watch -> phone liveness announcement (hello / alive / bye / reqLoc).
+    // Fire-and-forget to every connected node; a phoneless watch is a silent
+    // no-op, matching WatchPhoneSync on the Apple side.
+    suspend fun sendLiveness(kind: String) {
+        val bytes = kind.toByteArray(Charsets.UTF_8)
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return
+        for (node in nodes) {
+            runCatching { messageClient.sendMessage(node.id, WearSync.LIVENESS_PATH, bytes).await() }
+        }
+    }
+
+    // Phone -> watch mirror command (mode / station / loc / back).
+    suspend fun sendCommand(cmd: WearCommand) {
+        val bytes = WearSync.encodeCommand(cmd)
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return
+        for (node in nodes) {
+            runCatching { messageClient.sendMessage(node.id, WearSync.CMD_PATH, bytes).await() }
+        }
+    }
+
     // Send the track command to every connected watch; returns how many it reached.
     suspend fun sendTrack(cmd: TrackCommand): Int {
         val bytes = WearSync.encodeTrack(cmd)

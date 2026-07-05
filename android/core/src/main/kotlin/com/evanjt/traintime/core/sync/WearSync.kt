@@ -20,7 +20,27 @@ object WearSync {
     // MessageClient track command (phone -> watch), like PhoneWatchService.
     const val TRACK_PATH = "/traintime/track"
 
+    // MessageClient liveness announcements (watch -> phone): the same
+    // hello/alive/bye kinds the Apple watch sends over WCSession and the Garmin
+    // over Connect IQ. Payload is the UTF-8 kind string; "reqLoc" (the watch
+    // asking for the phone's location) rides the same path.
+    const val LIVENESS_PATH = "/traintime/liveness"
+    const val KIND_HELLO = "hello"
+    const val KIND_ALIVE = "alive"
+    const val KIND_BYE = "bye"
+    const val KIND_REQ_LOC = "reqLoc"
+
+    // MessageClient command channel (phone -> watch) for the non-track mirror
+    // actions — mode / station / loc / back — matching the Garmin action contract.
+    const val CMD_PATH = "/traintime/cmd"
+
     val json = Json { ignoreUnknownKeys = true }
+
+    fun encodeCommand(cmd: WearCommand): ByteArray =
+        json.encodeToString(cmd).toByteArray(Charsets.UTF_8)
+
+    fun decodeCommand(bytes: ByteArray): WearCommand? =
+        runCatching { json.decodeFromString<WearCommand>(bytes.toString(Charsets.UTF_8)) }.getOrNull()
 
     fun encodeTrack(cmd: TrackCommand): ByteArray =
         json.encodeToString(cmd).toByteArray(Charsets.UTF_8)
@@ -55,6 +75,18 @@ object WearSync {
     fun garminLocationPayload(lat: Double, lon: Double): Map<String, Any?> =
         mapOf("action" to "loc", "lat" to lat, "lon" to lon)
 }
+
+// Phone -> watch mirror command over CMD_PATH. Same actions and field names as
+// the Garmin phone-app contract (handlePhoneMessage on the Garmin watch).
+@Serializable
+data class WearCommand(
+    val action: String, // "mode" | "station" | "loc" | "back"
+    val mode: Int? = null,
+    val stId: String? = null,
+    val name: String? = null,
+    val lat: Double? = null,
+    val lon: Double? = null,
+)
 
 // The same fields PhoneWatchService.sendMessage carries on iOS. A superset of
 // FocusedDeparture plus the originating stationId (so the watch can fetch the
