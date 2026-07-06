@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +37,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -84,8 +87,12 @@ fun TrackingScreen(viewModel: MainViewModel) {
 
     BackHandler { viewModel.exitToStationView() }
 
-    // Keep the watch link/status fresh for the "Open on watch" button.
-    LaunchedEffect(Unit) { viewModel.refreshWatchLinks() }
+    // Keep the watch link/status fresh for the "Open on watch" button, and the
+    // connected-watch list for "Send to Watch".
+    LaunchedEffect(Unit) {
+        viewModel.refreshWatchLinks()
+        viewModel.refreshConnectedWatches()
+    }
 
     // Local 1 s clock so the countdown ticks even when no state changes.
     var nowSeconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
@@ -292,6 +299,38 @@ fun TrackingScreen(viewModel: MainViewModel) {
                         modifier = Modifier.padding(start = 6.dp),
                     )
                 }
+            }
+
+            // Explicit push of this departure to a watch, complementing the
+            // automatic mirror. One watch sends directly; more open a picker.
+            val watches = viewModel.connectedWatches
+            if (watches.isNotEmpty()) {
+                if (!hasGarmin) {
+                    HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
+                }
+                var showWatchMenu by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedButton(onClick = {
+                        if (watches.size == 1) viewModel.sendToWatch() else showWatchMenu = true
+                    }) {
+                        Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                    }
+                    DropdownMenu(expanded = showWatchMenu, onDismissRequest = { showWatchMenu = false }) {
+                        watches.forEach { watch ->
+                            DropdownMenuItem(
+                                text = { Text("${watch.name} (${if (watch.type == PhoneWatchType.GARMIN) "Garmin" else "Wear OS"})") },
+                                onClick = {
+                                    showWatchMenu = false
+                                    viewModel.sendToWatch(watch)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+            viewModel.watchSendStatus?.let {
+                Text(it, color = secondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
 
