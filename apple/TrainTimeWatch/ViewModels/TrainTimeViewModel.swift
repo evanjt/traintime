@@ -216,10 +216,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         let plat = data["plat"] as? String ?? ""
         let platChg = data["platChg"] as? Bool ?? false
 
-        if let stId = data["stId"] as? String {
-            // Set station for API polling, find matching station or use ID directly
-            // The next timer tick will fetch departures for this station
-            _ = stId  // Station ID available for future API polling
+        // Adopt the originating station so the tracking timer polls its board
+        // (delay/platform upgrades), favourites resolve, and walk distance has
+        // a coordinate. Same as Garmin's mStationId adoption.
+        if let stId = data["stId"] as? String, stId != currentStation?.id {
+            setLaunchedStation(
+                id: stId,
+                name: data["stName"] as? String,
+                lat: data["stLat"] as? Double,
+                lon: data["stLon"] as? Double
+            )
         }
 
         // Wake from inactive

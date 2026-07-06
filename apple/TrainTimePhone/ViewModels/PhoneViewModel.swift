@@ -567,7 +567,7 @@ class PhoneViewModel: ObservableObject {
 
         // Mirror the same focused train onto the watch (immediate: a tap is a
         // strong, deliberate action).
-        mirror(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
+        mirror(PhoneWatchService.GarminPayload.track(focused, station: currentStation))
     }
 
     func enterInactiveState() {
@@ -1056,8 +1056,7 @@ class PhoneViewModel: ObservableObject {
 
     func sendToWatch(_ watch: PhoneConnectedWatch) {
         guard let focused = focusedTrain else { return }
-        let stationId = currentStation?.id
-        watchService.sendTrackCommand(to: watch, departure: focused, stationId: stationId) { [weak self] success in
+        watchService.sendTrackCommand(to: watch, departure: focused, station: currentStation) { [weak self] success in
             DispatchQueue.main.async {
                 self?.watchSendStatus = success ? "Sent to \(watch.name)" : "Failed to send"
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -1076,6 +1075,18 @@ class PhoneViewModel: ObservableObject {
             return
         }
         sendToWatch(watch)
+    }
+
+    // Tracking-screen watch button: a live primary watch takes an explicit
+    // send, a closed one the launch/re-sync path (a closed Garmin app needs
+    // the open request before it can receive).
+    func sendToPrimaryOrOpen() {
+        refreshConnectedWatches()
+        if primaryWatchLiveness == .green {
+            sendToWatch()
+        } else {
+            openWatchApp()
+        }
     }
 
     // MARK: - Watch mirroring (backend-dispatched to the primary watch)
@@ -1165,7 +1176,7 @@ class PhoneViewModel: ObservableObject {
 
     private func sendCurrentView(to backend: PhoneWatchType) {
         if appState == 2, let focused = focusedTrain {
-            send(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id), to: backend)
+            send(PhoneWatchService.GarminPayload.track(focused, station: currentStation), to: backend)
         } else if let st = currentStation, let id = st.id {
             let coord = st.coordinate
             send(PhoneWatchService.GarminPayload.station(id: id, name: st.name ?? "Station", lat: coord?.latitude, lon: coord?.longitude), to: backend)
@@ -1511,7 +1522,6 @@ class PhoneViewModel: ObservableObject {
         pending.status = PendingRoute.statusSaved
         pendingRouteStore.save(pending)
         PendingRouteNotifier.schedule(pending, now: now)
-        PendingRouteNotifier.requestAuthorizationIfNeeded()
         shareStatus = "Saved. We'll remind you before departure"
         // Don't strand the user on the remote origin board. The queued route
         // lives in the chip now. Return to their real location.

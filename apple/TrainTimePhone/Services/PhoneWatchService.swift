@@ -73,7 +73,7 @@ class PhoneWatchService: ObservableObject {
     /// watch reads in handlePhoneMessage (track / mode / station / loc). One source
     /// of truth, mirroring WearSync.garmin*Payload on Android.
     enum GarminPayload {
-        static func track(_ departure: FocusedDeparture, stationId: String?) -> [String: Any] {
+        static func track(_ departure: FocusedDeparture, station: Station?) -> [String: Any] {
             var data: [String: Any] = [
                 "action": "track",
                 "dest": departure.destination,
@@ -86,7 +86,14 @@ class PhoneWatchService: ObservableObject {
             ]
             if let tn = departure.trainNumber { data["trainNum"] = tn }
             if let op = departure.operatorRef { data["opRef"] = op }
-            if let stId = stationId { data["stId"] = stId }
+            // Station identity and coordinate so the watch can poll the board
+            // and compute walk distance. Garmin ignores the extra keys.
+            if let station, let stId = station.id {
+                data["stId"] = stId
+                if let name = station.name { data["stName"] = name }
+                if let lat = station.lat { data["stLat"] = lat }
+                if let lon = station.lon { data["stLon"] = lon }
+            }
             return data
         }
 
@@ -140,10 +147,10 @@ class PhoneWatchService: ObservableObject {
     func sendTrackCommand(
         to watch: PhoneConnectedWatch,
         departure: FocusedDeparture,
-        stationId: String?,
+        station: Station?,
         completion: @escaping (Bool) -> Void
     ) {
-        let data = GarminPayload.track(departure, stationId: stationId)
+        let data = GarminPayload.track(departure, station: station)
 
         switch watch.type {
         case .appleWatch:

@@ -94,4 +94,35 @@ final class ParsingTests: XCTestCase {
     func testFormationWithoutWagonsIsNil() {
         XCTAssertNil(Formation.from(json: ["track": "3"]))
     }
+
+    func testTrackPayloadCarriesStationIdentity() {
+        let station = Station(
+            id: "8507000", name: "Bern", lat: 46.9489, lon: 7.4399,
+            mode: .train, dist: nil, embeddedDepartures: nil
+        )
+        let data = PhoneWatchService.GarminPayload.track(TourMockData.focused(base: 0), station: station)
+        XCTAssertEqual(data["action"] as? String, "track")
+        XCTAssertEqual(data["stId"] as? String, "8507000")
+        XCTAssertEqual(data["stName"] as? String, "Bern")
+        XCTAssertEqual(data["stLat"] as? Double, 46.9489)
+        XCTAssertEqual(data["stLon"] as? Double, 7.4399)
+    }
+
+    func testTrackPayloadWithoutStationOmitsStationKeys() {
+        let data = PhoneWatchService.GarminPayload.track(TourMockData.focused(base: 0), station: nil)
+        XCTAssertNil(data["stId"])
+        XCTAssertNil(data["stName"])
+    }
+
+    func testTourModeStepFollowsNearbyWithPerModeBoards() {
+        XCTAssertEqual(tourSteps[0].stage, .nearby)
+        XCTAssertEqual(tourSteps[1].stage, .mode)
+        let trainLines = TourMockData.departures(base: 0, mode: .train).map(\.lineNumber)
+        let busLines = TourMockData.departures(base: 0, mode: .bus).map(\.lineNumber)
+        let tramLines = TourMockData.departures(base: 0, mode: .tram).map(\.lineNumber)
+        XCTAssertTrue(trainLines.contains(TourMockData.trackLine))
+        XCTAssertTrue(trainLines.contains(TourMockData.favouriteLine))
+        XCTAssertTrue(Set(trainLines).isDisjoint(with: busLines))
+        XCTAssertTrue(Set(trainLines).isDisjoint(with: tramLines))
+    }
 }

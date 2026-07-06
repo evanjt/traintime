@@ -138,15 +138,20 @@ struct PhoneFocusedTrackingView: View {
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
 
-                    // Open on watch, launches/re-syncs the primary watch onto this train.
-                    // Colour tracks liveness (green = showing, amber/grey = closed/away); a
-                    // spinner shows during a Garmin open. Mirrors the Android tracking button.
+                    // Watch button: a live primary watch takes an explicit send of this
+                    // train, a closed one the launch/re-sync path. Long-press (or tap
+                    // with several watches) opens a per-watch send menu. Colour tracks
+                    // liveness; a spinner shows during a Garmin open.
                     if viewModel.primaryWatchLiveness != .hidden {
                         Divider()
                             .padding(.vertical, 4)
 
-                        Button {
-                            viewModel.openWatchApp()
+                        Menu {
+                            ForEach(viewModel.connectedWatches) { watch in
+                                Button("Send to \(watch.name)") {
+                                    viewModel.sendToWatch(watch)
+                                }
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 WatchLivenessIndicator(
@@ -155,12 +160,15 @@ struct PhoneFocusedTrackingView: View {
                                     isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch,
                                     size: 16
                                 )
-                                Text(viewModel.primaryWatchLiveness == .green ? "Showing on watch" : "Open on watch")
+                                Text(viewModel.primaryWatchLiveness == .green ? "Send to watch" : "Open on watch")
                                     .font(.subheadline)
                             }
                             .frame(maxWidth: 200)
+                        } primaryAction: {
+                            viewModel.sendToPrimaryOrOpen()
                         }
                         .buttonStyle(.bordered)
+                        .onAppear { viewModel.refreshConnectedWatches() }
 
                         if let status = viewModel.watchSendStatus {
                             Text(status)

@@ -23,8 +23,8 @@ final class GarminConnectIQService: NSObject {
         let name: String
     }
 
-    /// Invoked on the main queue when the watch sends state back (defaultMode / favourites
-    /// via PhoneSync on the Garmin side). Shape matches WCSession's application context.
+    /// Invoked on the main queue when the watch sends state back (defaultMode via PhoneSync
+    /// on the Garmin side). Shape matches WCSession's application context.
     var onMessageReceived: (([String: Any]) -> Void)?
 
     /// Fires when a watch connects/disconnects (e.g. Bluetooth toggled), for live status.
