@@ -156,6 +156,7 @@ module ApiHandler {
 
     function parseDepartureArray(departures) {
         var result = [];
+        var seen = {};
         var nowSeconds = Time.now().value();
 
         for (var i = 0; i < departures.size() && i < 20; i++) {
@@ -183,7 +184,7 @@ module ApiHandler {
             var trainNumber = (dep.hasKey("trainNumber") && dep["trainNumber"] != null) ? dep["trainNumber"].toString() : null;
             var operatorRef = (dep.hasKey("operatorRef") && dep["operatorRef"] != null) ? dep["operatorRef"].toString() : null;
 
-            result.add({
+            var entry = {
                 "min" => minutesUntil,
                 "depTs" => depTs,
                 "delay" => delay,
@@ -194,7 +195,23 @@ module ApiHandler {
                 "cat" => category,
                 "trainNum" => trainNumber,
                 "opRef" => operatorRef
-            });
+            };
+
+            // OJP can publish the same physical train twice under twin train
+            // numbers (e.g. 23153/93153). Same time, line, destination and
+            // platform means the same train: keep the twin carrying the delay,
+            // in the first-seen slot. Mirrors the iOS/Android dedupe.
+            var key = (depTs == null ? "0" : depTs.toString())
+                + "|" + lineNumber + "|" + destination + "|" + platform;
+            if (seen.hasKey(key)) {
+                var idx = seen[key];
+                if (delay > result[idx]["delay"]) {
+                    result[idx] = entry;
+                }
+            } else {
+                seen[key] = result.size();
+                result.add(entry);
+            }
         }
         return result;
     }

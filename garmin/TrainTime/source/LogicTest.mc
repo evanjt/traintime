@@ -45,6 +45,45 @@ function testParseDepartureArray(logger) {
     return d["dest"].equals("Brig") && d["line"].equals("IC8") && d["depTs"] == 1718000600 && d["delay"] == 2;
 }
 
+// OJP publishes some trains twice under twin train numbers (e.g. 23153/93153).
+// parseDepartureArray collapses them, keeping the twin carrying the delay in
+// the first-seen slot.
+(:test)
+function testDedupeCollapsesTwinsKeepingDelay(logger) {
+    var planned = { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 0, "platform" => "2", "trainNumber" => "23153" };
+    var delayed = { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 1, "platform" => "2", "trainNumber" => "93153" };
+    var a = ApiHandler.parseDepartureArray([planned, delayed]);
+    var b = ApiHandler.parseDepartureArray([delayed, planned]);
+    return a.size() == 1 && b.size() == 1
+        && a[0]["trainNum"].equals("93153") && a[0]["delay"] == 1
+        && b[0]["trainNum"].equals("93153") && b[0]["delay"] == 1;
+}
+
+(:test)
+function testDedupeKeepsDistinguishableRows(logger) {
+    var deps = [
+        { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 0, "platform" => "1" },
+        { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 0, "platform" => "2" },
+        { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718001200, "delay" => 0, "platform" => "1" },
+    ];
+    return ApiHandler.parseDepartureArray(deps).size() == 3;
+}
+
+(:test)
+function testDedupePreservesOrder(logger) {
+    var deps = [
+        { "to" => "Brig", "category" => "IC", "number" => "IC8", "departure" => 1718000000, "delay" => 0, "platform" => "3", "trainNumber" => "1" },
+        { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 0, "platform" => "2", "trainNumber" => "23153" },
+        { "to" => "Lausanne", "category" => "IR", "number" => "IR90", "departure" => 1718001200, "delay" => 0, "platform" => "4", "trainNumber" => "2" },
+        { "to" => "Coppet", "category" => "RL", "number" => "RL4", "departure" => 1718000600, "delay" => 1, "platform" => "2", "trainNumber" => "93153" },
+    ];
+    var parsed = ApiHandler.parseDepartureArray(deps);
+    return parsed.size() == 3
+        && parsed[0]["trainNum"].equals("1")
+        && parsed[1]["trainNum"].equals("93153")
+        && parsed[2]["trainNum"].equals("2");
+}
+
 (:test)
 function testBuildFavouritesParam(logger) {
     Storage.deleteValue("favourites");
