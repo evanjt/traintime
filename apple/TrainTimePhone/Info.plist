@@ -6,6 +6,8 @@
 	<string>TrainTime</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TrainTime needs your location to find nearby Swiss train stations and show departure times.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>TrainTime uses Bluetooth to reach a paired Garmin watch through the Garmin Connect app, so tracked departures can be sent to your wrist.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UILaunchScreen</key>
