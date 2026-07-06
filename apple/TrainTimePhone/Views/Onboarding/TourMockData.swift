@@ -12,16 +12,36 @@ enum TourMockData {
     static let favouriteLine = "IR15"
 
     // Timestamps hang off a base instant captured once per tour, so the minutes column and the
-    // tracking countdown tick down naturally during the demo.
-    static func departures(base: Int) -> [Departure] {
-        [
-            dep("Zürich HB", 4, base, 4, delay: 0, platform: "7", line: "IC1", cat: "IC"),
-            dep("Brig", 6, base, 6, delay: 3, platform: "8", line: "IC8", cat: "IC"),
-            dep("Luzern", 9, base, 9, delay: 0, platform: "5", line: "IR15", cat: "IR"),
-            dep("Thun", 11, base, 11, delay: 0, platform: "12", platChanged: true, line: "RE", cat: "RE"),
-            dep("Fribourg", 14, base, 14, delay: 0, platform: "2", line: "S1", cat: "S"),
-            dep("Köniz", -1, base, -1, delay: 0, platform: "1", line: "S5", cat: "S"),
-        ]
+    // tracking countdown tick down naturally during the demo. Each mode has its own board so
+    // the mode chips visibly change the list.
+    static func departures(base: Int, mode: TransportMode = .train) -> [Departure] {
+        switch mode {
+        case .bus:
+            return [
+                dep("Länggasse", 2, base, 2, delay: 0, platform: "A", line: "12", cat: "B"),
+                dep("Elfenau", 5, base, 5, delay: 1, platform: "B", line: "19", cat: "B"),
+                dep("Köniz Schliern", 7, base, 7, delay: 0, platform: "C", line: "10", cat: "B"),
+                dep("Ostermundigen Rüti", 9, base, 9, delay: 0, platform: "A", line: "10", cat: "B"),
+                dep("Zentrum Paul Klee", 12, base, 12, delay: 0, platform: "D", line: "12", cat: "B"),
+            ]
+        case .tram:
+            return [
+                dep("Wabern", 3, base, 3, delay: 0, platform: "G", line: "9", cat: "T"),
+                dep("Ostring", 5, base, 5, delay: 2, platform: "H", line: "7", cat: "T"),
+                dep("Fischermätteli", 8, base, 8, delay: 0, platform: "G", line: "6", cat: "T"),
+                dep("Worb Dorf", 10, base, 10, delay: 0, platform: "H", line: "6", cat: "T"),
+                dep("Wankdorf Bahnhof", 13, base, 13, delay: 0, platform: "G", line: "9", cat: "T"),
+            ]
+        default:
+            return [
+                dep("Zürich HB", 4, base, 4, delay: 0, platform: "7", line: "IC1", cat: "IC"),
+                dep("Brig", 6, base, 6, delay: 3, platform: "8", line: "IC8", cat: "IC"),
+                dep("Luzern", 9, base, 9, delay: 0, platform: "5", line: "IR15", cat: "IR"),
+                dep("Thun", 11, base, 11, delay: 0, platform: "12", platChanged: true, line: "RE", cat: "RE"),
+                dep("Fribourg", 14, base, 14, delay: 0, platform: "2", line: "S1", cat: "S"),
+                dep("Köniz", -1, base, -1, delay: 0, platform: "1", line: "S5", cat: "S"),
+            ]
+        }
     }
 
     static func focused(base: Int) -> FocusedDeparture {

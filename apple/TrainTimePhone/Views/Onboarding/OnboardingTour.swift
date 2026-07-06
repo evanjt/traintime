@@ -19,7 +19,7 @@ private extension View {
     }
 }
 
-private enum StationHighlight { case list, trackRow, favRow }
+private enum StationHighlight { case list, modeChips, trackRow, favRow }
 
 // Guided coach-mark walkthrough. Each step renders a real, mocked app surface and spotlights one
 // feature with an anchored callout. All state is local (mode/favourites/pins live only here), so
@@ -36,7 +36,7 @@ struct OnboardingTour: View {
     @State private var targetRect: CGRect?
 
     private let base = Int(Date().timeIntervalSince1970)
-    private var departures: [Departure] { TourMockData.departures(base: base) }
+    private var departures: [Departure] { TourMockData.departures(base: base, mode: mode) }
     private var step: TourStep { tourSteps[stepIndex] }
 
     private func favKey(_ d: Departure) -> String { "\(d.lineNumber)|\(d.destination)" }
@@ -54,6 +54,9 @@ struct OnboardingTour: View {
             }
         } else if stepIndex < tourSteps.count - 1 {
             if step.stage == .track { trackingActive = false }
+            // Leaving the mode step returns the board to trains so the track and
+            // favourite steps find IC1 and IR15.
+            if step.stage == .mode { mode = .train }
             stepIndex += 1
         } else {
             onFinish()
@@ -68,6 +71,7 @@ struct OnboardingTour: View {
             favourites.removeAll()
         } else if stepIndex > 0 {
             trackingActive = false
+            if step.stage == .mode { mode = .train }
             stepIndex -= 1
         }
     }
@@ -100,6 +104,8 @@ struct OnboardingTour: View {
         switch step.stage {
         case .nearby:
             stationSurface(.list)
+        case .mode:
+            stationSurface(.modeChips)
         case .track:
             if trackingActive { trackingSurface } else { stationSurface(.trackRow) }
         case .favourite:
@@ -129,13 +135,16 @@ struct OnboardingTour: View {
             return step.body
         }()
         let nextLabel = stepIndex == tourSteps.count - 1 ? "Done" : "Next"
-        // The tracking detail is its own page, so give it its own progress dot.
+        // The track and favourite steps each expand into a second page (live tracking /
+        // starred detail), so both sub-pages carry their own progress dot.
         let trackStep = tourSteps.firstIndex(where: { $0.stage == .track }) ?? 0
-        let dotTotal = tourSteps.count + 1
+        let favStep = tourSteps.firstIndex(where: { $0.stage == .favourite }) ?? 0
+        let dotTotal = tourSteps.count + 2
         let dotIndex: Int = {
-            if stepIndex < trackStep { return stepIndex }
-            if stepIndex == trackStep { return trackingActive ? trackStep + 1 : trackStep }
-            return stepIndex + 1
+            var index = stepIndex
+            if stepIndex > trackStep || (stepIndex == trackStep && trackingActive) { index += 1 }
+            if stepIndex > favStep || (stepIndex == favStep && !favourites.isEmpty) { index += 1 }
+            return index
         }()
         let bubble = CalloutBubble(
             title: step.title, message: bodyText, index: dotIndex, total: dotTotal,
@@ -152,7 +161,12 @@ struct OnboardingTour: View {
         let favDeps = departures.filter { isFav($0) }
         return VStack(spacing: 0) {
             HStack {
-                PhoneModePickerView(availableModes: [.train], currentMode: mode, onSelect: { _ in })
+                PhoneModePickerView(
+                    availableModes: [.train, .bus, .tram],
+                    currentMode: mode,
+                    onSelect: highlight == .modeChips ? { mode = $0 } : { _ in }
+                )
+                .modifier(ConditionalTarget(active: highlight == .modeChips))
                 Spacer()
                 Image(systemName: "location.fill").font(.system(size: 16)).foregroundStyle(AppColors.ahead)
                 Image(systemName: "gearshape").font(.system(size: 18)).foregroundStyle(.secondary).padding(.leading, 8)
@@ -184,7 +198,7 @@ struct OnboardingTour: View {
                             // Spotlight the favourite row only until it's starred; afterwards the
                             // line shows above and below with no dim, so both are visible.
                             case .favRow: return d.lineNumber == TourMockData.favouriteLine && favourites.isEmpty
-                            case .list: return false
+                            case .list, .modeChips: return false
                             }
                         }()
                         row(d, isTarget: isTarget, highlight: highlight)

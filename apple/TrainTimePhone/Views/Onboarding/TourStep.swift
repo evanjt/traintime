@@ -4,7 +4,7 @@ import Foundation
 // feature with an anchored callout. Stages are the surfaces; several steps share a surface.
 // Peer of the Android ui/onboarding/TourStep.kt.
 enum TourStage {
-    case nearby, track, favourite, pin, settings, share, route, watch, widget
+    case nearby, mode, track, favourite, pin, settings, share, route, watch, widget
 }
 
 struct TourStep: Identifiable {
@@ -19,18 +19,20 @@ struct TourStep: Identifiable {
 let tourSteps: [TourStep] = [
     TourStep(stage: .nearby, title: "Departures around you",
              body: "The nearest stations and their live departures. Here's Bern Bahnhof."),
+    TourStep(stage: .mode, title: "Trains, buses, trams",
+             body: "Switch what you see with the mode chips. Each mode has its own nearby stops."),
     TourStep(stage: .track, title: "Track a departure",
              body: "Tap a departure to follow it."),
     TourStep(stage: .favourite, title: "Star your lines",
-             body: "Hold a line to favourite it."),
+             body: "Swipe a line right, or hold it, to favourite it."),
     TourStep(stage: .pin, title: "Pin a station",
-             body: "Pinned stations lead the list whenever they're among the five nearest. So when "
-                 + "you're between Bern Bahnhof and Wankdorf, Bern stays first for a quick glance on launch."),
+             body: "Pinned stations lead the list whenever they're among the five nearest, so your "
+                 + "home station stays first."),
     TourStep(stage: .settings, title: "Set your default mode",
-             body: "Pick the mode you ride most. It shows first."),
+             body: "Pick the mode you ride most. TrainTime opens on it."),
     TourStep(stage: .share, title: "Bring trips from SBB",
              body: "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train."),
-    TourStep(stage: .route, title: "Your route, saved and reminded",
+    TourStep(stage: .route, title: "Saved routes and reminders",
              body: "Later trips wait as a saved route. Open it to see every leg, choose which "
                  + "connections to track, and get a reminder before departure."),
     TourStep(stage: .watch, title: "Take it to your watch",
@@ -46,7 +48,7 @@ let tourTrackDetailBody =
 
 // Shown once a line has been favourited: it appears in the favourites block above and stays in
 // the list below.
-let tourFavouriteDetailBody = "It's now pinned above and still in the list below."
+let tourFavouriteDetailBody = "It now sits above the gold line and still appears in the list below."
 
 let connectIQStoreURL = URL(string: "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb")!
 
