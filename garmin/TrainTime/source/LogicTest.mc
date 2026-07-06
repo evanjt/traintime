@@ -93,6 +93,33 @@ function testBuildFavouritesParam(logger) {
     return param != null && param.equals("IC8:Brig");
 }
 
+// trackStarted payload shape. transmit itself needs a live view + phone, so
+// only the pure builder is covered.
+(:test)
+function testBuildTrackStartedFullPayload(logger) {
+    var focused = { "dest" => "Bern", "depTs" => 1718000600, "line" => "IC1", "delay" => 2, "plat" => "7", "platChg" => true, "cat" => "IC", "trainNum" => "817", "opRef" => "11" };
+    var data = PhoneSync.buildTrackStarted(focused, "8507000");
+    return data["kind"].equals("trackStarted") && data["dest"].equals("Bern")
+        && data["depTs"] == 1718000600 && data["line"].equals("IC1")
+        && data["delay"] == 2 && data["plat"].equals("7") && data["platChg"] == true
+        && data["cat"].equals("IC") && data["trainNum"].equals("817")
+        && data["opRef"].equals("11") && data["stId"].equals("8507000");
+}
+
+(:test)
+function testBuildTrackStartedOmitsOptionalFields(logger) {
+    var focused = { "dest" => "Bern", "depTs" => 1718000600, "line" => "IC1", "delay" => 0, "plat" => "", "platChg" => false, "cat" => null, "trainNum" => null, "opRef" => null };
+    var data = PhoneSync.buildTrackStarted(focused, null);
+    return !data.hasKey("cat") && !data.hasKey("trainNum") && !data.hasKey("opRef") && !data.hasKey("stId")
+        && data.hasKey("kind") && data.hasKey("dest") && data.hasKey("depTs")
+        && data.hasKey("line") && data.hasKey("delay") && data.hasKey("plat") && data.hasKey("platChg");
+}
+
+(:test)
+function testBuildTrackStartedNullFocused(logger) {
+    return PhoneSync.buildTrackStarted(null, "8507000") == null;
+}
+
 // Review-prompt gate. Timestamps in seconds; NOW is arbitrary but fixed.
 const REVIEW_NOW = 1750000000;
 const REVIEW_OLD_ENOUGH = REVIEW_NOW - ReviewPrompt.MIN_AGE_SEC;

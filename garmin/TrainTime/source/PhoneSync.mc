@@ -59,8 +59,9 @@ module PhoneSync {
 
     // The watch entered tracking for a departure. Lets the phone reflect the same
     // focused train. Keys mirror the inbound track contract (line/dest/depTs/...).
-    function sendTrackStarted(focused, stationId) {
-        if (focused == null) { return; }
+    // The builder is pure so the payload shape is unit-testable.
+    function buildTrackStarted(focused, stationId) {
+        if (focused == null) { return null; }
         var data = {
             "kind" => "trackStarted",
             "dest" => focused["dest"],
@@ -74,7 +75,12 @@ module PhoneSync {
         if (focused["trainNum"] != null) { data["trainNum"] = focused["trainNum"]; }
         if (focused["opRef"] != null) { data["opRef"] = focused["opRef"]; }
         if (stationId != null) { data["stId"] = stationId; }
-        transmit(data);
+        return data;
+    }
+
+    function sendTrackStarted(focused, stationId) {
+        var data = buildTrackStarted(focused, stationId);
+        if (data != null) { transmit(data); }
     }
 }
 
