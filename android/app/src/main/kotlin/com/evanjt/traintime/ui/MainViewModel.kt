@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.evanjt.traintime.BuildConfig
 import com.evanjt.traintime.GarminConnectIQService
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Thresholds
@@ -52,6 +53,7 @@ import java.time.ZoneId
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -130,6 +132,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var focusedTrain by mutableStateOf<FocusedDeparture?>(null)
         private set
     var formation by mutableStateOf<Formation?>(null)
+        private set
+
+    // Timed review ask, set at most once per version by a real board tap
+    // (maybeRequestReview) and rendered by RootView.
+    var showReviewPrompt by mutableStateOf(false)
         private set
 
     // Connected watches (Wear + Garmin) + last send status, for the "Send to Watch" control.
@@ -607,6 +614,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 platformChanged = dep.platformChanged,
             )
         )
+        maybeRequestReview()
     }
 
     // Track a shared-route leg whose train isn't on the live board yet. The
@@ -704,12 +712,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.markOnboardingUnseen() }
     }
 
-    fun incrementReviewTrackCount() {
-        viewModelScope.launch { prefs.incrementReviewTrackCount() }
+    // Only a real board tap counts toward the review ask: shared-route and
+    // protected tracks skip it, matching iOS. Counting at the tap call site
+    // (not the state-2 transition) means configuration changes can't recount.
+    private fun maybeRequestReview() {
+        viewModelScope.launch {
+            prefs.incrementReviewTrackCount()
+            val shouldPrompt = ReviewGate.shouldPrompt(
+                trackCount = prefs.reviewTrackCount.first(),
+                promptedVersion = prefs.reviewPromptedVersion.first(),
+                currentVersion = BuildConfig.VERSION_NAME,
+                firstLaunchTs = prefs.firstLaunchTs.first(),
+                snoozeUntil = prefs.reviewSnoozeUntil.first(),
+                optedOut = prefs.reviewOptOut.first(),
+                now = System.currentTimeMillis(),
+            )
+            if (shouldPrompt) {
+                // Shown counts as asked for this version, whatever button follows.
+                prefs.setReviewPromptedVersion(BuildConfig.VERSION_NAME)
+                showReviewPrompt = true
+            }
+        }
     }
 
-    fun markReviewPrompted(version: String) {
-        viewModelScope.launch { prefs.setReviewPromptedVersion(version) }
+    fun dismissReviewPrompt() {
+        showReviewPrompt = false
     }
 
     fun snoozeReview() {

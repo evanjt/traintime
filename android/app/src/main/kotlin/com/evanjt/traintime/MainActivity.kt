@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
@@ -146,54 +145,21 @@ private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: 
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Auto-prompt for a review once the user has tracked a few departures, and
-    // only once per version. Increment on each fresh entry into tracking (state
-    // 2), guarding the transition so a recomposition mid-tracking doesn't recount.
-    val appState = viewModel.appState
-    var wasTracking by remember { mutableStateOf(false) }
-    LaunchedEffect(appState) {
-        if (appState == 2 && !wasTracking) {
-            viewModel.incrementReviewTrackCount()
-        }
-        wasTracking = appState == 2
-    }
-
+    // Timed review ask. The VM counts real board taps and flips
+    // showReviewPrompt at most once per version; this only renders it.
     val activity = LocalContext.current as? android.app.Activity
-    val reviewCount by viewModel.prefs.reviewTrackCount.collectAsState(initial = 0)
-    val promptedVersion by viewModel.prefs.reviewPromptedVersion.collectAsState(initial = BuildConfig.VERSION_NAME)
-    val firstLaunchTs by viewModel.prefs.firstLaunchTs.collectAsState(initial = 0L)
-    val snoozeUntil by viewModel.prefs.reviewSnoozeUntil.collectAsState(initial = Long.MAX_VALUE)
-    val reviewOptOut by viewModel.prefs.reviewOptOut.collectAsState(initial = true)
-    var showReviewPrompt by remember { mutableStateOf(false) }
-    LaunchedEffect(appState, reviewCount, promptedVersion, firstLaunchTs, snoozeUntil, reviewOptOut) {
-        if (appState == 2 && !showReviewPrompt &&
-            ReviewGate.shouldPrompt(
-                trackCount = reviewCount,
-                promptedVersion = promptedVersion,
-                currentVersion = BuildConfig.VERSION_NAME,
-                firstLaunchTs = firstLaunchTs,
-                snoozeUntil = snoozeUntil,
-                optedOut = reviewOptOut,
-                now = System.currentTimeMillis(),
-            )
-        ) {
-            // Shown counts as asked for this version, whatever button follows.
-            viewModel.markReviewPrompted(BuildConfig.VERSION_NAME)
-            showReviewPrompt = true
-        }
-    }
-    if (showReviewPrompt) {
+    if (viewModel.showReviewPrompt) {
         ReviewPromptDialog(
             onRate = {
-                showReviewPrompt = false
+                viewModel.dismissReviewPrompt()
                 activity?.let { ReviewLauncher.openStoreListing(it) }
             },
             onNotNow = {
-                showReviewPrompt = false
+                viewModel.dismissReviewPrompt()
                 viewModel.snoozeReview()
             },
             onNever = {
-                showReviewPrompt = false
+                viewModel.dismissReviewPrompt()
                 viewModel.optOutReview()
             },
         )
