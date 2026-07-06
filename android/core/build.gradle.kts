@@ -56,4 +56,7 @@ dependencies {
     api(libs.kotlinx.coroutines.play.services)
     api(libs.play.services.location)
     api(libs.play.services.wearable)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

@@ -13,6 +13,7 @@ import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearCommandBus
 import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearSync
+import com.evanjt.traintime.core.sync.WearSyncPort
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -51,14 +52,19 @@ enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 // independently (not a thin client) and keeps the same orchestration. Drops the
 // phone-only widget seeding, deep links and Glance. appState: 0 = station view,
 // 2 = focused tracking, 3 = inactive.
-class WearViewModel(application: Application) : AndroidViewModel(application) {
+class WearViewModel(
+    application: Application,
+    private val wearSync: WearSyncPort,
+) : AndroidViewModel(application) {
+    // The default ViewModel factory finds this one; tests inject a fake port.
+    constructor(application: Application) : this(application, WearStateSync.get(application))
+
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
     val myStationsStore = MyStationsStore(application)
     val location = LocationService(application, prefs)
     val haptics = HapticService(application)
     private val api = TrainApi.shared
-    private val wearSync = WearStateSync.get(application)
     private val pendingRouteStore = PendingRouteStore(application)
 
     var appState by mutableStateOf(0)

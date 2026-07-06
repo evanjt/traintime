@@ -31,7 +31,7 @@ data class SyncPayload(
 // edits) and the WearableListenerService (which applies remote edits) share one
 // echo-guard: a push is skipped when its content matches what we last sent or
 // last received, so an applied remote change doesn't bounce straight back.
-class WearStateSync private constructor(context: Context) {
+class WearStateSync private constructor(context: Context) : WearSyncPort {
     private val appContext = context.applicationContext
     private val favStore = FavouritesStore(appContext)
     private val myStore = MyStationsStore(appContext)
@@ -41,14 +41,13 @@ class WearStateSync private constructor(context: Context) {
     // The pending route is phone-owned: only the phone publishes it, only the
     // watch applies it. Watch entry points (listener service, ViewModel) set
     // this before any sync work.
-    @Volatile var isWatch = false
+    @Volatile override var isWatch = false
 
     private val dataClient = Wearable.getDataClient(appContext)
     private val messageClient = Wearable.getMessageClient(appContext)
     private val nodeClient = Wearable.getNodeClient(appContext)
 
-    @Volatile private var lastSent: SyncPayload? = null
-    @Volatile private var lastReceived: SyncPayload? = null
+    private val echoGuard = SyncEchoGuard<SyncPayload>()
 
     private suspend fun currentPayload(): SyncPayload = SyncPayload(
         favourites = favStore.all(),
@@ -57,9 +56,9 @@ class WearStateSync private constructor(context: Context) {
         pendingRoute = pendingStore.current(),
     )
 
-    suspend fun pushState() {
+    override suspend fun pushState() {
         val payload = currentPayload()
-        if (payload == lastSent || payload == lastReceived) return
+        if (!echoGuard.shouldPush(payload)) return
         val request = PutDataMapRequest.create(WearSync.STATE_PATH).apply {
             dataMap.putString(WearSync.KEY_FAVOURITES, WearSync.json.encodeToString(payload.favourites))
             dataMap.putString(WearSync.KEY_MY_STATIONS, WearSync.json.encodeToString(payload.myStations))
@@ -71,7 +70,7 @@ class WearStateSync private constructor(context: Context) {
             }
         }.asPutDataRequest().setUrgent()
         runCatching { dataClient.putDataItem(request).await() }
-        lastSent = payload
+        echoGuard.noteSent(payload)
     }
 
     suspend fun applyReceived(map: DataMap) {
@@ -98,11 +97,13 @@ class WearStateSync private constructor(context: Context) {
         }
 
         val current = currentPayload()
-        lastReceived = SyncPayload(
-            favourites = favourites ?: current.favourites,
-            myStations = myStations ?: current.myStations,
-            defaultMode = mode ?: current.defaultMode,
-            pendingRoute = if (isWatch) pendingRoute else current.pendingRoute,
+        echoGuard.noteReceived(
+            SyncPayload(
+                favourites = favourites ?: current.favourites,
+                myStations = myStations ?: current.myStations,
+                defaultMode = mode ?: current.defaultMode,
+                pendingRoute = if (isWatch) pendingRoute else current.pendingRoute,
+            ),
         )
 
         if (favourites != null && favourites != current.favourites) favStore.replaceAll(favourites)
@@ -112,13 +113,13 @@ class WearStateSync private constructor(context: Context) {
     }
 
     // Display names of connected watches, for the phone's "Send to Watch" UI.
-    suspend fun connectedWatchNames(): List<String> =
+    override suspend fun connectedWatchNames(): List<String> =
         runCatching { nodeClient.connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
 
     // Watch -> phone liveness announcement (hello / alive / bye / reqLoc).
     // Fire-and-forget to every connected node; a phoneless watch is a silent
     // no-op, matching WatchPhoneSync on the Apple side.
-    suspend fun sendLiveness(kind: String) {
+    override suspend fun sendLiveness(kind: String) {
         val bytes = kind.toByteArray(Charsets.UTF_8)
         val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return
         for (node in nodes) {
