@@ -14,7 +14,6 @@ coroutines = "1.10.2"
 playServicesLocation = "21.3.0"
 wearCompose = "1.4.1"
 playServicesWearable = "18.2.0"
-playReview = "2.0.2"
 wearOngoing = "1.0.0"
 junit = "4.13.2"
 roborazzi = "1.64.0"
@@ -46,7 +45,6 @@ wear-compose-material = { group = "androidx.wear.compose", name = "compose-mater
 wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation", version.ref = "wearCompose" }
 wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation", version.ref = "wearCompose" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
-play-review-ktx = { group = "com.google.android.play", name = "review-ktx", version.ref = "playReview" }
 wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "wearOngoing" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }

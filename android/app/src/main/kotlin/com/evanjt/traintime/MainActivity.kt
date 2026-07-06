@@ -186,7 +186,7 @@ private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: 
         ReviewPromptDialog(
             onRate = {
                 showReviewPrompt = false
-                activity?.let { ReviewLauncher.launchInAppReview(it) }
+                activity?.let { ReviewLauncher.openStoreListing(it) }
             },
             onNotNow = {
                 showReviewPrompt = false
