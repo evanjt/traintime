@@ -16,7 +16,8 @@ platform :ios do
       app_ids = {
         "com.evanjt.traintime" => "TrainTime",
         "com.evanjt.traintime.watchkitapp" => "TrainTime WatchKit",
-        "com.evanjt.traintime.widget" => "TrainTime Widget"
+        "com.evanjt.traintime.widget" => "TrainTime Widget",
+        "com.evanjt.traintime.share" => "TrainTime Share"
       }
       app_ids.each do |bundle_id, name|
         existing = Spaceship::ConnectAPI::BundleId.find(bundle_id)
@@ -36,13 +37,13 @@ platform :ios do
         type: "appstore",
         api_key: api_key,
         force: ENV["MATCH_FORCE"] == "true",
-        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget"]
+        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget", "com.evanjt.traintime.share"]
       )
     else
       match(
         type: "appstore",
         readonly: true,
-        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget"]
+        app_identifier: ["com.evanjt.traintime", "com.evanjt.traintime.watchkitapp", "com.evanjt.traintime.widget", "com.evanjt.traintime.share"]
       )
     end
   end
@@ -57,7 +58,8 @@ platform :ios do
     {
       "TrainTimePhone" => "match AppStore com.evanjt.traintime",
       "TrainTimeWatch" => "match AppStore com.evanjt.traintime.watchkitapp",
-      "TrainTimeWidgetExtension" => "match AppStore com.evanjt.traintime.widget"
+      "TrainTimeWidgetExtension" => "match AppStore com.evanjt.traintime.widget",
+      "TrainTimeShareExtension" => "match AppStore com.evanjt.traintime.share"
     }.each do |target, profile|
       update_code_signing_settings(
         use_automatic_signing: false,
