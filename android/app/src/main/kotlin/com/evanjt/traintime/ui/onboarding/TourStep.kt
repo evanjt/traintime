@@ -3,7 +3,7 @@ package com.evanjt.traintime.ui.onboarding
 // The interactive walkthrough is a guided coach-mark tour: each step renders a
 // real, mocked app surface and spotlights one feature with an anchored callout.
 // Stages are the surfaces the steps run over; several steps share a surface.
-enum class TourStage { NEARBY, TRACK, FAVOURITE, PIN, SETTINGS, SHARE, ROUTE_PLAN, WATCH, WIDGET }
+enum class TourStage { NEARBY, MODE, TRACK, FAVOURITE, PIN, SETTINGS, SHARE, ROUTE_PLAN, WATCH, WIDGET }
 
 data class TourStep(
     val stage: TourStage,
@@ -20,6 +20,11 @@ val tourSteps: List<TourStep> = listOf(
         "The nearest stations and their live departures. Here's Bern Bahnhof.",
     ),
     TourStep(
+        TourStage.MODE,
+        "Trains, buses, trams",
+        "Switch what you see with the mode chips. Each mode has its own nearby stops.",
+    ),
+    TourStep(
         TourStage.TRACK,
         "Track a departure",
         "Tap a departure to follow it.",
@@ -27,18 +32,18 @@ val tourSteps: List<TourStep> = listOf(
     TourStep(
         TourStage.FAVOURITE,
         "Star your lines",
-        "Hold a line to favourite it.",
+        "Swipe a line right, or hold it, to favourite it.",
     ),
     TourStep(
         TourStage.PIN,
         "Pin a station",
-        "Pinned stations lead the list whenever they're among the five nearest. So when " +
-            "you're between Bern Bahnhof and Wankdorf, Bern stays first for a quick glance on launch.",
+        "Pinned stations lead the list whenever they're among the five nearest, so your " +
+            "home station stays first.",
     ),
     TourStep(
         TourStage.SETTINGS,
         "Set your default mode",
-        "Pick the mode you ride most. It shows first.",
+        "Pick the mode you ride most. TrainTime opens on it.",
     ),
     TourStep(
         TourStage.SHARE,
@@ -47,7 +52,7 @@ val tourSteps: List<TourStep> = listOf(
     ),
     TourStep(
         TourStage.ROUTE_PLAN,
-        "Your route, saved and reminded",
+        "Saved routes and reminders",
         "Later trips wait as a saved route. Open it to see every leg, choose which " +
             "connections to track, and get a reminder before departure.",
     ),
@@ -70,4 +75,16 @@ const val TRACK_DETAIL_BODY =
 
 // Shown once a line has been favourited: it appears in the favourites block above and stays
 // in the list below.
-const val FAVOURITE_DETAIL_BODY = "It's now pinned above and still in the list below."
+const val FAVOURITE_DETAIL_BODY = "It now sits above the gold line and still appears in the list below."
+
+// Progress dots: the TRACK and FAVOURITE steps each expand into a second page
+// (live tracking / starred detail), so both sub-pages carry their own dot.
+// Pure so the dot arithmetic is unit-testable.
+fun tourDotPosition(stepIndex: Int, trackingActive: Boolean, hasFavourites: Boolean): Pair<Int, Int> {
+    val trackStep = tourSteps.indexOfFirst { it.stage == TourStage.TRACK }
+    val favStep = tourSteps.indexOfFirst { it.stage == TourStage.FAVOURITE }
+    var index = stepIndex
+    if (stepIndex > trackStep || (stepIndex == trackStep && trackingActive)) index++
+    if (stepIndex > favStep || (stepIndex == favStep && hasFavourites)) index++
+    return index to (tourSteps.size + 2)
+}

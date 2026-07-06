@@ -108,7 +108,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
     var targetRect by remember { mutableStateOf<Rect?>(null) }
 
     val base = remember { System.currentTimeMillis() / 1000 }
-    val departures = remember(base) { TourMockData.departures(base) }
+    val departures = remember(base, mode) { TourMockData.departures(base, mode) }
     val step = tourSteps[stepIndex]
     val palette = LocalAppPalette.current
     val onReport: (Rect) -> Unit = { targetRect = it }
@@ -135,6 +135,9 @@ fun OnboardingTour(onComplete: () -> Unit) {
                 departures.firstOrNull { it.lineNumber == TourMockData.FAVOURITE_LINE }?.let { toggleFavourite(it) }
             stepIndex < tourSteps.lastIndex -> {
                 if (step.stage == TourStage.TRACK) trackingActive = false
+                // Leaving the mode step returns the board to trains so the
+                // TRACK/FAVOURITE steps find IC1 and IR15.
+                if (step.stage == TourStage.MODE) mode = TransportMode.TRAIN
                 stepIndex++
             }
             else -> onComplete()
@@ -149,6 +152,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
             step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> favourites = emptyList()
             stepIndex > 0 -> {
                 trackingActive = false
+                if (step.stage == TourStage.MODE) mode = TransportMode.TRAIN
                 stepIndex--
             }
         }
@@ -197,6 +201,10 @@ fun OnboardingTour(onComplete: () -> Unit) {
                         TourStage.NEARBY -> TourStationSurface(
                             mode, favourites, departures, StationHighlight.LIST, report, {}, {},
                         )
+                        TourStage.MODE -> TourStationSurface(
+                            mode, favourites, departures, StationHighlight.MODE_CHIPS,
+                            report, onTrack = {}, onToggleFav = {}, onSelectMode = { mode = it },
+                        )
                         TourStage.TRACK ->
                             if (trackingActive) {
                                 TourTrackingSurface(base, mode, report)
@@ -238,15 +246,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
             }
             val nextLabel = if (stepIndex == tourSteps.lastIndex) "Done" else "Next"
 
-            // The tracking detail is its own page, so give it its own progress dot: total gains
-            // one, and everything from the track step on shifts by one once tracking is active.
-            val trackStep = tourSteps.indexOfFirst { it.stage == TourStage.TRACK }
-            val dotTotal = tourSteps.size + 1
-            val dotIndex = when {
-                stepIndex < trackStep -> stepIndex
-                stepIndex == trackStep -> if (trackingActive) trackStep + 1 else trackStep
-                else -> stepIndex + 1
-            }
+            val (dotIndex, dotTotal) = tourDotPosition(stepIndex, trackingActive, favourites.isNotEmpty())
 
             // Anchored title/body bubble. When it sits at the bottom it clears the
             // fixed nav bar below it.
@@ -278,7 +278,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
     }
 }
 
-private enum class StationHighlight { LIST, TRACK_ROW, FAV_ROW }
+private enum class StationHighlight { LIST, MODE_CHIPS, TRACK_ROW, FAV_ROW }
 
 @Composable
 private fun TourStationSurface(
@@ -289,6 +289,7 @@ private fun TourStationSurface(
     onReport: (Rect) -> Unit,
     onTrack: () -> Unit,
     onToggleFav: (Departure) -> Unit,
+    onSelectMode: (TransportMode) -> Unit = {},
 ) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -302,7 +303,16 @@ private fun TourStationSurface(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp),
         ) {
-            ModePicker(availableModes = listOf(TransportMode.TRAIN), currentMode = mode, onSelect = {})
+            ModePicker(
+                availableModes = listOf(TransportMode.TRAIN, TransportMode.BUS, TransportMode.TRAM),
+                currentMode = mode,
+                onSelect = onSelectMode,
+                modifier = if (highlight == StationHighlight.MODE_CHIPS) {
+                    Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) }
+                } else {
+                    Modifier
+                },
+            )
             Spacer(Modifier.weight(1f))
             Icon(Icons.Filled.LocationOn, contentDescription = "GPS", tint = palette.ahead)
             IconButton(onClick = {}) {
