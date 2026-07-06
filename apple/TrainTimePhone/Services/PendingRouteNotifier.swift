@@ -8,9 +8,12 @@ import UserNotifications
 enum PendingRouteNotifier {
     private static let identifierPrefix = "pendingRoute"
 
-    /// Contextual ask at the first pending save. The share deep link means
-    /// the app is foreground, so the system prompt is legal here. Denial is
-    /// fine: the chip and resume prompt work without the reminder.
+    /// Contextual ask the first time anything schedules a reminder. Every
+    /// schedule call happens app-foreground (share deep link, leg toggle,
+    /// tracking hand-off), so the system prompt is always legal. Denial is
+    /// fine: the chip and resume prompt work without the reminder. iOS
+    /// evaluates authorisation at delivery, so a request racing the schedule
+    /// still delivers once granted.
     static func requestAuthorizationIfNeeded() {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
@@ -20,6 +23,7 @@ enum PendingRouteNotifier {
     }
 
     static func schedule(_ route: PendingRoute, now: Int) {
+        requestAuthorizationIfNeeded()
         cancel()
         guard let notifyTs = PendingRouteLogic.notifyTs(route), notifyTs > now,
               let leg = route.currentLeg else { return }
