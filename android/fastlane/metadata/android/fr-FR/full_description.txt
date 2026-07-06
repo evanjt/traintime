@@ -1,0 +1,27 @@
+TrainTime met les départs des transports publics suisses dans votre poche. Voyez ce qui part des arrêts de train, de tram et de bus, des bateaux, des téléphériques et des funiculaires à proximité, avec les retards en temps réel, les numéros de quai et la distance à pied. Un retour haptique lorsque vous êtes en retard vous évite de manquer un départ.
+
+<b>Départs à proximité</b>
+TrainTime utilise votre position pour trouver les arrêts suisses les plus proches et affiche les prochains départs avec destination, quai, retard et direction.
+
+<b>Suivi en direct</b>
+Touchez un départ pour le suivre. Un compte à rebours en direct indique le temps qu'il vous reste selon votre distance à pied jusqu'à l'arrêt, pour savoir si vous l'aurez. Consultez la composition complète du train pour savoir exactement où vous placer sur le quai.
+
+<b>Widget d'écran d'accueil</b>
+Ajoutez le widget pour voir votre prochain départ en un coup d'œil. Touchez-le pour ouvrir directement le mode suivi.
+
+<b>Plusieurs modes de transport</b>
+Basculez entre trains, bus, trams, bateaux, funiculaires et téléphériques. Parcourez jusqu'à 5 arrêts à proximité par mode, sur 4 types de transport. TrainTime n'affiche que ce qui vous entoure.
+
+<b>Dans toute la Suisse</b>
+Alimenté par les données en temps réel d'opentransportdata.swiss, couvrant plus de 51 000 arrêts dans tout le pays.
+
+<b>Aussi sur Garmin et Apple</b>
+TrainTime fonctionne aussi sur les montres Garmin, l'Apple Watch et l'iPhone, disponibles dans leurs stores respectifs.
+
+<b>Confidentialité avant tout</b>
+Aucun compte requis. Aucun pistage. Aucune analyse. Vos coordonnées sont traitées en mémoire par notre API puis immédiatement supprimées, jamais stockées ni partagées. Politique de confidentialité complète sur traintime.ch/privacy.
+
+<b>Open source</b>
+L'app et l'API sont toutes deux open source.
+
+Cette app n'est ni affiliée à CFF ni à aucun autre opérateur de transport suisse, ni approuvée par ceux-ci. Les données de départ proviennent d'opentransportdata.swiss et peuvent ne pas toujours être exactes ou à jour.
