@@ -96,7 +96,7 @@ class RoutingService {
                 lastFetchTime[stationId] = Date()
             }
         } catch {
-            // Silently fail — caller falls back to haversine
+            // Silently fail. Caller falls back to haversine
             lastFetchTime[stationId] = Date()
         }
     }

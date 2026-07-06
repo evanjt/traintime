@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 
 // Process-wide hand-off from the WearableListenerServices (background binder
 // threads, no ViewModel access) to whichever ViewModel is running. If nothing
-// collects — the app UI isn't up — the emission is dropped, which is the
+// collects (the app UI isn't up), the emission is dropped, which is the
 // wanted semantic: mirror traffic must not wake a closed app.
 
 // Phone side: liveness kinds (hello / alive / bye / reqLoc) announced by the watch.

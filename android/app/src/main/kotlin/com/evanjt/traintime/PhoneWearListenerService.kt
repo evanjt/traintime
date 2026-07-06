@@ -15,7 +15,7 @@ import kotlinx.coroutines.runBlocking
 // thread, so blocking on the DataStore writes here is fine. The analog of the
 // phone's WCSessionDelegate didReceiveApplicationContext. Liveness kinds
 // (hello / alive / bye / reqLoc) arrive as messages and are handed to the
-// running ViewModel over the bus — dropped when the app UI isn't up.
+// running ViewModel over the bus, dropped when the app UI isn't up.
 class PhoneWearListenerService : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         val sync = WearStateSync.get(applicationContext)

@@ -10,7 +10,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // Same applicationId as :app — required for the Wearable Data Layer to
+        // Same applicationId as :app, required for the Wearable Data Layer to
         // pair the watch and phone. Shipped as a separate APK under one Play
         // listing. Distinct versionCode space (1000+) from the phone's.
         applicationId = "com.evanjt.traintime"

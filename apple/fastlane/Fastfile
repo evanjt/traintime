@@ -157,7 +157,7 @@ platform :ios do
       Dir.chdir(patch_dir) { sh("zip", "-qr", File.expand_path(ipa_path), "Payload") }
       UI.success("Patched IPA with watch icons")
     else
-      UI.important("No embedded watch app found in IPA — skipping icon patch")
+      UI.important("No embedded watch app found in IPA, skipping icon patch")
     end
     FileUtils.rm_rf(patch_dir)
 

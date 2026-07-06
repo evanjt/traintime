@@ -57,7 +57,7 @@ struct FocusedTrackingView: View {
 
             // Countdown + delay
             HStack(spacing: 4) {
-                Text(focused?.countdownText ?? "—")
+                Text(focused?.countdownText ?? "–")
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(countdownColor)
@@ -102,6 +102,15 @@ struct FocusedTrackingView: View {
                 viewModel.toggleRoutedDistance()
             }
 
+            // Onward connection (shared multi-leg route): where you change and
+            // the next train. Tap to jump onto it early.
+            if let onward = viewModel.onwardConnection {
+                WatchOnwardConnectionCard(onward: onward, mode: viewModel.currentMode) {
+                    viewModel.trackLeg(onward.legIndex)
+                }
+                .padding(.top, 2)
+            }
+
             // Formation strip
             if let formation = viewModel.formation {
                 WatchFormationView(formation: formation)
@@ -130,5 +139,48 @@ struct FocusedTrackingView: View {
         if minutesUntil < -0.5 { return .secondary }
         if minutesUntil < 2.0 { return AppColors.minutesNow }
         return AppColors.minutesSoon
+    }
+}
+
+// The next ride leg while tracking a shared route on the watch: change station,
+// onward line + destination, and the connection buffer. Tap to jump onto it.
+struct WatchOnwardConnectionCard: View {
+    let onward: OnwardConnection
+    let mode: TransportMode
+    let onTap: () -> Void
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return formatter
+    }()
+
+    var body: some View {
+        let leg = onward.leg
+        let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Change at \(onward.changeStation)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    if !line.isEmpty {
+                        Text(line)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(AppColors.linePill(line, mode: mode))
+                    }
+                    Text(leg.destName)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1)
+                }
+                Text("\(Self.timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))) · \(onward.changeMinutes) min")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered)
     }
 }

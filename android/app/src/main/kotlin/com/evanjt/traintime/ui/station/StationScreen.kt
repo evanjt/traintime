@@ -28,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
@@ -45,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,7 +86,7 @@ fun StationScreen(
                 onSelect = { viewModel.selectMode(it) },
             )
             Spacer(Modifier.weight(1f))
-            // Watch link indicator — shown when a watch is known. For Garmin, the colour
+            // Watch link indicator, shown when a watch is known. For Garmin, the colour
             // tracks liveness (green = open and synced, amber = connected but app closed,
             // grey = paired but off/away) and a tap launches TrainTime on the watch, showing
             // a spinner until it announces itself.
@@ -122,7 +124,7 @@ fun StationScreen(
                 } else {
                     Icon(
                         Icons.Filled.Watch,
-                        contentDescription = "Watch — open settings",
+                        contentDescription = "Watch, open settings",
                         tint = palette.platform,
                         modifier = Modifier
                             .clickable { onOpenSettings(true) }
@@ -140,7 +142,7 @@ fun StationScreen(
             }
         }
 
-        // Station name — tappable to open picker
+        // Station name, tappable to open picker
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -214,7 +216,19 @@ fun StationScreen(
                     },
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    LazyColumn {
+                    // A timer or switch refresh dims the list and shows a slim
+                    // bar, so the board freezes in place rather than vanishing.
+                    // The pull gesture has its own indicator, so skip it then.
+                    if (viewModel.departuresRefreshing && !refreshing) {
+                        LinearProgressIndicator(
+                            color = palette.platform,
+                            trackColor = Color.Transparent,
+                            modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                        )
+                    }
+                    LazyColumn(
+                        modifier = Modifier.alpha(if (viewModel.departuresRefreshing) 0.5f else 1f),
+                    ) {
                         // Favourite departures at top
                         items(
                             viewModel.favouriteDepartures,
@@ -266,7 +280,7 @@ fun StationScreen(
     }
 }
 
-// Swipe-from-left to (un)favourite, long-press for the same, tap to select —
+// Swipe-from-left to (un)favourite, long-press for the same, tap to select,
 // the Android mapping of iOS swipeActions + contextMenu + row tap.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

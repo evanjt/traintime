@@ -4,7 +4,7 @@ import Foundation
 // feature with an anchored callout. Stages are the surfaces; several steps share a surface.
 // Peer of the Android ui/onboarding/TourStep.kt.
 enum TourStage {
-    case nearby, track, favourite, pin, settings, watch, widget
+    case nearby, track, favourite, pin, settings, share, route, watch, widget
 }
 
 struct TourStep: Identifiable {
@@ -28,6 +28,11 @@ let tourSteps: [TourStep] = [
                  + "you're between Bern Bahnhof and Wankdorf, Bern stays first for a quick glance on launch."),
     TourStep(stage: .settings, title: "Set your default mode",
              body: "Pick the mode you ride most. It shows first."),
+    TourStep(stage: .share, title: "Bring trips from SBB",
+             body: "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train."),
+    TourStep(stage: .route, title: "Your route, saved and reminded",
+             body: "Later trips wait as a saved route. Open it to see every leg, choose which "
+                 + "connections to track, and get a reminder before departure."),
     TourStep(stage: .watch, title: "Take it to your watch",
              body: "Have a Garmin? Track on your phone and send a departure to your wrist. "
                  + "There's an Apple Watch app too."),

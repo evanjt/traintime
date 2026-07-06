@@ -18,7 +18,7 @@ module SettingsMenu {
     function open(view) {
         var menu = new WatchUi.Menu2({:title => "Settings"});
 
-        // Phone link status — the channel the phone uses to send departures here.
+        // Phone link status. The channel the phone uses to send departures here.
         var phoneConnected = System.getDeviceSettings().phoneConnected;
         menu.addItem(new WatchUi.MenuItem(
             "Phone",

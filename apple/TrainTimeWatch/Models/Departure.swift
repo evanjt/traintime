@@ -76,7 +76,7 @@ extension Array where Element == Departure {
     /// OJP can publish the same physical train twice under different journey numbers
     /// (seen live: Léman Express RL4 → Coppet as 23153 and 93153, only one carrying
     /// the real-time delay). Collapse rows a passenger can't tell apart, keeping the
-    /// delay-bearing one. The key deliberately excludes trainNumber — it is the field
+    /// delay-bearing one. The key deliberately excludes trainNumber. It is the field
     /// that differs on such twins.
     func dedupedForDisplay() -> [Departure] {
         guard count > 1 else { return self }

@@ -45,7 +45,7 @@ android {
 }
 
 dependencies {
-    // Exposed as api() so :app and :wear pick these up transitively — the shared
+    // Exposed as api() so :app and :wear pick these up transitively, the shared
     // models, API client, prefs and location service return these types.
     api(libs.androidx.core.ktx)
     api(libs.datastore.preferences)

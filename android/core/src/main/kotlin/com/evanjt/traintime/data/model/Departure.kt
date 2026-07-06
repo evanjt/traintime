@@ -37,7 +37,7 @@ data class Departure(
 // OJP can publish the same physical train twice under different journey numbers
 // (seen live: Léman Express RL4 → Coppet as 23153 and 93153, only one carrying
 // the real-time delay). Collapse rows a passenger can't tell apart, keeping the
-// delay-bearing one. The key deliberately excludes trainNumber — it is the field
+// delay-bearing one. The key deliberately excludes trainNumber, it is the field
 // that differs on such twins.
 fun List<Departure>.dedupedForDisplay(): List<Departure> {
     if (size < 2) return this

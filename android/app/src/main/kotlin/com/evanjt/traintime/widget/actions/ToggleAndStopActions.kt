@@ -10,7 +10,7 @@ import com.evanjt.traintime.widget.TrainTimeWidget
 import com.evanjt.traintime.widget.WidgetStateDefinition
 import com.evanjt.traintime.widget.work.WidgetTickWorker
 
-// Flips the favourites-grouping display mode. No network — toggles a flag.
+// Flips the favourites-grouping display mode. No network: toggles a flag.
 class ToggleFavouritesAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         WidgetStateDefinition.update(context) { it.copy(hideFavourites = !it.hideFavourites) }

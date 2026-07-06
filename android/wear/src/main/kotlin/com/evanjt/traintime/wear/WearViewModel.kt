@@ -21,15 +21,21 @@ import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.LatLon
+import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.model.PinnedStation
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
+import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.evanjt.traintime.data.sbb.LegType
+import com.evanjt.traintime.data.sbb.RouteLeg
+import com.evanjt.traintime.data.sbb.matchDeparture
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
+import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.review.ReviewGate
 import java.time.LocalDate
 import java.time.ZoneId
@@ -41,7 +47,7 @@ import kotlinx.coroutines.launch
 
 enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 
-// Wear port of PhoneViewModel.swift / MainViewModel — the watch fetches
+// Wear port of PhoneViewModel.swift / MainViewModel, the watch fetches
 // independently (not a thin client) and keeps the same orchestration. Drops the
 // phone-only widget seeding, deep links and Glance. appState: 0 = station view,
 // 2 = focused tracking, 3 = inactive.
@@ -53,9 +59,16 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     val haptics = HapticService(application)
     private val api = TrainApi.shared
     private val wearSync = WearStateSync.get(application)
+    private val pendingRouteStore = PendingRouteStore(application)
 
     var appState by mutableStateOf(0)
         private set
+
+    // Phone-owned queued route, mirrored read-only over the Data Layer. The
+    // watch can start tracking it once its leg is close, never dismiss it.
+    var pendingRoute by mutableStateOf<PendingRoute?>(null)
+        private set
+    private var pendingResumeInFlight = false
     var status by mutableStateOf("GPS: Searching...")
         private set
     var showReviewPrompt by mutableStateOf(false)
@@ -111,6 +124,11 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     private var requestStartTime: Long? = null
     private var lastFetchTime = 0L
     private var lastSearchCoordinate: LatLon? = null
+
+    // The visible station was launched directly (favourite / shared route),
+    // not from a nearby search. On exit we re-search at real GPS so we don't
+    // strand the user on a remote origin.
+    private var launchedStationActive = false
     private var consecutiveErrors = 0
     private var lastVibeTick = 0L
     private var loadedFromCache = false
@@ -150,11 +168,13 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         get() = currentStation?.name ?: "Station"
 
     init {
+        wearSync.isWatch = true
         viewModelScope.launch { prefs.ensureFirstLaunchTimestamp() }
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
             currentMode = defaultMode
         }
+        viewModelScope.launch { pendingRouteStore.pending.collect { pendingRoute = it } }
         viewModelScope.launch {
             prefs.defaultMode.collect {
                 defaultMode = it
@@ -193,6 +213,10 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     // Action-dispatched phone -> watch contract, shared with the Apple and Garmin
     // watches. The watch stays standalone; these only apply an optional mirror.
     private fun handlePhoneCommand(cmd: WearCommand) {
+        // Tracking is the end game: while tracking, the phone's navigation must
+        // not pull the watch out. Only a fresh track command (a separate path)
+        // switches what it tracks. Location still flows through as a GPS fallback.
+        if (appState == 2 && cmd.action != "loc") return
         when (cmd.action) {
             "mode" -> cmd.mode?.let { setModeFromPhone(TransportMode.fromRaw(it)) }
             "station" -> showStationFromPhone(cmd)
@@ -229,9 +253,13 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         launchStation(stId, cmd.name, cmd.lat, cmd.lon)
     }
 
-    // Show a specific station directly (phone mirror or settings quick launch),
-    // the peer of Garmin's launchStation.
-    fun launchStation(stId: String, name: String?, lat: Double? = null, lon: Double? = null) {
+    // Make a specific station the current one without a nearby search. Does NOT
+    // touch appState or the departure list, the caller decides whether to show
+    // the board or go straight to a countdown. Leaves lastSearchCoordinate at the
+    // user's real GPS origin, not this station, a launched remote origin must not
+    // become the watch's assumed position (the GPS-less walk/position fallback
+    // reads it).
+    private fun setLaunchedStation(stId: String, name: String?, lat: Double?, lon: Double?) {
         lastInteractionTime = now()
         if (appState == 3) resumeFromInactive()
         val station = Station(
@@ -249,11 +277,36 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (currentMode !in availableModes) availableModes = listOf(currentMode)
         stationIndex = 0
+        launchedStationActive = true
+    }
+
+    // Show a specific station directly (phone mirror or settings quick launch),
+    // the peer of Garmin's launchStation. Blanks the list to a spinner while the
+    // board loads.
+    fun launchStation(stId: String, name: String?, lat: Double? = null, lon: Double? = null) {
+        setLaunchedStation(stId, name, lat, lon)
         appState = 0
-        if (lat != null && lon != null) lastSearchCoordinate = LatLon(lat, lon)
         departures = emptyList()
         favouriteDepartures = emptyList()
         fetchDepartures(stId)
+    }
+
+    // Leave a launched station and return to the nearby list at the user's
+    // real location. No-op when the current station came from a nearby search.
+    private fun returnToNearbyIfLaunched() {
+        if (!launchedStationActive) return
+        launchedStationActive = false
+        trainStations = emptyList()
+        busStations = emptyList()
+        tramStations = emptyList()
+        specialStations = emptyList()
+        stationIndex = 0
+        departures = emptyList()
+        favouriteDepartures = emptyList()
+        val coord = location.coordinate.value ?: lastSearchCoordinate
+        if (coord != null && SwissBounds.contains(coord.lat, coord.lon)) {
+            fetchStations(coord.lat, coord.lon)
+        }
     }
 
     // Quick launch a favourite (settings), the peer of Garmin's
@@ -279,7 +332,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         phoneLat = lat
         phoneLon = lon
         phoneLocTs = now()
-        // Only act on it when our own GPS can't carry us — a good in-bounds fix stays primary.
+        // Only act on it when our own GPS can't carry us. A good in-bounds fix stays primary.
         if (!gpsUsableInBounds()) searchFromPhoneLocation()
     }
 
@@ -335,7 +388,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         location.stop()
         stopTimer()
         // The heartbeat stops with the timer, so the phone ambers while we're
-        // backgrounded — same semantics as the Apple watch's bye.
+        // backgrounded, same semantics as the Apple watch's bye.
         viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_BYE) }
     }
 
@@ -343,9 +396,107 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         if (granted) onAppear() else location.onPermissionDenied()
     }
 
-    // Track command from the phone (MessageClient) — enter tracking directly.
+    // Chip tap / route-view resume of the current leg. An explicit tap always
+    // opens the countdown, even hours out. A live board match gives real
+    // delay/platform, otherwise a local countdown. Never re-queues.
+    fun resumePendingRoute() {
+        val route = pendingRoute ?: return
+        launchTrackLeg(route) { it.cursor }
+    }
+
+    // Route-view "Track now" on any trackable leg (may jump ahead to a later
+    // connection). Untrackable legs (walk / outside Switzerland) are ignored.
+    fun trackLeg(index: Int) {
+        val route = pendingRoute ?: return
+        launchTrackLeg(route) { index }
+    }
+
+    // Route-view per-leg track/notify toggle. The pending route is phone-owned,
+    // so there's no watch-side reminder to reschedule. The phone owns
+    // notifications, so we just record the choice locally.
+    fun setLegMuted(index: Int, muted: Boolean) {
+        viewModelScope.launch { pendingRouteStore.setLegMuted(index, muted) }
+    }
+
+    // Platform per ride leg for the route view, keyed by leg index. Platforms
+    // aren't in the shared link, they come from the live board and only exist
+    // close to departure, so this fetches each near-term leg's origin board
+    // once and matches it. Legs hours out simply have no platform yet.
+    var routeLegPlatforms by mutableStateOf<Map<Int, String>>(emptyMap())
+        private set
+
+    fun loadRoutePlatforms(route: PendingRoute) {
+        routeLegPlatforms = emptyMap()
+        viewModelScope.launch {
+            val now = nowSeconds()
+            val result = mutableMapOf<Int, String>()
+            route.legs.forEachIndexed { i, leg ->
+                if (leg.type != LegType.RIDE || !leg.isTrackable) return@forEachIndexed
+                if (leg.depTs - now > 60 * 60) return@forEachIndexed // not on the board yet
+                val stationId = leg.originId ?: return@forEachIndexed
+                val board = runCatching { api.fetchDepartures(stationId) }.getOrNull() ?: return@forEachIndexed
+                matchDeparture(board.departures, leg)?.platform?.takeIf { it.isNotEmpty() }?.let { result[i] = it }
+            }
+            routeLegPlatforms = result
+        }
+    }
+
+    private fun launchTrackLeg(route: PendingRoute, indexOf: (PendingRoute) -> Int) {
+        if (pendingResumeInFlight) return
+        pendingResumeInFlight = true
+        viewModelScope.launch {
+            try {
+                val normalized = PendingRouteLogic.normalize(route, nowSeconds()) ?: return@launch
+                trackLegImpl(normalized, indexOf(normalized))
+            } finally {
+                pendingResumeInFlight = false
+            }
+        }
+    }
+
+    // Force-enter tracking for a trackable leg. The countdown is fully local
+    // (derived from the leg's departure time), so enter it immediately: no board
+    // fetch gates it, so a slow network can't delay the countdown. The origin
+    // becomes the current station, so beginTracking's timer fetches that board in
+    // the background and updateFocusedTrain upgrades platform/delay when the train
+    // appears. Never re-queues.
+    private fun trackLegImpl(route: PendingRoute, index: Int) {
+        val leg = route.legs.getOrNull(index)?.takeIf { it.isTrackable } ?: return
+        val stationId = leg.originId ?: return
+        setLaunchedStation(stationId, leg.originName, leg.originLat, leg.originLon)
+        enterProtectedTrack(leg)
+    }
+
+    // Track command from the phone (MessageClient): enter tracking directly.
     fun handleTrackCommand(cmd: TrackCommand) {
-        val focused = cmd.toFocusedDeparture()
+        beginTracking(cmd.toFocusedDeparture(), cmd.stationId)
+    }
+
+    // Track a shared-route leg whose train isn't on the live board yet. The
+    // countdown is fully local (derived from depTs); updateFocusedTrain keeps
+    // it until the train departs, then a live board match upgrades it with
+    // real delay/platform.
+    private fun enterProtectedTrack(leg: RouteLeg) {
+        beginTracking(
+            FocusedDeparture(
+                destination = leg.destName,
+                departureTimestamp = leg.depTs,
+                lineNumber = leg.lineNumber ?: "",
+                category = leg.category ?: "",
+                trainNumber = leg.trainNumber,
+                operatorRef = null,
+                delay = 0,
+                platform = "",
+                platformChanged = false,
+            ),
+            leg.originId,
+        )
+    }
+
+    // Shared tracking entry: from a board tap, a phone track command, or a
+    // synthesised shared-route leg. Everything downstream (timer cadence,
+    // formation, foreground service) is identical once we have a FocusedDeparture.
+    private fun beginTracking(focused: FocusedDeparture, formationStationId: String?) {
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
@@ -353,11 +504,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         lastVibeTick = 0
         lastFetchTime = 0
         formation = null
-        if (cmd.trainNumber != null && Formation.isRailCategory(cmd.category) && cmd.stationId != null) {
+        val trainNumber = focused.trainNumber
+        if (trainNumber != null && Formation.isRailCategory(focused.category) && formationStationId != null) {
             val date = formationDateString()
             viewModelScope.launch {
                 formation = runCatching {
-                    api.fetchFormation(cmd.trainNumber!!, date, cmd.stationId!!, cmd.operatorRef)
+                    api.fetchFormation(trainNumber, date, formationStationId, focused.operatorRef)
                 }.getOrNull()
             }
         }
@@ -389,7 +541,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         if (coord == null) {
             if (stations.isEmpty()) {
                 status = "GPS: Searching..."
-                // No usable watch GPS — lean on the phone if it offered a fix,
+                // No usable watch GPS, lean on the phone if it offered a fix,
                 // else ask it for one (throttled).
                 if (!requestInFlight) {
                     if (phoneLocFresh()) searchFromPhoneLocation() else requestPhoneLocation()
@@ -435,7 +587,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val coord = location.coordinate.value ?: effectivePosition() ?: run {
-            // No watch fix and no phone fallback yet — ask the phone (throttled).
+            // No watch fix and no phone fallback yet, ask the phone (throttled).
             if (stations.isEmpty()) requestPhoneLocation()
             return
         }
@@ -506,38 +658,20 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         val depTs = dep.departureTimestamp ?: return
         if (dep.isGone) return
 
-        focusedTrain = FocusedDeparture(
-            destination = dep.destination,
-            departureTimestamp = depTs,
-            lineNumber = dep.lineNumber,
-            category = dep.category,
-            trainNumber = dep.trainNumber,
-            operatorRef = dep.operatorRef,
-            delay = dep.delay,
-            platform = dep.platform,
-            platformChanged = dep.platformChanged,
+        beginTracking(
+            FocusedDeparture(
+                destination = dep.destination,
+                departureTimestamp = depTs,
+                lineNumber = dep.lineNumber,
+                category = dep.category,
+                trainNumber = dep.trainNumber,
+                operatorRef = dep.operatorRef,
+                delay = dep.delay,
+                platform = dep.platform,
+                platformChanged = dep.platformChanged,
+            ),
+            currentStation?.id,
         )
-        appState = 2
-        location.setTrackingAccuracy(true)
-        consecutiveErrors = 0
-        lastVibeTick = 0
-        lastFetchTime = 0
-        formation = null
-
-        val trainNumber = dep.trainNumber
-        val stationId = currentStation?.id
-        if (trainNumber != null && Formation.isRailCategory(dep.category) && stationId != null) {
-            val date = formationDateString()
-            viewModelScope.launch {
-                formation = runCatching {
-                    api.fetchFormation(trainNumber, date, stationId, dep.operatorRef)
-                }.getOrNull()
-            }
-        }
-
-        TrackingService.start(getApplication(), dep.destination)
-        startTimer(Timing.TRACKING_REFRESH_INTERVAL)
-        haptics.shortPulse()
 
         // Only user-initiated tracking counts toward the review ask; a
         // phone-pushed track command in handleTrackCommand doesn't.
@@ -596,6 +730,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
     fun resumeFromInactive() {
         lastInteractionTime = now()
         appState = 0
+    }
+
+    // Paused-screen resume (terminal user action, no launch follows), so it can
+    // safely re-search: a launched route that timed out into inactive returns
+    // to the user's real location instead of the remote origin board.
+    fun resumeToStationView() {
+        resumeFromInactive()
+        returnToNearbyIfLaunched()
     }
 
     fun noteInteraction() {
@@ -663,6 +805,9 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         consecutiveErrors = 0
         TrackingService.stop(getApplication())
         startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+        // A shared/favourite route launched a remote origin, return to the
+        // nearby list at the user's real location, not that origin.
+        returnToNearbyIfLaunched()
     }
 
     // Mode / station navigation
@@ -689,8 +834,8 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch { favouriteDepartures = extractFavouritesFromCurrent(deps) }
             lastFetchTime = now()
         } else {
-            departures = emptyList()
-            favouriteDepartures = emptyList()
+            // Keep the previous list (greyed via departuresRefreshing) until the
+            // new board arrives, rather than blanking to a spinner.
             currentStation?.let { fetchDepartures(it.id) }
         }
     }
@@ -769,13 +914,23 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         val focused = focusedTrain ?: return
         val nowS = nowSeconds()
 
+        // Match by train number when we have one (a protected shared-route leg
+        // carries it), so live platform/delay are adopted even though the leg's
+        // destName is the alight stop, not the board's terminus. Fall back to
+        // destination for board taps that lack a train number (buses/trams).
         val matches = departures.filter {
-            it.destination == focused.destination && it.minutesUntil >= -1
+            (it.destination == focused.destination ||
+                (focused.trainNumber != null && it.trainNumber == focused.trainNumber)) &&
+                it.minutesUntil >= -1
         }
         val best = matches.minByOrNull {
             kotlin.math.abs(it.minutesUntil.toDouble() - focused.minutesUntil(nowS))
         }
         if (best == null) {
+            // A still-future train just isn't on the board yet (a shared route
+            // opened early, before it reaches the horizon). Keep the local
+            // countdown; only give up once it has actually departed.
+            if (nowS < focused.departureTimestamp + PendingRouteLogic.GRACE_SEC) return
             haptics.shortPulse()
             exitToStationView()
             return
@@ -835,10 +990,31 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
             return Math.toDegrees(bearing - heading)
         }
 
+    // While tracking a shared-route leg, the next ride leg of the same route is
+    // the onward connection: shown under the countdown, tappable to jump onto
+    // it early. Matched by departure time so an unrelated track shows nothing.
+    val onwardConnection: OnwardConnection?
+        get() {
+            val focused = focusedTrain ?: return null
+            val route = pendingRoute ?: return null
+            val curIdx = route.legs.indexOfFirst {
+                it.type == LegType.RIDE && it.depTs == focused.departureTimestamp
+            }
+            if (curIdx < 0) return null
+            val curLeg = route.legs[curIdx]
+            val nextIdx = (curIdx + 1 until route.legs.size)
+                .firstOrNull { route.legs[it].type == LegType.RIDE } ?: return null
+            val next = route.legs[nextIdx]
+            val changeMinutes = ((next.depTs - curLeg.arrTs) / 60).coerceAtLeast(0)
+            return OnwardConnection(curLeg.destName, next, nextIdx, changeMinutes)
+        }
+
     // API calls
 
     private fun fetchStations(lat: Double, lon: Double) {
         if (requestInFlight) return
+        // A real nearby search supersedes any launched remote station.
+        launchedStationActive = false
         requestInFlight = true
         requestStartTime = now()
 
@@ -864,6 +1040,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // True while a departures fetch is in flight. The station screen dims the
+    // existing list rather than blanking it, so a refresh freezes the board in
+    // place instead of hiding it behind a spinner.
+    var departuresRefreshing by mutableStateOf(false)
+        private set
+
     fun fetchDepartures(stationId: String) {
         viewModelScope.launch { fetchDeparturesAsync(stationId) }
     }
@@ -872,12 +1054,14 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         if (requestInFlight) return
         requestInFlight = true
         requestStartTime = now()
+        departuresRefreshing = true
 
         try {
             val favParam = favouritesStore.favouritesParam(stationId)
             val result = api.fetchDepartures(stationId, favParam)
             requestInFlight = false
             requestStartTime = null
+            departuresRefreshing = false
             lastFetchTime = now()
             consecutiveErrors = 0
             departures = if (result.favourites.isNotEmpty()) {
@@ -895,6 +1079,7 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             requestInFlight = false
             requestStartTime = null
+            departuresRefreshing = false
             pendingFavTrack = null
             handleError(e, "Departures")
         }
@@ -935,3 +1120,12 @@ class WearViewModel(application: Application) : AndroidViewModel(application) {
         return favouritesStore.extractFavourites(deps, stationId)
     }
 }
+
+// The next ride leg while tracking a shared route: where the user changes, the
+// onward train, and the connection buffer in minutes.
+data class OnwardConnection(
+    val changeStation: String,
+    val leg: RouteLeg,
+    val legIndex: Int,
+    val changeMinutes: Long,
+)

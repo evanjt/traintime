@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 // Credits for the data and software TrainTime builds on. Two sources require attribution (Open
 // Transport Data Switzerland, the Garmin SDK); the rest is credited as good practice. Peer of
 // SettingsSheet.kt, opened from its "Attribution" row. The open-source list is Android's real
-// shipping stack — the iOS screen lists only the Garmin SDK.
+// shipping stack, the iOS screen lists only the Garmin SDK.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttributionSheet(onDismiss: () -> Unit) {

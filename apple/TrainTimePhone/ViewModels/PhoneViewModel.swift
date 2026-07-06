@@ -38,6 +38,10 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Departures
     @Published var departures: [Departure] = []
     @Published var favouriteDepartures: [Departure] = []
+    /// True while a departures fetch is in flight. The station list dims the
+    /// existing rows and shows a slim bar instead of blanking to a full-screen
+    /// spinner, so a refresh freezes the board rather than hiding it.
+    @Published var departuresRefreshing = false
 
     // MARK: - Favourites
     let favouritesStore = FavouritesStore.shared
@@ -78,7 +82,7 @@ class PhoneViewModel: ObservableObject {
     // Garmin arrives over the Connect IQ channel, Apple over the WCSession message channel.
     private var garminLastAlive: Date = .distantPast
     private var appleLastAlive: Date = .distantPast
-    private var appleLastContact: Date = .distantPast // alive or bye — drives the amber window
+    private var appleLastContact: Date = .distantPast // alive or bye, drives the amber window
     private var livenessTimer: AnyCancellable?
     // Bumped by the liveness ticker so the time-based indicator recomputes on each render.
     @Published private var livenessTick = 0
@@ -91,6 +95,10 @@ class PhoneViewModel: ObservableObject {
     private var requestStartTime: Date?
     var lastFetchTime: Date = .distantPast
     private var lastSearchCoordinate: CLLocationCoordinate2D?
+    // The visible station was launched directly (shared route / resume), not
+    // from a nearby search. On exit we re-search at real GPS so we don't strand
+    // the user on the remote origin.
+    private var launchedStationActive = false
     var consecutiveErrors: Int = 0
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
@@ -99,6 +107,16 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Deep link pending
     private var pendingDeepLink: URL?
+
+    // MARK: - Shared SBB route intake
+    // pendingShareTrack is one-shot: the departures fetch it triggered
+    // consumes it, so an unrelated board can't auto-track.
+    let pendingRouteStore = PendingRouteStore.shared
+    @Published var shareStatus: String? = nil
+    @Published var shareReplaceOffer: SharedRouteOffer? = nil
+    @Published var resumeOffer: Departure? = nil
+    private var pendingShareTrack: SharedRouteOffer?
+    private var resumeCheckInFlight = false
 
     // MARK: - Computed
 
@@ -268,7 +286,7 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    /// Both backends paired — show the Settings primary-watch picker.
+    /// Both backends paired. Show the Settings primary-watch picker.
     var bothWatchesKnown: Bool { watchService.hasKnownAppleWatch && watchService.hasKnownGarmin }
 
     var garminLiveness: WatchLiveness {
@@ -288,7 +306,7 @@ class PhoneViewModel: ObservableObject {
         return .grey
     }
 
-    /// Liveness of whichever backend is primary — what the header + tracking indicators show.
+    /// Liveness of whichever backend is primary, what the header + tracking indicators show.
     var primaryWatchLiveness: WatchLiveness {
         switch resolvedPrimaryWatch {
         case .garmin: return garminLiveness
@@ -403,7 +421,7 @@ class PhoneViewModel: ObservableObject {
 
         guard let coord = location.coordinate else { return }
 
-        // Movement detection (only in station/selection view) — refresh in place
+        // Movement detection (only in station/selection view), refresh in place
         if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
@@ -489,8 +507,7 @@ class PhoneViewModel: ObservableObject {
 
     private func selectDepartureImpl(_ dep: Departure) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
-
-        focusedTrain = FocusedDeparture(
+        beginTracking(FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
             lineNumber: dep.lineNumber,
@@ -500,7 +517,34 @@ class PhoneViewModel: ObservableObject {
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
-        )
+        ))
+        // Only a real board tap counts toward the review ask.
+        maybeRequestReview()
+    }
+
+    /// Track a shared-route leg whose train isn't on the live board yet. The
+    /// countdown is fully local (derived from depTs), so it runs without a board
+    /// match. updateFocusedTrain keeps it until the train actually departs, then
+    /// a live board match upgrades it with delay/platform.
+    private func enterProtectedTrack(_ leg: RouteLeg) {
+        beginTracking(FocusedDeparture(
+            destination: leg.destName,
+            departureTimestamp: leg.depTs,
+            lineNumber: leg.lineNumber ?? "",
+            category: leg.category ?? "",
+            trainNumber: leg.trainNumber,
+            operatorRef: nil,
+            delay: 0,
+            platform: "",
+            platformChanged: false
+        ))
+    }
+
+    /// Shared tracking entry: from a real board tap or a synthesised shared-route
+    /// leg. Everything downstream (timer cadence, watch/Garmin mirror, formation)
+    /// is identical once we have a FocusedDeparture.
+    private func beginTracking(_ focused: FocusedDeparture) {
+        focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
         consecutiveErrors = 0
@@ -509,10 +553,10 @@ class PhoneViewModel: ObservableObject {
         formation = nil
 
         // Fetch formation for rail departures
-        if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
+        if let tn = focused.trainNumber, Formation.isRailCategory(focused.category),
            let stationId = currentStation?.id {
             let date = formationDateString()
-            let opRef = dep.operatorRef
+            let opRef = focused.operatorRef
             Task { @MainActor in
                 self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
             }
@@ -520,16 +564,14 @@ class PhoneViewModel: ObservableObject {
 
         startTimer(interval: Timing.trackingRefreshInterval)
         PhoneHapticService.shortPulse()
-        maybeRequestReview()
 
-        // Mirror the same focused train onto the watch (immediate — a tap is a
+        // Mirror the same focused train onto the watch (immediate: a tap is a
         // strong, deliberate action).
-        if let focused = focusedTrain {
-            mirror(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
-        }
+        mirror(PhoneWatchService.GarminPayload.track(focused, stationId: currentStation?.id))
     }
 
     func enterInactiveState() {
+        onTrackingEnded(appState == 2 ? focusedTrain?.departureTimestamp : nil)
         appState = 3
         location.setTrackingAccuracy(false)
         focusedTrain = nil
@@ -541,6 +583,14 @@ class PhoneViewModel: ObservableObject {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+    }
+
+    /// Paused-screen resume (terminal user action, no launch follows), so it can
+    /// safely re-search: a shared route that timed out into inactive returns to
+    /// the user's real location instead of the remote origin board.
+    func resumeToStationView() {
+        resumeFromInactive()
+        returnToNearbyIfLaunched()
     }
 
     func toggleRoutedDistance() {
@@ -604,6 +654,7 @@ class PhoneViewModel: ObservableObject {
 
     func exitToStationView() {
         let wasTracking = appState == 2
+        onTrackingEnded(wasTracking ? focusedTrain?.departureTimestamp : nil)
         lastInteractionTime = Date()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -611,8 +662,13 @@ class PhoneViewModel: ObservableObject {
         formation = nil
         consecutiveErrors = 0
         startTimer(interval: Timing.normalRefreshInterval)
-        // Mirror the exit so the watch leaves tracking and returns to its station view.
-        if wasTracking { mirror(["action": "back"]) }
+        // A shared route launched a remote origin station. Go back to the
+        // nearby list at the user's real location rather than that origin.
+        returnToNearbyIfLaunched()
+        // Deliberately do NOT tell the watch to leave tracking. The watch tracks
+        // independently, and tracking is the end game there, it must not be
+        // interrupted by the phone going back. Selecting another departure sends
+        // a fresh track command, which is the only thing that switches it.
     }
 
     // MARK: - Mode Navigation
@@ -637,8 +693,8 @@ class PhoneViewModel: ObservableObject {
             favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
-            departures = []
-            favouriteDepartures = []
+            // Keep the previous list (greyed via departuresRefreshing) until the
+            // new board arrives, rather than blanking to a spinner.
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -658,8 +714,8 @@ class PhoneViewModel: ObservableObject {
             favouriteDepartures = extractFavouritesFromCurrent(deps)
             lastFetchTime = Date()
         } else {
-            departures = []
-            favouriteDepartures = []
+            // Keep the previous list (greyed via departuresRefreshing) until the
+            // new board arrives, rather than blanking to a spinner.
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             }
@@ -748,7 +804,7 @@ class PhoneViewModel: ObservableObject {
 
         // Adopt fresh embedded departures if present. On the non-preserved path, blank
         // and refetch. On the preserved path with no fresh embedded departures, leave the
-        // existing list untouched (no flash) — the timer refresh updates it in place.
+        // existing list untouched (no flash), the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
             favouriteDepartures = extractFavouritesFromCurrent(deps)
@@ -792,13 +848,24 @@ class PhoneViewModel: ObservableObject {
     private func updateFocusedTrain() {
         guard var focused = focusedTrain else { return }
 
+        // Match by train number when we have one (a protected shared-route leg
+        // carries it), so live platform/delay are adopted even though the leg's
+        // destName is the alight stop, not the board's terminus. Fall back to
+        // destination for board taps that lack a train number (buses/trams).
         let matches = departures.filter {
-            $0.destination == focused.destination && $0.minutesUntil >= -1
+            ($0.destination == focused.destination ||
+                (focused.trainNumber != nil && $0.trainNumber == focused.trainNumber)) &&
+                $0.minutesUntil >= -1
         }
         guard let best = matches.min(by: {
             abs(Double($0.minutesUntil) - focused.minutesUntil) <
             abs(Double($1.minutesUntil) - focused.minutesUntil)
         }) else {
+            // A still-future train just isn't on the board yet (a shared route
+            // opened early, before it reaches the 20-row horizon). Keep the
+            // local countdown; only give up once it has actually departed.
+            let nowS = Int(Date().timeIntervalSince1970)
+            if nowS < focused.departureTimestamp + PendingRouteLogic.graceSec { return }
             PhoneHapticService.shortPulse()
             exitToStationView()
             return
@@ -860,6 +927,8 @@ class PhoneViewModel: ObservableObject {
 
     private func fetchStations(lat: Double, lon: Double) {
         guard !requestInFlight else { return }
+        // A real nearby search supersedes any launched remote station.
+        launchedStationActive = false
         requestInFlight = true
         requestStartTime = Date()
 
@@ -902,6 +971,7 @@ class PhoneViewModel: ObservableObject {
         guard !requestInFlight else { return }
         requestInFlight = true
         requestStartTime = Date()
+        departuresRefreshing = true
 
         let favParam = favouritesStore.favouritesParam(forStation: stationId)
 
@@ -909,6 +979,7 @@ class PhoneViewModel: ObservableObject {
             let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
             requestInFlight = false
             requestStartTime = nil
+            departuresRefreshing = false
             lastFetchTime = Date()
             consecutiveErrors = 0
             departures = !result.favourites.isEmpty
@@ -921,9 +992,17 @@ class PhoneViewModel: ObservableObject {
             if appState == 2 {
                 updateFocusedTrain()
             }
+            await tryEnterPendingShareTrack()
         } catch {
             requestInFlight = false
             requestStartTime = nil
+            departuresRefreshing = false
+            // Offline or server error: the shared route must not be lost:
+            // queue it; the resume flow re-checks the board later.
+            if let offer = pendingShareTrack {
+                pendingShareTrack = nil
+                saveOfferAsQueued(offer)
+            }
             handleError(error, context: "Departures")
         }
     }
@@ -1025,13 +1104,13 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    // Immediate push (track / back — a deliberate action) to the primary watch.
+    // Immediate push (track / back: a deliberate action) to the primary watch.
     private func mirror(_ data: [String: Any]) {
         guard let backend = resolvedPrimaryWatch else { return }
         send(data, to: backend)
     }
 
-    // Debounced push (mode cycling / station scrolling) — the latest settled state wins,
+    // Debounced push (mode cycling / station scrolling), the latest settled state wins,
     // so the channel isn't flooded.
     private func mirrorDebounced(_ build: @escaping () -> [String: Any]) {
         guard let backend = resolvedPrimaryWatch else { return }
@@ -1074,7 +1153,7 @@ class PhoneViewModel: ObservableObject {
     // tracked train or the current station. The peer of Android's syncCurrentStateToWatch.
     private func syncCurrentStateToWatch(to backend: PhoneWatchType) {
         guard mirrorToWatch, let coord = location.coordinate else {
-            // No location yet — still mirror the view if we have one.
+            // No location yet, still mirror the view if we have one.
             sendCurrentView(to: backend)
             return
         }
@@ -1151,7 +1230,7 @@ class PhoneViewModel: ObservableObject {
     /// Seed the widget's App Group cache with what the user last saw, so the widget shows live
     /// data without its own Refresh tap. Called on background (the widget is only visible then).
     /// Piggybacks on fetches the user already triggered, so it adds no polling, and the fresh
-    /// fetchTime re-arms the widget's active window before it goes dormant — the breaker holds.
+    /// fetchTime re-arms the widget's active window before it goes dormant. The breaker holds.
     private func updateWidgetCache() {
         guard currentStation != nil else { return }
         let result = WidgetFetchResult(
@@ -1199,9 +1278,24 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         guard url.scheme == "traintime" else { return }
 
-        // traintime://sbbshare — just open the app (SBB share trigger)
+        // traintime://sbbshare[?url=...], wake the app and consume the
+        // payload the share extension left in the App Group. The url param is
+        // the simctl-testable path, mirroring Android.
         if url.host == "sbbshare" {
             if appState == 3 { resumeFromInactive() }
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let shared = components.queryItems?.first(where: { $0.name == "url" })?.value {
+                handleSharedText(shared)
+            } else {
+                consumeSharePayload()
+            }
+            return
+        }
+
+        // traintime://resumeroute, reminder notification tap.
+        if url.host == "resumeroute" {
+            if appState == 3 { resumeFromInactive() }
+            Task { @MainActor in await refreshPendingRoute() }
             return
         }
 
@@ -1225,4 +1319,386 @@ class PhoneViewModel: ObservableObject {
             selectDeparture(index: index)
         }
     }
+
+    // MARK: - Shared SBB trip intake (share extension / sbbshare deep link)
+
+    private static let sharePayloadKey = "sbbSharePayload"
+    private static let sharePayloadTsKey = "sbbSharePayloadTs"
+
+    /// Read + clear the extension's handoff. Also called on scenePhase
+    /// active: openURL from extensions is flaky, so a fresh payload gets
+    /// consumed even when the deep link never fired.
+    func consumeSharePayload() {
+        let store = SharedDefaults.store
+        guard let payload = store.string(forKey: Self.sharePayloadKey) else { return }
+        let ts = store.double(forKey: Self.sharePayloadTsKey)
+        store.removeObject(forKey: Self.sharePayloadKey)
+        store.removeObject(forKey: Self.sharePayloadTsKey)
+        // Stale handoff (e.g. the extension ran hours ago and the open failed).
+        guard Date().timeIntervalSince1970 - ts < 300 else { return }
+        handleSharedText(payload)
+    }
+
+    func handleSharedText(_ text: String) {
+        lastInteractionTime = Date()
+        if appState == 3 { resumeFromInactive() }
+        guard let link = SBBShareLink.find(in: text) else {
+            shareStatus = "No SBB trip link found"
+            return
+        }
+        var sourceUrl: String?
+        if case .short(let url) = link { sourceUrl = url }
+        Task { @MainActor in
+            do {
+                let route = try await SBBShareService.resolve(link)
+                await openSharedRoute(SharedRouteOffer(route: route, sourceUrl: sourceUrl))
+            } catch let error as SBBDecodeError {
+                switch error {
+                case .unsupportedVersion: shareStatus = "This SBB link format isn't supported yet"
+                case .noRideLegs: shareStatus = "Nothing to track in this trip"
+                case .malformed: shareStatus = "Couldn't read this trip link"
+                }
+            } catch {
+                shareStatus = "Couldn't open the link. Check your connection"
+            }
+        }
+    }
+
+    @MainActor
+    private func openSharedRoute(_ offer: SharedRouteOffer) async {
+        if let existing = pendingRouteStore.pending,
+           PendingRouteLogic.fingerprint(existing.legs) != offer.fingerprint {
+            shareReplaceOffer = offer
+            return
+        }
+        proceedWithSharedRoute(offer)
+    }
+
+    func confirmReplaceSharedRoute() {
+        guard let offer = shareReplaceOffer else { return }
+        shareReplaceOffer = nil
+        proceedWithSharedRoute(offer)
+    }
+
+    func dismissReplaceSharedRoute() {
+        shareReplaceOffer = nil
+    }
+
+    /// Bypass the nearby flow: show the leg's origin as the sole station and
+    /// fetch its board; the fetch completion decides track-now vs save-for-later.
+    private func proceedWithSharedRoute(_ offer: SharedRouteOffer) {
+        let now = Int(Date().timeIntervalSince1970)
+        guard let index = offer.route.targetRideLegIndex(now: now) else {
+            shareStatus = "This trip is already underway or finished"
+            return
+        }
+        let leg = offer.route.legs[index]
+        guard let stationId = leg.originId else {
+            shareStatus = "Couldn't read this trip link"
+            return
+        }
+        pendingShareTrack = offer
+        launchStation(id: stationId, name: leg.originName, lat: leg.originLat, lon: leg.originLon)
+    }
+
+    /// Make a specific station the current one without a nearby search. Does NOT
+    /// touch appState or the departure list, the caller decides whether to show
+    /// the board (fresh share) or go straight to a countdown (explicit track).
+    /// Leaves lastSearchCoordinate at the user's real GPS origin, not this remote
+    /// station, so walk distances and recovery use where they are.
+    private func setLaunchedStation(id: String, name: String?, lat: Double?, lon: Double?) {
+        lastInteractionTime = Date()
+        if appState == 3 { resumeFromInactive() }
+        let station = Station(
+            id: id, name: name ?? "Station", lat: lat, lon: lon,
+            mode: currentMode, dist: nil, embeddedDepartures: nil
+        )
+        switch currentMode {
+        case .train: trainStations = [station]
+        case .bus: busStations = [station]
+        case .tram: tramStations = [station]
+        case .special: specialStations = [station]
+        }
+        if !availableModes.contains(currentMode) { availableModes = [currentMode] }
+        stationIndex = 0
+        launchedStationActive = true
+    }
+
+    /// Fresh-share intake: show the origin board and let the fetch decide
+    /// track-now vs save-for-later. Blanks the list to a spinner while it loads.
+    private func launchStation(id: String, name: String?, lat: Double?, lon: Double?) {
+        setLaunchedStation(id: id, name: name, lat: lat, lon: lon)
+        appState = 0
+        departures = []
+        favouriteDepartures = []
+        fetchDepartures(stationId: id)
+    }
+
+    /// Leave a launched (remote) station and go back to the nearby list at the
+    /// user's real location. No-op when the current station already came from a
+    /// nearby search, so the normal tracking-exit path is unchanged.
+    private func returnToNearbyIfLaunched() {
+        guard launchedStationActive else { return }
+        launchedStationActive = false
+        trainStations = []
+        busStations = []
+        tramStations = []
+        specialStations = []
+        stationIndex = 0
+        departures = []
+        favouriteDepartures = []
+        let coord = location.coordinate ?? lastSearchCoordinate
+        if let coord, SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+            fetchStations(lat: coord.latitude, lon: coord.longitude)
+        }
+        // No coord yet: stations are empty, so the next location update fetches.
+    }
+
+    /// Runs on the departures fetch a shared route triggered: train on the
+    /// board → track it now, keeping the route stored for leg advancement;
+    /// not there yet → queue it and say so.
+    @MainActor
+    private func tryEnterPendingShareTrack() async {
+        guard let offer = pendingShareTrack else { return }
+        pendingShareTrack = nil
+        let now = Int(Date().timeIntervalSince1970)
+        let forced = offer.forceLegIndex
+        guard let index = forced ?? offer.route.targetRideLegIndex(now: now),
+              index >= 0, index < offer.route.legs.count else { return }
+        let leg = offer.route.legs[index]
+        let pending = pendingFor(offer, index: index)
+        if let match = matchDeparture(departures, leg: leg) {
+            // On the live board: track it with real delay/platform.
+            var tracking = pending
+            tracking.status = PendingRoute.statusTracking
+            pendingRouteStore.save(tracking)
+            PendingRouteNotifier.schedule(pending, now: now)
+            selectDepartureImpl(match)
+        } else if leg.isTrackable, forced != nil || PendingRouteLogic.isResumable(pending, now: now) {
+            // Not on the board yet, but the user explicitly opened it (forced),
+            // or it's close enough to resume: open a local countdown that
+            // survives until the train departs. Never wall the user out.
+            var tracking = pending
+            tracking.status = PendingRoute.statusTracking
+            pendingRouteStore.save(tracking)
+            PendingRouteNotifier.schedule(pending, now: now)
+            enterProtectedTrack(leg)
+        } else {
+            // Far out or untrackable (e.g. outside Switzerland): queue + remind.
+            saveOfferAsQueued(offer)
+        }
+    }
+
+    /// Preserve an existing route's id + muted legs when resuming/tracking it;
+    /// a fresh share mints a new PendingRoute.
+    private func pendingFor(_ offer: SharedRouteOffer, index: Int) -> PendingRoute {
+        if let existing = offer.existing {
+            var next = existing
+            next.cursor = index
+            return next
+        }
+        let now = Int(Date().timeIntervalSince1970)
+        return PendingRoute.from(
+            route: offer.route, targetLegIndex: index,
+            id: UUID().uuidString, createdTs: now, sourceUrl: offer.sourceUrl
+        )
+    }
+
+    private func saveOfferAsQueued(_ offer: SharedRouteOffer) {
+        let now = Int(Date().timeIntervalSince1970)
+        guard let index = offer.forceLegIndex ?? offer.route.targetRideLegIndex(now: now) else { return }
+        var pending = pendingFor(offer, index: index)
+        pending.status = PendingRoute.statusSaved
+        pendingRouteStore.save(pending)
+        PendingRouteNotifier.schedule(pending, now: now)
+        PendingRouteNotifier.requestAuthorizationIfNeeded()
+        shareStatus = "Saved. We'll remind you before departure"
+        // Don't strand the user on the remote origin board. The queued route
+        // lives in the chip now. Return to their real location.
+        returnToNearbyIfLaunched()
+    }
+
+    // MARK: - Pending-route lifecycle
+    // Normalize against the clock, expire, prompt. Safe to call from
+    // anywhere, advancement is time-derived and idempotent.
+
+    @MainActor
+    func refreshPendingRoute() async {
+        guard let current = pendingRouteStore.pending else { return }
+        let now = Int(Date().timeIntervalSince1970)
+        guard let normalized = PendingRouteLogic.normalize(current, now: now) else {
+            pendingRouteStore.clear()
+            PendingRouteNotifier.cancel()
+            shareStatus = "Saved route to \(current.finalDestination) has passed"
+            return
+        }
+        if normalized != current {
+            pendingRouteStore.save(normalized)
+            PendingRouteNotifier.schedule(normalized, now: now)
+        }
+        if appState != 2,
+           normalized.status != PendingRoute.statusTracking,
+           PendingRouteLogic.isResumable(normalized, now: now) {
+            await offerResume(normalized)
+        }
+    }
+
+    /// One-shot board check for the resume prompt, outside the normal fetch
+    /// machinery so it can't disturb the visible station.
+    @MainActor
+    private func offerResume(_ route: PendingRoute) async {
+        guard !resumeCheckInFlight, resumeOffer == nil,
+              let leg = route.currentLeg, let stationId = leg.originId else { return }
+        resumeCheckInFlight = true
+        defer { resumeCheckInFlight = false }
+        guard let result = try? await TrainAPIService.fetchDepartures(stationId: stationId) else { return }
+        resumeOffer = matchDeparture(result.departures, leg: leg)
+    }
+
+    /// Notification tap / resume dialog Track / route-view "Track now" on the
+    /// current leg. An explicit resume always opens the countdown, even hours
+    /// out. A live board match gives real delay/platform, otherwise a local
+    /// countdown. Never re-queues.
+    func resumePendingRoute() {
+        guard let route = pendingRouteStore.pending else { return }
+        resumeOffer = nil
+        let now = Int(Date().timeIntervalSince1970)
+        guard let normalized = PendingRouteLogic.normalize(route, now: now) else {
+            Task { @MainActor in await refreshPendingRoute() }
+            return
+        }
+        trackLegImpl(normalized, index: normalized.cursor)
+    }
+
+    /// Route-view "Track now" on any trackable leg (may jump ahead to a later
+    /// connection). Untrackable legs (walk / outside Switzerland) are ignored.
+    func trackLeg(_ index: Int) {
+        guard let route = pendingRouteStore.pending else { return }
+        resumeOffer = nil
+        let now = Int(Date().timeIntervalSince1970)
+        guard let normalized = PendingRouteLogic.normalize(route, now: now) else {
+            Task { @MainActor in await refreshPendingRoute() }
+            return
+        }
+        trackLegImpl(normalized, index: index)
+    }
+
+    /// The countdown is fully local (derived from the leg's departure time), so
+    /// an explicit tap enters it immediately: no board fetch gates it, the screen
+    /// never blanks, and a slow or failed network can't bounce the user back to
+    /// their location. The origin becomes the current station so walk distance,
+    /// formation and live enrichment target it; beginTracking's timer then fetches
+    /// that board in the background to upgrade platform/delay when it appears.
+    private func trackLegImpl(_ route: PendingRoute, index: Int) {
+        guard index >= 0, index < route.legs.count else { return }
+        let leg = route.legs[index]
+        guard leg.isTrackable, let stationId = leg.originId else { return }
+        var pending = route
+        pending.cursor = index
+        pending.status = PendingRoute.statusTracking
+        pendingRouteStore.save(pending)
+        let now = Int(Date().timeIntervalSince1970)
+        PendingRouteNotifier.schedule(pending, now: now)
+        setLaunchedStation(id: stationId, name: leg.originName, lat: leg.originLat, lon: leg.originLon)
+        enterProtectedTrack(leg)
+    }
+
+    /// Route-view per-leg track/notify toggle. Reschedules the reminder so a
+    /// muted current leg drops its notification, an un-muted one restores it.
+    func setLegMuted(_ index: Int, muted: Bool) {
+        pendingRouteStore.setLegMuted(index, muted: muted)
+        let now = Int(Date().timeIntervalSince1970)
+        if let route = pendingRouteStore.pending {
+            PendingRouteNotifier.schedule(route, now: now)
+        }
+    }
+
+    /// Platform per ride leg for the route view, keyed by leg index. Platforms
+    /// aren't in the shared link, they come from the live board and only exist
+    /// close to departure, so this fetches each near-term leg's origin board
+    /// once and matches it. Legs hours out simply have no platform yet.
+    @Published var routeLegPlatforms: [Int: String] = [:]
+
+    func loadRoutePlatforms(_ route: PendingRoute) {
+        routeLegPlatforms = [:]
+        Task { @MainActor in
+            let now = Int(Date().timeIntervalSince1970)
+            var result: [Int: String] = [:]
+            for (index, leg) in route.legs.enumerated() {
+                guard leg.type == .ride, leg.isTrackable else { continue }
+                guard leg.depTs - now <= 60 * 60 else { continue } // not on the board yet
+                guard let stationId = leg.originId else { continue }
+                guard let board = try? await TrainAPIService.fetchDepartures(stationId: stationId) else { continue }
+                if let platform = matchDeparture(board.departures, leg: leg)?.platform, !platform.isEmpty {
+                    result[index] = platform
+                }
+            }
+            routeLegPlatforms = result
+        }
+    }
+
+    /// While tracking a shared-route leg, the next ride leg of the same route is
+    /// the onward connection: shown under the countdown, tappable to jump onto
+    /// it early. Matched by departure time so an unrelated track shows nothing.
+    var onwardConnection: OnwardConnection? {
+        guard let focused = focusedTrain, let route = pendingRouteStore.pending else { return nil }
+        guard let curIdx = route.legs.firstIndex(where: {
+            $0.type == .ride && $0.depTs == focused.departureTimestamp
+        }) else { return nil }
+        let curLeg = route.legs[curIdx]
+        guard let nextIdx = route.legs[(curIdx + 1)...].firstIndex(where: { $0.type == .ride }) else { return nil }
+        let next = route.legs[nextIdx]
+        let changeMinutes = max(0, (next.depTs - curLeg.arrTs) / 60)
+        return OnwardConnection(changeStation: curLeg.destName, leg: next, legIndex: nextIdx, changeMinutes: changeMinutes)
+    }
+
+    func deferResume() {
+        resumeOffer = nil
+    }
+
+    func dismissPendingRoute() {
+        resumeOffer = nil
+        pendingRouteStore.clear()
+        PendingRouteNotifier.cancel()
+    }
+
+    /// A tracking session ended (departed or user-exited). The route only
+    /// reacts when it was tracking that exact departure: post-departure it
+    /// advances to the next leg, an early exit reverts to saved.
+    private func onTrackingEnded(_ endedDepTs: Int?) {
+        guard let endedDepTs, let current = pendingRouteStore.pending else { return }
+        let now = Int(Date().timeIntervalSince1970)
+        let next = PendingRouteLogic.advancedAfterTracking(current, endedDepTs: endedDepTs, now: now)
+        if let next {
+            if next != current {
+                pendingRouteStore.save(next)
+                PendingRouteNotifier.schedule(next, now: now)
+            }
+        } else {
+            pendingRouteStore.clear()
+            PendingRouteNotifier.cancel()
+        }
+    }
+}
+
+/// A decoded shared route awaiting a decision (auto-track, queue, or the
+/// user's replace confirmation). forceLegIndex + existing are set when resuming
+/// or tracking a leg the user already saved: force enters tracking regardless of
+/// the resume window, and existing preserves the stored id + muted legs.
+struct SharedRouteOffer {
+    let route: SharedRoute
+    let sourceUrl: String?
+    var forceLegIndex: Int? = nil
+    var existing: PendingRoute? = nil
+
+    var fingerprint: String { PendingRouteLogic.fingerprint(route.legs) }
+}
+
+/// The next ride leg while tracking a shared route: where the user changes, the
+/// onward train, and the connection buffer in minutes.
+struct OnwardConnection {
+    let changeStation: String
+    let leg: RouteLeg
+    let legIndex: Int
+    let changeMinutes: Int
 }

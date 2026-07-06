@@ -51,7 +51,7 @@ class OnboardingSnapshotTest {
             TrainTimeTheme(appearanceMode = mode) {
                 // 700 dp tall: the 2+1 tile layout is taller than the old pair.
                 Box(Modifier.size(411.dp, 700.dp).background(MaterialTheme.colorScheme.background)) {
-                    TourWatchSurface(onReport = {})
+                    TourWatchSurface(topInset = 0.dp, onReport = {})
                 }
             }
         }

@@ -29,7 +29,7 @@ import com.evanjt.traintime.widget.TrainTimeWidgetReceiver
 
 // A pure-Compose replica of the Glance widget's active view (widget/WidgetUi.kt
 // ActiveView). Glance renders RemoteViews and can't paint inside the app, so the
-// tour shows this look-alike. Colours mirror widget/WidgetColors.kt — keep them
+// tour shows this look-alike. Colours mirror widget/WidgetColors.kt, keep them
 // in sync if the real widget restyles.
 private data class WidgetMockColors(
     val background: Color,
@@ -200,7 +200,7 @@ private fun WidgetRow(c: WidgetMockColors, row: MockRow) {
 
 // Android lets an app ask the launcher to pin its widget (API 26+). Most
 // launchers support it; where they don't, fall back to a hint. iOS has no
-// equivalent — WidgetKit can't add a widget programmatically.
+// equivalent, WidgetKit can't add a widget programmatically.
 @Composable
 fun AddWidgetButton(modifier: Modifier = Modifier) {
     val context = LocalContext.current

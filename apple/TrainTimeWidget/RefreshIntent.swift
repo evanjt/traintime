@@ -215,7 +215,7 @@ enum WidgetStorage {
     }
 }
 
-/// Toggles the favourites-grouping display mode. No network — flips a flag and reloads.
+/// Toggles the favourites-grouping display mode. No network, flips a flag and reloads.
 struct ToggleFavouritesIntent: AppIntent {
     static var title: LocalizedStringResource = "Toggle Favourites Grouping"
     static var description: IntentDescription = "Show favourites first, or all departures in time order"
@@ -228,7 +228,7 @@ struct ToggleFavouritesIntent: AppIntent {
 }
 
 /// Drops the widget back to its dormant state at once, without waiting out the active window.
-/// No network — stamps the stop time and reloads. The next Refresh re-activates it.
+/// No network, stamps the stop time and reloads. The next Refresh re-activates it.
 struct StopIntent: AppIntent {
     static var title: LocalizedStringResource = "Stop Live Updates"
     static var description: IntentDescription = "Return the widget to its dormant state"

@@ -108,6 +108,10 @@ struct OnboardingTour: View {
             pickerSurface
         case .settings:
             settingsSurface
+        case .share:
+            shareSurface
+        case .route:
+            routeSurface
         case .watch:
             watchSurface
         case .widget:
@@ -316,6 +320,69 @@ struct OnboardingTour: View {
         .padding(.horizontal, 20).padding(.vertical, 24)
     }
 
+    // Mock the SBB share sheet handing a trip to TrainTime. Peer of the Android
+    // TourShareSurface.
+    private var shareSurface: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Text("From the SBB Mobile app")
+                .font(.system(size: 13)).foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                Text("Share to").font(.system(size: 14)).foregroundStyle(.secondary)
+                Text("TrainTime").font(.headline)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(uiColor: .secondarySystemBackground)))
+            .tourTarget()
+            Text("Your trip opens here, tracked and ready.")
+                .font(.system(size: 13)).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 20).padding(.vertical, 24)
+    }
+
+    // Mock a saved route with a couple of legs and on/off labels. Peer of the
+    // Android TourRouteSurface.
+    private var routeSurface: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Spacer()
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Route to Lausanne").font(.headline)
+                tourRouteLeg(line: "IR90", path: "Sion to Lausanne", time: "13:02", tracked: true)
+                tourRouteLeg(line: "Walk", path: "Lausanne to gare", time: "", tracked: nil)
+                tourRouteLeg(line: "M2", path: "Lausanne to Ouchy", time: "13:31", tracked: false)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(uiColor: .secondarySystemBackground)))
+            .tourTarget()
+            Text("Toggle a connection off to skip its reminder.")
+                .font(.system(size: 13)).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 20).padding(.vertical, 24)
+    }
+
+    private func tourRouteLeg(line: String, path: String, time: String, tracked: Bool?) -> some View {
+        HStack(spacing: 8) {
+            Text(line).font(.system(size: 12)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(path).font(.system(size: 14))
+                if !time.isEmpty {
+                    Text(time).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            switch tracked {
+            case .some(true): Text("On").font(.system(size: 12)).foregroundStyle(AppColors.platform)
+            case .some(false): Text("Off").font(.system(size: 12)).foregroundStyle(.secondary)
+            case .none: Text("Walk").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
     private var watchSurface: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -365,7 +432,7 @@ struct TourWatchCard: View {
                     .controlSize(.mini)
                 }
             }
-            Text("The Apple Watch app is included with TrainTime — install it from the Watch app.")
+            Text("The Apple Watch app is included with TrainTime. Install it from the Watch app.")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Track on your phone and a departure mirrors to a paired watch, which also reads the "

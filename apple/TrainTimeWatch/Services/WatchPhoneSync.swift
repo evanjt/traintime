@@ -21,7 +21,7 @@ enum WatchPhoneSync {
     static func requestLocation() { send(["kind": "reqLoc"]) }
 
     /// "Yes, rate it" on the watch: watchOS has no review page, so the phone opens ours.
-    /// Unlike the liveness messages this must not be dropped when the phone is unreachable —
+    /// Unlike the liveness messages this must not be dropped when the phone is unreachable,
     /// the queued userInfo transfer delivers it on the next connect instead.
     static func sendRateRequest() {
         guard WCSession.isSupported() else { return }
@@ -37,7 +37,7 @@ enum WatchPhoneSync {
         }
     }
 
-    /// Tracking started on the watch — let the phone reflect the same focused train. Keys
+    /// Tracking started on the watch. Let the phone reflect the same focused train. Keys
     /// mirror the inbound track contract.
     static func sendTrackStarted(_ focused: FocusedDeparture, stationId: String?) {
         var data: [String: Any] = [

@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class MainScreen { LIST, PICKER, SETTINGS }
+private enum class MainScreen { LIST, PICKER, SETTINGS, ROUTE }
 
 @Composable
 fun WearApp(vm: WearViewModel) {
@@ -131,12 +131,16 @@ fun WearApp(vm: WearViewModel) {
                     vm = vm,
                     onOpenPicker = { screen = MainScreen.PICKER },
                     onOpenSettings = { screen = MainScreen.SETTINGS },
+                    onOpenRoute = { screen = MainScreen.ROUTE },
                 )
                 MainScreen.PICKER -> DismissableScreen(onDismiss = { screen = MainScreen.LIST }) {
                     WearStationPickerScreen(vm) { screen = MainScreen.LIST }
                 }
                 MainScreen.SETTINGS -> DismissableScreen(onDismiss = { screen = MainScreen.LIST }) {
                     WearSettingsScreen(vm, onNavigateHome = { screen = MainScreen.LIST })
+                }
+                MainScreen.ROUTE -> DismissableScreen(onDismiss = { screen = MainScreen.LIST }) {
+                    WearRouteScreen(vm, onDismiss = { screen = MainScreen.LIST })
                 }
             }
         }
@@ -161,7 +165,7 @@ private fun InactiveScreen(vm: WearViewModel) {
     // Mirrors the Apple watch's inactive screen: a titled pause state with an
     // explicit Resume control (the whole screen stays tappable too).
     Box(
-        modifier = Modifier.fillMaxSize().clickable { vm.resumeFromInactive() },
+        modifier = Modifier.fillMaxSize().clickable { vm.resumeToStationView() },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -173,7 +177,7 @@ private fun InactiveScreen(vm: WearViewModel) {
                 textAlign = TextAlign.Center,
             )
             Chip(
-                onClick = { vm.resumeFromInactive() },
+                onClick = { vm.resumeToStationView() },
                 label = { Text("Resume") },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.padding(top = 10.dp),

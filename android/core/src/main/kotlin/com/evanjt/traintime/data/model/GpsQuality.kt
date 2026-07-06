@@ -1,6 +1,6 @@
 package com.evanjt.traintime.data.model
 
-// Pure model — the quality→colour mapping lives in each UI module (phone theme,
+// Pure model, the quality→colour mapping lives in each UI module (phone theme,
 // wear theme) so this stays free of Compose.
 enum class GpsQuality {
     UNAVAILABLE,

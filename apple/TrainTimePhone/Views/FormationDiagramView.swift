@@ -127,7 +127,7 @@ private struct LocoShape: Shape {
 
         // ETR 610 Pendolino nose profile:
         // - Nose tip at bottom-left, very low (near rail)
-        // - Dramatic upward sweep — steep S-curve to windshield
+        // - Dramatic upward sweep, steep S-curve to windshield
         // - Windshield high and raked back
         // - Roofline about 70% back from nose tip
 
@@ -136,10 +136,10 @@ private struct LocoShape: Shape {
         path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY),
                           control: CGPoint(x: rect.maxX, y: rect.maxY))
 
-        // Bottom edge — flat to nose tip
+        // Bottom edge, flat to nose tip
         path.addLine(to: CGPoint(x: rect.minX + 1, y: rect.maxY))
 
-        // Nose tip — sharp rounded point at bottom
+        // Nose tip, sharp rounded point at bottom
         path.addQuadCurve(
             to: CGPoint(x: rect.minX, y: rect.maxY - 2),
             control: CGPoint(x: rect.minX - 0.5, y: rect.maxY)
@@ -185,7 +185,7 @@ private struct CarriageCell: View {
                 .stroke(Color(.systemGray3), lineWidth: 0.5)
                 .frame(width: width, height: height)
 
-            // 1st class accent — yellow stripe along top
+            // 1st class accent, yellow stripe along top
             if wagon.wagonClass == 1 {
                 VStack {
                     RoundedRectangle(cornerRadius: 1)

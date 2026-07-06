@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,7 +53,9 @@ import com.evanjt.traintime.linePill
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.GeoUtils
+import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.OnwardConnection
 import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.TrackingStatus
 import java.time.Instant
@@ -175,7 +179,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 modifier = Modifier.padding(vertical = 8.dp),
             ) {
                 Text(
-                    focused?.countdownText(nowSeconds) ?: "—",
+                    focused?.countdownText(nowSeconds) ?: "–",
                     color = countdownColor(focused, nowSeconds, palette, secondary, MaterialTheme.colorScheme.onBackground),
                     fontSize = 56.sp,
                     fontWeight = FontWeight.Bold,
@@ -230,12 +234,23 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 )
             }
 
+            // Onward connection (shared multi-leg route): where you change and
+            // the next train. Tap to jump onto it early.
+            viewModel.onwardConnection?.let { onward ->
+                OnwardConnectionCard(
+                    onward = onward,
+                    mode = viewModel.currentMode,
+                    onTap = { viewModel.trackLeg(onward.legIndex) },
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+
             // Formation diagram
             viewModel.formation?.let { formation ->
                 FormationDiagram(formation, Modifier.padding(top = 16.dp))
             }
 
-            // Map — hand off to the platform maps app, pinned to the station
+            // Map: hand off to the platform maps app, pinned to the station
             val station = viewModel.currentStation
             if (station?.lat != null && station.lon != null) {
                 OutlinedButton(
@@ -251,7 +266,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // Open on watch — for Garmin, the same button as the header: it launches
+            // Open on watch, for Garmin, the same button as the header: it launches
             // TrainTime on the watch and syncs it onto this train. Colour tracks
             // liveness (green = open, amber = closed) and a spinner shows while opening.
             val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
@@ -292,6 +307,54 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 modifier = Modifier.size(18.dp),
             )
             Text("Back", color = palette.platform, modifier = Modifier.padding(start = 4.dp))
+        }
+    }
+}
+
+@Composable
+private fun OnwardConnectionCard(
+    onward: OnwardConnection,
+    mode: TransportMode,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalAppPalette.current
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val leg = onward.leg
+    val line = "${leg.category ?: ""}${leg.lineNumber ?: ""}"
+    Surface(
+        onClick = onTap,
+        modifier = modifier.fillMaxWidth(0.92f),
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 3.dp,
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text("Change at ${onward.changeStation}", color = secondary, fontSize = 12.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                if (line.isNotEmpty()) {
+                    Text(
+                        line,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(palette.linePill(line, mode))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
+                }
+                Text(leg.destName, fontWeight = FontWeight.Medium, maxLines = 1)
+            }
+            Text(
+                "${formatDepartureTime(leg.depTs)} · ${onward.changeMinutes} min to change",
+                color = secondary,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 2.dp),
+            )
         }
     }
 }

@@ -112,7 +112,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.play.services.location)
 
-    // Garmin Connect IQ Mobile SDK — cross-ecosystem bridge to a Garmin watch,
+    // Garmin Connect IQ Mobile SDK: cross-ecosystem bridge to a Garmin watch,
     // relayed by the Garmin Connect Mobile app. Public on Maven Central.
     implementation("com.garmin.connectiq:ciq-companion-app-sdk:2.2.0@aar")
 

@@ -2,7 +2,7 @@ using Toybox.WatchUi;
 
 module FavouritesMenu {
 
-    // Context menu for tracking mode (State 2) — star toggle + settings
+    // Context menu for tracking mode (State 2): star toggle + settings
     function openTrackingMenu(view) {
         var menu = new WatchUi.Menu2({:title => "Options"});
 

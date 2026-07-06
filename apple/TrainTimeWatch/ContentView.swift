@@ -2,8 +2,17 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = TrainTimeViewModel()
+    @ObservedObject private var pendingRouteStore = PendingRouteStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var showRateHandoffHint = false
+    @State private var showRouteDetail = false
+
+    private static let chipTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return formatter
+    }()
 
     var body: some View {
         NavigationStack {
@@ -25,7 +34,7 @@ struct ContentView: View {
                             .font(.system(.title3, weight: .semibold))
                             .foregroundStyle(.secondary)
                         Button {
-                            viewModel.resumeFromInactive()
+                            viewModel.resumeToStationView()
                         } label: {
                             Label("Resume", systemImage: "arrow.clockwise")
                                 .font(.caption.weight(.medium))
@@ -41,6 +50,30 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black)
+            // Queued shared route (phone-owned, read-only mirror). Tap starts
+            // tracking once the departure is close enough to be on the board.
+            .safeAreaInset(edge: .top) {
+                if let route = pendingRouteStore.pending, let leg = route.currentLeg,
+                   viewModel.appState != 2 {
+                    Button {
+                        showRouteDetail = true
+                    } label: {
+                        Text("▶ \(route.finalDestination) · \(Self.chipTimeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs))))")
+                            .font(.caption2)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Color(red: 0.6, green: 0.53, blue: 0))
+                }
+            }
+        }
+        .sheet(isPresented: $showRouteDetail) {
+            WatchRouteView(viewModel: viewModel)
+                .onAppear {
+                    if let route = PendingRouteStore.shared.pending {
+                        viewModel.loadRoutePlatforms(route)
+                    }
+                }
         }
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }

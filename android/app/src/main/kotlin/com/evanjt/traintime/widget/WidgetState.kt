@@ -109,7 +109,7 @@ data class WidgetFetchResult(
 // `dormant` is set by the revert/stop worker: rendering is time-dependent
 // but recomposition only happens on a state CHANGE, so dormancy must be
 // a state transition, not just an age check at render time. `hideFavourites`
-// is the grouping toggle — favourites first vs pure time order.
+// is the grouping toggle: favourites first vs pure time order.
 // `refreshStartedAt` drives the refresh control's loading state; it's a
 // timestamp (epoch seconds) so a refresh killed mid-flight self-heals after
 // 15 s instead of leaving the control stuck on the spinner.
@@ -128,7 +128,7 @@ data class WidgetState(
 // Favourite extraction for the widget. Operates on WidgetDeparture, sourced
 // from FavouritesStore favourite keys ("line|destination") for the station.
 object WidgetFavourites {
-    // One not-yet-gone departure per favourite key, time-ordered — the top block.
+    // One not-yet-gone departure per favourite key, time-ordered, the top block.
     fun block(departures: List<WidgetDeparture>, favKeys: Set<String>, now: Long): List<WidgetDeparture> {
         if (favKeys.isEmpty()) return emptyList()
         val seen = mutableSetOf<String>()

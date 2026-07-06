@@ -35,7 +35,7 @@ class TrainApiTest {
 
     @Test
     fun `nearby parses grouped stations and embedded departures with epoch second timestamps`() = runTest {
-        // departure is 600 s after `now`, so minutesUntil must be 10 —
+        // departure is 600 s after `now`, so minutesUntil must be 10,
         // pins the epoch-seconds unit of the `departure` field.
         server.enqueue(
             MockResponse().setBody(

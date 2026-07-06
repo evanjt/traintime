@@ -9,8 +9,8 @@ import ConnectIQ
 /// The whole feature is optional. The real SDK code compiles only when
 /// `ConnectIQ.xcframework` is linked (download it from the Garmin developer portal and add
 /// it to the TrainTimePhone target). Without the framework the `#else` stub keeps the app
-/// building and every entry point becomes a silent no-op, so users with no Garmin watch —
-/// or no Garmin Connect app — are unaffected.
+/// building and every entry point becomes a silent no-op, so users with no Garmin watch,
+/// or no Garmin Connect app, are unaffected.
 final class GarminConnectIQService: NSObject {
 
     static let appUUID = "7df2c0d5-e539-413a-962c-96147dad27f0"
@@ -97,9 +97,9 @@ final class GarminConnectIQService: NSObject {
         }
     }
 
-    /// Asks the watch to launch TrainTime — the one place we legitimately wake the watch,
+    /// Asks the watch to launch TrainTime, the one place we legitimately wake the watch,
     /// because the user tapped the indicator. Best-effort over BLE; a no-op when already
-    /// running. The Garmin peer of `openApp` on Android. (Apple Watch has no equivalent —
+    /// running. The Garmin peer of `openApp` on Android. (Apple Watch has no equivalent:
     /// the iPhone cannot launch its watchOS app.)
     func openApplication(on device: GarminDevice) {
         guard let uuid = UUID(uuidString: device.id), let app = apps[uuid] else { return }
@@ -136,7 +136,7 @@ final class GarminConnectIQService: NSObject {
 
     #else
 
-    // Graceful stub — ConnectIQ.xcframework not linked. Garmin never appears in the UI.
+    // Graceful stub. ConnectIQ.xcframework not linked. Garmin never appears in the UI.
     let isAvailable = false
     func initialize() {}
     func shutdown() {}
@@ -166,7 +166,7 @@ extension GarminConnectIQService: IQDeviceEventDelegate, IQAppMessageDelegate, I
         DispatchQueue.main.async { self.onMessageReceived?(dict) }
     }
 
-    // Garmin Connect Mobile isn't installed — the link can't work. Stay silent; the UI
+    // Garmin Connect Mobile isn't installed. The link can't work. Stay silent; the UI
     // simply never lists a Garmin watch.
     func needsToInstallConnectMobile() {}
 }

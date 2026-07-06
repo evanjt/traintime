@@ -6,7 +6,9 @@ import com.evanjt.traintime.data.model.PinnedStation
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
+import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.prefs.MyStationsStore
+import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.google.android.gms.wearable.DataMap
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -18,10 +20,11 @@ data class SyncPayload(
     val favourites: List<Favourite>,
     val myStations: List<PinnedStation>,
     val defaultMode: Int,
+    val pendingRoute: PendingRoute? = null,
 )
 
 // Bidirectional favourites / pinned-stations / default-mode sync over the
-// Wearable Data Layer — the Android analog of WCSession updateApplicationContext.
+// Wearable Data Layer. The Android analog of WCSession updateApplicationContext.
 // Track commands go over MessageClient (sendTrack), like PhoneWatchService.
 //
 // A process-wide singleton so the running ViewModel (which pushes on local
@@ -33,6 +36,12 @@ class WearStateSync private constructor(context: Context) {
     private val favStore = FavouritesStore(appContext)
     private val myStore = MyStationsStore(appContext)
     private val prefs = AppPrefs(appContext)
+    private val pendingStore = PendingRouteStore(appContext)
+
+    // The pending route is phone-owned: only the phone publishes it, only the
+    // watch applies it. Watch entry points (listener service, ViewModel) set
+    // this before any sync work.
+    @Volatile var isWatch = false
 
     private val dataClient = Wearable.getDataClient(appContext)
     private val messageClient = Wearable.getMessageClient(appContext)
@@ -45,6 +54,7 @@ class WearStateSync private constructor(context: Context) {
         favourites = favStore.all(),
         myStations = myStore.all(),
         defaultMode = prefs.defaultModeNow().raw,
+        pendingRoute = pendingStore.current(),
     )
 
     suspend fun pushState() {
@@ -54,6 +64,11 @@ class WearStateSync private constructor(context: Context) {
             dataMap.putString(WearSync.KEY_FAVOURITES, WearSync.json.encodeToString(payload.favourites))
             dataMap.putString(WearSync.KEY_MY_STATIONS, WearSync.json.encodeToString(payload.myStations))
             dataMap.putInt(WearSync.KEY_DEFAULT_MODE, payload.defaultMode)
+            if (!isWatch) {
+                payload.pendingRoute?.let {
+                    dataMap.putString(WearSync.KEY_PENDING_ROUTE, WearSync.json.encodeToString(it))
+                }
+            }
         }.asPutDataRequest().setUrgent()
         runCatching { dataClient.putDataItem(request).await() }
         lastSent = payload
@@ -72,16 +87,28 @@ class WearStateSync private constructor(context: Context) {
             null
         }
 
+        // Pending route: watch applies (absent key = phone cleared it); the
+        // phone never accepts it back.
+        val pendingRoute = if (isWatch) {
+            map.getString(WearSync.KEY_PENDING_ROUTE)?.let {
+                runCatching { WearSync.json.decodeFromString<PendingRoute>(it) }.getOrNull()
+            }
+        } else {
+            null
+        }
+
         val current = currentPayload()
         lastReceived = SyncPayload(
             favourites = favourites ?: current.favourites,
             myStations = myStations ?: current.myStations,
             defaultMode = mode ?: current.defaultMode,
+            pendingRoute = if (isWatch) pendingRoute else current.pendingRoute,
         )
 
         if (favourites != null && favourites != current.favourites) favStore.replaceAll(favourites)
         if (myStations != null && myStations != current.myStations) myStore.replaceAll(myStations)
         if (mode != null && mode != current.defaultMode) prefs.setDefaultMode(TransportMode.fromRaw(mode))
+        if (isWatch && pendingRoute != current.pendingRoute) pendingStore.replaceFromSync(pendingRoute)
     }
 
     // Display names of connected watches, for the phone's "Send to Watch" UI.

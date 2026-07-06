@@ -109,7 +109,7 @@ class PhoneWatchService: ObservableObject {
     /// True when a Garmin watch is currently reachable, so the phone can mirror to it.
     var hasGarminWatch: Bool { !garminService.getConnectedDevices().isEmpty }
 
-    /// A Garmin watch is paired (possibly off / out of range) — drives the grey indicator
+    /// A Garmin watch is paired (possibly off / out of range), drives the grey indicator
     /// and primary-watch resolution.
     var hasKnownGarmin: Bool { garminService.hasKnownDevices }
 

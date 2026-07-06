@@ -24,7 +24,7 @@ struct WidgetDeparture: Codable {
 
     func isGone(at date: Date) -> Bool { minutesUntil(at: date) < 0 }
 
-    /// Absolute clock time "HH:mm" — shown in the dormant view, where a stale minute count would mislead.
+    /// Absolute clock time "HH:mm", shown in the dormant view, where a stale minute count would mislead.
     var clockTimeText: String {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
@@ -99,7 +99,7 @@ extension WidgetFetchResult {
 /// Favourite extraction for the widget. Lives here (not in FavouritesStore) because it
 /// operates on WidgetDeparture, which is not compiled into the watch target.
 enum WidgetFavourites {
-    /// One not-yet-gone departure per station favourite, sorted by time — the block at the top.
+    /// One not-yet-gone departure per station favourite, sorted by time: the block at the top.
     static func block(in departures: [WidgetDeparture], favourites: [Favourite], at date: Date) -> [WidgetDeparture] {
         guard !favourites.isEmpty else { return [] }
         var result: [WidgetDeparture] = []

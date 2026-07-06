@@ -147,7 +147,7 @@ struct WidgetEntryView: View {
                         .lineLimit(1)
                     Spacer()
                     if let asOf = entry.asOf {
-                        // Clock time, not a stale minute count — a dormant widget can sit for hours.
+                        // Clock time, not a stale minute count. A dormant widget can sit for hours.
                         Text("as of \(asOf, style: .time)")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
@@ -254,7 +254,7 @@ struct WidgetEntryView: View {
 
     private var headerRow: some View {
         HStack(spacing: 4) {
-            // Mode icon — medium/large only (no room on small)
+            // Mode icon, medium/large only (no room on small)
             if family != .systemSmall, let mode = entry.currentMode {
                 if entry.availableModes.count > 1 {
                     Button(intent: SwitchModeIntent()) {
@@ -273,7 +273,7 @@ struct WidgetEntryView: View {
                 }
             }
 
-            // Station name — tappable to cycle stations
+            // Station name, tappable to cycle stations
             if entry.stationCount > 1 {
                 Button(intent: SwitchStationIntent()) {
                     HStack(spacing: 3) {
@@ -303,7 +303,7 @@ struct WidgetEntryView: View {
 
             Spacer(minLength: 4)
 
-            // Toggle favourites grouping — only useful (and only room) when there are
+            // Toggle favourites grouping, only useful (and only room) when there are
             // favourites at this station and on the larger families.
             if family != .systemSmall && !entry.favouriteKeys.isEmpty {
                 Button(intent: ToggleFavouritesIntent()) {
@@ -368,7 +368,7 @@ struct WidgetEntryView: View {
                 .minimumScaleFactor(0.8)
                 .frame(width: m.minutesWidth, alignment: .trailing)
 
-            // Delay capsule — reserved column with an explicit spacer when on time, so the
+            // Delay capsule, reserved column with an explicit spacer when on time, so the
             // line + destination columns line up whether or not a row has a delay.
             if m.showDelay {
                 if dep.delay > 0 {
@@ -384,7 +384,7 @@ struct WidgetEntryView: View {
                 }
             }
 
-            // Line — filled pill in a reserved column so destinations line up.
+            // Line, filled pill in a reserved column so destinations line up.
             Group {
                 if !dep.lineNumber.isEmpty {
                     Text(dep.lineNumber)

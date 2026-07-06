@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,25 +30,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 
-// A small anchored coach-mark, not a full-screen card. The caret hints at the
-// spotlighted feature; the bubble itself is placed in the screen half opposite
-// the target by the host, so it never sits over what it explains.
+// A small anchored coach-mark, not a full-screen card. Title and body only: the
+// Back/Skip/Next controls live in a fixed bar (TourNavBar) so they never move.
+// The caret hints at the spotlighted feature; the host places the bubble in the
+// screen half opposite the target so it never covers what it explains.
 @Composable
 fun CalloutBubble(
     title: String,
     body: String,
-    index: Int,
-    total: Int,
     caretUp: Boolean,
-    onBack: () -> Unit,
-    onSkip: () -> Unit,
-    onNext: () -> Unit,
-    nextLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalAppPalette.current
-    // A touch lighter than the surface, with a faint border, so the callout reads as a raised
-    // sheet over the dimmed background rather than blending in.
     val bubbleColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val bubbleBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     Column(
@@ -56,7 +50,7 @@ fun CalloutBubble(
         if (caretUp) Caret(up = true, color = bubbleColor)
 
         Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(16.dp),
             color = bubbleColor,
             border = bubbleBorder,
             shadowElevation = 8.dp,
@@ -74,41 +68,66 @@ fun CalloutBubble(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                 )
-                Spacer(Modifier.size(14.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    if (index > 0) {
-                        TextButton(onClick = onBack) { Text("Back") }
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clearAndSetSemantics { contentDescription = "Step ${index + 1} of $total" },
-                    ) {
-                        repeat(total) { i ->
-                            val active = i == index
-                            Box(
-                                Modifier
-                                    .size(if (active) 8.dp else 6.dp)
-                                    .background(
-                                        if (active) palette.platform else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                        CircleShape,
-                                    ),
-                            )
-                        }
-                    }
-                    TextButton(onClick = onSkip) {
-                        Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Spacer(Modifier.size(4.dp))
-                    Button(onClick = onNext) { Text(nextLabel) }
-                }
             }
         }
 
         if (!caretUp) Caret(up = false, color = bubbleColor)
+    }
+}
+
+// The tour's fixed navigation bar: progress dots + Back / Skip / Next, pinned to
+// the bottom so the controls stay in the same place on every page. The Back slot
+// keeps its width when hidden so Next never shifts.
+@Composable
+fun TourNavBar(
+    index: Int,
+    total: Int,
+    onBack: () -> Unit,
+    onSkip: () -> Unit,
+    onNext: () -> Unit,
+    nextLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalAppPalette.current
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.width(64.dp)) {
+                if (index > 0) TextButton(onClick = onBack) { Text("Back") }
+            }
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .weight(1f)
+                    .clearAndSetSemantics { contentDescription = "Step ${index + 1} of $total" },
+            ) {
+                repeat(total) { i ->
+                    val active = i == index
+                    Box(
+                        Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (active) 8.dp else 6.dp)
+                            .background(
+                                if (active) palette.platform else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                CircleShape,
+                            ),
+                    )
+                }
+            }
+            TextButton(onClick = onSkip) {
+                Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = onNext) { Text(nextLabel) }
+        }
     }
 }
 

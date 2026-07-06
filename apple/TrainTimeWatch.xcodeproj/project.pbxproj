@@ -7,6 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		S0A100000000000000000001 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
+		S0A100000000000000000002 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
+		S0A100000000000000000003 /* SBBShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000002 /* SBBShare.swift */; };
+		S0A100000000000000000004 /* SBBShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000002 /* SBBShare.swift */; };
+		S0A100000000000000000005 /* PendingRouteNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000003 /* PendingRouteNotifier.swift */; };
+		S0A100000000000000000006 /* PendingRouteChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000004 /* PendingRouteChip.swift */; };
+		S0A1000000000000000000A0 /* RouteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F1000000000000000000A0 /* RouteDetailView.swift */; };
+		S0A100000000000000000007 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000005 /* ShareViewController.swift */; };
+		S0A100000000000000000008 /* SBBTripDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000006 /* SBBTripDecoderTests.swift */; };
+		S0A100000000000000000009 /* PendingRouteLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000007 /* PendingRouteLogicTests.swift */; };
+		S0A10000000000000000000A /* sbb_trip_fixture.txt in Resources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000008 /* sbb_trip_fixture.txt */; };
+		S0A10000000000000000EMBED /* TrainTimeShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = S0P100000000000000000001 /* TrainTimeShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		042568384739493FAD7A09FD /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
 		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
 		1AD2F11980807139DEA59684 /* WidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000002 /* WidgetEntry.swift */; };
@@ -76,6 +88,7 @@
 		RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000002 /* ReviewGateTests.swift */; };
 		FA0A00000000000000000002 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
+		S0A1000000000000000000A1 /* WatchRouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F1000000000000000000A1 /* WatchRouteView.swift */; };
 		P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000001 /* TrainTimePhoneApp.swift */; };
 		P0A100000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000002 /* ContentView.swift */; };
 		P0A100000000000000000003 /* PhoneViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000003 /* PhoneViewModel.swift */; };
@@ -141,6 +154,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		S0C100000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1D64EB725CE243E1A4B6CB59 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = S0T100000000000000000001;
+			remoteInfo = TrainTimeShareExtension;
+		};
 		8328C99CF0E6E9E42239CB12 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 1D64EB725CE243E1A4B6CB59 /* Project object */;
@@ -179,6 +199,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				P0A10000000000000000EMBED /* TrainTimeWidgetExtension.appex in Embed Foundation Extensions */,
+				S0A10000000000000000EMBED /* TrainTimeShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -197,10 +218,23 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		S0F100000000000000000001 /* SharedRoute.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedRoute.swift; sourceTree = "<group>"; };
+		S0F100000000000000000002 /* SBBShare.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SBBShare.swift; sourceTree = "<group>"; };
+		S0F100000000000000000003 /* PendingRouteNotifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRouteNotifier.swift; sourceTree = "<group>"; };
+		S0F100000000000000000004 /* PendingRouteChip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRouteChip.swift; sourceTree = "<group>"; };
+		S0F1000000000000000000A0 /* RouteDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RouteDetailView.swift; sourceTree = "<group>"; };
+		S0F100000000000000000005 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		S0F100000000000000000006 /* SBBTripDecoderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SBBTripDecoderTests.swift; sourceTree = "<group>"; };
+		S0F100000000000000000007 /* PendingRouteLogicTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRouteLogicTests.swift; sourceTree = "<group>"; };
+		S0F100000000000000000008 /* sbb_trip_fixture.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = sbb_trip_fixture.txt; sourceTree = "<group>"; };
+		S0F100000000000000000009 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		S0F10000000000000000000A /* TrainTimeShareExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TrainTimeShareExtension.entitlements; sourceTree = "<group>"; };
+		S0P100000000000000000001 /* TrainTimeShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainTimeShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		02625399D810FA6B5C14FD14 /* MyStationsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MyStationsTests.swift; sourceTree = "<group>"; };
 		07FBBC2455BC4C3696800498 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0CD4893706A946E245A1D536 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
+		S0F1000000000000000000A1 /* WatchRouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRouteView.swift; sourceTree = "<group>"; };
 		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
 		126C5CC247C946DFB19AA5E7 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FavouritesTests.swift; sourceTree = "<group>"; };
@@ -287,6 +321,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		S0F200000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1F22507020B6D9384892B7EE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -330,6 +371,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		S0G100000000000000000001 /* TrainTimeShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				S0F100000000000000000005 /* ShareViewController.swift */,
+				S0F100000000000000000009 /* Info.plist */,
+				S0F10000000000000000000A /* TrainTimeShareExtension.entitlements */,
+			);
+			path = TrainTimeShareExtension;
+			sourceTree = "<group>";
+		};
 		0648EB2063FE4F54BBABEB55 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -339,6 +390,7 @@
 				5EFDB27D479A403E916113BF /* RoutingService.swift */,
 				FA0F00000000000000000002 /* FavouritesStore.swift */,
 				FE0F00000000000000000301 /* WatchPhoneSync.swift */,
+				S0F100000000000000000002 /* SBBShare.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -361,6 +413,7 @@
 				CCC6910213243546576F8192 /* TrackingBarView.swift */,
 				EEE8B3243546576F81920314 /* DirectionArrowView.swift */,
 				111AD546576F819203142536 /* FocusedTrackingView.swift */,
+				S0F1000000000000000000A1 /* WatchRouteView.swift */,
 				333CF7681920314253647580 /* MapView.swift */,
 				555EH0A31425364758697CA3 /* StationPickerView.swift */,
 				888B01A2B3C4D5E6F7081920 /* SettingsView.swift */,
@@ -426,6 +479,7 @@
 		620CC025859F476183B6BC85 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				S0P100000000000000000001 /* TrainTimeShareExtension.appex */,
 				C61B777553FC4244B48F82CE /* TrainTimeWatch.app */,
 				P0P100000000000000000001 /* TrainTimePhone.app */,
 				W0P100000000000000000001 /* TrainTimeWidgetExtension.appex */,
@@ -446,6 +500,7 @@
 				F0F100000000000000000001 /* Formation.swift */,
 				FA0F00000000000000000001 /* Favourite.swift */,
 				RG0F00000000000000000001 /* ReviewGate.swift */,
+				S0F100000000000000000001 /* SharedRoute.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -453,6 +508,9 @@
 		89676CEEB3393D983B30621B /* TrainTimePhoneTests */ = {
 			isa = PBXGroup;
 			children = (
+				S0F100000000000000000006 /* SBBTripDecoderTests.swift */,
+				S0F100000000000000000007 /* PendingRouteLogicTests.swift */,
+				S0F100000000000000000008 /* sbb_trip_fixture.txt */,
 				02625399D810FA6B5C14FD14 /* MyStationsTests.swift */,
 				AEE4DE7715F97367EA34B9B9 /* GeoTests.swift */,
 				6390A9C142D9AF015FE486CF /* ParsingTests.swift */,
@@ -471,6 +529,7 @@
 				24BDF21D2AA64F6D8CA75FE2 /* TrainTimeWatch */,
 				P0G100000000000000000001 /* TrainTimePhone */,
 				W0G100000000000000000001 /* TrainTimeWidget */,
+				S0G100000000000000000001 /* TrainTimeShareExtension */,
 				620CC025859F476183B6BC85 /* Products */,
 				2CE0F6908B48538357EEFBB0 /* Frameworks */,
 				89676CEEB3393D983B30621B /* TrainTimePhoneTests */,
@@ -504,6 +563,8 @@
 		P0G100000000000000000003 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				S0F100000000000000000004 /* PendingRouteChip.swift */,
+				S0F1000000000000000000A0 /* RouteDetailView.swift */,
 				P0F100000000000000000006 /* PhoneStationView.swift */,
 				P0F100000000000000000050 /* SwissOutline.swift */,
 				P0F100000000000000000051 /* PhoneAttributionView.swift */,
@@ -535,6 +596,7 @@
 		P0G100000000000000000004 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				S0F100000000000000000003 /* PendingRouteNotifier.swift */,
 				P0F100000000000000000004 /* PhoneLocationService.swift */,
 				P0F100000000000000000005 /* PhoneHapticService.swift */,
 				P0F10000000000000000000D /* PhoneWatchService.swift */,
@@ -564,6 +626,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		S0T100000000000000000001 /* TrainTimeShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = S0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimeShareExtension" */;
+			buildPhases = (
+				S0S100000000000000000001 /* Sources */,
+				S0F200000000000000000001 /* Frameworks */,
+				S0R100000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TrainTimeShareExtension;
+			productName = TrainTimeShareExtension;
+			productReference = S0P100000000000000000001 /* TrainTimeShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		227299A02C621B0849FCB58C /* TrainTimeWidgetTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF5E935BC18277C0347FD5FE /* Build configuration list for PBXNativeTarget "TrainTimeWidgetTests" */;
@@ -637,6 +716,7 @@
 			);
 			dependencies = (
 				P0D100000000000000000001 /* PBXTargetDependency */,
+				S0D100000000000000000001 /* PBXTargetDependency */,
 				WED100000000000000000001 /* PBXTargetDependency */,
 			);
 			name = TrainTimePhone;
@@ -702,6 +782,7 @@
 				6E9FC3E3B0BB4BA189C3C6A1 /* TrainTimeWatch */,
 				P0T100000000000000000001 /* TrainTimePhone */,
 				W0T100000000000000000001 /* TrainTimeWidgetExtension */,
+				S0T100000000000000000001 /* TrainTimeShareExtension */,
 				7E502B67F51774F5CD7CE6C8 /* TrainTimePhoneTests */,
 				227299A02C621B0849FCB58C /* TrainTimeWidgetTests */,
 			);
@@ -709,6 +790,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		S0R100000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		057D5D86B94FAA6779D94C7B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -728,6 +816,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				S0A10000000000000000000A /* sbb_trip_fixture.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -750,10 +839,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		S0S100000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				S0A100000000000000000007 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		114B5379B059429AB665FC9A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				S0A100000000000000000001 /* SharedRoute.swift in Sources */,
+				S0A100000000000000000003 /* SBBShare.swift in Sources */,
 				2FD884A23B2F4EAA9E96D717 /* TrainTimeWatchApp.swift in Sources */,
 				FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */,
 				C157F67C4DAA4D5F9A099407 /* ContentView.swift in Sources */,
@@ -779,6 +878,7 @@
 				BBB580910213243546576F81 /* TrackingBarView.swift in Sources */,
 				DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */,
 				FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */,
+				S0A1000000000000000000A1 /* WatchRouteView.swift in Sources */,
 				222BE6576F81920314253647 /* MapView.swift in Sources */,
 				444DG8920314253647586B92 /* StationPickerView.swift in Sources */,
 				A1B2C3D4E5F6789012345678 /* Secrets.swift in Sources */,
@@ -821,6 +921,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				S0A100000000000000000008 /* SBBTripDecoderTests.swift in Sources */,
+				S0A100000000000000000009 /* PendingRouteLogicTests.swift in Sources */,
 				2165730DFBA03FEFCC0DE59F /* MyStationsTests.swift in Sources */,
 				501EF45BF70303C8F50A9A64 /* GeoTests.swift in Sources */,
 				DD85640342070AD0AB33CF75 /* ParsingTests.swift in Sources */,
@@ -835,6 +937,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				S0A100000000000000000002 /* SharedRoute.swift in Sources */,
+				S0A100000000000000000004 /* SBBShare.swift in Sources */,
+				S0A100000000000000000005 /* PendingRouteNotifier.swift in Sources */,
+				S0A100000000000000000006 /* PendingRouteChip.swift in Sources */,
+				S0A1000000000000000000A0 /* RouteDetailView.swift in Sources */,
 				P0A100000000000000000001 /* TrainTimePhoneApp.swift in Sources */,
 				P0A100000000000000000002 /* ContentView.swift in Sources */,
 				P0A100000000000000000003 /* PhoneViewModel.swift in Sources */,
@@ -909,6 +1016,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		S0D100000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = S0T100000000000000000001 /* TrainTimeShareExtension */;
+			targetProxy = S0C100000000000000000001 /* PBXContainerItemProxy */;
+		};
 		6B892EEA7CB8863A29E9248B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = TrainTimePhone;
@@ -934,6 +1046,64 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		S0B100000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrainTime;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		S0B100000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 12;
+				DEVELOPMENT_TEAM = 2YFGZ5STW8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TrainTime;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		05EA4D865B354AC5AB7F4B2B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1229,6 +1399,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		S0L100000000000000000001 /* Build configuration list for PBXNativeTarget "TrainTimeShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				S0B100000000000000000001 /* Debug */,
+				S0B100000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		4C25F18A0AF37AC2DD0345F1 /* Build configuration list for PBXNativeTarget "TrainTimePhoneTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

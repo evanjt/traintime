@@ -179,7 +179,7 @@ module Renderer {
                     bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
             }
         } else {
-            // No station yet — show status or loading indicator
+            // No station yet, show status or loading indicator
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             var loadMsg = view.mRequestInFlight ? "Loading..." : view.mStatus;
             dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
@@ -639,7 +639,7 @@ module Renderer {
 
         var walkMin = view.getWalkMinutes();
         if (walkMin == null) {
-            // No GPS — fully gray bar
+            // No GPS: fully gray bar
             dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(barX, barY, barWidth, barH);
             // Midpoint marker
@@ -663,7 +663,7 @@ module Renderer {
         var schedPx = (schedFrac * halfBar).toNumber();
         var effectPx = (effectFrac * halfBar).toNumber();
 
-        // MIP-optimized colors — distinct on 64-color palette
+        // MIP-optimized colors: distinct on 64-color palette
         var darkGreen = 0x00FF00;
         var lightGreen = 0x55FF55;
         var darkRed = 0xFF0000;
@@ -731,7 +731,7 @@ module Renderer {
         if (totalW > usable) {
             wagonW = (usable - locoW - gap - (count - 1) * gap) / count;
             if (wagonW < 4) {
-                // Too many wagons even at min size — drop locomotive
+                // Too many wagons even at min size, drop locomotive
                 locoW = 0;
                 wagonW = (usable - (count - 1) * gap) / count;
                 if (wagonW < 3) { wagonW = 3; }

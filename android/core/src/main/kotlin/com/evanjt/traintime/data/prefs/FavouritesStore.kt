@@ -45,7 +45,7 @@ class FavouritesStore(context: Context) {
         }
     }
 
-    // Overwrite the whole list — used by the Wearable Data Layer sync when the
+    // Overwrite the whole list, used by the Wearable Data Layer sync when the
     // companion device pushes its favourites.
     suspend fun replaceAll(favourites: List<Favourite>) {
         dataStore.edit { it[AppPrefs.KEY_FAVOURITES] = json.encodeToString(favourites) }
@@ -85,7 +85,7 @@ class FavouritesStore(context: Context) {
                 .sortedBy { it.departureTimestamp ?: 0 }
         }
 
-        // "IC8:Brig,IR90:Visp" — server-side filtering param.
+        // "IC8:Brig,IR90:Visp" is the server-side filtering param.
         fun param(stationFavs: List<Favourite>): String? {
             if (stationFavs.isEmpty()) return null
             return stationFavs.joinToString(",") { "${it.lineNumber}:${it.destination}" }

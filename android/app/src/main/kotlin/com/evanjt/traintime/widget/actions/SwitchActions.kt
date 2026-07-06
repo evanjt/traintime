@@ -28,7 +28,7 @@ internal fun Departure.toWidgetDeparture() = WidgetDeparture(
     lineNumber = lineNumber,
 )
 
-// Favourites first, then the full list — same order as the iOS widget.
+// Favourites first, then the full list, same order as the iOS widget.
 internal suspend fun fetchStationDepartures(context: Context, station: WidgetStation): WidgetStation? {
     val favourites = FavouritesStore(context)
     val favParam = favourites.favouritesParam(station.id)

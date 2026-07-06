@@ -53,7 +53,7 @@ class WatchConnectivityService: NSObject, WCSessionDelegate {
 
     /// Mirror an action payload (track / mode / station / loc / back) to the watch. Sends
     /// live only when the watch app is reachable; otherwise drops it. We deliberately do NOT
-    /// persist commands into the application context — a closed watch re-syncs on its next
+    /// persist commands into the application context. A closed watch re-syncs on its next
     /// launch via the hello handshake, so there's no stale command to replay (and no risk of
     /// clobbering the favourites / defaultMode that share that context). Mirrors Garmin's
     /// "can't message a closed app" gate.

@@ -1,7 +1,7 @@
 package com.evanjt.traintime
 
 // Pure (non-Compose) constants shared across :app and :wear. The adaptive
-// colour palette stays in each UI module — these are the platform-neutral halves.
+// colour palette stays in each UI module. These are the platform-neutral halves.
 
 object SwissBounds {
     const val LAT_MIN = 45.8

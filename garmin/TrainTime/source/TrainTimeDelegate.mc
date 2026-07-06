@@ -61,7 +61,7 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
         var state = mView.getAppState();
         if (state == 1 || state == 2) {
             mView.exitToStationView();
-            return true;  // consumed — don't exit app
+            return true;  // consumed, don't exit app
         }
         // State 0 and 3: exit app explicitly. Tell the phone first so its link
         // indicator flips to "closed" immediately instead of waiting for pings to lapse.

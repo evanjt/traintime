@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 
 // Visual regression for the departure rows: line pills (long-distance red,
 // regional blue, bus grey-blue), delay capsule, favourite gold row, gone row,
-// in light and dark. Renders on the JVM via Robolectric — no emulator.
+// in light and dark. Renders on the JVM via Robolectric, no emulator.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])

@@ -13,11 +13,12 @@ import kotlinx.coroutines.runBlocking
 
 // Watch side of the Data Layer. Applies state pushed by the phone (favourites /
 // pinned stations / default mode) and, on a track command, launches the app
-// straight into tracking — the analog of the Apple watch's didReceiveMessage,
+// straight into tracking, the analog of the Apple watch's didReceiveMessage,
 // which wakes a closed watch app.
 class WatchWearListenerService : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         val sync = WearStateSync.get(applicationContext)
+        sync.isWatch = true
         for (event in events) {
             if (event.type == DataEvent.TYPE_CHANGED &&
                 event.dataItem.uri.path == WearSync.STATE_PATH
@@ -39,7 +40,7 @@ class WatchWearListenerService : WearableListenerService() {
                 startActivity(intent)
             }
             // Mirror commands never wake the app: if no ViewModel is collecting,
-            // the emission is dropped (Apple parity — mirror() sends only when
+            // the emission is dropped (Apple parity: mirror() sends only when
             // the watch app is reachable).
             WearSync.CMD_PATH -> {
                 WearSync.decodeCommand(event.data)?.let { WearCommandBus.events.tryEmit(it) }

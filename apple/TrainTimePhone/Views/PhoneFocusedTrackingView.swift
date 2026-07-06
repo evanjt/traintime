@@ -65,7 +65,7 @@ struct PhoneFocusedTrackingView: View {
 
                     // Countdown + delay
                     HStack(spacing: 8) {
-                        Text(focused?.countdownText ?? "—")
+                        Text(focused?.countdownText ?? "–")
                             .font(.system(size: 56, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(countdownColor)
@@ -112,6 +112,15 @@ struct PhoneFocusedTrackingView: View {
                         viewModel.toggleRoutedDistance()
                     }
 
+                    // Onward connection (shared multi-leg route): where you change
+                    // and the next train. Tap to jump onto it early.
+                    if let onward = viewModel.onwardConnection {
+                        OnwardConnectionCard(onward: onward, mode: viewModel.currentMode) {
+                            viewModel.trackLeg(onward.legIndex)
+                        }
+                        .padding(.top, 8)
+                    }
+
                     // Formation diagram
                     if let formation = viewModel.formation {
                         FormationDiagramView(formation: formation)
@@ -129,7 +138,7 @@ struct PhoneFocusedTrackingView: View {
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
 
-                    // Open on watch — launches/re-syncs the primary watch onto this train.
+                    // Open on watch, launches/re-syncs the primary watch onto this train.
                     // Colour tracks liveness (green = showing, amber/grey = closed/away); a
                     // spinner shows during a Garmin open. Mirrors the Android tracking button.
                     if viewModel.primaryWatchLiveness != .hidden {
@@ -200,6 +209,54 @@ struct PhoneFocusedTrackingView: View {
         if minutesUntil < -0.5 { return .secondary }
         if minutesUntil < 2.0 { return AppColors.minutesNow }
         return AppColors.minutesSoon
+    }
+}
+
+// The next ride leg while tracking a shared route: change station, onward line
+// pill + destination, and the connection buffer. Tap to jump onto it early.
+struct OnwardConnectionCard: View {
+    let onward: OnwardConnection
+    let mode: TransportMode
+    let onTap: () -> Void
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return formatter
+    }()
+
+    var body: some View {
+        let leg = onward.leg
+        let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Change at \(onward.changeStation)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    if !line.isEmpty {
+                        Text(line)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 7).fill(AppColors.linePill(line, mode: mode)))
+                    }
+                    Text(leg.destName)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                }
+                Text("\(Self.timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))) · \(onward.changeMinutes) min to change")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color(uiColor: .secondarySystemBackground)))
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: 320)
     }
 }
 

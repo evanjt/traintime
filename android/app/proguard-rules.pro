@@ -1,4 +1,4 @@
-# kotlinx.serialization — keep serializers for our models
+# kotlinx.serialization: keep serializers for our models
 -keepclassmembers class com.evanjt.traintime.** {
     *** Companion;
 }

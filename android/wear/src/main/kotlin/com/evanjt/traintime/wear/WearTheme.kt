@@ -8,7 +8,7 @@ import androidx.wear.compose.material.MaterialTheme
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
 
-// Wear-side accent palette — the same meaningful colours as the phone's
+// Wear-side accent palette, the same meaningful colours as the phone's
 // AppPalette (minutes, delay, platform, favourites, tracking bar), defined here
 // so :core stays Compose-free and :wear owns its own theme.
 data class WearPalette(
@@ -112,7 +112,7 @@ val GpsQuality.tint: Color
 @Composable
 fun TrainTimeWearTheme(content: @Composable () -> Unit) {
     // Wear's MaterialTheme is a dark scheme (black background, white text) and
-    // watches run dark by default, so always pair it with the dark palette —
+    // watches run dark by default, so always pair it with the dark palette,
     // otherwise the light favourite background renders under white text.
     CompositionLocalProvider(LocalWearPalette provides WearDarkPalette) {
         MaterialTheme(content = content)

@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,10 @@ import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
+import com.evanjt.traintime.ui.pending.PendingRouteChip
+import com.evanjt.traintime.ui.pending.ReplaceRouteDialog
+import com.evanjt.traintime.ui.pending.ResumeRouteDialog
+import com.evanjt.traintime.ui.pending.RouteDetailSheet
 import com.evanjt.traintime.ui.settings.AttributionSheet
 import com.evanjt.traintime.ui.settings.ReviewPromptDialog
 import com.evanjt.traintime.ui.settings.SettingsSheet
@@ -53,6 +58,20 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
             viewModel.onPermissionResult(grants.values.any { it })
         }
+
+    // Contextual ask when the first pending route is saved; denial is fine,
+    // the chip and resume prompt work without the reminder.
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,7 +91,7 @@ class MainActivity : ComponentActivity() {
             }
             TrainTimeTheme(appearanceMode = appearanceMode) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    RootView(viewModel)
+                    RootView(viewModel, onRequestNotificationPermission = ::requestNotificationPermission)
                 }
             }
         }
@@ -86,17 +105,33 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        intent?.data?.let { viewModel.handleDeepLink(it) }
+        handleIncoming(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleIncoming(intent)
+    }
+
+    private fun handleIncoming(intent: Intent?) {
+        if (intent == null) return
+        // SBB shares the trip as an image + the link in EXTRA_TEXT, so the
+        // intent type is image/*, not text/plain. Accept either and pull the
+        // link from the text; the image stream is ignored.
+        if (intent.action == Intent.ACTION_SEND) {
+            val shared = intent.getStringExtra(Intent.EXTRA_TEXT)
+                ?: intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+            if (shared != null) {
+                viewModel.handleSharedText(shared)
+                return
+            }
+        }
         intent.data?.let { viewModel.handleDeepLink(it) }
     }
 }
 
 @Composable
-private fun RootView(viewModel: MainViewModel) {
+private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: () -> Unit) {
     // scenePhase equivalent: foreground lifecycle drives timers and GPS.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -167,20 +202,77 @@ private fun RootView(viewModel: MainViewModel) {
     var showSettings by remember { mutableStateOf(false) }
     var settingsFocusWatch by remember { mutableStateOf(false) }
     var showAttribution by remember { mutableStateOf(false) }
+    var showRoute by remember { mutableStateOf(false) }
 
     // targetSdk 35 forces edge-to-edge, so inset the content below the status
     // bar and above the nav bar (the Surface background still fills behind them).
     Box(Modifier.fillMaxSize().systemBarsPadding()) {
-        when (viewModel.appState) {
-            2 -> TrackingScreen(viewModel)
-            3 -> InactiveScreen(onResume = { viewModel.resumeFromInactive() })
-            else -> StationScreen(
-                viewModel,
-                onOpenSettings = { focusWatch ->
-                    settingsFocusWatch = focusWatch
-                    showSettings = true
-                },
-            )
+        Column(Modifier.fillMaxSize()) {
+            // Queued shared route rides above the station/inactive screens and
+            // hides during tracking.
+            val pendingRoute = viewModel.pendingRoute
+            if (pendingRoute != null && viewModel.appState != 2) {
+                var chipNow by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
+                LaunchedEffect(pendingRoute) {
+                    while (true) {
+                        chipNow = System.currentTimeMillis() / 1000
+                        kotlinx.coroutines.delay(30_000)
+                    }
+                }
+                PendingRouteChip(
+                    route = pendingRoute,
+                    nowEpochSeconds = chipNow,
+                    onTap = { showRoute = true },
+                    onDismiss = { viewModel.dismissPendingRoute() },
+                )
+            }
+            Box(Modifier.weight(1f)) {
+                when (viewModel.appState) {
+                    2 -> TrackingScreen(viewModel)
+                    3 -> InactiveScreen(onResume = { viewModel.resumeToStationView() })
+                    else -> StationScreen(
+                        viewModel,
+                        onOpenSettings = { focusWatch ->
+                            settingsFocusWatch = focusWatch
+                            showSettings = true
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    // Whole-route view: every connection, per-connection reminder toggle, Track now.
+    val routeForSheet = viewModel.pendingRoute
+    if (showRoute && routeForSheet != null) {
+        LaunchedEffect(routeForSheet.id) { viewModel.loadRoutePlatforms(routeForSheet) }
+        RouteDetailSheet(
+            route = routeForSheet,
+            mode = viewModel.currentMode,
+            platforms = viewModel.routeLegPlatforms,
+            onSetMuted = { index, muted -> viewModel.setLegMuted(index, muted) },
+            onTrackLeg = { index -> viewModel.trackLeg(index) },
+            onDismiss = { showRoute = false },
+        )
+    }
+
+    // Resume prompt: the queued route's train is on the live board.
+    val resumeOffer = viewModel.resumeOffer
+    val pendingForResume = viewModel.pendingRoute
+    if (resumeOffer != null && pendingForResume != null) {
+        ResumeRouteDialog(
+            destination = pendingForResume.finalDestination,
+            departure = resumeOffer,
+            onTrack = { viewModel.resumePendingRoute() },
+            onLater = { viewModel.deferResume() },
+        )
+    }
+
+    // Contextual notification-permission ask for the first saved route.
+    LaunchedEffect(viewModel.notificationPermissionRequest) {
+        if (viewModel.notificationPermissionRequest) {
+            onRequestNotificationPermission()
+            viewModel.clearNotificationPermissionRequest()
         }
     }
 
@@ -199,6 +291,15 @@ private fun RootView(viewModel: MainViewModel) {
         AttributionSheet(onDismiss = { showAttribution = false })
     }
 
+    // Shared-route intake feedback + replace confirmation.
+    viewModel.shareReplaceOffer?.let { offer ->
+        ReplaceRouteDialog(
+            destination = offer.route.finalDestinationName,
+            onReplace = { viewModel.confirmReplaceSharedRoute() },
+            onDismiss = { viewModel.dismissReplaceSharedRoute() },
+        )
+    }
+
     // First-launch walkthrough sits above everything until completed or skipped.
     // It never auto-shows again once seen; a snackbar points to the Settings replay.
     val snackbarHostState = remember { SnackbarHostState() }
@@ -213,6 +314,14 @@ private fun RootView(viewModel: MainViewModel) {
                 }
             },
         )
+    }
+
+    val shareStatus = viewModel.shareStatus
+    LaunchedEffect(shareStatus) {
+        if (shareStatus != null) {
+            snackbarHostState.showSnackbar(shareStatus)
+            viewModel.clearShareStatus()
+        }
     }
 
     Box(Modifier.fillMaxSize().systemBarsPadding(), contentAlignment = Alignment.BottomCenter) {

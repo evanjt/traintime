@@ -30,7 +30,7 @@ struct StationView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
-            // Station name — tappable to open picker
+            // Station name, tappable to open picker
             Button {
                 viewModel.showStationPicker = true
             } label: {
@@ -95,6 +95,8 @@ struct StationView: View {
                         }
                     }
                 }
+                // A refresh dims the list rather than blanking the board.
+                .opacity(viewModel.departuresRefreshing ? 0.5 : 1)
             }
         }
         .sheet(isPresented: $viewModel.showStationPicker) {

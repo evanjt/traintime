@@ -3,7 +3,7 @@ package com.evanjt.traintime.ui.onboarding
 // The interactive walkthrough is a guided coach-mark tour: each step renders a
 // real, mocked app surface and spotlights one feature with an anchored callout.
 // Stages are the surfaces the steps run over; several steps share a surface.
-enum class TourStage { NEARBY, TRACK, FAVOURITE, PIN, SETTINGS, WATCH, WIDGET }
+enum class TourStage { NEARBY, TRACK, FAVOURITE, PIN, SETTINGS, SHARE, ROUTE_PLAN, WATCH, WIDGET }
 
 data class TourStep(
     val stage: TourStage,
@@ -39,6 +39,17 @@ val tourSteps: List<TourStep> = listOf(
         TourStage.SETTINGS,
         "Set your default mode",
         "Pick the mode you ride most. It shows first.",
+    ),
+    TourStep(
+        TourStage.SHARE,
+        "Bring trips from SBB",
+        "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train.",
+    ),
+    TourStep(
+        TourStage.ROUTE_PLAN,
+        "Your route, saved and reminded",
+        "Later trips wait as a saved route. Open it to see every leg, choose which " +
+            "connections to track, and get a reminder before departure.",
     ),
     TourStep(
         TourStage.WATCH,

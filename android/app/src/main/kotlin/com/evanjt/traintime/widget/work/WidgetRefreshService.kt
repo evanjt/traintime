@@ -27,7 +27,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 // Short-lived location foreground service for widget refreshes.
 // A widget tap is an exempted background FGS start, and while-in-use
-// location permission is honoured inside a location-type FGS — so the
+// location permission is honoured inside a location-type FGS, so the
 // widget gets a live fix without ACCESS_BACKGROUND_LOCATION. One fix
 // (10 s budget, mirroring the iOS RefreshIntent), refresh, stop.
 class WidgetRefreshService : Service() {

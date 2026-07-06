@@ -14,7 +14,7 @@ struct PhoneStationView: View {
                     onSelect: { viewModel.selectMode($0) }
                 )
                 Spacer()
-                // Watch link indicator — tap launches/​re-syncs the primary watch (Garmin
+                // Watch link indicator, tap launches/​re-syncs the primary watch (Garmin
                 // launches remotely; Apple Watch re-syncs when reachable, else shows guidance).
                 if viewModel.primaryWatchLiveness != .hidden {
                     Button { viewModel.openWatchApp() } label: {
@@ -41,7 +41,7 @@ struct PhoneStationView: View {
             .padding(.horizontal, 16)
             .padding(.top, 8)
 
-            // Station name — tappable to open picker
+            // Station name, tappable to open picker
             Button {
                 viewModel.showStationPicker = true
             } label: {
@@ -121,6 +121,15 @@ struct PhoneStationView: View {
                 .scrollContentBackground(.hidden)
                 .environment(\.defaultMinListRowHeight, 2)
                 .refreshable { await viewModel.forceRefresh() }
+                // A timer or switch refresh dims the list and shows a slim bar,
+                // so the board freezes in place rather than vanishing.
+                .opacity(viewModel.departuresRefreshing ? 0.5 : 1)
+                .overlay(alignment: .top) {
+                    if viewModel.departuresRefreshing {
+                        ProgressView()
+                            .progressViewStyle(.linear)
+                    }
+                }
             }
         }
         .sheet(isPresented: $viewModel.showStationPicker) {

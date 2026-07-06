@@ -2,7 +2,7 @@ import XCTest
 @testable import TrainTimePhone
 
 // Parses the same API JSON shapes as the Android MockWebServer tests, via the
-// static from(json:) parsers — no network.
+// static from(json:) parsers, no network.
 final class ParsingTests: XCTestCase {
     func testStationParsesWithEmbeddedDepartures() {
         let json: [String: Any] = [

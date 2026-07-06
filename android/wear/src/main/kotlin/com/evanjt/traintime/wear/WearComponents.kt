@@ -98,7 +98,7 @@ fun GoldSeparator(modifier: Modifier = Modifier) {
 
 // Mirrors the Apple watch DepartureRowView: minutes | small delay | plain
 // coloured line number (no pill) | destination. Favourites are shown by the gold
-// background only — no star glyph, no trailing chevron.
+// background only: no star glyph, no trailing chevron.
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WearDepartureRow(

@@ -156,7 +156,7 @@ extension TrainTimeViewModel {
 
         // Adopt fresh embedded departures if present. On the non-preserved path, blank
         // and refetch. On the preserved path with no fresh embedded departures, leave the
-        // existing list untouched (no flash) — the timer refresh updates it in place.
+        // existing list untouched (no flash), the timer refresh updates it in place.
         if let deps = currentStation?.embeddedDepartures, !deps.isEmpty {
             departures = deps
             favouriteDepartures = extractFavouritesFromCurrent(deps)

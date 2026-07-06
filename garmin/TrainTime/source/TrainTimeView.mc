@@ -565,6 +565,10 @@ class TrainTimeView extends WatchUi.View {
     function handlePhoneMessage(data) {
         if (data == null || !data.hasKey("action")) { return; }
         var action = data["action"];
+        // Tracking is the end game: while tracking, the phone's navigation must
+        // not pull the watch out. Only a fresh track command switches what it
+        // tracks; location still flows through as a GPS fallback.
+        if (mAppState == 2 && !action.equals("track") && !action.equals("loc")) { return; }
         if (action.equals("track")) {
             enterTrackingFromPhone(data);
         } else if (action.equals("mode")) {
@@ -574,7 +578,7 @@ class TrainTimeView extends WatchUi.View {
         } else if (action.equals("loc")) {
             onPhoneLocation(data);
         } else if (action.equals("back")) {
-            // The phone left tracking — follow it back to the station view.
+            // The phone left tracking. Follow it back to the station view.
             if (mAppState == 2) {
                 exitToStationView();
                 WatchUi.requestUpdate();
@@ -619,7 +623,7 @@ class TrainTimeView extends WatchUi.View {
         launchStation(stId, name, lat, lon);
     }
 
-    // The phone pushed its current location. Supplemental only — recorded for use
+    // The phone pushed its current location. Supplemental only, recorded for use
     // when the watch's own GPS is unusable or outside Switzerland.
     function onPhoneLocation(data) {
         if (data == null) { return; }
@@ -638,7 +642,7 @@ class TrainTimeView extends WatchUi.View {
     }
 
     // True when the watch's own GPS is good enough AND inside Switzerland. A fix
-    // like this is always preferred over the phone — the watch stays primary.
+    // like this is always preferred over the phone. The watch stays primary.
     function gpsUsableInBounds() {
         if (mLocationInfo == null || mLocationInfo.position == null) { return false; }
         if (mGpsQuality == null || mGpsQuality < Position.QUALITY_POOR) { return false; }
@@ -768,6 +772,13 @@ class TrainTimeView extends WatchUi.View {
                 Haptics.vibrateDouble();
             }
         } else {
+            // Not on the board yet: a shared route the phone pushed early, before
+            // its train reaches the board. Keep the local countdown until the
+            // train has actually departed, then give up.
+            var depTs = mFocusedTrain["depTs"];
+            if (depTs != null && Time.now().value() < depTs + 90) {
+                return;
+            }
             Haptics.vibrateShort();
             exitToStationView();
         }
@@ -995,7 +1006,7 @@ class TrainTimeView extends WatchUi.View {
         if (info == null || info.position == null
                 || info.accuracy == Position.QUALITY_NOT_AVAILABLE) {
             if (mStationId == null && !mLoadedFromCache) {
-                // No usable watch GPS — lean on the phone if it offered one,
+                // No usable watch GPS, lean on the phone if it offered one,
                 // else ask the phone for it.
                 if (!searchFromPhoneLocation()) {
                     requestPhoneLocation();
@@ -1016,7 +1027,7 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
-        // Valid position (LAST_KNOWN or better) — store it
+        // Valid position (LAST_KNOWN or better): store it
         mLocationInfo = info;
 
         // Update heading when moving; keep last known heading when stationary
@@ -1028,10 +1039,10 @@ class TrainTimeView extends WatchUi.View {
         Storage.setValue("lastLat", lat.toFloat());
         Storage.setValue("lastLon", lon.toFloat());
 
-        // Switzerland bounding box check — don't clear loaded stations (border hysteresis)
+        // Switzerland bounding box check: don't clear loaded stations (border hysteresis)
         if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
             if (mStationId == null) {
-                // Outside Switzerland with no station — fall back to the phone's
+                // Outside Switzerland with no station, fall back to the phone's
                 // location if it has one, else ask for it.
                 if (!searchFromPhoneLocation()) {
                     mStatus = "Not in Switzerland";
@@ -1049,7 +1060,7 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
-        // A quick-launched station is the user's explicit choice — don't let a
+        // A quick-launched station is the user's explicit choice, don't let a
         // GPS re-search replace it (still keep the walk distance live).
         if (mManualStation) {
             updateWalkDistance();
@@ -1115,7 +1126,7 @@ class TrainTimeView extends WatchUi.View {
         }
 
         // Always poll for updated position (detects leaving Switzerland)
-        // Only trust QUALITY_LAST_KNOWN or better — NOT_AVAILABLE gives garbage (0,0 or 180,180)
+        // Only trust QUALITY_LAST_KNOWN or better. NOT_AVAILABLE gives garbage (0,0 or 180,180)
         var info = Position.getInfo();
         if (info != null && info.position != null
                 && info.accuracy != Position.QUALITY_NOT_AVAILABLE) {
@@ -1148,7 +1159,7 @@ class TrainTimeView extends WatchUi.View {
                 }
             }
         } else if (mStationId == null && mAppState <= 1 && !mManualStation) {
-            // No usable watch GPS this tick — backfill from the phone if we can.
+            // No usable watch GPS this tick. Backfill from the phone if we can.
             if (!searchFromPhoneLocation()) {
                 requestPhoneLocation();
             }

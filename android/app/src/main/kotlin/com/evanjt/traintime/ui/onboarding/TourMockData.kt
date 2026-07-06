@@ -8,7 +8,7 @@ import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 
 // Deterministic "Bern Bahnhof" world for the walkthrough. No network, no view
-// model, no DataStore — every surface in the tour is driven from here so the
+// model, no DataStore, every surface in the tour is driven from here so the
 // demo is identical on every launch and never touches the user's real data.
 object TourMockData {
     const val STATION_ID = "8507000"
@@ -28,7 +28,7 @@ object TourMockData {
     // The departure the tour tells the user to tap (step 2) and tracks.
     const val TRACK_LINE = "IC1"
 
-    // The departure the tour tells the user to star (step 3) — a regular row a
+    // The departure the tour tells the user to star (step 3), a regular row a
     // few down, so starring visibly lifts it into the favourites block.
     const val FAVOURITE_LINE = "IR15"
 
@@ -57,7 +57,7 @@ object TourMockData {
     )
 
     // Nearby stations for the pinning step, in distance order. Bern Bahnhof sits
-    // third — pinning it bubbles it to the top, which is the lesson.
+    // third, pinning it bubbles it to the top, which is the lesson.
     val nearbyStations: List<Station> = listOf(
         station("8590010", "Bern, Bärenplatz", 120.0, TransportMode.TRAM),
         station("8590011", "Bern, Bundesplatz", 190.0, TransportMode.BUS),

@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.wear.ongoing.OngoingActivity
 import androidx.wear.ongoing.Status
 
-// Keeps the tracking countdown alive when the wrist drops — the Wear analog of
+// Keeps the tracking countdown alive when the wrist drops, the Wear analog of
 // the Apple watch's WKExtendedRuntimeSession. A location-typed foreground
 // service (tracking actively uses high-accuracy GPS) carrying an OngoingActivity
 // so the countdown surfaces on the watch face.

@@ -9,7 +9,7 @@ using Toybox.System;
 module PhoneSync {
 
     // Flipped on by the first real view show (TrainTimeView.onShow). The unit-test
-    // harness never shows a view, and a transmit before then hangs the sim — CI
+    // harness never shows a view, and a transmit before then hangs the sim, CI
     // stalls before running a single test. Until activated every send is a no-op.
     var enabled = false;
 
@@ -34,7 +34,7 @@ module PhoneSync {
         transmit({ "kind" => "state", "defaultMode" => mode });
     }
 
-    // Liveness is announced by the watch, never polled by the phone — a phone message
+    // Liveness is announced by the watch, never polled by the phone, a phone message
     // can wake a closed watch-app on Garmin, so the phone must stay silent until the
     // user explicitly opens the watch. hello on launch, alive as a periodic heartbeat,
     // bye on exit. The phone listens and colours its indicator from these.

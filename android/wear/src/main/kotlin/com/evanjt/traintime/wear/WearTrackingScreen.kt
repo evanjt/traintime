@@ -1,5 +1,6 @@
 package com.evanjt.traintime.wear
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -18,8 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +34,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
+import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.domain.GeoUtils
 import java.time.Instant
 import java.time.ZoneId
@@ -133,7 +138,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 modifier = Modifier.padding(vertical = 6.dp),
             ) {
                 Text(
-                    focused?.countdownText(nowSeconds) ?: "—",
+                    focused?.countdownText(nowSeconds) ?: "–",
                     color = countdownColor(focused, nowSeconds, palette, secondary, MaterialTheme.colors.onBackground),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
@@ -173,6 +178,17 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 Text(GeoUtils.formatWalkInfo(vm.lastWalkDist), color = secondary, fontSize = 12.sp)
             }
 
+            // Onward connection (shared multi-leg route): where you change and
+            // the next train. Tap to jump onto it early.
+            vm.onwardConnection?.let { onward ->
+                OnwardConnectionCardWear(
+                    onward = onward,
+                    mode = vm.currentMode,
+                    onTap = { vm.trackLeg(onward.legIndex) },
+                    modifier = Modifier.padding(top = 14.dp),
+                )
+            }
+
             vm.formation?.let { formation ->
                 FormationDiagramWear(formation, Modifier.padding(top = 14.dp))
             }
@@ -186,6 +202,61 @@ fun WearTrackingScreen(vm: WearViewModel) {
                     .clickable { vm.exitToStationView() },
             )
         }
+    }
+}
+
+@Composable
+private fun OnwardConnectionCardWear(
+    onward: OnwardConnection,
+    mode: TransportMode,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalWearPalette.current
+    val secondary = MaterialTheme.colors.onSurfaceVariant
+    val leg = onward.leg
+    val line = "${leg.category ?: ""}${leg.lineNumber ?: ""}"
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colors.surface)
+            .clickable(onClick = onTap)
+            .padding(10.dp),
+    ) {
+        Text("Change at ${onward.changeStation}", color = secondary, fontSize = 10.sp, maxLines = 1)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(top = 3.dp),
+        ) {
+            if (line.isNotEmpty()) {
+                Text(
+                    line,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(palette.linePill(line, mode))
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
+            Text(
+                leg.destName,
+                color = MaterialTheme.colors.onBackground,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            "${formatDepartureTime(leg.depTs)} · ${onward.changeMinutes} min to change",
+            color = secondary,
+            fontSize = 10.sp,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 

@@ -40,7 +40,7 @@ class AppPrefs(context: Context) {
     }
 
     // When on, the phone mirrors its state (tracked train, mode, station) and its
-    // location to a connected watch. Optional overlay — off means the watch runs
+    // location to a connected watch. Optional overlay, off means the watch runs
     // entirely on its own. Default on.
     val mirrorToWatch: Flow<Boolean> =
         dataStore.data.map { it[KEY_MIRROR_TO_WATCH] ?: true }
@@ -114,7 +114,7 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_REVIEW_OPT_OUT] = value }
     }
 
-    // A Wear watch has paired with this phone at least once — drives the grey
+    // A Wear watch has paired with this phone at least once, drives the grey
     // "known but disconnected" indicator (no SDK lookup exists, unlike Garmin).
     val hasKnownWearNode: Flow<Boolean> =
         dataStore.data.map { it[KEY_HAS_KNOWN_WEAR_NODE] ?: false }
@@ -153,5 +153,6 @@ class AppPrefs(context: Context) {
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")
         val KEY_MY_STATIONS = stringPreferencesKey("myStations_v1")
+        val KEY_PENDING_ROUTES = stringPreferencesKey("pendingRoutes_v1")
     }
 }

@@ -22,6 +22,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -39,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,11 +64,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
@@ -87,6 +99,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun OnboardingTour(onComplete: () -> Unit) {
     var stepIndex by remember { mutableStateOf(0) }
+    // Slide direction for the page transition: 1 forward, -1 back.
+    var navDirection by remember { mutableStateOf(1) }
     var trackingActive by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(TransportMode.TRAIN) }
     var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
@@ -111,6 +125,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
     }
 
     fun goNext() {
+        navDirection = 1
         targetRect = null
         when {
             step.stage == TourStage.TRACK && !trackingActive -> trackingActive = true
@@ -127,6 +142,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
     }
 
     fun goBack() {
+        navDirection = -1
         targetRect = null
         when {
             step.stage == TourStage.TRACK && trackingActive -> trackingActive = false
@@ -138,35 +154,71 @@ fun OnboardingTour(onComplete: () -> Unit) {
         }
     }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(
+        Modifier
+            .fillMaxSize()
+            // Swipe left/right to move between tour pages.
+            .pointerInput(stepIndex, trackingActive) {
+                var dragX = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { dragX = 0f },
+                    onDragEnd = { if (dragX <= -80f) goNext() else if (dragX >= 80f) goBack() },
+                    onHorizontalDrag = { _, delta -> dragX += delta },
+                )
+            },
+        color = MaterialTheme.colorScheme.background,
+    ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val windowHeightPx = constraints.maxHeight.toFloat()
+            val density = LocalDensity.current
+            // Informational pages (no spotlight target inside the app UI) put the
+            // callout at the top and scroll the illustration below it, so a tall
+            // card (the watch shots) is never hidden, on any screen density.
+            val infoStage = step.stage == TourStage.SHARE || step.stage == TourStage.ROUTE_PLAN ||
+                step.stage == TourStage.WATCH || step.stage == TourStage.WIDGET
+            var bubbleHeightDp by remember { mutableStateOf(0.dp) }
+            val infoInset = bubbleHeightDp + 24.dp
 
-            // Live mocked surface for this step.
-            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-                when (step.stage) {
-                    TourStage.NEARBY -> TourStationSurface(
-                        mode, favourites, departures, StationHighlight.LIST, onReport, {}, {},
-                    )
-                    TourStage.TRACK ->
-                        if (trackingActive) {
-                            TourTrackingSurface(base, mode, onReport)
-                        } else {
-                            TourStationSurface(
-                                mode, favourites, departures, StationHighlight.TRACK_ROW,
-                                onReport, onTrack = { goNext() }, onToggleFav = {},
-                            )
-                        }
-                    TourStage.FAVOURITE -> TourStationSurface(
-                        mode, favourites, departures, StationHighlight.FAV_ROW,
-                        onReport, onTrack = {}, onToggleFav = ::toggleFavourite,
-                    )
-                    TourStage.PIN -> TourPickerSurface(
-                        pinnedIds, onReport, onPin = { pinnedIds = pinnedIds + it.id },
-                    )
-                    TourStage.SETTINGS -> TourSettingsSurface(mode, onReport, onSelect = { mode = it })
-                    TourStage.WATCH -> TourWatchSurface(onReport)
-                    TourStage.WIDGET -> TourWidgetSurface(onReport)
+            // Live mocked surface for this step, sliding horizontally as pages change.
+            AnimatedContent(
+                targetState = stepIndex,
+                transitionSpec = {
+                    (slideInHorizontally(tween(300)) { w -> navDirection * w } + fadeIn(tween(300))) togetherWith
+                        (slideOutHorizontally(tween(300)) { w -> -navDirection * w } + fadeOut(tween(300)))
+                },
+                label = "tourSurface",
+            ) { idx ->
+                val s = tourSteps[idx]
+                // Only the settled page drives the spotlight, so the outgoing page
+                // sliding away doesn't jitter the highlight.
+                val report: (Rect) -> Unit = if (idx == stepIndex) onReport else { _ -> }
+                Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                    when (s.stage) {
+                        TourStage.NEARBY -> TourStationSurface(
+                            mode, favourites, departures, StationHighlight.LIST, report, {}, {},
+                        )
+                        TourStage.TRACK ->
+                            if (trackingActive) {
+                                TourTrackingSurface(base, mode, report)
+                            } else {
+                                TourStationSurface(
+                                    mode, favourites, departures, StationHighlight.TRACK_ROW,
+                                    report, onTrack = { goNext() }, onToggleFav = {},
+                                )
+                            }
+                        TourStage.FAVOURITE -> TourStationSurface(
+                            mode, favourites, departures, StationHighlight.FAV_ROW,
+                            report, onTrack = {}, onToggleFav = ::toggleFavourite,
+                        )
+                        TourStage.PIN -> TourPickerSurface(
+                            pinnedIds, report, onPin = { pinnedIds = pinnedIds + it.id },
+                        )
+                        TourStage.SETTINGS -> TourSettingsSurface(mode, report, onSelect = { mode = it })
+                        TourStage.SHARE -> TourShareSurface(infoInset, report)
+                        TourStage.ROUTE_PLAN -> TourRouteSurface(infoInset, report)
+                        TourStage.WATCH -> TourWatchSurface(infoInset, report)
+                        TourStage.WIDGET -> TourWidgetSurface(infoInset, report)
+                    }
                 }
             }
 
@@ -178,7 +230,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
             // so a tall target (eg. the full departures list) keeps the bubble at the bottom
             // instead of overlapping the interface up top.
             val targetTop = targetRect?.top
-            val bubbleAtBottom = targetTop == null || targetTop < windowHeightPx * 0.55f
+            val bubbleAtBottom = if (infoStage) false else (targetTop == null || targetTop < windowHeightPx * 0.55f)
             val bodyText = when {
                 step.stage == TourStage.TRACK && trackingActive -> TRACK_DETAIL_BODY
                 step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> FAVOURITE_DETAIL_BODY
@@ -196,18 +248,30 @@ fun OnboardingTour(onComplete: () -> Unit) {
                 else -> stepIndex + 1
             }
 
+            // Anchored title/body bubble. When it sits at the bottom it clears the
+            // fixed nav bar below it.
             Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                 CalloutBubble(
                     title = step.title,
                     body = bodyText,
+                    caretUp = bubbleAtBottom,
+                    modifier = Modifier
+                        .align(if (bubbleAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
+                        .padding(bottom = if (bubbleAtBottom) 76.dp else 0.dp)
+                        .onGloballyPositioned { bubbleHeightDp = with(density) { it.size.height.toDp() } },
+                )
+            }
+
+            // Fixed navigation bar, pinned to the bottom so Back / Next never move.
+            Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+                TourNavBar(
                     index = dotIndex,
                     total = dotTotal,
-                    caretUp = bubbleAtBottom,
                     onBack = ::goBack,
                     onSkip = onComplete,
                     onNext = ::goNext,
                     nextLabel = nextLabel,
-                    modifier = Modifier.align(if (bubbleAtBottom) Alignment.BottomCenter else Alignment.TopCenter),
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -410,7 +474,7 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
             modifier = Modifier.padding(top = 4.dp),
         )
 
-        // Countdown + tracking bar — the heart of tracking, so spotlight this block.
+        // Countdown + tracking bar, the heart of tracking, so spotlight this block.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -535,18 +599,19 @@ private fun TourSettingsSurface(
 
 // Mocked watch showcase: a real screenshot of each watch app with a capability badge and its own
 // store button beneath the face. The card is the spotlight target. On Android the Apple Watch app
-// installs but pairs with an iPhone, so its badge reads "Works with iPhone" — an advert, not a
+// installs but pairs with an iPhone, so its badge reads "Works with iPhone", an advert, not a
 // pairing. internal (not private) so the onboarding snapshot test can render it.
 @Composable
-internal fun TourWatchSurface(onReport: (Rect) -> Unit) {
+internal fun TourWatchSurface(topInset: Dp, onReport: (Rect) -> Unit) {
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.Center,
+            .verticalScroll(rememberScrollState())
+            .padding(top = topInset, bottom = 96.dp)
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
@@ -700,16 +765,119 @@ private const val TOUR_TRACK_RUNWAY_SEC = 165L
 private const val TOUR_TRACK_DISTANCE_M = 130.0
 
 @Composable
-private fun TourWidgetSurface(onReport: (Rect) -> Unit) {
+private fun TourWidgetSurface(topInset: Dp, onReport: (Rect) -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(top = topInset, bottom = 96.dp)
+            .padding(horizontal = 24.dp),
     ) {
         Box(Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) }) {
             TourWidgetMock()
         }
         Spacer(Modifier.height(24.dp))
         AddWidgetButton()
+    }
+}
+
+@Composable
+private fun TourShareSurface(topInset: Dp, onReport: (Rect) -> Unit) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(top = topInset, bottom = 96.dp)
+            .padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("From the SBB Mobile app", color = secondary, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { onReport(it.boundsInRoot()) }
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Share to", color = secondary, fontSize = 14.sp)
+            Text("TrainTime", style = MaterialTheme.typography.titleMedium)
+        }
+        Spacer(Modifier.height(16.dp))
+        Text("Your trip opens here, tracked and ready.", color = secondary, fontSize = 13.sp)
+    }
+}
+
+// Mirrors the real route sheet (RouteDetailSheet) so the tour matches the app:
+// coloured line pills, a Remind switch, Track now, the current leg highlighted.
+@Composable
+private fun TourRouteSurface(topInset: Dp, onReport: (Rect) -> Unit) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(top = topInset, bottom = 96.dp)
+            .padding(horizontal = 20.dp),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { onReport(it.boundsInRoot()) }
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                .padding(12.dp),
+        ) {
+            Text("Route to Lausanne", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+            TourRouteLeg("IR90", "Sion to Lausanne", "13:02 to 13:44", tracked = true, isCurrent = true)
+            TourRouteLeg("M2", "Lausanne to Ouchy", "13:52 to 14:01", tracked = false, isCurrent = false)
+        }
+        Spacer(Modifier.height(12.dp))
+        Text("Each connection can send a reminder. Track any now.", color = secondary, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun TourRouteLeg(line: String, path: String, times: String, tracked: Boolean, isCurrent: Boolean) {
+    val palette = LocalAppPalette.current
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val bg = if (isCurrent) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(bg).padding(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                line,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(palette.linePill(line, TransportMode.TRAIN))
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+            )
+            Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                Text(path, fontWeight = FontWeight.Medium, maxLines = 1)
+                Text(times, color = secondary, fontSize = 12.sp)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Remind", color = secondary, fontSize = 10.sp)
+                Switch(checked = tracked, onCheckedChange = {})
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(if (isCurrent) "Next connection" else "", color = secondary, fontSize = 11.sp)
+            Text("Track now", color = palette.platform, fontSize = 14.sp)
+        }
     }
 }

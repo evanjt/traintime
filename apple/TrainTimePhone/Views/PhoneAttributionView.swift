@@ -2,7 +2,7 @@ import SwiftUI
 
 // Credits for the data and software TrainTime builds on, reached from the bottom of Settings. Two
 // sources require attribution (Open Transport Data Switzerland, the Garmin SDK); the rest is credited
-// as good practice. On iOS almost nothing third-party ships beyond the Garmin SDK — the app is
+// as good practice. On iOS almost nothing third-party ships beyond the Garmin SDK. The app is
 // otherwise built on Apple's own frameworks.
 struct PhoneAttributionView: View {
     var body: some View {

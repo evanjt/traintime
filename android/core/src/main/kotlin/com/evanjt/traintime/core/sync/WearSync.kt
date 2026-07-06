@@ -11,11 +11,12 @@ import kotlinx.serialization.json.Json
 // a persisted state item (favourites / pinned stations / default mode) and a
 // fire-and-forget track command.
 object WearSync {
-    // DataClient state item — the analog of WCSession updateApplicationContext.
+    // DataClient state item. The analog of WCSession updateApplicationContext.
     const val STATE_PATH = "/traintime/state"
     const val KEY_FAVOURITES = "favourites"
     const val KEY_MY_STATIONS = "myStations"
     const val KEY_DEFAULT_MODE = "defaultMode"
+    const val KEY_PENDING_ROUTE = "pendingRoute"
 
     // MessageClient track command (phone -> watch), like PhoneWatchService.
     const val TRACK_PATH = "/traintime/track"
@@ -31,7 +32,7 @@ object WearSync {
     const val KIND_REQ_LOC = "reqLoc"
 
     // MessageClient command channel (phone -> watch) for the non-track mirror
-    // actions — mode / station / loc / back — matching the Garmin action contract.
+    // actions (mode / station / loc / back) matching the Garmin action contract.
     const val CMD_PATH = "/traintime/cmd"
 
     val json = Json { ignoreUnknownKeys = true }

@@ -105,4 +105,4 @@ fun AppPalette.linePill(line: String, mode: TransportMode): Color {
 }
 
 // SwissBounds / Timing / Thresholds moved to :core (com.evanjt.traintime,
-// shared with :wear). Imports are unchanged — same package, different module.
+// shared with :wear). Imports are unchanged, same package, different module.

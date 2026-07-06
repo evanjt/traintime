@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +46,7 @@ fun WearStationListScreen(
     vm: WearViewModel,
     onOpenPicker: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenRoute: () -> Unit,
 ) {
     val listState = rememberLazyListState()
     val config = LocalConfiguration.current
@@ -62,12 +64,18 @@ fun WearStationListScreen(
             contentPadding = PaddingValues(start = sidePad, end = sidePad, top = topPad, bottom = bottomPad),
             modifier = Modifier.fillMaxSize(),
         ) {
-            // Mode selector — centred so it clears the round top bezel.
+            // Mode selector, centred so it clears the round top bezel.
             item {
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
                 ) { ModeIconRow(vm) }
+            }
+
+            // Queued shared route (phone-owned, read-only mirror). Tap opens the
+            // full itinerary, where any trackable leg can be tracked or muted.
+            vm.pendingRoute?.let { route ->
+                item { WearPendingRouteChip(route, onTap = onOpenRoute) }
             }
 
             // Station name (tap to switch) + GPS dot + settings gear.
@@ -113,16 +121,21 @@ fun WearStationListScreen(
 
             item { Divider() }
 
+            // A refresh dims the rows in place rather than blanking the board.
+            val listAlpha = if (vm.departuresRefreshing) 0.5f else 1f
+
             val favourites = vm.favouriteDepartures
             if (favourites.isNotEmpty()) {
                 itemsIndexed(favourites, key = { _, d -> "fav-${d.stableId}" }) { _, dep ->
-                    WearDepartureRow(
-                        departure = dep,
-                        isFavourite = true,
-                        mode = vm.currentMode,
-                        onClick = { vm.selectDeparture(dep) },
-                        onLongClick = { vm.toggleFavouriteDeparture(dep) },
-                    )
+                    Box(Modifier.alpha(listAlpha)) {
+                        WearDepartureRow(
+                            departure = dep,
+                            isFavourite = true,
+                            mode = vm.currentMode,
+                            onClick = { vm.selectDeparture(dep) },
+                            onLongClick = { vm.toggleFavouriteDeparture(dep) },
+                        )
+                    }
                 }
                 item { GoldSeparator() }
             }
@@ -139,13 +152,15 @@ fun WearStationListScreen(
                 }
             } else {
                 itemsIndexed(vm.departures, key = { _, d -> "dep-${d.stableId}" }) { index, dep ->
-                    WearDepartureRow(
-                        departure = dep,
-                        isFavourite = vm.isDepartureFavourite(dep),
-                        mode = vm.currentMode,
-                        onClick = { vm.selectDeparture(index) },
-                        onLongClick = { vm.toggleFavouriteDeparture(dep) },
-                    )
+                    Box(Modifier.alpha(listAlpha)) {
+                        WearDepartureRow(
+                            departure = dep,
+                            isFavourite = vm.isDepartureFavourite(dep),
+                            mode = vm.currentMode,
+                            onClick = { vm.selectDeparture(index) },
+                            onLongClick = { vm.toggleFavouriteDeparture(dep) },
+                        )
+                    }
                 }
             }
 
@@ -175,4 +190,32 @@ private fun Divider() {
             .height(1.dp)
             .background(MaterialTheme.colors.onSurfaceVariant.copy(alpha = 0.3f)),
     )
+}
+
+@Composable
+private fun WearPendingRouteChip(route: com.evanjt.traintime.data.model.PendingRoute, onTap: () -> Unit) {
+    val leg = route.currentLeg ?: return
+    val mins = ((leg.depTs - System.currentTimeMillis() / 1000) / 60).coerceAtLeast(0)
+    val countdown = if (mins >= 60) "in ${mins / 60} h ${mins % 60}" else "in $mins min"
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .background(
+                LocalWearPalette.current.favouriteSeparator.copy(alpha = 0.25f),
+                MaterialTheme.shapes.small,
+            )
+            .clickable(onClick = onTap)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Text(
+            "▶ ${route.finalDestination} · $countdown",
+            color = MaterialTheme.colors.onBackground,
+            fontSize = 10.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }

@@ -131,7 +131,7 @@ fun SettingsSheet(
                 }
             }
 
-            // Watch link — one row: the connected watch (or count), details on the page.
+            // Watch link, one row: the connected watch (or count), details on the page.
             // Hidden entirely when no watch is paired (Wear or Garmin).
             if (viewModel.watchLinks.isNotEmpty()) {
                 val connected = viewModel.watchLinks.filter { it.connected }

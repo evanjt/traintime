@@ -2,11 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = PhoneViewModel()
+    @ObservedObject private var pendingRouteStore = PendingRouteStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @State private var showTourHint = false
+    @State private var showRouteDetail = false
 
     var body: some View {
         ZStack {
@@ -30,7 +32,7 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                     Button {
-                        viewModel.resumeFromInactive()
+                        viewModel.resumeToStationView()
                     } label: {
                         Label("Resume", systemImage: "arrow.clockwise")
                             .font(.subheadline.weight(.medium))
@@ -44,11 +46,38 @@ struct ContentView: View {
                 PhoneStationView(viewModel: viewModel)
             }
         }
-        .onAppear { viewModel.onAppear() }
+        // Queued shared route rides above the station/inactive screens and
+        // hides during tracking.
+        .safeAreaInset(edge: .top) {
+            if let route = pendingRouteStore.pending, viewModel.appState != 2 {
+                PendingRouteChip(
+                    route: route,
+                    onTap: { showRouteDetail = true },
+                    onDismiss: { viewModel.dismissPendingRoute() }
+                )
+            }
+        }
+        .sheet(isPresented: $showRouteDetail) {
+            RouteDetailView(viewModel: viewModel)
+                .onAppear {
+                    if let route = viewModel.pendingRouteStore.pending {
+                        viewModel.loadRoutePlatforms(route)
+                    }
+                }
+        }
+        .onAppear {
+            viewModel.onAppear()
+            viewModel.consumeSharePayload()
+            Task { await viewModel.refreshPendingRoute() }
+        }
         .onDisappear { viewModel.onDisappear() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 viewModel.onAppear()
+                // openURL from the share extension is flaky, pick up a fresh
+                // handoff even when the deep link never fired.
+                viewModel.consumeSharePayload()
+                Task { await viewModel.refreshPendingRoute() }
             } else {
                 viewModel.onDisappear()
             }
@@ -70,6 +99,42 @@ struct ContentView: View {
         }
         .onChange(of: viewModel.openWriteReviewTick) { _, _ in
             openURL(PhoneViewModel.writeReviewURL)
+        }
+        // Shared-route intake feedback + replace confirmation + resume prompt.
+        .alert("Replace queued route?", isPresented: Binding(
+            get: { viewModel.shareReplaceOffer != nil },
+            set: { if !$0 { viewModel.dismissReplaceSharedRoute() } }
+        )) {
+            Button("Replace") { viewModel.confirmReplaceSharedRoute() }
+            Button("Keep existing", role: .cancel) { viewModel.dismissReplaceSharedRoute() }
+        } message: {
+            Text("You already have a route saved. Replace it with the trip to \(viewModel.shareReplaceOffer?.route.finalDestinationName ?? "")?")
+        }
+        .alert("Resume route to \(pendingRouteStore.pending?.finalDestination ?? "")?", isPresented: Binding(
+            get: { viewModel.resumeOffer != nil },
+            set: { if !$0 { viewModel.deferResume() } }
+        )) {
+            Button("Track") { viewModel.resumePendingRoute() }
+            Button("Later", role: .cancel) { viewModel.deferResume() }
+        } message: {
+            if let dep = viewModel.resumeOffer {
+                Text("\(dep.lineNumber) to \(dep.destination) departs in \(max(0, dep.minutesUntil)) min"
+                    + (dep.platform.isEmpty ? "" : " from platform \(dep.platform)"))
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let status = viewModel.shareStatus {
+                Text(status)
+                    .font(.footnote)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Capsule().fill(Color(uiColor: .secondarySystemBackground)).shadow(radius: 4))
+                    .padding(.bottom, 32)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .task {
+                        try? await Task.sleep(nanoseconds: 4_000_000_000)
+                        withAnimation { viewModel.shareStatus = nil }
+                    }
+            }
         }
         .fullScreenCover(isPresented: Binding(
             get: { !hasSeenOnboarding },

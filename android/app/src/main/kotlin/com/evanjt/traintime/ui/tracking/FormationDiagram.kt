@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.FormationWagon
 
-// Adaptive carriage greys — dark values match the original watch look, light
+// Adaptive carriage greys, dark values match the original watch look, light
 // values track Apple's systemGray scale.
 private data class FormationColors(
     val body: Color,
@@ -237,7 +237,7 @@ private fun Carriage(wagon: FormationWagon, width: Dp, height: Dp, showFeature: 
             .border(0.5.dp, colors.outline, RoundedCornerShape(3.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        // 1st class accent — yellow stripe along the top
+        // 1st class accent: yellow stripe along the top
         if (wagon.wagonClass == 1) {
             Box(
                 Modifier

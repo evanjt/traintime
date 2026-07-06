@@ -7,15 +7,24 @@ extension TrainTimeViewModel {
     internal func updateFocusedTrain() {
         guard var focused = focusedTrain else { return }
 
-        // Find matching departure by destination + closest minutes (only non-departed)
+        // Match by train number when we have one (a protected shared-route leg
+        // carries it), so live platform/delay are adopted even though the leg's
+        // destName is the alight stop, not the board's terminus. Fall back to
+        // destination for board taps that lack a train number (buses/trams).
         let matches = departures.filter {
-            $0.destination == focused.destination && $0.minutesUntil >= -1
+            ($0.destination == focused.destination ||
+                (focused.trainNumber != nil && $0.trainNumber == focused.trainNumber)) &&
+                $0.minutesUntil >= -1
         }
         guard let best = matches.min(by: {
             abs(Double($0.minutesUntil) - focused.minutesUntil) <
             abs(Double($1.minutesUntil) - focused.minutesUntil)
         }) else {
-            // Train no longer in stationboard → has departed
+            // A still-future train just isn't on the board yet (a shared route
+            // opened early, before it reaches the 20-row horizon). Keep the
+            // local countdown; only give up once it has actually departed.
+            let nowS = Int(Date().timeIntervalSince1970)
+            if nowS < focused.departureTimestamp + PendingRouteLogic.graceSec { return }
             HapticService.shortPulse()
             exitToStationView()
             return
@@ -76,4 +85,28 @@ extension TrainTimeViewModel {
         // Both bearing and heading are in radians; convert relative angle to degrees
         return (bearing - heading) * 180.0 / .pi
     }
+
+    /// While tracking a shared-route leg, the next ride leg of the same route is
+    /// the onward connection: shown under the countdown, tappable to jump onto
+    /// it early. Matched by departure time so an unrelated track shows nothing.
+    var onwardConnection: OnwardConnection? {
+        guard let focused = focusedTrain, let route = PendingRouteStore.shared.pending else { return nil }
+        guard let curIdx = route.legs.firstIndex(where: {
+            $0.type == .ride && $0.depTs == focused.departureTimestamp
+        }) else { return nil }
+        let curLeg = route.legs[curIdx]
+        guard let nextIdx = route.legs[(curIdx + 1)...].firstIndex(where: { $0.type == .ride }) else { return nil }
+        let next = route.legs[nextIdx]
+        let changeMinutes = max(0, (next.depTs - curLeg.arrTs) / 60)
+        return OnwardConnection(changeStation: curLeg.destName, leg: next, legIndex: nextIdx, changeMinutes: changeMinutes)
+    }
+}
+
+/// The next ride leg while tracking a shared route: where the user changes, the
+/// onward train, and the connection buffer in minutes.
+struct OnwardConnection {
+    let changeStation: String
+    let leg: RouteLeg
+    let legIndex: Int
+    let changeMinutes: Int
 }

@@ -30,6 +30,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Departures
     @Published var departures: [Departure] = []
     @Published var favouriteDepartures: [Departure] = []
+    /// True while a departures fetch is in flight. The station list dims the
+    /// rows rather than blanking, so a refresh freezes the board in place.
+    @Published var departuresRefreshing = false
 
     // MARK: - Favourites
     let favouritesStore = FavouritesStore.shared
@@ -39,7 +42,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var focusedTrain: FocusedDeparture? = nil
     @Published var formation: Formation? = nil
 
-    // Timed review ask (Yes hands off to the iPhone — the watch has no review page).
+    // Timed review ask (Yes hands off to the iPhone, the watch has no review page).
     @Published var showReviewPrompt = false
     let reviewStore = ReviewStore()
 
@@ -55,6 +58,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private var requestStartTime: Date?
     var lastFetchTime: Date = .distantPast
     private var lastSearchCoordinate: CLLocationCoordinate2D?
+    // The visible station was launched directly (favourite / shared route /
+    // phone push), not from a nearby search. On exit we re-search at the real
+    // position so we don't strand the user on a remote origin.
+    private var launchedStationActive = false
     var consecutiveErrors: Int = 0
     private var lastVibeTick: Int = 0
     private var tickCount: Int = 0
@@ -73,6 +80,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // Settings quick-launch of a favourite: entered once the fetched departures
     // contain the matching line+destination (Garmin's mPendingFavTrack analog).
     private var pendingFavTrack: (line: String, dest: String)?
+    // Shared-route chip tap awaiting its origin board (see resumePendingRoute).
+    private var pendingRouteLeg: RouteLeg?
 
     // MARK: - Computed
 
@@ -140,7 +149,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
-        // The phone became reachable (e.g. it just opened) — re-announce so it greens promptly.
+        // The phone became reachable (e.g. it just opened). Re-announce so it greens promptly.
         if session.isReachable { WatchPhoneSync.sendHello() }
     }
 
@@ -166,6 +175,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             }
             self?.favouritesStore.handleReceivedContext(applicationContext)
             MyStationsStore.shared.handleReceivedContext(applicationContext)
+            PendingRouteStore.shared.handleReceivedContext(applicationContext)
         }
     }
 
@@ -174,6 +184,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // an optional mirror when the phone drives it.
     private func handlePhoneMessage(_ data: [String: Any]) {
         guard let action = data["action"] as? String else { return }
+        // Tracking is the end game: while tracking, the phone's navigation must
+        // not pull the watch out. Only a fresh track command switches what it
+        // tracks; location still flows through as a GPS fallback.
+        if appState == 2, action != "track", action != "loc" { return }
         switch action {
         case "track":
             enterTrackingFromPhone(data)
@@ -203,7 +217,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         let platChg = data["platChg"] as? Bool ?? false
 
         if let stId = data["stId"] as? String {
-            // Set station for API polling — find matching station or use ID directly
+            // Set station for API polling, find matching station or use ID directly
             // The next timer tick will fetch departures for this station
             _ = stId  // Station ID available for future API polling
         }
@@ -269,14 +283,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     // Phone selected a specific station. There's no standalone single-station path, so
     // synthesise the station, show it as the sole entry for its mode, and fetch its departures.
-    private func showStationFromPhone(_ data: [String: Any]) {
-        guard let stId = data["stId"] as? String else { return }
+    /// Make a specific station the current one without a nearby search. Does NOT
+    /// touch appState or the departure list, the caller decides whether to show
+    /// the board or go straight to a countdown. Deliberately does NOT set
+    /// lastSearchCoordinate: a launched remote origin must not become the watch's
+    /// assumed position (effectivePosition falls back to it when GPS/phone are
+    /// unavailable).
+    private func setLaunchedStation(id: String, name: String?, lat: Double?, lon: Double?) {
         lastInteractionTime = Date()
         if appState == 3 { resumeFromInactive() }
-        let name = data["name"] as? String ?? "Station"
-        let lat = data["lat"] as? Double
-        let lon = data["lon"] as? Double
-        let station = Station(id: stId, name: name, lat: lat, lon: lon, mode: currentMode, dist: nil, embeddedDepartures: nil)
+        let station = Station(id: id, name: name ?? "Station", lat: lat, lon: lon, mode: currentMode, dist: nil, embeddedDepartures: nil)
         switch currentMode {
         case .train: trainStations = [station]
         case .bus: busStations = [station]
@@ -285,13 +301,39 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
         if !availableModes.contains(currentMode) { availableModes = [currentMode] }
         stationIndex = 0
+        launchedStationActive = true
+    }
+
+    private func showStationFromPhone(_ data: [String: Any]) {
+        guard let stId = data["stId"] as? String else { return }
+        let name = data["name"] as? String ?? "Station"
+        let lat = data["lat"] as? Double
+        let lon = data["lon"] as? Double
+        setLaunchedStation(id: stId, name: name, lat: lat, lon: lon)
         appState = 0
-        if let lat, let lon {
-            lastSearchCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-        }
         departures = []
         favouriteDepartures = []
         fetchDepartures(stationId: stId)
+    }
+
+    /// Leave a launched station and return to the nearby list at the user's
+    /// real position (GPS, else fresh phone location, else last anchor).
+    /// No-op when the current station came from a nearby search.
+    private func returnToNearbyIfLaunched() {
+        guard launchedStationActive else { return }
+        launchedStationActive = false
+        trainStations = []
+        busStations = []
+        tramStations = []
+        specialStations = []
+        stationIndex = 0
+        departures = []
+        favouriteDepartures = []
+        if let coord = effectivePosition(),
+           SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+            fetchStations(lat: coord.latitude, lon: coord.longitude)
+        }
+        // No position yet: stations are empty, so the next update fetches.
     }
 
     // MARK: - Phone location backfill
@@ -300,7 +342,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         phoneLat = lat
         phoneLon = lon
         phoneLocTs = Date()
-        // Only act on it when our own GPS can't carry us — a good in-bounds fix stays primary.
+        // Only act on it when our own GPS can't carry us. A good in-bounds fix stays primary.
         if !gpsUsableInBounds() {
             searchFromPhoneLocation()
         }
@@ -409,7 +451,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         // Only gate initial search on Swiss bounds (border hysteresis)
         guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
             if stations.isEmpty {
-                // Our own fix is outside Switzerland — fall back to the phone's location.
+                // Our own fix is outside Switzerland. Fall back to the phone's location.
                 if phoneLocFresh() {
                     searchFromPhoneLocation()
                 } else {
@@ -470,7 +512,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
-        // Movement detection (only in station/selection view) — refresh in place
+        // Movement detection (only in station/selection view), refresh in place
         if appState <= 1,
            let lastSearch = lastSearchCoordinate,
            location.hasMovedSignificantly(from: lastSearch) {
@@ -543,7 +585,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             } else if SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             } else {
-                // Out of Switzerland with no stations — ask the phone for its location.
+                // Out of Switzerland with no stations. Ask the phone for its location.
                 requestPhoneLocation()
             }
         }
@@ -562,8 +604,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     private func selectDepartureImpl(_ dep: Departure) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
-
-        focusedTrain = FocusedDeparture(
+        beginTracking(FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
             lineNumber: dep.lineNumber,
@@ -573,7 +614,40 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             delay: dep.delay,
             platform: dep.platform,
             platformChanged: dep.platformChanged
-        )
+        ))
+
+        // Only user-initiated tracking counts toward the review ask; a
+        // phone-pushed track command doesn't route through here.
+        reviewStore.incrementTrackCount()
+        if reviewStore.shouldPrompt() {
+            reviewStore.markPrompted(version: ReviewStore.currentVersion)
+            showReviewPrompt = true
+        }
+    }
+
+    /// Track a shared-route leg whose train isn't on the live board yet. The
+    /// countdown is fully local (derived from depTs), so it runs without a board
+    /// match. updateFocusedTrain keeps it until the train departs, then a live
+    /// board match upgrades it with delay/platform.
+    private func enterProtectedTrack(_ leg: RouteLeg) {
+        beginTracking(FocusedDeparture(
+            destination: leg.destName,
+            departureTimestamp: leg.depTs,
+            lineNumber: leg.lineNumber ?? "",
+            category: leg.category ?? "",
+            trainNumber: leg.trainNumber,
+            operatorRef: nil,
+            delay: 0,
+            platform: "",
+            platformChanged: false
+        ))
+    }
+
+    /// Shared tracking entry: from a real board tap or a synthesised shared-route
+    /// leg. Everything downstream (timer cadence, extended session, phone echo,
+    /// formation) is identical once we have a FocusedDeparture.
+    private func beginTracking(_ focused: FocusedDeparture) {
+        focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
         consecutiveErrors = 0
@@ -582,10 +656,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         formation = nil
 
         // Fetch formation for rail departures
-        if let tn = dep.trainNumber, Formation.isRailCategory(dep.category),
+        if let tn = focused.trainNumber, Formation.isRailCategory(focused.category),
            let stationId = currentStation?.id {
             let date = formationDateString()
-            let opRef = dep.operatorRef
+            let opRef = focused.operatorRef
             Task { @MainActor in
                 self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
             }
@@ -597,17 +671,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         HapticService.shortPulse()
 
         // Reflect the same focused train on the phone (parity with the Garmin trackStarted echo).
-        if let focused = focusedTrain {
-            WatchPhoneSync.sendTrackStarted(focused, stationId: currentStation?.id)
-        }
-
-        // Only user-initiated tracking counts toward the review ask; a
-        // phone-pushed track command doesn't route through here.
-        reviewStore.incrementTrackCount()
-        if reviewStore.shouldPrompt() {
-            reviewStore.markPrompted(version: ReviewStore.currentVersion)
-            showReviewPrompt = true
-        }
+        WatchPhoneSync.sendTrackStarted(focused, stationId: currentStation?.id)
     }
 
     func enterInactiveState() {
@@ -623,6 +687,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+    }
+
+    /// Inactive-screen resume (terminal user action, no launch follows), so it
+    /// can safely re-search: a launched route that timed out into inactive
+    /// returns to the user's real position instead of the remote origin board.
+    func resumeToStationView() {
+        resumeFromInactive()
+        returnToNearbyIfLaunched()
     }
 
     // MARK: - Review ask
@@ -684,6 +756,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         // Restore normal timer
         startTimer(interval: Timing.normalRefreshInterval)
         endExtendedSession()
+        // A launched remote origin (favourite / shared route). Return to the
+        // nearby list at the user's real position, not that origin.
+        returnToNearbyIfLaunched()
     }
 
     private func formationDateString() -> String {
@@ -697,6 +772,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     private func fetchStations(lat: Double, lon: Double) {
         guard !requestInFlight else { return }
+        // A real nearby search supersedes any launched remote station.
+        launchedStationActive = false
         requestInFlight = true
         requestStartTime = Date()
 
@@ -734,6 +811,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         guard !requestInFlight else { return }
         requestInFlight = true
         requestStartTime = Date()
+        departuresRefreshing = true
 
         let favParam = favouritesStore.favouritesParam(forStation: stationId)
 
@@ -743,6 +821,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
+                    departuresRefreshing = false
                     lastFetchTime = Date()
                     consecutiveErrors = 0
                     departures = !result.favourites.isEmpty
@@ -757,12 +836,15 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                         updateFocusedTrain()
                     }
                     tryEnterPendingFavTrack()
+                    tryEnterPendingRouteTrack()
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
+                    departuresRefreshing = false
                     pendingFavTrack = nil
+                    pendingRouteLeg = nil
                     handleError(error, context: "Departures")
                 }
             }
@@ -796,6 +878,87 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             $0.lineNumber == pending.line && $0.destination == pending.dest && !$0.isGone
         }) else { return }
         selectDeparture(index: index)
+    }
+
+    // MARK: - Shared route (phone-owned, read-only mirror)
+
+    /// Resume-dialog Track / route-view "Track now" on the current leg. An
+    /// explicit resume always opens the countdown. A live board match gives
+    /// real delay/platform, otherwise a local protected countdown.
+    func resumePendingRoute() {
+        guard pendingRouteLeg == nil, let route = PendingRouteStore.shared.pending else { return }
+        let now = Int(Date().timeIntervalSince1970)
+        guard let normalized = PendingRouteLogic.normalize(route, now: now) else { return }
+        trackLegImpl(normalized, index: normalized.cursor)
+    }
+
+    /// Route-view "Track now" on any trackable leg (may jump ahead to a later
+    /// connection). Untrackable legs (walk / outside Switzerland) are ignored.
+    func trackLeg(_ index: Int) {
+        guard pendingRouteLeg == nil, let route = PendingRouteStore.shared.pending else { return }
+        let now = Int(Date().timeIntervalSince1970)
+        guard let normalized = PendingRouteLogic.normalize(route, now: now) else { return }
+        trackLegImpl(normalized, index: index)
+    }
+
+    /// The countdown is fully local (derived from the leg's departure time), so
+    /// an explicit tap enters it immediately: no board fetch gates it, so a slow
+    /// network can't delay the countdown. The origin becomes the current station,
+    /// so beginTracking's timer fetches that board in the background and
+    /// updateFocusedTrain upgrades platform/delay when the train appears.
+    private func trackLegImpl(_ route: PendingRoute, index: Int) {
+        guard index >= 0, index < route.legs.count else { return }
+        let leg = route.legs[index]
+        guard leg.isTrackable, let stationId = leg.originId else { return }
+        setLaunchedStation(id: stationId, name: leg.originName, lat: leg.originLat, lon: leg.originLon)
+        enterProtectedTrack(leg)
+    }
+
+    private func tryEnterPendingRouteTrack() {
+        guard let leg = pendingRouteLeg else { return }
+        pendingRouteLeg = nil
+        if let match = matchDeparture(departures, leg: leg),
+           let index = departures.firstIndex(where: { $0.stableId == match.stableId }) {
+            selectDeparture(index: index)
+        } else if leg.isTrackable {
+            // Not on the board yet, but the user explicitly opened it (resume /
+            // Track now): open a local countdown that survives until departure.
+            enterProtectedTrack(leg)
+        }
+    }
+
+    /// Route-view per-leg track/notify toggle. The pending route is phone-owned;
+    /// the watch's PendingRouteStore.syncToCounterpart() is phone → watch only,
+    /// and there is no notifier on the watch, so this edits local state only.
+    // TODO: watch → phone route-mute propagation. No clean watch → phone
+    // route-state channel exists yet (the store is deliberately phone-owned with
+    // no echo guard), so a mute set here doesn't reach the phone's reminder.
+    func setLegMuted(_ index: Int, muted: Bool) {
+        PendingRouteStore.shared.setLegMuted(index, muted: muted)
+    }
+
+    /// Platform per ride leg for the route view, keyed by leg index. Platforms
+    /// aren't in the shared link, they come from the live board and only exist
+    /// close to departure, so this fetches each near-term leg's origin board
+    /// once and matches it. Legs hours out simply have no platform yet.
+    @Published var routeLegPlatforms: [Int: String] = [:]
+
+    func loadRoutePlatforms(_ route: PendingRoute) {
+        routeLegPlatforms = [:]
+        Task { @MainActor in
+            let now = Int(Date().timeIntervalSince1970)
+            var result: [Int: String] = [:]
+            for (index, leg) in route.legs.enumerated() {
+                guard leg.type == .ride, leg.isTrackable else { continue }
+                guard leg.depTs - now <= 60 * 60 else { continue } // not on the board yet
+                guard let stationId = leg.originId else { continue }
+                guard let board = try? await TrainAPIService.fetchDepartures(stationId: stationId) else { continue }
+                if let platform = matchDeparture(board.departures, leg: leg)?.platform, !platform.isEmpty {
+                    result[index] = platform
+                }
+            }
+            routeLegPlatforms = result
+        }
     }
 
     // MARK: - Error Handling
