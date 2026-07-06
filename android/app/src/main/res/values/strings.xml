@@ -2,20 +2,4 @@
 <resources>
     <string name="app_name">TrainTime</string>
     <string name="widget_description">Nearby departures at a glance</string>
-
-    <string name="onboarding_skip">Skip</string>
-    <string name="onboarding_next">Next</string>
-    <string name="onboarding_get_started">Get Started</string>
-
-    <string name="onboarding_title_1">Departures around you</string>
-    <string name="onboarding_body_1">We use your location to show the nearest stations and their live departures. Tap the mode chips to switch between train, bus and tram.</string>
-
-    <string name="onboarding_title_2">Track a train</string>
-    <string name="onboarding_body_2">Tap any departure to track it. You get a live countdown, a haptic nudge when it is time to leave, and the walking distance to the platform.</string>
-
-    <string name="onboarding_title_3">Pin your station</string>
-    <string name="onboarding_body_3">Press and hold a station to pin it. Pinned stations lead the list, so if you usually catch the train at Bern Bhf it shows first even when you are standing closer to a smaller stop.</string>
-
-    <string name="onboarding_title_4">Star your favourites</string>
-    <string name="onboarding_body_4">Tap the star on a line to save it. Favourites sit at the top of the list. Add the home-screen widget to see your next departures at a glance.</string>
 </resources>
