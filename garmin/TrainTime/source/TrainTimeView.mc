@@ -373,16 +373,7 @@ class TrainTimeView extends WatchUi.View {
         }
         mConsecutiveErrors = 0;
         mLastFetchTime = 0;  // Force immediate fetch on tracking entry
-        mFormationClasses = null;
-        mFormationNumbers = null;
-        mFormationSectors = null;
-
-        // Fetch formation for rail departures
-        var trainNum = t["trainNum"];
-        var cat = t["cat"];
-        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
-            ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
-        }
+        maybeFetchFormation(t);
 
         // Faster timer for tracking mode (1s for seconds-precision countdown)
         if (mTimer != null) {
@@ -401,6 +392,20 @@ class TrainTimeView extends WatchUi.View {
         return cat.equals("IR") || cat.equals("IC") || cat.equals("EC") || cat.equals("ICE")
             || cat.equals("TGV") || cat.equals("RJX") || cat.equals("RE") || cat.equals("R")
             || cat.equals("S") || cat.equals("PE") || cat.equals("NJ") || cat.equals("EN");
+    }
+
+    // Reset any previous formation and fetch the new one for rail departures.
+    // Shared by every tracking entry: local selection, pending favourite and
+    // phone-pushed track. Non-rail or missing fields just leave it cleared.
+    function maybeFetchFormation(t) {
+        mFormationClasses = null;
+        mFormationNumbers = null;
+        mFormationSectors = null;
+        var trainNum = t["trainNum"];
+        var cat = t["cat"];
+        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
+            ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
+        }
     }
 
     function onFormationReceived(responseCode, data) {
@@ -727,12 +732,16 @@ class TrainTimeView extends WatchUi.View {
             "delay" => data.hasKey("delay") ? data["delay"] : 0,
             "plat" => data.hasKey("plat") ? data["plat"] : "",
             "platChg" => data.hasKey("platChg") ? data["platChg"] : false,
-            "line" => data.hasKey("line") ? data["line"] : ""
+            "line" => data.hasKey("line") ? data["line"] : "",
+            "cat" => data.hasKey("cat") ? data["cat"] : null,
+            "trainNum" => data.hasKey("trainNum") ? data["trainNum"] : null,
+            "opRef" => data.hasKey("opRef") ? data["opRef"] : null
         };
 
         mAppState = 2;
         mConsecutiveErrors = 0;
         mLastFetchTime = 0;
+        maybeFetchFormation(mFocusedTrain);
 
         if (mTimer != null) {
             mTimer.stop();
@@ -980,14 +989,7 @@ class TrainTimeView extends WatchUi.View {
         mAppState = 2;
         mConsecutiveErrors = 0;
         mLastFetchTime = Time.now().value();
-        mFormationClasses = null;
-        mFormationNumbers = null;
-        mFormationSectors = null;
-        var trainNum = match["trainNum"];
-        var cat = match["cat"];
-        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
-            ApiHandler.fetchFormation(self, trainNum, mStationId, match["opRef"]);
-        }
+        maybeFetchFormation(match);
         if (mTimer != null) {
             mTimer.stop();
             mTimer.start(method(:onTimerTick), 1000, true);
