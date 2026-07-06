@@ -1,3 +1,7 @@
-A quick walkthrough now introduces the app on first launch.
+Share a trip from SBB Mobile straight into TrainTime and it picks up your train. Later trips wait as a saved route you can open any time, with a reminder before departure.
+Your Apple Watch now mirrors what the phone is tracking, shows when it is live, and launches from the phone.
+A quick walkthrough introduces the app on first launch.
 Choose a light, dark or system appearance in Settings.
+When you are outside the service area, a map now shows where you are.
+Duplicate departures no longer appear in the list.
 Rate TrainTime from Settings if you like it.

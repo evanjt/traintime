@@ -1,3 +1,7 @@
+Condividi un viaggio da SBB Mobile direttamente in TrainTime e il tuo treno viene seguito subito. I viaggi futuri restano come percorso salvato che puoi aprire in qualsiasi momento, con un promemoria prima della partenza.
+Il tuo Apple Watch ora rispecchia ciò che il telefono sta seguendo, mostra quando è attivo e si avvia dal telefono.
 Una breve introduzione ti guida al primo avvio.
 Scegli un aspetto chiaro, scuro o di sistema nelle impostazioni.
+Fuori dall'area coperta, una mappa mostra ora dove ti trovi.
+Le partenze duplicate non appaiono più nell'elenco.
 Valuta TrainTime dalle impostazioni se ti piace.
