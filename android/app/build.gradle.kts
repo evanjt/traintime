@@ -31,8 +31,8 @@ android {
         applicationId = "com.evanjt.traintime"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.5.1"
+        versionCode = 10
+        versionName = "0.5.2"
     }
 
     signingConfigs {
