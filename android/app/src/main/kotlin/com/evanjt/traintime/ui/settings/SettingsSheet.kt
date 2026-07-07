@@ -27,6 +27,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,9 +37,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.evanjt.traintime.BuildConfig
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.TransportMode
@@ -105,6 +111,8 @@ fun SettingsSheet(
                 onSelect = { viewModel.updateAppearanceMode(appearanceOptions[it].first) },
                 modifier = Modifier.padding(top = 16.dp),
             )
+
+            ReminderSettings(viewModel = viewModel, modifier = Modifier.padding(top = 16.dp))
 
             if (viewModel.favouritesList.isNotEmpty()) {
                 Row(
@@ -213,6 +221,146 @@ private val appearanceOptions = listOf(
     "light" to "Light",
     "dark" to "Dark",
 )
+
+private val savedLeadOptions = listOf(5, 10, 15, 30)
+private val connectionLeadOptions = listOf(2, 3, 4, 5)
+
+// Route-reminder controls: permission status, the two independent leads, and a
+// test notification so the user (or a debugger) can confirm delivery without a
+// real departure > 15 min out.
+@Composable
+private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modifier) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val palette = LocalAppPalette.current
+    val context = LocalContext.current
+
+    val routeLead by viewModel.prefs.routeReminderLeadMinutes.collectAsState(initial = 15)
+    val connectionLead by viewModel.prefs.connectionReminderLeadMinutes.collectAsState(initial = 3)
+    val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = false)
+    val backgroundTracking by viewModel.prefs.backgroundReminderTracking.collectAsState(initial = true)
+
+    // Re-check on resume so returning from system settings updates the row.
+    var granted by remember { mutableStateOf(notificationsEnabled(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) granted = notificationsEnabled(context)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    Column(modifier) {
+        Text("Route reminders", color = secondary, fontSize = 13.sp)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .let { if (granted) it else it.clickable { openNotificationSettings(context) } }
+                .padding(top = 8.dp),
+        ) {
+            Text("Notifications", color = onSurface)
+            Spacer(Modifier.weight(1f))
+            Text(
+                if (granted) "Allowed" else "Turn on",
+                color = if (granted) secondary else palette.platform,
+                fontSize = 14.sp,
+            )
+        }
+
+        SegmentedSetting(
+            label = "Remind me before departure",
+            options = savedLeadOptions.map { "$it min" },
+            selectedIndex = savedLeadOptions.indexOf(routeLead).coerceAtLeast(0),
+            onSelect = { viewModel.setRouteReminderLead(savedLeadOptions[it]) },
+            modifier = Modifier.padding(top = 12.dp),
+        )
+
+        SegmentedSetting(
+            label = "Before a connection",
+            options = connectionLeadOptions.map { "$it min" },
+            selectedIndex = connectionLeadOptions.indexOf(connectionLead).coerceAtLeast(0),
+            onSelect = { viewModel.setConnectionReminderLead(connectionLeadOptions[it]) },
+            modifier = Modifier.padding(top = 12.dp),
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Adjust for distance to station", color = onSurface)
+                Text("Lead becomes your walk time + the minutes above", color = secondary, fontSize = 12.sp)
+            }
+            Switch(checked = distanceAware, onCheckedChange = { viewModel.setDistanceAwareReminder(it) })
+        }
+
+        if (distanceAware) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Update in the background", color = onSurface)
+                    Text("Keep it accurate as you move, even when the app is closed", color = secondary, fontSize = 12.sp)
+                }
+                Switch(checked = backgroundTracking, onCheckedChange = { viewModel.setBackgroundReminderTracking(it) })
+            }
+        }
+
+        Text(
+            if (distanceAware) {
+                "You'll be notified your walk time + $routeLead min before departure"
+            } else {
+                "You'll be notified $routeLead min before departure"
+            },
+            color = palette.platform,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.sendTestNotification() }
+                .padding(top = 12.dp),
+        ) {
+            Text("Send test notification", color = onSurface)
+        }
+
+        if (distanceAware) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.sendDistanceReminderTest() }
+                    .padding(top = 12.dp),
+            ) {
+                Text("Test distance reminder", color = onSurface)
+            }
+        }
+    }
+}
+
+private fun notificationsEnabled(context: android.content.Context): Boolean =
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+        ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.POST_NOTIFICATIONS,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    } else {
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+private fun openNotificationSettings(context: android.content.Context) {
+    context.startActivity(
+        android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName),
+    )
+}
 
 private enum class SettingsPage { MAIN, FAVOURITES, WATCH }
 

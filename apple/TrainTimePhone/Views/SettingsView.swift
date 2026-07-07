@@ -1,12 +1,36 @@
 import SwiftUI
+import UserNotifications
 
 struct PhoneSettingsView: View {
     @ObservedObject var viewModel: PhoneViewModel
     @ObservedObject private var favouritesStore = FavouritesStore.shared
     @Environment(\.dismiss) var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @AppStorage("routeReminderLeadMinutes") private var routeLeadMinutes = 15
+    @AppStorage("connectionReminderLeadMinutes") private var connectionLeadMinutes = 3
+    @AppStorage("distanceAwareReminder") private var distanceAwareReminder = false
+    @AppStorage("backgroundReminderTracking") private var backgroundReminderTracking = true
+    @State private var notificationsAuthorized: Bool?
+
+    private var reminderSummary: String {
+        distanceAwareReminder
+            ? "You'll be notified your walk time + \(routeLeadMinutes) min before departure"
+            : "You'll be notified \(routeLeadMinutes) min before departure"
+    }
+
+    private let savedLeadOptions = [5, 10, 15, 30]
+    private let connectionLeadOptions = [2, 3, 4, 5]
+
+    private func refreshNotificationStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let ok = settings.authorizationStatus == .authorized
+                || settings.authorizationStatus == .provisional
+            DispatchQueue.main.async { notificationsAuthorized = ok }
+        }
+    }
 
     private func watchStatusText(_ liveness: WatchLiveness) -> String {
         switch liveness {
@@ -41,6 +65,64 @@ struct PhoneSettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                }
+
+                Section {
+                    HStack {
+                        Text("Notifications")
+                        Spacer()
+                        switch notificationsAuthorized {
+                        case .some(true):
+                            Text("Allowed").foregroundStyle(.secondary)
+                        case .some(false):
+                            Button("Turn on") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    openURL(url)
+                                }
+                            }
+                        case .none:
+                            Text("").foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Picker("Remind me before departure", selection: $routeLeadMinutes) {
+                        ForEach(savedLeadOptions, id: \.self) { Text("\($0) min").tag($0) }
+                    }
+
+                    Picker("Before a connection", selection: $connectionLeadMinutes) {
+                        ForEach(connectionLeadOptions, id: \.self) { Text("\($0) min").tag($0) }
+                    }
+
+                    Toggle("Adjust for distance to station", isOn: $distanceAwareReminder)
+                        .onChange(of: distanceAwareReminder) { _, _ in viewModel.syncReminderTracking() }
+
+                    if distanceAwareReminder {
+                        Toggle("Update in the background", isOn: $backgroundReminderTracking)
+                            .onChange(of: backgroundReminderTracking) { _, _ in viewModel.syncReminderTracking() }
+                    }
+
+                    Text(reminderSummary)
+                        .font(.footnote)
+                        .foregroundStyle(AppColors.platform)
+
+                    Button("Send test notification") {
+                        PendingRouteNotifier.sendTest()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            refreshNotificationStatus()
+                        }
+                    }
+
+                    if distanceAwareReminder {
+                        Button("Test distance reminder") {
+                            viewModel.sendDistanceReminderTest()
+                        }
+                    }
+                } header: {
+                    Text("Route reminders")
+                } footer: {
+                    Text(distanceAwareReminder
+                        ? "The lead becomes your walk time to the station plus the minutes above. Background updates keep it accurate as you move."
+                        : "Reminders for a saved route. The connection lead is used once you're already on the way.")
                 }
 
                 if !favouritesStore.favourites.isEmpty {
@@ -182,6 +264,10 @@ struct PhoneSettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onAppear { refreshNotificationStatus() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshNotificationStatus() }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }

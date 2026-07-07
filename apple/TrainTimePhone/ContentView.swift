@@ -52,6 +52,7 @@ struct ContentView: View {
             if let route = pendingRouteStore.pending, viewModel.appState != 2 {
                 PendingRouteChip(
                     route: route,
+                    notifyTs: viewModel.reminderNotifyTs,
                     onTap: { showRouteDetail = true },
                     onDismiss: { viewModel.dismissPendingRoute() }
                 )

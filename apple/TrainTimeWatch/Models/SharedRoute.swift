@@ -106,10 +106,19 @@ enum PendingRouteLogic {
     /// declared missed while its tracking session could still be running.
     static let graceSec = 90
 
-    /// Notification lead: at least 15 min before departure, more when a
-    /// preceding walk leg needs it.
+    /// Notification lead for the first leg of a saved route: at least 15 min
+    /// before departure, more when a preceding walk leg needs it. Both leads
+    /// are user-configurable (Settings), the notifier passes the chosen value.
     static let minLeadSec = 15 * 60
     static let walkMarginSec = 5 * 60
+
+    /// Lead for a later connection, when the traveller is already moving. Much
+    /// shorter than the initial reminder and set independently.
+    static let connectionLeadSec = 3 * 60
+
+    /// Cap on the first-leg lead so a distance-aware reminder saved from far
+    /// away never schedules absurdly early.
+    static let maxLeadSec = 90 * 60
 
     /// A route is only offered for one-tap resume this close to departure,
     /// roughly when the train can appear on the 20-row board.
@@ -132,12 +141,34 @@ enum PendingRouteLogic {
         return advanced
     }
 
-    static func notifyTs(_ route: PendingRoute) -> Int? {
+    /// A ride leg with an earlier ride leg in the route is a connection: the
+    /// traveller has already boarded once, so a short reminder suffices.
+    static func isConnectionLeg(_ route: PendingRoute) -> Bool {
+        guard route.cursor < route.legs.count else { return false }
+        return route.legs.prefix(route.cursor).contains { $0.type == .ride }
+    }
+
+    /// When `userDistanceMeters` is supplied (distance-aware mode), the first-leg
+    /// lead becomes the walk time to the origin station plus `savedLeadSec` as a
+    /// buffer, capped at `maxLeadSec`. Nil distance keeps the static behaviour.
+    /// Connection legs always use the short static connection lead.
+    static func notifyTs(
+        _ route: PendingRoute,
+        savedLeadSec: Int = minLeadSec,
+        connectionLeadSec: Int = connectionLeadSec,
+        userDistanceMeters: Double? = nil
+    ) -> Int? {
         guard let leg = route.currentLeg else { return nil }
         guard leg.isTrackable, !route.isLegMuted(route.cursor) else { return nil }
+        if isConnectionLeg(route) { return leg.depTs - connectionLeadSec }
+        if let distance = userDistanceMeters {
+            let walkSec = Int(GeoUtils.walkMinutes(distanceMeters: distance) * 60)
+            let lead = min(walkSec + savedLeadSec, maxLeadSec)
+            return leg.depTs - lead
+        }
         let walk = route.cursor > 0 ? route.legs[route.cursor - 1] : nil
         let walkLead = (walk?.type == .walk) ? (walk?.durationSec ?? 0) : 0
-        let lead = max(minLeadSec, walkLead + walkMarginSec)
+        let lead = max(savedLeadSec, walkLead + walkMarginSec)
         return leg.depTs - lead
     }
 

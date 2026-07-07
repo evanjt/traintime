@@ -122,6 +122,65 @@ class PendingRouteLogicTest {
     }
 
     @Test
+    fun `connection leg uses the shorter connection lead`() {
+        val dep = now + 7200
+        // First ride already departed, cursor on the second ride (a connection).
+        val r = route(
+            ride(now - 3600, train = "1"),
+            walk(dep - 120, dep - 30),
+            ride(dep, train = "2"),
+            cursor = 2,
+        )
+        assertEquals(dep - 3 * 60, PendingRouteLogic.notifyTs(r)!!)
+    }
+
+    @Test
+    fun `leads are configurable and independent`() {
+        val dep = now + 7200
+        val first = route(ride(dep))
+        assertEquals(dep - 10 * 60, PendingRouteLogic.notifyTs(first, savedLeadSec = 10 * 60)!!)
+        val connection = route(ride(now - 3600, train = "1"), ride(dep, train = "2"), cursor = 1)
+        assertEquals(dep - 4 * 60, PendingRouteLogic.notifyTs(connection, connectionLeadSec = 4 * 60)!!)
+    }
+
+    @Test
+    fun `distance adds walk time to the buffer`() {
+        val dep = now + 7200
+        // 830 m ≈ 10 min walk at 83 m/min, + 5 min buffer = 15 min lead.
+        val r = route(ride(dep))
+        assertEquals(dep - (10 + 5) * 60, PendingRouteLogic.notifyTs(r, savedLeadSec = 5 * 60, userDistanceMeters = 830.0)!!)
+    }
+
+    @Test
+    fun `distance lead is capped`() {
+        val dep = now + 100_000
+        // 100 km would be ~20 h walk, must clamp to MAX_LEAD_SEC.
+        val r = route(ride(dep))
+        assertEquals(dep - PendingRouteLogic.MAX_LEAD_SEC, PendingRouteLogic.notifyTs(r, userDistanceMeters = 100_000.0)!!)
+    }
+
+    @Test
+    fun `nil distance keeps the static lead`() {
+        val dep = now + 7200
+        val r = route(ride(dep))
+        assertEquals(dep - 15 * 60, PendingRouteLogic.notifyTs(r, userDistanceMeters = null)!!)
+    }
+
+    @Test
+    fun `connection leg ignores distance`() {
+        val dep = now + 7200
+        val r = route(ride(now - 3600, train = "1"), ride(dep, train = "2"), cursor = 1)
+        assertEquals(dep - 3 * 60, PendingRouteLogic.notifyTs(r, userDistanceMeters = 5000.0)!!)
+    }
+
+    @Test
+    fun `isConnectionLeg true only past the first ride`() {
+        assertFalse(PendingRouteLogic.isConnectionLeg(route(ride(now + 3600))))
+        val r = route(ride(now - 3600, train = "1"), ride(now + 3600, train = "2"), cursor = 1)
+        assertTrue(PendingRouteLogic.isConnectionLeg(r))
+    }
+
+    @Test
     fun `isResumable only inside the window`() {
         assertTrue(PendingRouteLogic.isResumable(route(ride(now + 44 * 60)), now))
         assertFalse(PendingRouteLogic.isResumable(route(ride(now + 46 * 60)), now))

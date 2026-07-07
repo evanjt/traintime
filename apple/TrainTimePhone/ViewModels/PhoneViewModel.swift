@@ -325,12 +325,52 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Lifecycle
 
+    /// Absolute epoch-second the reminder will fire for the active route, for the
+    /// green "notified in X min" line on the pending-route chip. Nil when none.
+    @Published var reminderNotifyTs: Int?
+
+    /// Start/stop background distance tracking to match settings + the current
+    /// route, and refresh the in-app notify countdown. The SLC monitor lives in
+    /// ReminderTracker so it survives relaunch.
+    func syncReminderTracking() {
+        ReminderTracker.shared.syncFromSettings()
+        reminderNotifyTs = pendingRouteStore.pending.flatMap { PendingRouteNotifier.nextNotifyTs(for: $0) }
+    }
+
+    /// Distance-aware test: computes the real distance from the current location
+    /// to the active route's origin (or the nearest station) and reports the lead
+    /// it would produce, immediately. Exercises the whole distance pipeline.
+    func sendDistanceReminderTest() {
+        let leg = pendingRouteStore.pending?.currentLeg
+        let originLat = leg?.originLat ?? currentStation?.lat
+        let originLon = leg?.originLon ?? currentStation?.lon
+        let originName = leg?.originName ?? currentStation?.name
+        guard let coord = location.coordinate, let originLat, let originLon, let originName else {
+            PendingRouteNotifier.notify(
+                title: "Distance test",
+                body: "Turn on location and open the app near a station first.")
+            return
+        }
+        let dist = GeoUtils.haversineDistance(
+            from: coord,
+            to: CLLocationCoordinate2D(latitude: originLat, longitude: originLon))
+        let walkMin = Int(GeoUtils.walkMinutes(distanceMeters: dist))
+        let leadMinutes = UserDefaults.standard.integer(forKey: "routeReminderLeadMinutes")
+        let savedLeadSec = (leadMinutes > 0 ? leadMinutes : 15) * 60
+        let walkSec = Int(GeoUtils.walkMinutes(distanceMeters: dist) * 60)
+        let leadMin = min(walkSec + savedLeadSec, PendingRouteLogic.maxLeadSec) / 60
+        PendingRouteNotifier.notify(
+            title: "Distance test: \(originName)",
+            body: "\(Int(dist)) m away (~\(walkMin) min walk). Reminder would fire \(leadMin) min before departure.")
+    }
+
     func onAppear() {
         lastInteractionTime = Date()
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
         watchService.initialize()
         startLivenessTicker()
+        syncReminderTracking()
         // Feed an already-open watch the current location once device status has settled.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.refreshConnectedWatches()
@@ -1550,6 +1590,7 @@ class PhoneViewModel: ObservableObject {
         pending.status = PendingRoute.statusSaved
         pendingRouteStore.save(pending)
         PendingRouteNotifier.schedule(pending, now: now)
+        syncReminderTracking()
         shareStatus = "Saved. We'll remind you before departure"
         // Don't strand the user on the remote origin board. The queued route
         // lives in the chip now. Return to their real location.

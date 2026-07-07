@@ -86,6 +86,52 @@ final class PendingRouteLogicTests: XCTestCase {
         XCTAssertEqual(PendingRouteLogic.notifyTs(r), dep - (1440 + 300))
     }
 
+    func testConnectionLegUsesTheShorterConnectionLead() {
+        let dep = now + 7200
+        // First ride already departed, cursor on the second ride (a connection).
+        let r = route([
+            ride(dep: now - 3600, train: "1"),
+            walk(dep: dep - 120, arr: dep - 30),
+            ride(dep: dep, train: "2"),
+        ], cursor: 2)
+        XCTAssertEqual(PendingRouteLogic.notifyTs(r), dep - 3 * 60)
+    }
+
+    func testLeadsAreConfigurableAndIndependent() {
+        let dep = now + 7200
+        XCTAssertEqual(PendingRouteLogic.notifyTs(route([ride(dep: dep)]), savedLeadSec: 10 * 60), dep - 10 * 60)
+        let connection = route([ride(dep: now - 3600, train: "1"), ride(dep: dep, train: "2")], cursor: 1)
+        XCTAssertEqual(PendingRouteLogic.notifyTs(connection, connectionLeadSec: 4 * 60), dep - 4 * 60)
+    }
+
+    func testDistanceAddsWalkTimeToTheBuffer() {
+        let dep = now + 7200
+        // 830 m ≈ 10 min walk at 83 m/min, + 5 min buffer = 15 min lead.
+        XCTAssertEqual(PendingRouteLogic.notifyTs(route([ride(dep: dep)]), savedLeadSec: 5 * 60, userDistanceMeters: 830), dep - (10 + 5) * 60)
+    }
+
+    func testDistanceLeadIsCapped() {
+        let dep = now + 100_000
+        XCTAssertEqual(PendingRouteLogic.notifyTs(route([ride(dep: dep)]), userDistanceMeters: 100_000), dep - PendingRouteLogic.maxLeadSec)
+    }
+
+    func testNilDistanceKeepsTheStaticLead() {
+        let dep = now + 7200
+        XCTAssertEqual(PendingRouteLogic.notifyTs(route([ride(dep: dep)]), userDistanceMeters: nil), dep - 15 * 60)
+    }
+
+    func testConnectionLegIgnoresDistance() {
+        let dep = now + 7200
+        let r = route([ride(dep: now - 3600, train: "1"), ride(dep: dep, train: "2")], cursor: 1)
+        XCTAssertEqual(PendingRouteLogic.notifyTs(r, userDistanceMeters: 5000), dep - 3 * 60)
+    }
+
+    func testIsConnectionLegTrueOnlyPastTheFirstRide() {
+        XCTAssertFalse(PendingRouteLogic.isConnectionLeg(route([ride(dep: now + 3600)])))
+        let r = route([ride(dep: now - 3600, train: "1"), ride(dep: now + 3600, train: "2")], cursor: 1)
+        XCTAssertTrue(PendingRouteLogic.isConnectionLeg(r))
+    }
+
     func testIsResumableOnlyInsideTheWindow() {
         XCTAssertTrue(PendingRouteLogic.isResumable(route([ride(dep: now + 44 * 60)]), now: now))
         XCTAssertFalse(PendingRouteLogic.isResumable(route([ride(dep: now + 46 * 60)]), now: now))

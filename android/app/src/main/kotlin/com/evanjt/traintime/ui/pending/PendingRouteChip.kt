@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.PendingRoute
 import java.time.Instant
 import java.time.ZoneId
@@ -40,6 +41,7 @@ private fun countdownText(depTs: Long, now: Long): String {
 fun PendingRouteChip(
     route: PendingRoute,
     nowEpochSeconds: Long,
+    notifyTs: Long?,
     onTap: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -68,6 +70,13 @@ fun PendingRouteChip(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (notifyTs != null && notifyTs > nowEpochSeconds) {
+                    Text(
+                        "You'll be notified in ${(notifyTs - nowEpochSeconds) / 60} min",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalAppPalette.current.ahead,
+                    )
+                }
             }
             IconButton(onClick = { confirmDiscard = true }) {
                 Icon(Icons.Default.Close, contentDescription = "Discard route")

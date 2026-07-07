@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import UserNotifications
 
@@ -6,7 +7,49 @@ import UserNotifications
 /// calendar-triggered local notification (delivered by the OS even after the
 /// app is killed). Tap deep-links traintime://resumeroute.
 enum PendingRouteNotifier {
-    private static let identifierPrefix = "pendingRoute"
+    // One reminder at a time, so a constant identifier: adding replaces any
+    // existing pending request atomically (the analog of Android's
+    // enqueueUniqueWork(REPLACE)) and cancel removes exactly it.
+    private static let identifier = "pendingRoute"
+
+    /// Saved-route lead in seconds, from the user's Settings choice (minutes).
+    private static var savedLeadSec: Int {
+        let minutes = UserDefaults.standard.integer(forKey: "routeReminderLeadMinutes")
+        return (minutes > 0 ? minutes : 15) * 60
+    }
+
+    /// Next-connection lead in seconds, set independently of the saved-route
+    /// lead. Defaults to 3 min when unset.
+    private static var connectionLeadSec: Int {
+        let minutes = UserDefaults.standard.integer(forKey: "connectionReminderLeadMinutes")
+        return (minutes > 0 ? minutes : 3) * 60
+    }
+
+    private static var distanceAware: Bool {
+        UserDefaults.standard.bool(forKey: "distanceAwareReminder")
+    }
+
+    /// Absolute epoch-second the reminder is set to fire for this route, using
+    /// the same rule as schedule. For the in-app "notified in X min" readout.
+    static func nextNotifyTs(for route: PendingRoute) -> Int? {
+        PendingRouteLogic.notifyTs(
+            route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
+            userDistanceMeters: userDistanceMeters(for: route))
+    }
+
+    /// Straight-line distance from the last known location to the current leg's
+    /// origin, only in distance-aware mode. Nil (static lead) when off, no leg,
+    /// or no stored coordinate.
+    private static func userDistanceMeters(for route: PendingRoute) -> Double? {
+        guard distanceAware, let leg = route.currentLeg,
+              let originLat = leg.originLat, let originLon = leg.originLon else { return nil }
+        let lat = UserDefaults.standard.double(forKey: "lastLat")
+        let lon = UserDefaults.standard.double(forKey: "lastLon")
+        guard lat != 0, lon != 0 else { return nil }
+        return GeoUtils.haversineDistance(
+            from: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+            to: CLLocationCoordinate2D(latitude: originLat, longitude: originLon))
+    }
 
     /// Contextual ask the first time anything schedules a reminder. Every
     /// schedule call happens app-foreground (share deep link, leg toggle,
@@ -24,9 +67,10 @@ enum PendingRouteNotifier {
 
     static func schedule(_ route: PendingRoute, now: Int) {
         requestAuthorizationIfNeeded()
-        cancel()
-        guard let notifyTs = PendingRouteLogic.notifyTs(route), notifyTs > now,
-              let leg = route.currentLeg else { return }
+        guard let notifyTs = PendingRouteLogic.notifyTs(
+            route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
+            userDistanceMeters: userDistanceMeters(for: route)
+        ), notifyTs > now, let leg = route.currentLeg else { return cancel() }
 
         let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
         let formatter = DateFormatter()
@@ -44,23 +88,36 @@ enum PendingRouteNotifier {
         let components = Calendar.current.dateComponents(
             [.year, .month, .day, .hour, .minute, .second], from: fireDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        // Constant identifier: replaces any prior pending reminder atomically.
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Fires in a few seconds so the user can confirm permission + delivery
+    /// without waiting for a real departure. Own identifier so it never
+    /// disturbs a scheduled reminder.
+    static func sendTest() {
+        notify(title: "Test reminder", body: "Route reminders are working. This is a test.")
+    }
+
+    /// Posts a short-delay notification in the reminder channel. Used by the test
+    /// buttons (plain + distance readout). Own identifier so it never disturbs a
+    /// scheduled reminder.
+    static func notify(title: String, body: String) {
+        requestAuthorizationIfNeeded()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
         let request = UNNotificationRequest(
-            identifier: "\(identifierPrefix)-\(route.id)-\(route.cursor)",
-            content: content,
-            trigger: trigger
-        )
+            identifier: "\(identifier)-test", content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
     }
 
     static func cancel() {
         let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { requests in
-            let ids = requests.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
-            center.removePendingNotificationRequests(withIdentifiers: ids)
-        }
-        center.getDeliveredNotifications { notifications in
-            let ids = notifications.map(\.request.identifier).filter { $0.hasPrefix(identifierPrefix) }
-            center.removeDeliveredNotifications(withIdentifiers: ids)
-        }
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 }

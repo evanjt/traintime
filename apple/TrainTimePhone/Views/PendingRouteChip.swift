@@ -5,6 +5,7 @@ import SwiftUI
 /// android ui/pending/PendingRouteChip.kt.
 struct PendingRouteChip: View {
     let route: PendingRoute
+    let notifyTs: Int?
     let onTap: () -> Void
     let onDismiss: () -> Void
 
@@ -37,6 +38,11 @@ struct PendingRouteChip: View {
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let notifyTs, notifyTs > now {
+                    Text("You'll be notified in \((notifyTs - now) / 60) min")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.ahead)
+                }
             }
             Spacer()
             Button {

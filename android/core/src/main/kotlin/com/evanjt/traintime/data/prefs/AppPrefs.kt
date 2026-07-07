@@ -123,6 +123,43 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_HAS_KNOWN_WEAR_NODE] = true }
     }
 
+    // Saved-route reminder lead in minutes (the first-leg "departs soon"
+    // heads-up). Default 15.
+    val routeReminderLeadMinutes: Flow<Int> =
+        dataStore.data.map { it[KEY_ROUTE_REMINDER_LEAD] ?: 15 }
+
+    suspend fun setRouteReminderLeadMinutes(value: Int) {
+        dataStore.edit { it[KEY_ROUTE_REMINDER_LEAD] = value }
+    }
+
+    // Next-connection reminder lead in minutes, when already mid-journey.
+    // Shorter than the saved-route lead, set independently. Default 3.
+    val connectionReminderLeadMinutes: Flow<Int> =
+        dataStore.data.map { it[KEY_CONNECTION_REMINDER_LEAD] ?: 3 }
+
+    suspend fun setConnectionReminderLeadMinutes(value: Int) {
+        dataStore.edit { it[KEY_CONNECTION_REMINDER_LEAD] = value }
+    }
+
+    // When on, the saved-route reminder lead becomes the walk time to the origin
+    // station plus the lead minutes as a buffer, instead of a static lead.
+    val distanceAwareReminder: Flow<Boolean> =
+        dataStore.data.map { it[KEY_DISTANCE_AWARE_REMINDER] ?: false }
+
+    suspend fun setDistanceAwareReminder(value: Boolean) {
+        dataStore.edit { it[KEY_DISTANCE_AWARE_REMINDER] = value }
+    }
+
+    // When on (default), the distance-aware lead keeps refreshing while the app
+    // is closed. Off = only the last-known location is used (no background
+    // location permission needed).
+    val backgroundReminderTracking: Flow<Boolean> =
+        dataStore.data.map { it[KEY_BACKGROUND_REMINDER_TRACKING] ?: true }
+
+    suspend fun setBackgroundReminderTracking(value: Boolean) {
+        dataStore.edit { it[KEY_BACKGROUND_REMINDER_TRACKING] = value }
+    }
+
     suspend fun lastCoordinate(): Pair<Double, Double>? {
         val prefs = dataStore.data.first()
         val lat = prefs[KEY_LAST_LAT] ?: 0.0
@@ -149,6 +186,10 @@ class AppPrefs(context: Context) {
         val KEY_REVIEW_SNOOZE_UNTIL = longPreferencesKey("reviewSnoozeUntil")
         val KEY_REVIEW_OPT_OUT = booleanPreferencesKey("reviewOptOut")
         val KEY_HAS_KNOWN_WEAR_NODE = booleanPreferencesKey("hasKnownWearNode")
+        val KEY_ROUTE_REMINDER_LEAD = intPreferencesKey("routeReminderLeadMinutes")
+        val KEY_CONNECTION_REMINDER_LEAD = intPreferencesKey("connectionReminderLeadMinutes")
+        val KEY_DISTANCE_AWARE_REMINDER = booleanPreferencesKey("distanceAwareReminder")
+        val KEY_BACKGROUND_REMINDER_TRACKING = booleanPreferencesKey("backgroundReminderTracking")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")

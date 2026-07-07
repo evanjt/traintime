@@ -47,6 +47,7 @@ import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
 import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.notify.PendingRouteNotifier
+import com.evanjt.traintime.notify.RouteDistanceTracker
 import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneId
@@ -324,6 +325,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startTimer(if (appState == 2) Timing.TRACKING_REFRESH_INTERVAL else Timing.NORMAL_REFRESH_INTERVAL)
         refreshWatchLinksOnAppear()
         viewModelScope.launch { refreshPendingRoute() }
+        syncReminderTracking()
     }
 
     // On foreground: find eligible watches (connected + TrainTime installed) for the header
@@ -714,6 +716,103 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateAppearanceMode(mode: String) {
         viewModelScope.launch { prefs.setAppearanceMode(mode) }
+    }
+
+    fun setRouteReminderLead(minutes: Int) {
+        viewModelScope.launch { prefs.setRouteReminderLeadMinutes(minutes) }
+    }
+
+    fun setConnectionReminderLead(minutes: Int) {
+        viewModelScope.launch { prefs.setConnectionReminderLeadMinutes(minutes) }
+    }
+
+    // One-shot flag: MainActivity launches the ACCESS_BACKGROUND_LOCATION request
+    // when the user opts into background distance tracking without the grant.
+    var backgroundLocationRequest by mutableStateOf(false)
+        private set
+
+    fun clearBackgroundLocationRequest() {
+        backgroundLocationRequest = false
+    }
+
+    fun setDistanceAwareReminder(value: Boolean) {
+        viewModelScope.launch {
+            prefs.setDistanceAwareReminder(value)
+            if (value && prefs.backgroundReminderTracking.first()) maybeRequestBackgroundLocation()
+            syncReminderTracking()
+        }
+    }
+
+    fun setBackgroundReminderTracking(value: Boolean) {
+        viewModelScope.launch {
+            prefs.setBackgroundReminderTracking(value)
+            if (value) maybeRequestBackgroundLocation()
+            syncReminderTracking()
+        }
+    }
+
+    private fun maybeRequestBackgroundLocation() {
+        if (!RouteDistanceTracker.hasBackgroundLocation(getApplication())) {
+            backgroundLocationRequest = true
+        }
+    }
+
+    // Absolute epoch-second the reminder will fire for the active route, for the
+    // green "notified in X min" line on the pending-route chip. Null when none.
+    var reminderNotifyTs by mutableStateOf<Long?>(null)
+        private set
+
+    // Start/stop background distance tracking to match the current settings and
+    // whether a route is active, and refresh the in-app notify countdown. Called
+    // from the toggles, foreground, and route save/clear.
+    private fun syncReminderTracking() {
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val route = pendingRouteStore.current()
+            reminderNotifyTs = route?.let { PendingRouteNotifier.nextNotifyTs(ctx, it) }
+            val active = route != null &&
+                prefs.distanceAwareReminder.first() &&
+                prefs.backgroundReminderTracking.first() &&
+                RouteDistanceTracker.hasBackgroundLocation(ctx)
+            if (active) RouteDistanceTracker.start(ctx) else RouteDistanceTracker.stop(ctx)
+        }
+    }
+
+    // Fires an immediate reminder so the user can confirm permission + delivery.
+    fun sendTestNotification() {
+        PendingRouteNotifier.sendTest(getApplication())
+    }
+
+    // Distance-aware test: computes the real distance from the current location
+    // to the active route's origin (or the nearest station) and reports the lead
+    // it would produce, immediately. Exercises the whole distance pipeline.
+    fun sendDistanceReminderTest() {
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            val coord = location.coordinate.value
+            val leg = pendingRouteStore.current()?.currentLeg
+            val originLat = leg?.originLat ?: currentStation?.lat
+            val originLon = leg?.originLon ?: currentStation?.lon
+            val originName = leg?.originName ?: currentStation?.name
+            if (coord == null || originLat == null || originLon == null || originName == null) {
+                PendingRouteNotifier.notifyNow(
+                    ctx,
+                    "Distance test",
+                    "Turn on location and open the app near a station first.",
+                )
+                return@launch
+            }
+            val dist = GeoUtils.haversineDistance(coord.lat, coord.lon, originLat, originLon)
+            val walkMin = GeoUtils.walkMinutes(dist).toInt()
+            val savedLeadSec = prefs.routeReminderLeadMinutes.first() * 60L
+            val walkSec = (GeoUtils.walkMinutes(dist) * 60).toLong()
+            val leadMin = (minOf(walkSec + savedLeadSec, PendingRouteLogic.MAX_LEAD_SEC) / 60).toInt()
+            PendingRouteNotifier.notifyNow(
+                ctx,
+                "Distance test: $originName",
+                "${dist.toInt()} m away (~$walkMin min walk). Reminder would fire $leadMin min before departure.",
+            )
+        }
     }
 
     fun markOnboardingSeen() {
@@ -1704,6 +1803,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         pendingRouteStore.save(pending)
         PendingRouteNotifier.schedule(getApplication(), pending, nowSeconds())
         notificationPermissionRequest = true
+        syncReminderTracking()
         showShareStatus("Saved. We'll remind you before departure")
         // Don't strand the user on the remote origin board, the queued route
         // lives in the chip now. Return to their real location.
@@ -1840,6 +1940,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             pendingRouteStore.clear()
             PendingRouteNotifier.cancel(getApplication())
+            reminderNotifyTs = null
+            RouteDistanceTracker.stop(getApplication())
         }
     }
 

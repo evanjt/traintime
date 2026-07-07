@@ -13,10 +13,19 @@ object PendingRouteLogic {
     // declared missed while its tracking session could still be running.
     const val GRACE_SEC = 90L
 
-    // Notification lead: at least 15 min before departure, more when a
-    // preceding walk leg needs it.
+    // Notification lead for the first leg of a saved route: at least 15 min
+    // before departure, more when a preceding walk leg needs it. Both leads are
+    // user-configurable (Settings), the notifier passes the chosen value.
     const val MIN_LEAD_SEC = 15 * 60L
     const val WALK_MARGIN_SEC = 5 * 60L
+
+    // Lead for a later connection, when the traveller is already moving. Much
+    // shorter than the initial reminder and set independently.
+    const val CONNECTION_LEAD_SEC = 3 * 60L
+
+    // Cap on the first-leg lead so a distance-aware reminder saved from far away
+    // never schedules absurdly early.
+    const val MAX_LEAD_SEC = 90 * 60L
 
     // A route is only offered for one-tap resume this close to departure,
     // roughly when the train can appear on the 20-row board.
@@ -40,12 +49,34 @@ object PendingRouteLogic {
         }
     }
 
-    fun notifyTs(route: PendingRoute): Long? {
+    // A ride leg with an earlier ride leg in the route is a connection: the
+    // traveller has already boarded once, so a short reminder suffices.
+    fun isConnectionLeg(route: PendingRoute): Boolean {
+        if (route.cursor >= route.legs.size) return false
+        return route.legs.take(route.cursor).any { it.type == LegType.RIDE }
+    }
+
+    // When userDistanceMeters is supplied (distance-aware mode), the first-leg
+    // lead becomes the walk time to the origin station plus savedLeadSec as a
+    // buffer, capped at MAX_LEAD_SEC. Null distance keeps the static behaviour.
+    // Connection legs always use the short static connection lead.
+    fun notifyTs(
+        route: PendingRoute,
+        savedLeadSec: Long = MIN_LEAD_SEC,
+        connectionLeadSec: Long = CONNECTION_LEAD_SEC,
+        userDistanceMeters: Double? = null,
+    ): Long? {
         val leg = route.currentLeg ?: return null
         if (!leg.isTrackable || route.isLegMuted(route.cursor)) return null
+        if (isConnectionLeg(route)) return leg.depTs - connectionLeadSec
+        if (userDistanceMeters != null) {
+            val walkSec = (GeoUtils.walkMinutes(userDistanceMeters) * 60).toLong()
+            val lead = minOf(walkSec + savedLeadSec, MAX_LEAD_SEC)
+            return leg.depTs - lead
+        }
         val walk = route.legs.getOrNull(route.cursor - 1)
             ?.takeIf { it.type == LegType.WALK }
-        val lead = maxOf(MIN_LEAD_SEC, (walk?.durationSec ?: 0L) + WALK_MARGIN_SEC)
+        val lead = maxOf(savedLeadSec, (walk?.durationSec ?: 0L) + WALK_MARGIN_SEC)
         return leg.depTs - lead
     }
 
