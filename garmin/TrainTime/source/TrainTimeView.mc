@@ -28,6 +28,7 @@ class TrainTimeView extends WatchUi.View {
     var mTramStations;
     var mSpecialStations;
     var mCurrentMode;
+    var mModeChangedTime;  // drives the transient mode-name label
     var mAvailableModes;
     var mGpsQuality;
     var mLoadedFromCache;
@@ -248,6 +249,7 @@ class TrainTimeView extends WatchUi.View {
         }
         idx = (idx + 1) % mAvailableModes.size();
         mCurrentMode = mAvailableModes[idx];
+        mModeChangedTime = Time.now().value();
         mStations = getStationsForMode(mCurrentMode);
         if (mStations != null && mStations.size() > 0) {
             mStationIndex = 0;
@@ -269,6 +271,7 @@ class TrainTimeView extends WatchUi.View {
         idx = idx - 1;
         if (idx < 0) { idx = mAvailableModes.size() - 1; }
         mCurrentMode = mAvailableModes[idx];
+        mModeChangedTime = Time.now().value();
         mStations = getStationsForMode(mCurrentMode);
         if (mStations != null && mStations.size() > 0) {
             mStationIndex = 0;

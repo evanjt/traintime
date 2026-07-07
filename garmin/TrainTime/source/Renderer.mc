@@ -40,9 +40,22 @@ module Renderer {
             // Mode indicators (above walk info)
             drawModeIndicators(dc, view, width, height);
 
-            // Walking info line / station indicator
+            // Walking info line / station indicator. Just after a mode change the
+            // line announces the new mode instead, so cycling is self-explanatory
             var walkY = height * 13 / 100;
-            if (view.mAppState == 1 && view.mCursorIndex == -1) {
+            var modeLabel = null;
+            if (view.mAppState == 0 && view.mModeChangedTime != null
+                    && Time.now().value() - view.mModeChangedTime < 3) {
+                if (view.mCurrentMode == 0) { modeLabel = "Trains"; }
+                else if (view.mCurrentMode == 1) { modeLabel = "Buses"; }
+                else if (view.mCurrentMode == 2) { modeLabel = "Trams"; }
+                else { modeLabel = "Boats & lifts"; }
+            }
+            if (modeLabel != null) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
+                    modeLabel, Graphics.TEXT_JUSTIFY_CENTER);
+            } else if (view.mAppState == 1 && view.mCursorIndex == -1) {
                 // Highlighted station indicator (shows walk info + counter)
                 var walkTextH = dc.getFontHeight(Graphics.FONT_XTINY);
                 var rowCenterForBg = walkY + walkTextH / 2;
@@ -222,59 +235,83 @@ module Renderer {
 
     function drawModeIndicators(dc, view, width, height) {
         var cy = height * 7 / 100;
-        var iconSpacing = 36;
+        var iconSpacing = width * 14 / 100;
         var totalWidth = 3 * iconSpacing;  // 4 icons, 3 gaps
         var startX = width / 2 - totalWidth / 2;
+
+        // Shared glyph metrics: s is the icon half-width, everything derives from it
+        var s = DrawUtils.px(5, width);
+        var wr = (2 * s + 2) / 5;               // wheel radius
+        var pen = DrawUtils.px(1, width);
+        var inset = (s + 2) / 4;                // window inset from body edge
+        var winH = s * 3 / 5;                   // window band height
+        var wheelCy = cy + s + wr / 2;
+        var underY = cy + s + 2 * wr + DrawUtils.px(2, width);
 
         for (var i = 0; i < 4; i++) {
             var cx = startX + i * iconSpacing;
             var isActive = (i == view.mCurrentMode);
             var available = isModeAvailable(view, i);
 
+            var tint;
             if (isActive && available) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                tint = Graphics.COLOR_WHITE;
             } else if (available) {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                tint = 0xAAAAAA;
             } else {
-                dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+                tint = 0x333333;
             }
+            dc.setColor(tint, Graphics.COLOR_TRANSPARENT);
 
             if (i == 0) {
-                // Train: rectangle body + peaked roof + 2 wheels
-                dc.fillRectangle(cx - 4, cy - 1, 8, 7);
-                dc.fillPolygon([[cx - 4, cy - 1], [cx, cy - 4], [cx + 4, cy - 1]]);
-                dc.fillCircle(cx - 3, cy + 8, 2);
-                dc.fillCircle(cx + 3, cy + 8, 2);
+                // Train: peaked cab, tall body, split windscreen, wheels
+                dc.fillPolygon([[cx - s, cy - s + 1], [cx, cy - s - 3 * s / 5], [cx + s, cy - s + 1]]);
+                dc.fillRectangle(cx - s, cy - s, 2 * s, 2 * s);
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(cx - s + inset, cy - s + inset, 2 * s - 2 * inset, winH);
+                dc.setColor(tint, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(cx - pen / 2, cy - s + inset, pen, winH);
+                dc.fillCircle(cx - s / 2, wheelCy, wr);
+                dc.fillCircle(cx + s / 2, wheelCy, wr);
             } else if (i == 1) {
-                // Bus: wider rectangle body + 2 wheels
-                dc.fillRectangle(cx - 5, cy, 10, 6);
-                dc.fillCircle(cx - 3, cy + 8, 2);
-                dc.fillCircle(cx + 3, cy + 8, 2);
+                // Bus: wider and lower body, single windscreen band, wide-set wheels
+                dc.fillRectangle(cx - s - s / 4, cy - s / 2, 2 * s + s / 2, s + s / 2);
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(cx - s - s / 4 + inset, cy - s / 2 + inset,
+                    2 * s + s / 2 - 2 * inset, winH);
+                dc.setColor(tint, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(cx - 3 * s / 4, wheelCy, wr);
+                dc.fillCircle(cx + 3 * s / 4, wheelCy, wr);
             } else if (i == 2) {
-                // Tram: rectangle body + pantograph + 2 wheels
-                dc.fillRectangle(cx - 4, cy - 1, 8, 7);
+                // Tram: pantograph over a flat-topped body, tucked wheels
+                dc.setPenWidth(pen);
+                dc.drawLine(cx - s / 2, cy - s, cx + s / 2, cy - s - s / 2);
+                dc.drawLine(cx - s / 2, cy - s - s / 2, cx + s / 2, cy - s - s / 2);
                 dc.setPenWidth(1);
-                dc.drawLine(cx, cy - 1, cx, cy - 6);
-                dc.drawLine(cx - 3, cy - 6, cx + 3, cy - 6);
-                dc.fillCircle(cx - 3, cy + 8, 2);
-                dc.fillCircle(cx + 3, cy + 8, 2);
-            } else if (i == 3) {
-                // Special (boats/funiculars/cable cars): wave icon
-                dc.setPenWidth(2);
-                dc.drawLine(cx - 5, cy, cx - 3, cy - 4);
-                dc.drawLine(cx - 3, cy - 4, cx, cy);
-                dc.drawLine(cx, cy, cx + 3, cy + 4);
-                dc.drawLine(cx + 3, cy + 4, cx + 5, cy);
-                dc.drawLine(cx - 5, cy + 5, cx - 3, cy + 1);
-                dc.drawLine(cx - 3, cy + 1, cx, cy + 5);
-                dc.drawLine(cx, cy + 5, cx + 3, cy + 9);
-                dc.drawLine(cx + 3, cy + 9, cx + 5, cy + 5);
+                dc.fillRectangle(cx - s, cy - s + s / 4, 2 * s, 2 * s - s / 4);
+                dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                dc.fillRectangle(cx - s + inset, cy - s + s / 4 + inset, 2 * s - 2 * inset, winH);
+                dc.setColor(tint, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(cx - s / 2, cy + s, wr);
+                dc.fillCircle(cx + s / 2, cy + s, wr);
+            } else {
+                // Special (boats, funiculars, cable cars): boat hull, cabin, wave
+                dc.fillRectangle(cx - s / 3, cy - s / 2, 2 * s / 3, s / 2);
+                dc.fillPolygon([[cx - s, cy], [cx + s, cy],
+                    [cx + 3 * s / 5, cy + 3 * s / 5], [cx - 3 * s / 5, cy + 3 * s / 5]]);
+                dc.setPenWidth(pen);
+                var wy = cy + s;
+                dc.drawLine(cx - s, wy, cx - s / 2, wy - s / 4);
+                dc.drawLine(cx - s / 2, wy - s / 4, cx, wy);
+                dc.drawLine(cx, wy, cx + s / 2, wy - s / 4);
+                dc.drawLine(cx + s / 2, wy - s / 4, cx + s, wy);
+                dc.setPenWidth(1);
             }
 
             // Active + available: underline indicator
             if (isActive && available) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(cx - 5, cy + 12, 10, 2);
+                dc.fillRectangle(cx - s, underY, 2 * s, DrawUtils.px(2, width));
             }
         }
     }
