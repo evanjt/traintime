@@ -223,7 +223,18 @@ private fun RootView(
             Box(Modifier.weight(1f)) {
                 when (viewModel.appState) {
                     2 -> TrackingScreen(viewModel)
-                    3 -> InactiveScreen(onResume = { viewModel.resumeToStationView() })
+                    // Keep the last board visible, darkened, with Resume floating
+                    // on top rather than blanking it.
+                    3 -> Box(Modifier.fillMaxSize()) {
+                        StationScreen(
+                            viewModel,
+                            onOpenSettings = { focusWatch ->
+                                settingsFocusWatch = focusWatch
+                                showSettings = true
+                            },
+                        )
+                        InactiveScreen(onResume = { viewModel.resumeToStationView() })
+                    }
                     else -> StationScreen(
                         viewModel,
                         onOpenSettings = { focusWatch ->
