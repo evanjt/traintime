@@ -1,20 +1,36 @@
 import Foundation
 
 /// Shared watch↔phone handshake versioning (Apple ecosystem peer of the Android
-/// `WearSync` protocol constants and Garmin `PhoneSync.PROTOCOL_VERSION`). A watch
-/// stamps every liveness announcement with its marketing version (`v`, for
-/// user-facing copy) and this monotonic protocol version (`pv`, for gating). Bump
-/// `version` only on a breaking payload change; raise `minTrackProtocol` to refuse
-/// Send-to-Watch against a watch too old to parse the current track command. A
-/// liveness message with no version field is a pre-versioning build: 0.4.x / pv 0.
+/// `WearSync` constants and Garmin `PhoneSync.PROTOCOL_VERSION`). A watch stamps
+/// every liveness announcement with its marketing version (`v`, for gating +
+/// user-facing copy) and a monotonic protocol version (`pv`, reserved for a
+/// future breaking-payload gate). A liveness message with no version field is a
+/// pre-versioning build, read as the legacy version 0.4.x.
 enum WatchSyncProtocol {
     static let version = 1
-    static let minTrackProtocol = 1
     static let legacyVersionName = "0.4.x"
+
+    /// The only current constraint: the sync features require a watch reporting
+    /// 0.5.x or higher. Major.minor only, so "0.5.x" and "0.5.1" both satisfy it.
+    static let minSyncMajor = 0
+    static let minSyncMinor = 5
 
     /// This build's marketing version, for stamping outbound liveness.
     static var localVersionName: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? legacyVersionName
+    }
+
+    /// True when a watch reporting this version is new enough for the sync
+    /// features. Nil / unparseable (a watch that sent no version) fails.
+    static func meetsSyncMinimum(_ version: String?) -> Bool {
+        guard let version, let mm = majorMinor(version) else { return false }
+        return mm.major > minSyncMajor || (mm.major == minSyncMajor && mm.minor >= minSyncMinor)
+    }
+
+    private static func majorMinor(_ version: String) -> (major: Int, minor: Int)? {
+        let parts = version.split(separator: ".")
+        guard parts.count >= 2, let major = Int(parts[0]), let minor = Int(parts[1]) else { return nil }
+        return (major, minor)
     }
 }
 

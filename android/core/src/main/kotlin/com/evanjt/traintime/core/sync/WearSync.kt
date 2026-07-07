@@ -41,14 +41,34 @@ object WearSync {
     const val CAPABILITY_WEAR_APP = "traintime_wear_app"
 
     // Handshake versioning. A watch stamps every liveness announcement with its
-    // marketing version (v, for user-facing copy) and this monotonic protocol
-    // version (pv, for gating logic). Bump PROTOCOL_VERSION only on a breaking
-    // payload change; raise MIN_TRACK_PROTOCOL to refuse Send-to-Watch against a
-    // watch too old to understand the current track command. A liveness message
-    // with no version field is a pre-versioning build: treated as 0.4.x / pv 0.
+    // marketing version (v, for gating + user-facing copy) and this monotonic
+    // protocol version (pv, reserved for a future breaking-payload gate). A
+    // liveness message with no version field is a pre-versioning build, read as
+    // the legacy version 0.4.x.
     const val PROTOCOL_VERSION = 1
-    const val MIN_TRACK_PROTOCOL = 1
     const val LEGACY_VERSION_NAME = "0.4.x"
+
+    // The only current constraint: the sync features (Send-to-Watch, mirroring)
+    // require a watch reporting 0.5.x or higher. A watch below this, or one that
+    // reports no version at all, is asked to update. Major.minor only, patch and
+    // any "x" placeholder ignored, so "0.5.x" and "0.5.1" both satisfy it.
+    const val MIN_SYNC_MAJOR = 0
+    const val MIN_SYNC_MINOR = 5
+
+    private fun majorMinor(version: String?): Pair<Int, Int>? {
+        val parts = version?.split(".") ?: return null
+        if (parts.size < 2) return null
+        val major = parts[0].toIntOrNull() ?: return null
+        val minor = parts[1].toIntOrNull() ?: return null
+        return major to minor
+    }
+
+    // True when a watch reporting this version is new enough for the sync
+    // features. Null / unparseable (a watch that sent no version) fails.
+    fun meetsSyncMinimum(version: String?): Boolean {
+        val (major, minor) = majorMinor(version) ?: return false
+        return major > MIN_SYNC_MAJOR || (major == MIN_SYNC_MAJOR && minor >= MIN_SYNC_MINOR)
+    }
 
     // The local app's marketing version, set once by each module's Application
     // (:app and :wear read their own BuildConfig.VERSION_NAME). Defaults to the
@@ -118,8 +138,8 @@ data class LivenessMessage(
     val v: String? = null,
     val pv: Int = 0,
 ) {
-    // True when this watch is too old to receive the current track command.
-    val trackOutdated: Boolean get() = pv < WearSync.MIN_TRACK_PROTOCOL
+    // True when this watch is new enough (0.5.x+) for the sync features.
+    val syncCapable: Boolean get() = WearSync.meetsSyncMinimum(v)
 
     // A version string fit for user-facing copy, falling back to the legacy name.
     val displayVersion: String get() = v ?: WearSync.LEGACY_VERSION_NAME

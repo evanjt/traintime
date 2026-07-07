@@ -19,7 +19,7 @@ class LivenessMessageTest {
         assertEquals(WearSync.KIND_HELLO, msg.kind)
         assertEquals("0.6.0", msg.v)
         assertEquals(WearSync.PROTOCOL_VERSION, msg.pv)
-        assertFalse(msg.trackOutdated)
+        assertTrue(msg.syncCapable)
         assertEquals("0.6.0", msg.displayVersion)
     }
 
@@ -29,7 +29,7 @@ class LivenessMessageTest {
         assertEquals(WearSync.KIND_HELLO, msg.kind)
         assertEquals(WearSync.LEGACY_VERSION_NAME, msg.v)
         assertEquals(0, msg.pv)
-        assertTrue(msg.trackOutdated)
+        assertFalse(msg.syncCapable)
         assertEquals(WearSync.LEGACY_VERSION_NAME, msg.displayVersion)
     }
 
@@ -42,8 +42,16 @@ class LivenessMessageTest {
     }
 
     @Test
-    fun currentProtocolIsNotOutdated() {
-        val current = LivenessMessage(WearSync.KIND_ALIVE, "0.6.0", WearSync.PROTOCOL_VERSION)
-        assertFalse(current.trackOutdated)
+    fun syncMinimumRequires05OrHigher() {
+        assertTrue(WearSync.meetsSyncMinimum("0.5.0"))
+        assertTrue(WearSync.meetsSyncMinimum("0.5.1"))
+        assertTrue(WearSync.meetsSyncMinimum("0.5.x"))
+        assertTrue(WearSync.meetsSyncMinimum("0.6.0"))
+        assertTrue(WearSync.meetsSyncMinimum("1.0.0"))
+        assertFalse(WearSync.meetsSyncMinimum("0.4.x"))
+        assertFalse(WearSync.meetsSyncMinimum("0.4.9"))
+        assertFalse(WearSync.meetsSyncMinimum(null))
+        assertFalse(WearSync.meetsSyncMinimum(""))
+        assertFalse(WearSync.meetsSyncMinimum("garbage"))
     }
 }

@@ -84,10 +84,8 @@ class PhoneViewModel: ObservableObject {
     private var appleLastAlive: Date = .distantPast
     private var appleLastContact: Date = .distantPast // alive or bye, drives the amber window
     // Version last announced by each backend (nil until first heard). Drives the
-    // Send-to-Watch update guard; a pre-versioning watch reports 0.4.x / protocol 0.
-    private var garminWatchProtocol: Int?
+    // Send-to-Watch update guard; a pre-versioning watch reports 0.4.x.
     private var garminWatchVersion: String?
-    private var appleWatchProtocol: Int?
     private var appleWatchVersion: String?
     private var livenessTimer: AnyCancellable?
     // Bumped by the liveness ticker so the time-based indicator recomputes on each render.
@@ -235,19 +233,16 @@ class PhoneViewModel: ObservableObject {
     // A backend just announced it's open. Refresh its freshness and, on the transition into
     // alive, push the phone's current view so the watch jumps straight to it.
     private func markAlive(_ source: PhoneWatchType, context: [String: Any]) {
-        // A pre-versioning watch sends no v/pv: read as 0.4.x / protocol 0.
-        let pv = context["pv"] as? Int ?? 0
+        // A pre-versioning watch sends no version: read as 0.4.x.
         let v = context["v"] as? String ?? WatchSyncProtocol.legacyVersionName
         switch source {
         case .garmin:
-            garminWatchProtocol = pv
             garminWatchVersion = v
             let wasAlive = garminAlive
             garminLastAlive = Date()
             watchChecking = false
             if !wasAlive { syncCurrentStateToWatch(to: .garmin) }
         case .appleWatch:
-            appleWatchProtocol = pv
             appleWatchVersion = v
             let wasAlive = appleAlive
             appleLastAlive = Date()
@@ -1067,17 +1062,16 @@ class PhoneViewModel: ObservableObject {
         connectedWatches = watchService.connectedWatches
     }
 
-    // Returns the watch's version when it has announced a protocol below the
-    // minimum (too old to receive the track command), else nil. A watch not yet
-    // heard from (nil protocol) gets the benefit of the doubt and the send runs.
+    // Returns the watch's version when it is below the 0.5.x sync minimum (or no
+    // version has been heard), else nil. The sync features require a watch that
+    // reports 0.5.x or higher.
     private func outdatedWatchVersion(for type: PhoneWatchType) -> String? {
-        let pv: Int?
         let v: String?
         switch type {
-        case .garmin: pv = garminWatchProtocol; v = garminWatchVersion
-        case .appleWatch: pv = appleWatchProtocol; v = appleWatchVersion
+        case .garmin: v = garminWatchVersion
+        case .appleWatch: v = appleWatchVersion
         }
-        guard let pv, pv < WatchSyncProtocol.minTrackProtocol else { return nil }
+        guard !WatchSyncProtocol.meetsSyncMinimum(v) else { return nil }
         return v ?? WatchSyncProtocol.legacyVersionName
     }
 
