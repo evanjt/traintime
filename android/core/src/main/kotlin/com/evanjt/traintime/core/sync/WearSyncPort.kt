@@ -9,6 +9,10 @@ interface WearSyncPort {
 
     suspend fun sendLiveness(kind: String)
 
+    // Watch -> phone: ask the phone to save the focused departure as a reminder.
+    // Returns whether it reached a connected phone.
+    suspend fun sendReminder(cmd: ReminderCommand): Boolean
+
     suspend fun connectedWatchNames(): List<String>
 
     // Nodes that actually have the Wear app installed (declare the capability),

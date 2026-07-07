@@ -48,6 +48,8 @@ class WearViewModelTest {
             liveness += kind
         }
 
+        override suspend fun sendReminder(cmd: com.evanjt.traintime.core.sync.ReminderCommand): Boolean = false
+
         override suspend fun connectedWatchNames(): List<String> = emptyList()
 
         override suspend fun appInstalledWatchNames(): List<String> = emptyList()

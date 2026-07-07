@@ -293,6 +293,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 favouritesList = it
                 favouriteDepartures = extractFavouritesFromCurrent(departures)
                 wearSync.pushState()
+                pushFavouritesToGarmin(it)
             }
         }
         viewModelScope.launch {
@@ -1039,6 +1040,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun syncCurrentStateToWatch() {
         if (!canMessageWatch()) return
         pushLocationNow()
+        // Re-seed favourites so a freshly-opened watch unions in anything it lacks.
+        pushFavouritesToGarmin(favouritesList)
         val focused = focusedTrain
         val payload = if (appState == 2 && focused != null) {
             TrackCommand.from(focused, currentStation?.id).toGarminMap()
@@ -1146,8 +1149,68 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             replyWithLocation()
             return
         }
+        // The watch (Garmin) asked us to save its focused departure as a reminder.
+        if (ctx["kind"] == "saveReminder") {
+            saveReminderFromWatch(ctx)
+            return
+        }
+        // The Garmin watch pushed its favourites: outer-join them into ours.
+        if (ctx["kind"] == "favourites") {
+            applyGarminFavourites(ctx["favs"])
+            return
+        }
         val modeRaw = (ctx["defaultMode"] as? Number)?.toInt() ?: return
         viewModelScope.launch { prefs.setDefaultMode(TransportMode.fromRaw(modeRaw)) }
+    }
+
+    // Reconstruct the one-leg route the Garmin watch described and queue it for a
+    // reminder (peer of the Apple saveReminderFromWatch and the Wear listener).
+    // Numbers arrive as Java Number across the Connect IQ bridge.
+    private fun saveReminderFromWatch(ctx: Map<String, Any?>) {
+        val dest = ctx["dest"] as? String ?: return
+        val depTs = (ctx["depTs"] as? Number)?.toLong() ?: return
+        val line = ctx["line"] as? String ?: return
+        val stId = ctx["stId"] as? String ?: return
+        val lat = (ctx["lat"] as? Number)?.toDouble() ?: return
+        val lon = (ctx["lon"] as? Number)?.toDouble() ?: return
+        val route = SharedRoute.single(
+            originId = stId,
+            originName = ctx["stName"] as? String ?: "Station",
+            originLat = lat,
+            originLon = lon,
+            destName = dest,
+            depTs = depTs,
+            lineNumber = line,
+            trainNumber = ctx["trainNum"] as? String,
+        )
+        viewModelScope.launch {
+            PendingRouteNotifier.saveAndSchedule(getApplication(), route, nowSeconds())
+        }
+    }
+
+    // Outer-join the Garmin watch's favourites into ours. The store change re-pushes
+    // the merged set to every watch via the favourites observer; the Garmin watch
+    // unions and never re-broadcasts, so this converges without a loop.
+    private fun applyGarminFavourites(raw: Any?) {
+        val incoming = (raw as? List<*>)?.mapNotNull { item ->
+            val m = item as? Map<*, *> ?: return@mapNotNull null
+            val stId = m["stId"] as? String ?: return@mapNotNull null
+            val line = m["line"] as? String ?: return@mapNotNull null
+            val dest = m["dest"] as? String ?: return@mapNotNull null
+            Favourite(stId, m["name"] as? String ?: stId, line, dest)
+        } ?: return
+        viewModelScope.launch {
+            val current = favouritesStore.all()
+            val merged = FavouritesStore.union(current, incoming)
+            if (merged != current) favouritesStore.replaceAll(merged)
+        }
+    }
+
+    // Push our favourites to every connected Garmin watch for the outer-join sync.
+    private fun pushFavouritesToGarmin(favourites: List<Favourite>) {
+        if (!canMessageWatch() || garminTargetIds.isEmpty()) return
+        val payload = WearSync.garminFavouritesPayload(favourites)
+        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
     }
 
     override fun onCleared() {
@@ -1666,17 +1729,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             shareReplaceOffer = offer
             return
         }
-        proceedWithSharedRoute(offer)
+        proceedOffer(offer)
+    }
+
+    // A board save queues straight away; an SBB share consults the live board.
+    private suspend fun proceedOffer(offer: SharedRouteOffer) {
+        if (offer.saveOnly) saveOfferAsQueued(offer) else proceedWithSharedRoute(offer)
     }
 
     fun confirmReplaceSharedRoute() {
         val offer = shareReplaceOffer ?: return
         shareReplaceOffer = null
-        viewModelScope.launch { proceedWithSharedRoute(offer) }
+        viewModelScope.launch { proceedOffer(offer) }
     }
 
     fun dismissReplaceSharedRoute() {
         shareReplaceOffer = null
+    }
+
+    // Save a single board departure as a pending route, so it rides the same
+    // distance-aware reminder as an SBB share. Tapping a row tracks now; this
+    // explicitly saves for later, which matters most for a far-future departure.
+    // Peer of PhoneViewModel.saveDepartureAsPending.
+    fun saveDepartureAsPending(departure: Departure) {
+        lastInteractionTime = now()
+        val station = currentStation
+        if (station == null || departure.departureTimestamp == null) {
+            showShareStatus("Couldn't save this departure")
+            return
+        }
+        val offer = SharedRouteOffer(
+            route = SharedRoute.forDeparture(station, departure),
+            sourceUrl = null,
+            saveOnly = true,
+        )
+        viewModelScope.launch { openSharedRoute(offer) }
     }
 
     // Bypass the nearby flow: show the leg's origin as the sole station and
@@ -1986,6 +2073,10 @@ data class SharedRouteOffer(
     val sourceUrl: String?,
     val forceLegIndex: Int? = null,
     val existing: PendingRoute? = null,
+    // A board "Remind me" save always queues for a reminder, never tracks now
+    // (tapping the row already tracks). SBB shares leave this false and decide
+    // track-vs-queue from the live board.
+    val saveOnly: Boolean = false,
 ) {
     fun fingerprint(): String = PendingRouteLogic.fingerprint(route.legs)
 }

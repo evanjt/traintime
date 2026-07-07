@@ -1,6 +1,8 @@
 package com.evanjt.traintime.data.sbb
 
 import com.evanjt.traintime.SwissBounds
+import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.data.model.Station
 import kotlinx.serialization.Serializable
 
 enum class LegType { RIDE, WALK }
@@ -54,5 +56,54 @@ data class SharedRoute(
             it.type == LegType.RIDE && it.depTs >= nowEpochSeconds - 60
         }
         return if (index >= 0) index else null
+    }
+
+    companion object {
+        // A one-leg route synthesised from a live board departure, so a departure
+        // can be saved for a reminder without an SBB share. Origin (id + coords)
+        // comes from the station whose board it is; that's what the distance-aware
+        // reminder needs. Peer of SharedRoute.forDeparture in SharedRoute.swift.
+        fun forDeparture(station: Station, departure: Departure): SharedRoute =
+            single(
+                originId = station.id,
+                originName = station.name ?: "",
+                originLat = station.lat,
+                originLon = station.lon,
+                destName = departure.destination,
+                depTs = departure.departureTimestamp ?: 0L,
+                lineNumber = departure.lineNumber,
+                trainNumber = departure.trainNumber,
+            )
+
+        // The single-ride-leg builder shared by the board save and the watch's
+        // remind-on-phone command. lineNumber keeps the concatenated board form
+        // ("IR90") with category null, so the chip/fingerprint render it directly
+        // and matchDeparture still round-trips it; arrTs = depTs (unused for a
+        // single first leg).
+        fun single(
+            originId: String?,
+            originName: String,
+            originLat: Double?,
+            originLon: Double?,
+            destName: String,
+            depTs: Long,
+            lineNumber: String,
+            trainNumber: String?,
+        ): SharedRoute {
+            val leg = RouteLeg(
+                type = LegType.RIDE,
+                originId = originId,
+                originName = originName,
+                originLat = originLat,
+                originLon = originLon,
+                destName = destName,
+                depTs = depTs,
+                arrTs = depTs,
+                category = null,
+                lineNumber = lineNumber,
+                trainNumber = trainNumber,
+            )
+            return SharedRoute(legs = listOf(leg), sourceBlob = "")
+        }
     }
 }

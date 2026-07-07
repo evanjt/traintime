@@ -22,6 +22,19 @@ class FavouritesStore: ObservableObject {
         favourites = Self.load()
     }
 
+    /// Outer-join two favourite lists for watch<->phone sync: every favourite from
+    /// either side, deduplicated on the 3-field `id` (station:line:dest). Dedup MUST
+    /// key on `id`, not on Favourite equality, which also compares stationName and
+    /// would leak a duplicate on a name-string drift. Local order is preserved, then
+    /// remote-only favourites append, so the result is deterministic.
+    static func union(_ local: [Favourite], _ remote: [Favourite]) -> [Favourite] {
+        var seen = Set<String>()
+        var result: [Favourite] = []
+        for fav in local where seen.insert(fav.id).inserted { result.append(fav) }
+        for fav in remote where seen.insert(fav.id).inserted { result.append(fav) }
+        return result
+    }
+
     // MARK: - CRUD
 
     func add(_ favourite: Favourite) {
@@ -38,6 +51,13 @@ class FavouritesStore: ObservableObject {
 
     func removeAll() {
         favourites.removeAll()
+        save()
+    }
+
+    /// Replace the whole list (the Garmin outer-join sync on the phone). Persists
+    /// and syncs to the Apple Watch exactly like a local edit.
+    func replaceAll(with newFavourites: [Favourite]) {
+        favourites = newFavourites
         save()
     }
 
@@ -144,11 +164,19 @@ class FavouritesStore: ObservableObject {
     func handleReceivedContext(_ context: [String: Any]) {
         guard let data = context["favourites"] as? Data,
               let decoded = try? JSONDecoder().decode([Favourite].self, from: data) else { return }
-        favourites = decoded
+        // Outer-join, not replace: keep every favourite from either device so a
+        // star added on one side is never lost to a stale push from the other.
+        let merged = Self.union(favourites, decoded)
+        let grew = merged != favourites
+        favourites = merged
         if let encoded = try? JSONEncoder().encode(favourites) {
             SharedDefaults.store.set(encoded, forKey: Self.key)
         }
         reloadWidget()
+        // If our union added favourites the sender lacked, push the superset back
+        // so both devices converge. Guard on "grew" so a plain applied change
+        // doesn't bounce: the union is idempotent, so this settles in one round.
+        if grew { syncToCounterpart() }
     }
 }
 

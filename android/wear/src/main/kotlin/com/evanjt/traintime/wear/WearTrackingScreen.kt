@@ -194,11 +194,28 @@ fun WearTrackingScreen(vm: WearViewModel) {
             }
 
             Text(
-                "Back",
+                "Remind on phone",
                 color = palette.platform,
                 fontSize = 14.sp,
                 modifier = Modifier
                     .padding(top = 16.dp)
+                    .clickable { vm.remindOnPhone() },
+            )
+            vm.reminderStatus?.let { message ->
+                Text(
+                    message,
+                    color = secondary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+
+            Text(
+                "Back",
+                color = palette.platform,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .padding(top = 12.dp)
                     .clickable { vm.exitToStationView() },
             )
         }

@@ -73,6 +73,20 @@ class FavouritesStore(context: Context) {
     companion object {
         const val MAX_FAVOURITES = 20
 
+        // Outer-join two favourite lists for watch<->phone sync: every favourite
+        // from either side, deduplicated on the 3-field id (station:line:dest).
+        // Dedup MUST key on id, not on Favourite equality, which also compares
+        // stationName and would leak a duplicate on a name-string drift. Local
+        // order is preserved, then any remote-only favourites append, so the
+        // result is deterministic (the Wear echo-guard compares list equality).
+        fun union(local: List<Favourite>, remote: List<Favourite>): List<Favourite> {
+            val seen = HashSet<String>(local.size + remote.size)
+            val result = ArrayList<Favourite>(local.size + remote.size)
+            for (fav in local) if (seen.add(fav.id)) result.add(fav)
+            for (fav in remote) if (seen.add(fav.id)) result.add(fav)
+            return result
+        }
+
         // First match per favourite, sorted by departure time.
         fun extract(stationFavs: List<Favourite>, departures: List<Departure>): List<Departure> {
             if (stationFavs.isEmpty()) return emptyList()

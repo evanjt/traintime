@@ -9,8 +9,11 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.evanjt.traintime.data.sbb.SharedRoute
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.PendingRouteLogic
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.first
 
@@ -31,6 +34,24 @@ object PendingRouteNotifier {
                 NotificationManager.IMPORTANCE_HIGH,
             ),
         )
+    }
+
+    // Persist a synthesised route as a saved reminder and schedule it, without a
+    // running ViewModel. Used by the watch's remind-on-phone path, which can
+    // arrive with the app closed. Replaces any existing saved route (0.6.0 keeps
+    // one); the VM's pending-route collector refreshes the chip if the app is up.
+    suspend fun saveAndSchedule(context: Context, route: SharedRoute, nowEpochSeconds: Long): Boolean {
+        val index = route.targetRideLegIndex(nowEpochSeconds) ?: return false
+        val pending = PendingRoute.from(
+            route = route,
+            targetLegIndex = index,
+            id = UUID.randomUUID().toString(),
+            createdTs = nowEpochSeconds,
+            sourceUrl = null,
+        ).copy(status = PendingRoute.STATUS_SAVED)
+        PendingRouteStore(context).save(pending)
+        schedule(context, pending, nowEpochSeconds)
+        return true
     }
 
     suspend fun schedule(context: Context, route: PendingRoute, nowEpochSeconds: Long) {

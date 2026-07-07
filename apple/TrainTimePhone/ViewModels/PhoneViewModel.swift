@@ -197,9 +197,12 @@ class PhoneViewModel: ObservableObject {
         favouritesCancellable = favouritesStore.$favourites
             .dropFirst()
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
+            .sink { [weak self] favourites in
                 guard let self else { return }
                 self.favouriteDepartures = self.extractFavouritesFromCurrent(self.departures)
+                // The Apple Watch syncs favourites over WCSession in FavouritesStore;
+                // Garmin needs an explicit push for the outer-join (no-op if closed).
+                self.send(PhoneWatchService.GarminPayload.favourites(favourites), to: .garmin)
             }
 
         // Pins changing (local toggle or a synced context) reorder the loaded
@@ -224,9 +227,63 @@ class PhoneViewModel: ObservableObject {
             case "rateApp":
                 // The watch has no review page of its own; open ours.
                 self.openWriteReviewTick += 1
+            case "saveReminder":
+                // The watch (Apple or Garmin) asked us to save its focused
+                // departure as a reminder; schedule it like a board save.
+                self.saveReminderFromWatch(context)
+            case "favourites":
+                // The Garmin watch pushed its favourites: outer-join them into ours.
+                self.applyGarminFavourites(context["favs"])
             default:
                 self.applyReceivedWatchContext(context)
             }
+        }
+    }
+
+    // Reconstruct the one-leg route the watch described and queue it for a reminder.
+    // Coords are required (the distance-aware reminder needs them); numbers may
+    // arrive as Int or Double across the WCSession / Connect IQ bridges.
+    private func saveReminderFromWatch(_ context: [String: Any]) {
+        func intOf(_ key: String) -> Int? {
+            if let i = context[key] as? Int { return i }
+            if let d = context[key] as? Double { return Int(d) }
+            return nil
+        }
+        func doubleOf(_ key: String) -> Double? {
+            if let d = context[key] as? Double { return d }
+            if let i = context[key] as? Int { return Double(i) }
+            return nil
+        }
+        guard let dest = context["dest"] as? String,
+              let depTs = intOf("depTs"),
+              let line = context["line"] as? String,
+              let stId = context["stId"] as? String,
+              let lat = doubleOf("lat"), let lon = doubleOf("lon") else { return }
+        let route = SharedRoute.single(
+            originId: stId,
+            originName: context["stName"] as? String ?? "Station",
+            originLat: lat, originLon: lon,
+            destName: dest, depTs: depTs,
+            lineNumber: line, trainNumber: context["trainNum"] as? String
+        )
+        saveExternalRouteAsPending(route)
+    }
+
+    // Outer-join the Garmin watch's favourites into ours. The store change re-pushes
+    // the merged set (Apple Watch over WCSession, Garmin via the favourites observer);
+    // the Garmin watch unions and never re-broadcasts, so this converges loop-free.
+    private func applyGarminFavourites(_ raw: Any?) {
+        guard let items = raw as? [[String: Any]] else { return }
+        let incoming: [Favourite] = items.compactMap { m in
+            guard let stId = m["stId"] as? String,
+                  let line = m["line"] as? String,
+                  let dest = m["dest"] as? String else { return nil }
+            return Favourite(stationId: stId, stationName: m["name"] as? String ?? stId,
+                             lineNumber: line, destination: dest)
+        }
+        let merged = FavouritesStore.union(favouritesStore.favourites, incoming)
+        if merged != favouritesStore.favourites {
+            favouritesStore.replaceAll(with: merged)
         }
     }
 
@@ -1243,6 +1300,10 @@ class PhoneViewModel: ObservableObject {
     }
 
     private func sendCurrentView(to backend: PhoneWatchType) {
+        // Re-seed favourites so a freshly-opened Garmin watch unions in any it lacks.
+        if backend == .garmin {
+            send(PhoneWatchService.GarminPayload.favourites(favouritesStore.favourites), to: .garmin)
+        }
         if appState == 2, let focused = focusedTrain {
             send(PhoneWatchService.GarminPayload.track(focused, station: currentStation), to: backend)
         } else if let st = currentStation, let id = st.id {
@@ -1450,13 +1511,18 @@ class PhoneViewModel: ObservableObject {
             shareReplaceOffer = offer
             return
         }
-        proceedWithSharedRoute(offer)
+        proceedOffer(offer)
+    }
+
+    /// A board save queues straight away; an SBB share consults the live board.
+    private func proceedOffer(_ offer: SharedRouteOffer) {
+        if offer.saveOnly { saveOfferAsQueued(offer) } else { proceedWithSharedRoute(offer) }
     }
 
     func confirmReplaceSharedRoute() {
         guard let offer = shareReplaceOffer else { return }
         shareReplaceOffer = nil
-        proceedWithSharedRoute(offer)
+        proceedOffer(offer)
     }
 
     func dismissReplaceSharedRoute() {
@@ -1595,6 +1661,29 @@ class PhoneViewModel: ObservableObject {
         // Don't strand the user on the remote origin board. The queued route
         // lives in the chip now. Return to their real location.
         returnToNearbyIfLaunched()
+    }
+
+    /// Save a single board departure as a pending route, so it rides the same
+    /// distance-aware reminder as an SBB share. Tapping a row tracks now; this
+    /// explicitly saves for later, which matters most for a far-future departure.
+    /// Peer of MainViewModel.saveDepartureAsPending.
+    func saveDepartureAsPending(_ departure: Departure) {
+        lastInteractionTime = Date()
+        guard let station = currentStation, departure.departureTimestamp != nil else {
+            shareStatus = "Couldn't save this departure"
+            return
+        }
+        saveRouteOffer(SharedRoute.forDeparture(station: station, departure: departure))
+    }
+
+    /// Save an externally-built one-leg route (the watch's remind-on-phone command).
+    func saveExternalRouteAsPending(_ route: SharedRoute) {
+        saveRouteOffer(route)
+    }
+
+    private func saveRouteOffer(_ route: SharedRoute) {
+        let offer = SharedRouteOffer(route: route, sourceUrl: nil, saveOnly: true)
+        Task { await openSharedRoute(offer) }
     }
 
     // MARK: - Pending-route lifecycle
@@ -1769,6 +1858,10 @@ struct SharedRouteOffer {
     let sourceUrl: String?
     var forceLegIndex: Int? = nil
     var existing: PendingRoute? = nil
+    /// A board "Remind me" save always queues for a reminder, never tracks now
+    /// (tapping the row already tracks). SBB shares leave this false and decide
+    /// track-vs-queue from the live board.
+    var saveOnly: Bool = false
 
     var fingerprint: String { PendingRouteLogic.fingerprint(route.legs) }
 }

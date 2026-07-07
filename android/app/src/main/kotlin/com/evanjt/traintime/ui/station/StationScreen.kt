@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -240,6 +241,7 @@ fun StationScreen(
                                 mode = viewModel.currentMode,
                                 onSelect = { viewModel.selectFavouriteDeparture(departure) },
                                 onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
+                                onSaveAsReminder = { viewModel.saveDepartureAsPending(departure) },
                             )
                         }
                         // Separator line under favourites
@@ -265,6 +267,7 @@ fun StationScreen(
                                 mode = viewModel.currentMode,
                                 onSelect = { viewModel.selectDeparture(index) },
                                 onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
+                                onSaveAsReminder = { viewModel.saveDepartureAsPending(departure) },
                             )
                             if (index < viewModel.departures.size - 1) {
                                 HorizontalDivider(
@@ -280,8 +283,9 @@ fun StationScreen(
     }
 }
 
-// Swipe-from-left to (un)favourite, long-press for the same, tap to select,
-// the Android mapping of iOS swipeActions + contextMenu + row tap.
+// Swipe-from-left to (un)favourite, swipe-from-right to save a reminder,
+// long-press to (un)favourite, tap to select. The Android mapping of iOS
+// swipeActions + contextMenu + row tap.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DepartureListItem(
@@ -290,40 +294,73 @@ private fun DepartureListItem(
     mode: com.evanjt.traintime.data.model.TransportMode,
     onSelect: () -> Unit,
     onToggleFavourite: () -> Unit,
+    onSaveAsReminder: () -> Unit,
 ) {
     val palette = LocalAppPalette.current
     val dismissState = rememberSwipeToDismissBoxState()
 
     LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd) {
-            onToggleFavourite()
-            dismissState.reset()
+        when (dismissState.currentValue) {
+            SwipeToDismissBoxValue.StartToEnd -> {
+                onToggleFavourite()
+                dismissState.reset()
+            }
+            SwipeToDismissBoxValue.EndToStart -> {
+                onSaveAsReminder()
+                dismissState.reset()
+            }
+            else -> {}
         }
     }
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromEndToStart = false,
+        // Can't remind about a train that has already left.
+        enableDismissFromEndToStart = !departure.isGone,
         backgroundContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(palette.favouriteStar)
-                    .padding(horizontal = 20.dp),
-            ) {
-                Icon(
-                    if (isFavourite) Icons.Filled.StarBorder else Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    if (isFavourite) "Unfavourite" else "Favourite",
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 20.dp),
+                ) {
+                    Text(
+                        "Remind me",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Icon(
+                        Icons.Filled.Notifications,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(palette.favouriteStar)
+                        .padding(horizontal = 20.dp),
+                ) {
+                    Icon(
+                        if (isFavourite) Icons.Filled.StarBorder else Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        if (isFavourite) "Unfavourite" else "Favourite",
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         },
     ) {

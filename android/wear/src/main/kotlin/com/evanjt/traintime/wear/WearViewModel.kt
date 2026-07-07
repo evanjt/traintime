@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Timing
+import com.evanjt.traintime.core.sync.ReminderCommand
 import com.evanjt.traintime.core.sync.TrackCommand
 import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearCommandBus
@@ -119,6 +120,10 @@ class WearViewModel(
     var focusedTrain by mutableStateOf<FocusedDeparture?>(null)
         private set
     var formation by mutableStateOf<Formation?>(null)
+        private set
+
+    // Transient feedback for the "remind on phone" button; auto-clears.
+    var reminderStatus by mutableStateOf<String?>(null)
         private set
 
     var gpsQuality by mutableStateOf(GpsQuality.UNAVAILABLE)
@@ -522,6 +527,41 @@ class WearViewModel(
         TrackingService.start(getApplication(), focused.destination)
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
+    }
+
+    // Ask the phone to save the focused departure as a reminder. Needs the origin
+    // station's coords (the phone's distance-aware reminder is computed from them).
+    fun remindOnPhone() {
+        val focused = focusedTrain ?: return
+        val station = currentStation
+        val lat = station?.lat
+        val lon = station?.lon
+        if (station == null || lat == null || lon == null) {
+            flashReminderStatus("No station location")
+            return
+        }
+        val cmd = ReminderCommand(
+            destination = focused.destination,
+            departureTimestamp = focused.departureTimestamp,
+            lineNumber = focused.lineNumber,
+            trainNumber = focused.trainNumber,
+            stationId = station.id,
+            stationName = station.name ?: "Station",
+            lat = lat,
+            lon = lon,
+        )
+        viewModelScope.launch {
+            val ok = wearSync.sendReminder(cmd)
+            flashReminderStatus(if (ok) "Saved on phone" else "Open TrainTime on your phone")
+        }
+    }
+
+    private fun flashReminderStatus(message: String) {
+        reminderStatus = message
+        viewModelScope.launch {
+            delay(3000)
+            reminderStatus = null
+        }
     }
 
     // Timer

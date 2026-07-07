@@ -56,6 +56,56 @@ struct SharedRoute: Equatable {
     func targetRideLegIndex(now: Int) -> Int? {
         legs.firstIndex { $0.type == .ride && $0.depTs >= now - 60 }
     }
+
+    /// A one-leg route synthesised from a live board departure, so a departure can
+    /// be saved for a reminder without an SBB share. Origin (id + coords) comes
+    /// from the station whose board it is; that's what the distance-aware reminder
+    /// needs. Peer of SharedRoute.forDeparture in SharedRoute.kt.
+    static func forDeparture(station: Station, departure: Departure) -> SharedRoute {
+        single(
+            originId: station.id,
+            originName: station.name ?? "",
+            originLat: station.lat,
+            originLon: station.lon,
+            destName: departure.destination,
+            depTs: departure.departureTimestamp ?? 0,
+            lineNumber: departure.lineNumber,
+            trainNumber: departure.trainNumber
+        )
+    }
+
+    /// The single-ride-leg builder shared by the board save and the watch's
+    /// remind-on-phone command. lineNumber keeps the concatenated board form
+    /// ("IR90") with category nil, so the chip/fingerprint render it directly and
+    /// matchDeparture still round-trips it; arrTs = depTs (unused for one leg).
+    static func single(
+        originId: String?,
+        originName: String,
+        originLat: Double?,
+        originLon: Double?,
+        destName: String,
+        depTs: Int,
+        lineNumber: String,
+        trainNumber: String?
+    ) -> SharedRoute {
+        let leg = RouteLeg(
+            type: .ride,
+            originId: originId,
+            originName: originName,
+            originLat: originLat,
+            originLon: originLon,
+            destId: nil,
+            destName: destName,
+            destLat: nil,
+            destLon: nil,
+            depTs: depTs,
+            arrTs: depTs,
+            category: nil,
+            lineNumber: lineNumber,
+            trainNumber: trainNumber
+        )
+        return SharedRoute(legs: [leg], sourceBlob: "")
+    }
 }
 
 /// A shared SBB route queued for later: the target leg wasn't on the live

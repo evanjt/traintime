@@ -116,6 +116,23 @@ struct FocusedTrackingView: View {
                 WatchFormationView(formation: formation)
                     .padding(.top, 1)
             }
+
+            // Save this departure as a reminder on the phone.
+            Button {
+                viewModel.remindOnPhone()
+            } label: {
+                Label("Remind on phone", systemImage: "bell")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(AppColors.platform)
+            .padding(.top, 3)
+
+            if let status = viewModel.reminderStatus {
+                Text(status)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 2)
         .onTapGesture {

@@ -108,7 +108,15 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
             ),
         )
 
-        if (favourites != null && favourites != current.favourites) favStore.replaceAll(favourites)
+        // Outer-join, not replace: keep every favourite from either device so a
+        // star added on one side is never lost to a stale push from the other.
+        // noteReceived above recorded the incoming list, so when the union grows
+        // the store change re-pushes the superset (guard allows it); when it adds
+        // nothing merged == current, so there's no write and no echo.
+        val mergedFavourites = favourites?.let { FavouritesStore.union(current.favourites, it) }
+        if (mergedFavourites != null && mergedFavourites != current.favourites) {
+            favStore.replaceAll(mergedFavourites)
+        }
         if (myStations != null && myStations != current.myStations) myStore.replaceAll(myStations)
         if (mode != null && mode != current.defaultMode) prefs.setDefaultMode(TransportMode.fromRaw(mode))
         if (isWatch && pendingRoute != current.pendingRoute) pendingStore.replaceFromSync(pendingRoute)
@@ -136,6 +144,20 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
         for (node in nodes) {
             runCatching { messageClient.sendMessage(node.id, WearSync.LIVENESS_PATH, bytes).await() }
         }
+    }
+
+    // Watch -> phone remind request. Fire-and-forget to every connected node;
+    // returns whether it reached at least one. A phoneless watch is a silent no-op.
+    override suspend fun sendReminder(cmd: ReminderCommand): Boolean {
+        val bytes = WearSync.encodeReminder(cmd)
+        val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return false
+        var sent = false
+        for (node in nodes) {
+            if (runCatching { messageClient.sendMessage(node.id, WearSync.REMINDER_PATH, bytes).await() }.isSuccess) {
+                sent = true
+            }
+        }
+        return sent
     }
 
     // Phone -> watch mirror command (mode / station / loc / back).

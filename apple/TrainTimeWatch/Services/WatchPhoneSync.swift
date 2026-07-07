@@ -43,6 +43,32 @@ enum WatchPhoneSync {
         }
     }
 
+    /// Ask the phone to save this departure as a reminder (the reverse of Send to
+    /// Watch). Carries the origin station's id + coords so the phone synthesises the
+    /// same one-leg route as a board save and schedules its distance-aware reminder.
+    /// Like rateApp it must not be dropped when the phone is unreachable: queue it.
+    static func sendSaveReminder(_ focused: FocusedDeparture, stationId: String, stationName: String, lat: Double, lon: Double) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        var data: [String: Any] = [
+            "kind": "saveReminder",
+            "dest": focused.destination,
+            "depTs": focused.departureTimestamp,
+            "line": focused.lineNumber,
+            "stId": stationId,
+            "stName": stationName,
+            "lat": lat,
+            "lon": lon
+        ]
+        if let tn = focused.trainNumber { data["trainNum"] = tn }
+        if session.isReachable {
+            session.sendMessage(data, replyHandler: nil, errorHandler: { _ in session.transferUserInfo(data) })
+        } else {
+            session.transferUserInfo(data)
+        }
+    }
+
     /// Tracking started on the watch. Let the phone reflect the same focused train. Keys
     /// mirror the inbound track contract.
     static func sendTrackStarted(_ focused: FocusedDeparture, stationId: String?) {

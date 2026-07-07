@@ -162,4 +162,63 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(effectiveSeenVersion(hasSeen: false, seenVersion: 0), 0)
         XCTAssertEqual(effectiveSeenVersion(hasSeen: true, seenVersion: 3), 3)
     }
+
+    // MARK: - Favourites union (outer-join sync)
+
+    private func fav(_ station: String, _ line: String, _ dest: String, name: String? = nil) -> Favourite {
+        Favourite(stationId: station, stationName: name ?? station, lineNumber: line, destination: dest)
+    }
+
+    func testFavouritesUnionKeepsEveryDistinctFavourite() {
+        let local = [fav("8507000", "IC1", "Bern")]
+        let remote = [fav("8501120", "IR90", "Visp")]
+        XCTAssertEqual(FavouritesStore.union(local, remote).map(\.id), ["8507000:IC1:Bern", "8501120:IR90:Visp"])
+    }
+
+    func testFavouritesUnionDedupesOnIdDespiteNameDrift() {
+        let local = [fav("8507000", "IC1", "Bern", name: "Bern")]
+        let remote = [fav("8507000", "IC1", "Bern", name: "Bern Bahnhof")]
+        let merged = FavouritesStore.union(local, remote)
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.stationName, "Bern")
+    }
+
+    func testFavouritesUnionIsIdempotent() {
+        let local = [fav("a", "1", "x"), fav("b", "2", "y")]
+        let remote = [fav("b", "2", "y"), fav("c", "3", "z")]
+        let once = FavouritesStore.union(local, remote)
+        XCTAssertEqual(FavouritesStore.union(once, remote).map(\.id), once.map(\.id))
+        XCTAssertEqual(once.map(\.id), ["a:1:x", "b:2:y", "c:3:z"])
+    }
+
+    // MARK: - One-leg route synthesis (save from board)
+
+    private func brigDeparture(ts: Int = 1_750_000_000) -> Departure {
+        Departure(destination: "Brig", minutesUntil: 42, departureTimestamp: ts, delay: 0,
+                  platform: "3", platformChanged: false, lineNumber: "IR90", category: "IR",
+                  trainNumber: "1820", operatorRef: nil)
+    }
+
+    private var bernStation: Station {
+        Station(id: "8507000", name: "Bern", lat: 46.9489, lon: 7.4396, mode: .train,
+                dist: nil, embeddedDepartures: nil)
+    }
+
+    func testSynthesisedLegCarriesOriginAndIsTrackable() {
+        let route = SharedRoute.forDeparture(station: bernStation, departure: brigDeparture())
+        let leg = route.legs[0]
+        XCTAssertEqual(leg.originId, "8507000")
+        XCTAssertEqual(leg.originLat, 46.9489)
+        XCTAssertEqual(leg.destName, "Brig")
+        XCTAssertEqual(leg.depTs, leg.arrTs)
+        XCTAssertEqual(leg.lineNumber, "IR90")
+        XCTAssertNil(leg.category)
+        XCTAssertTrue(leg.isTrackable)
+    }
+
+    func testSynthesisedLegRoundTripsThroughMatchDeparture() {
+        let dep = brigDeparture()
+        let leg = SharedRoute.forDeparture(station: bernStation, departure: dep).legs[0]
+        XCTAssertEqual(matchDeparture([dep], leg: leg)?.stableId, dep.stableId)
+    }
 }

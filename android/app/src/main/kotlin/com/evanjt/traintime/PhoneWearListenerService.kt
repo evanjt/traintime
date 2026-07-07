@@ -3,6 +3,7 @@ package com.evanjt.traintime
 import com.evanjt.traintime.core.sync.WearLivenessBus
 import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearSync
+import com.evanjt.traintime.notify.PendingRouteNotifier
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
@@ -30,7 +31,22 @@ class PhoneWearListenerService : WearableListenerService() {
     }
 
     override fun onMessageReceived(event: MessageEvent) {
-        if (event.path != WearSync.LIVENESS_PATH) return
-        WearLivenessBus.events.tryEmit(event.data.toString(Charsets.UTF_8))
+        when (event.path) {
+            WearSync.LIVENESS_PATH ->
+                WearLivenessBus.events.tryEmit(event.data.toString(Charsets.UTF_8))
+            // The watch asked us to save its focused departure as a reminder.
+            // Schedule directly so it works with the app closed; the VM's
+            // pending-route collector picks up the store write when the app is up.
+            WearSync.REMINDER_PATH -> {
+                val cmd = WearSync.decodeReminder(event.data) ?: return
+                runBlocking {
+                    PendingRouteNotifier.saveAndSchedule(
+                        applicationContext,
+                        cmd.toRoute(),
+                        System.currentTimeMillis() / 1000,
+                    )
+                }
+            }
+        }
     }
 }

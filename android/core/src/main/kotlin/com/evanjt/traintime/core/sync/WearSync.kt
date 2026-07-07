@@ -1,6 +1,8 @@
 package com.evanjt.traintime.core.sync
 
+import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.FocusedDeparture
+import com.evanjt.traintime.data.sbb.SharedRoute
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -34,6 +36,17 @@ object WearSync {
     // MessageClient command channel (phone -> watch) for the non-track mirror
     // actions (mode / station / loc / back) matching the Garmin action contract.
     const val CMD_PATH = "/traintime/cmd"
+
+    // MessageClient remind-on-phone command (watch -> phone): the watch asks the
+    // phone to save the focused departure as a reminder. A command, not shared
+    // state, so it sidesteps the phone-owned pending route on STATE_PATH.
+    const val REMINDER_PATH = "/traintime/reminder"
+
+    fun encodeReminder(cmd: ReminderCommand): ByteArray =
+        json.encodeToString(cmd).toByteArray(Charsets.UTF_8)
+
+    fun decodeReminder(bytes: ByteArray): ReminderCommand? =
+        runCatching { json.decodeFromString<ReminderCommand>(bytes.toString(Charsets.UTF_8)) }.getOrNull()
 
     // Capability the Wear app declares (res/values/wear.xml). The phone lists only
     // nodes that provide it for Send-to-Watch, so a paired watch without the app
@@ -127,6 +140,21 @@ object WearSync {
     // Phone location used as a GPS fallback when the watch's own signal is weak.
     fun garminLocationPayload(lat: Double, lon: Double): Map<String, Any?> =
         mapOf("action" to "loc", "lat" to lat, "lon" to lon)
+
+    // The phone's favourites, for the Garmin outer-join sync. The watch unions
+    // these into its own store (never replaces).
+    fun garminFavouritesPayload(favourites: List<Favourite>): Map<String, Any?> =
+        mapOf(
+            "action" to "favourites",
+            "favs" to favourites.map {
+                mapOf(
+                    "stId" to it.stationId,
+                    "name" to it.stationName,
+                    "line" to it.lineNumber,
+                    "dest" to it.destination,
+                )
+            },
+        )
 }
 
 // Watch -> phone liveness announcement over LIVENESS_PATH. Superset of the bare
@@ -156,6 +184,34 @@ data class WearCommand(
     val lat: Double? = null,
     val lon: Double? = null,
 )
+
+// Watch -> phone remind request over REMINDER_PATH. Carries the focused
+// departure plus the origin station's id + coords, everything the phone needs to
+// synthesise the same one-leg saved route as a board save (SharedRoute.single)
+// and schedule its distance-aware reminder. Coords are required: without them the
+// leg isn't trackable and no reminder fires.
+@Serializable
+data class ReminderCommand(
+    val destination: String,
+    val departureTimestamp: Long,
+    val lineNumber: String,
+    val trainNumber: String? = null,
+    val stationId: String,
+    val stationName: String,
+    val lat: Double,
+    val lon: Double,
+) {
+    fun toRoute(): SharedRoute = SharedRoute.single(
+        originId = stationId,
+        originName = stationName,
+        originLat = lat,
+        originLon = lon,
+        destName = destination,
+        depTs = departureTimestamp,
+        lineNumber = lineNumber,
+        trainNumber = trainNumber,
+    )
+}
 
 // The same fields PhoneWatchService.sendMessage carries on iOS. A superset of
 // FocusedDeparture plus the originating stationId (so the watch can fetch the

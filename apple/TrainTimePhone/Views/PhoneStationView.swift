@@ -161,12 +161,29 @@ struct PhoneStationView: View {
                 }
                 .tint(AppColors.favouriteStar)
             }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                if !departure.isGone {
+                    Button {
+                        viewModel.saveDepartureAsPending(departure)
+                    } label: {
+                        Label("Remind me", systemImage: "bell.fill")
+                    }
+                    .tint(.blue)
+                }
+            }
             .contextMenu {
                 Button {
                     viewModel.toggleFavourite(departure: departure)
                 } label: {
                     Label(isFavourite ? "Remove Favourite" : "Add Favourite",
                           systemImage: isFavourite ? "star.slash" : "star")
+                }
+                if !departure.isGone {
+                    Button {
+                        viewModel.saveDepartureAsPending(departure)
+                    } label: {
+                        Label("Remind me before departure", systemImage: "bell")
+                    }
                 }
             }
     }

@@ -40,6 +40,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - Selection & Tracking
     @Published var showStationPicker = false
     @Published var focusedTrain: FocusedDeparture? = nil
+    // Transient feedback for the "remind on phone" button; auto-clears.
+    @Published var reminderStatus: String? = nil
     @Published var formation: Formation? = nil
 
     // Timed review ask (Yes hands off to the iPhone, the watch has no review page).
@@ -678,6 +680,25 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         // Reflect the same focused train on the phone (parity with the Garmin trackStarted echo).
         WatchPhoneSync.sendTrackStarted(focused, stationId: currentStation?.id)
+    }
+
+    /// Ask the phone to save the focused departure as a reminder. Needs the origin
+    /// station's coords (the phone's distance-aware reminder is computed from them).
+    func remindOnPhone() {
+        guard let focused = focusedTrain, let station = currentStation,
+              let stationId = station.id, let lat = station.lat, let lon = station.lon else {
+            flashReminderStatus("No station location")
+            return
+        }
+        WatchPhoneSync.sendSaveReminder(focused, stationId: stationId, stationName: station.name ?? "Station", lat: lat, lon: lon)
+        flashReminderStatus("Sent to phone")
+    }
+
+    private func flashReminderStatus(_ message: String) {
+        reminderStatus = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            if self?.reminderStatus == message { self?.reminderStatus = nil }
+        }
     }
 
     func enterInactiveState() {
