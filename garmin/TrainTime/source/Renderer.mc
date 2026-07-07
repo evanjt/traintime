@@ -280,15 +280,15 @@ module Renderer {
     }
 
     function drawGpsIndicator(dc, view, width, height) {
-        var barW = 3;
-        var gap = 2;
-        var maxH = 13;
-        var totalW = 3 * barW + 2 * gap;  // 15px
+        var barW = DrawUtils.px(3, width);
+        var gap = DrawUtils.px(2, width);
+        var maxH = DrawUtils.px(13, width);
+        var totalW = 3 * barW + 2 * gap;
 
         // Position: top-right (same area as former dot)
         var midY = height * 14 / 100;
         var usable = DrawUtils.getUsableWidth(midY, width, height);
-        var rightEdge = (width + usable) / 2 - 4;
+        var rightEdge = (width + usable) / 2 - DrawUtils.px(4, width);
         var startX = rightEdge - totalW;
         var baseY = midY + maxH / 2;  // bottom of tallest bar
 
@@ -313,9 +313,9 @@ module Renderer {
         for (var i = 0; i < 3; i++) {
             var bx = startX + i * (barW + gap);
             var bh;
-            if (i == 0) { bh = 5; }
-            else if (i == 1) { bh = 9; }
-            else { bh = 13; }
+            if (i == 0) { bh = DrawUtils.px(5, width); }
+            else if (i == 1) { bh = DrawUtils.px(9, width); }
+            else { bh = maxH; }
             var by = baseY - bh;
 
             if (i < fillCount) {
@@ -358,7 +358,7 @@ module Renderer {
             dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(bgX, y, usableBg - 4, tinyH);
             dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(bgX, y, 3, tinyH);
+            dc.fillRectangle(bgX, y, DrawUtils.px(3, width), tinyH);
         }
 
         // Fixed column X positions (absolute, so columns align across rows)
@@ -545,11 +545,11 @@ module Renderer {
         }
 
         // Tracking bar
-        var barY = minY + dc.getFontHeight(Graphics.FONT_MEDIUM) + 2;
+        var barY = minY + dc.getFontHeight(Graphics.FONT_MEDIUM) + DrawUtils.px(2, width);
         drawTrackingBar(dc, view, width, height, barY);
 
         // Status text
-        var statusY = barY + 18;
+        var statusY = barY + DrawUtils.px(14, width) + DrawUtils.px(4, width);
         var walkMin = view.getWalkMinutes();
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -610,13 +610,14 @@ module Renderer {
         if (view.mMapError != null && view.mMapErrorTick != null) {
             var elapsed = Time.now().value() - view.mMapErrorTick;
             if (elapsed < 3) {
-                var toastH = dc.getFontHeight(Graphics.FONT_SMALL) + 8;
+                var toastPad = DrawUtils.px(4, width);
+                var toastH = dc.getFontHeight(Graphics.FONT_SMALL) + 2 * toastPad;
                 var toastY = height / 2 - toastH / 2;
                 var toastW = width * 60 / 100;
                 dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
                 dc.fillRectangle(centerX - toastW / 2, toastY, toastW, toastH);
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, toastY + 4, Graphics.FONT_SMALL,
+                dc.drawText(centerX, toastY + toastPad, Graphics.FONT_SMALL,
                     view.mMapError, Graphics.TEXT_JUSTIFY_CENTER);
             } else {
                 view.mMapError = null;
@@ -630,7 +631,7 @@ module Renderer {
         var halfBar = barWidth / 2;
         var barX = width / 2 - halfBar;
         var barY = passedBarY;
-        var barH = 14;
+        var barH = DrawUtils.px(14, width);
         var midX = width / 2;
 
         // Background
@@ -644,7 +645,7 @@ module Renderer {
             dc.fillRectangle(barX, barY, barWidth, barH);
             // Midpoint marker
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+            drawBarMidpoint(dc, midX, barY, barH, width);
             return;
         }
 
@@ -707,7 +708,13 @@ module Renderer {
 
         // Midpoint marker
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(midX - 1, barY - 2, 2, barH + 4);
+        drawBarMidpoint(dc, midX, barY, barH, width);
+    }
+
+    function drawBarMidpoint(dc, midX, barY, barH, width) {
+        var w = DrawUtils.px(2, width);
+        var over = DrawUtils.px(2, width);
+        dc.fillRectangle(midX - w / 2, barY - over, w, barH + 2 * over);
     }
 
     function drawFormation(dc, view, width, height) {
@@ -716,9 +723,9 @@ module Renderer {
 
         var fontH = dc.getFontHeight(Graphics.FONT_XTINY);
         var wagonH = fontH;
-        var wagonW = 8;
-        var gap = 1;
-        var locoW = 6;
+        var wagonW = DrawUtils.px(8, width);
+        var gap = DrawUtils.px(1, width);
+        var locoW = DrawUtils.px(6, width);
 
         // Total width needed
         var totalW = locoW + gap + count * wagonW + (count - 1) * gap;
@@ -730,11 +737,12 @@ module Renderer {
         // Scale down wagon width if formation doesn't fit
         if (totalW > usable) {
             wagonW = (usable - locoW - gap - (count - 1) * gap) / count;
-            if (wagonW < 4) {
+            if (wagonW < DrawUtils.px(4, width)) {
                 // Too many wagons even at min size, drop locomotive
                 locoW = 0;
                 wagonW = (usable - (count - 1) * gap) / count;
-                if (wagonW < 3) { wagonW = 3; }
+                var minW = DrawUtils.px(3, width);
+                if (wagonW < minW) { wagonW = minW; }
             }
             totalW = locoW + (locoW > 0 ? gap : 0) + count * wagonW + (count - 1) * gap;
         }
@@ -833,7 +841,7 @@ module Renderer {
         var minFontH = dc.getFontHeight(Graphics.FONT_MEDIUM);
         var arrowCx = width * 3 / 14;
         var arrowCy = countdownY + minFontH / 2;
-        var r = 14.0;
+        var r = DrawUtils.pxF(14, width);
 
         var hasGps = view.mHeading != null && view.mStationLat != null
             && view.mStationLon != null && view.mLocationInfo != null
