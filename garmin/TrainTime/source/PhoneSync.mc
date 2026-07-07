@@ -31,8 +31,19 @@ module PhoneSync {
         if (!(Communications has :transmit)) { return; }
         // A phoneless watch can't deliver; skip rather than queue failures.
         if (!System.getDeviceSettings().phoneConnected) { return; }
+        // Debug builds (the simulator) skip the actual send: a phone-app transmit
+        // makes the sim poll for the Connect IQ Mobile SDK bridge over ADB and nag
+        // every heartbeat. Release builds transmit for real so the phone companion
+        // still learns the watch is paired.
+        if (!phoneLinkAllowed()) { return; }
         Communications.transmit(data, null, new PhoneSyncListener());
     }
+
+    (:release)
+    function phoneLinkAllowed() { return true; }
+
+    (:debug)
+    function phoneLinkAllowed() { return false; }
 
     // The persisted default transport mode (0 train, 1 bus, 2 tram) changed in
     // settings. Matches the cross-platform "defaultMode" contract.
