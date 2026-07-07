@@ -273,48 +273,37 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 }
             }
 
-            // Open on watch, for Garmin, the same button as the header: it launches
-            // TrainTime on the watch and syncs it onto this train. Colour tracks
-            // liveness (green = open, amber = closed) and a spinner shows while opening.
-            val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
-            if (hasGarmin) {
-                HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
-                OutlinedButton(onClick = { viewModel.openWatchApp() }) {
-                    if (viewModel.watchChecking) {
-                        CircularProgressIndicator(strokeWidth = 2.dp, color = palette.platform, modifier = Modifier.size(18.dp))
-                    } else {
-                        Icon(
-                            Icons.Filled.Watch,
-                            contentDescription = null,
-                            tint = when {
-                                viewModel.watchAlive -> Color(0xFF34C759)
-                                viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93)
-                                else -> Color(0xFFFFB300)
-                            },
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                    Text(
-                        if (viewModel.watchAlive) "Showing on watch" else "Open on watch",
-                        modifier = Modifier.padding(start = 6.dp),
-                    )
-                }
-            }
-
-            // Explicit push of this departure to a watch, complementing the
-            // automatic mirror. One watch sends directly; more open a picker.
+            // One watch button, mirroring iOS: a live watch takes an explicit send
+            // of this departure, a closed Garmin the launch/re-sync path. Colour
+            // tracks liveness (green = open, amber = closed, grey = paired but off)
+            // and a spinner shows while opening. Multiple watches open a picker.
             val watches = viewModel.connectedWatches
-            if (watches.isNotEmpty()) {
-                if (!hasGarmin) {
-                    HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
-                }
+            val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
+            if (watches.isNotEmpty() || hasGarmin) {
+                HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
                 var showWatchMenu by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = {
-                        if (watches.size == 1) viewModel.sendToWatch() else showWatchMenu = true
+                        if (watches.size > 1) showWatchMenu = true else viewModel.sendToPrimaryOrOpen()
                     }) {
-                        Icon(Icons.Filled.Watch, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Send to Watch", modifier = Modifier.padding(start = 6.dp))
+                        if (viewModel.watchChecking) {
+                            CircularProgressIndicator(strokeWidth = 2.dp, color = palette.platform, modifier = Modifier.size(18.dp))
+                        } else {
+                            Icon(
+                                Icons.Filled.Watch,
+                                contentDescription = null,
+                                tint = when {
+                                    viewModel.watchAlive -> Color(0xFF34C759)
+                                    viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93)
+                                    else -> Color(0xFFFFB300)
+                                },
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Text(
+                            if (viewModel.watchAlive || !hasGarmin) "Send to watch" else "Open on watch",
+                            modifier = Modifier.padding(start = 6.dp),
+                        )
                     }
                     DropdownMenu(expanded = showWatchMenu, onDismissRequest = { showWatchMenu = false }) {
                         watches.forEach { watch ->

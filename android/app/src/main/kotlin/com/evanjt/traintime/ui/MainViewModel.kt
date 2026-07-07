@@ -1011,6 +1011,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Tracking-screen watch button: a live watch takes an explicit send; a closed
+    // Garmin takes the launch/re-sync path (a closed Garmin app must be opened
+    // before it can receive). Mirrors iOS PhoneViewModel.sendToPrimaryOrOpen. The
+    // UI routes multiple watches through the picker instead.
+    fun sendToPrimaryOrOpen() {
+        viewModelScope.launch {
+            connectedWatches = currentConnectedWatches()
+            val hasGarminLink = watchLinks.any { it.type == PhoneWatchType.GARMIN }
+            if (!watchAlive && hasGarminLink) openWatchApp() else sendToWatch()
+        }
+    }
+
     // Applies a state sync pushed from a watch (defaultMode). Garmin sends this via the
     // Connect IQ message channel; Wear arrives through the listener service / DataClient.
     private fun applyReceivedWatchContext(ctx: Map<String, Any?>) {
