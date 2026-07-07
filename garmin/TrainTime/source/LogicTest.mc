@@ -174,8 +174,11 @@ function testBuildLivenessCarriesVersion(logger) {
 }
 
 // Review-prompt gate. Timestamps in seconds; NOW is arbitrary but fixed.
-const REVIEW_NOW = 1750000000;
-const REVIEW_OLD_ENOUGH = REVIEW_NOW - ReviewPrompt.MIN_AGE_SEC;
+// (:test) keeps these test-only consts out of normal device builds. The test
+// functions are already scoped; without this the bare consts leaked in and an
+// unoptimised build crashed evaluating them at module init.
+(:test) const REVIEW_NOW = 1750000000;
+(:test) const REVIEW_OLD_ENOUGH = REVIEW_NOW - ReviewPrompt.MIN_AGE_SEC;
 
 (:test)
 function testReviewBelowThresholdNeverPrompts(logger) {
