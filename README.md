@@ -42,6 +42,34 @@
 | [Apple Watch & iPhone](https://apps.apple.com/ch/app/traintime/id6760388620) | Available |
 | [Garmin](https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb) | Available |
 
+## Feature parity
+
+TrainTime runs on five targets across three ecosystems. The core experience is
+the same everywhere. The differences are platform idioms, not missing features.
+
+| Feature | iPhone | Apple Watch | Android | Wear OS | Garmin |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Nearby stations (GPS) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Live delays & platforms | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Focused tracking + countdown | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Train formation diagram | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Train, bus, tram & more | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Favourites | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Pinned stations | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Home-screen widget / glance | ✓ | — | ✓ | — | ✓ |
+| Onboarding walkthrough | ✓ | — | ✓ | — | — |
+| Map | ✓ | ✓ | ↗ | — | ↗ |
+
+✓ available &nbsp;·&nbsp; — not on this platform &nbsp;·&nbsp; ↗ opens the system maps or navigation app
+
+Each watch pairs with a phone and stays in sync: Apple Watch with iPhone,
+Wear OS with Android, Garmin with either. A departure you track on the phone
+can be sent straight to the watch, and the watch reports its liveness back.
+The phones add saved SBB routes with departure reminders and an in-app
+light/dark theme. The Apple Watch and Wear OS can view and follow a route
+queued on the phone. Android and Wear OS are in testing, not yet on the public
+stores.
+
 ## Build
 
 ### Apple Watch
