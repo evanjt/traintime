@@ -1,0 +1,1 @@
+Première version pour Wear OS. Départs à proximité, suivi en direct et favoris directement à votre poignet, synchronisés avec l'app du téléphone.

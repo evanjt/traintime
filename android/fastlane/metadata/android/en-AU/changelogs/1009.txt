@@ -1,0 +1,1 @@
+First Wear OS release. Nearby departures, live tracking and favourites on your wrist, synced with the phone app.

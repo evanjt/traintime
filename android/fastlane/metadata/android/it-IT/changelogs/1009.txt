@@ -1,0 +1,1 @@
+Prima versione per Wear OS. Partenze nelle vicinanze, monitoraggio in tempo reale e preferiti direttamente al polso, sincronizzati con l'app del telefono.

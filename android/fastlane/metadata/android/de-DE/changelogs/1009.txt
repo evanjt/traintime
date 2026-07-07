@@ -1,0 +1,1 @@
+Erste Version für Wear OS. Abfahrten in der Nähe, Live-Verfolgung und Favoriten direkt am Handgelenk, synchronisiert mit der Telefon-App.
