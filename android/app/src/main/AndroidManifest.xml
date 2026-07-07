@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Distance-aware route reminders keep the lead accurate while the app is
+         closed. Opt-in via Settings; not required for any other feature. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
@@ -69,6 +72,11 @@
             android:name=".widget.work.WidgetRefreshService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Background location updates for the distance-aware route reminder. -->
+        <receiver
+            android:name=".notify.RouteDistanceReceiver"
+            android:exported="false" />
 
         <!-- Wearable Data Layer: receive favourites / pinned stations / default
              mode pushed from the watch, plus hello/alive/bye liveness messages. -->

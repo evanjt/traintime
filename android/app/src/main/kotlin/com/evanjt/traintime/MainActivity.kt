@@ -72,6 +72,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Background location for distance-aware reminders. On API 30+ the system
+    // routes this to the "Allow all the time" settings screen when fine location
+    // is already granted; a denial just leaves the reminder foreground-only.
+    private val backgroundLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    private fun requestBackgroundLocationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 29 &&
+            checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -90,7 +105,11 @@ class MainActivity : ComponentActivity() {
             }
             TrainTimeTheme(appearanceMode = appearanceMode) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    RootView(viewModel, onRequestNotificationPermission = ::requestNotificationPermission)
+                    RootView(
+                        viewModel,
+                        onRequestNotificationPermission = ::requestNotificationPermission,
+                        onRequestBackgroundLocation = ::requestBackgroundLocationPermission,
+                    )
                 }
             }
         }
@@ -130,7 +149,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: () -> Unit) {
+private fun RootView(
+    viewModel: MainViewModel,
+    onRequestNotificationPermission: () -> Unit,
+    onRequestBackgroundLocation: () -> Unit,
+) {
     // scenePhase equivalent: foreground lifecycle drives timers and GPS.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -188,6 +211,7 @@ private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: 
                 PendingRouteChip(
                     route = pendingRoute,
                     nowEpochSeconds = chipNow,
+                    notifyTs = viewModel.reminderNotifyTs,
                     onTap = { showRoute = true },
                     onDismiss = { viewModel.dismissPendingRoute() },
                 )
@@ -239,6 +263,14 @@ private fun RootView(viewModel: MainViewModel, onRequestNotificationPermission: 
         if (viewModel.notificationPermissionRequest) {
             onRequestNotificationPermission()
             viewModel.clearNotificationPermissionRequest()
+        }
+    }
+
+    // Background-location ask when the user opts into background distance tracking.
+    LaunchedEffect(viewModel.backgroundLocationRequest) {
+        if (viewModel.backgroundLocationRequest) {
+            onRequestBackgroundLocation()
+            viewModel.clearBackgroundLocationRequest()
         }
     }
 
