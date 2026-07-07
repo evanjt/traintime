@@ -138,4 +138,28 @@ final class ParsingTests: XCTestCase {
         XCTAssertTrue(Set(trainLines).isDisjoint(with: busLines))
         XCTAssertTrue(Set(trainLines).isDisjoint(with: tramLines))
     }
+
+    private var tourWithV2Step: [TourStep] {
+        tourSteps + [TourStep(stage: .widget, title: "New thing", body: "Body", introducedIn: 2)]
+    }
+
+    func testNewInstallSeesEveryStep() {
+        XCTAssertEqual(stepsToShow(tourWithV2Step, effectiveSeen: 0, current: 2).count, tourWithV2Step.count)
+    }
+
+    func testUpdaterSeesOnlyNewerSteps() {
+        let shown = stepsToShow(tourWithV2Step, effectiveSeen: 1, current: 2)
+        XCTAssertEqual(shown.map(\.stage), [.widget])
+        XCTAssertEqual(shown.first?.introducedIn, 2)
+    }
+
+    func testUpToDateUserSeesNothing() {
+        XCTAssertTrue(stepsToShow(tourWithV2Step, effectiveSeen: 2, current: 2).isEmpty)
+    }
+
+    func testEffectiveSeenVersionMigratesLegacyFinisher() {
+        XCTAssertEqual(effectiveSeenVersion(hasSeen: true, seenVersion: 0), 1)
+        XCTAssertEqual(effectiveSeenVersion(hasSeen: false, seenVersion: 0), 0)
+        XCTAssertEqual(effectiveSeenVersion(hasSeen: true, seenVersion: 3), 3)
+    }
 }

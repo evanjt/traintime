@@ -97,7 +97,7 @@ import kotlinx.coroutines.delay
 // (mode/favourites/pins live only here), so toggling things in the tour never
 // touches the user's real data. onComplete fires on Finish AND Skip.
 @Composable
-fun OnboardingTour(onComplete: () -> Unit) {
+fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
     var stepIndex by remember { mutableStateOf(0) }
     // Slide direction for the page transition: 1 forward, -1 back.
     var navDirection by remember { mutableStateOf(1) }
@@ -109,7 +109,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
 
     val base = remember { System.currentTimeMillis() / 1000 }
     val departures = remember(base, mode) { TourMockData.departures(base, mode) }
-    val step = tourSteps[stepIndex]
+    val step = steps[stepIndex]
     val palette = LocalAppPalette.current
     val onReport: (Rect) -> Unit = { targetRect = it }
 
@@ -133,7 +133,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
             // and below) before advancing.
             step.stage == TourStage.FAVOURITE && favourites.isEmpty() ->
                 departures.firstOrNull { it.lineNumber == TourMockData.FAVOURITE_LINE }?.let { toggleFavourite(it) }
-            stepIndex < tourSteps.lastIndex -> {
+            stepIndex < steps.lastIndex -> {
                 if (step.stage == TourStage.TRACK) trackingActive = false
                 // Leaving the mode step returns the board to trains so the
                 // TRACK/FAVOURITE steps find IC1 and IR15.
@@ -192,7 +192,7 @@ fun OnboardingTour(onComplete: () -> Unit) {
                 },
                 label = "tourSurface",
             ) { idx ->
-                val s = tourSteps[idx]
+                val s = steps[idx]
                 // Only the settled page drives the spotlight, so the outgoing page
                 // sliding away doesn't jitter the highlight.
                 val report: (Rect) -> Unit = if (idx == stepIndex) onReport else { _ -> }
@@ -244,9 +244,9 @@ fun OnboardingTour(onComplete: () -> Unit) {
                 step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> FAVOURITE_DETAIL_BODY
                 else -> step.body
             }
-            val nextLabel = if (stepIndex == tourSteps.lastIndex) "Done" else "Next"
+            val nextLabel = if (stepIndex == steps.lastIndex) "Done" else "Next"
 
-            val (dotIndex, dotTotal) = tourDotPosition(stepIndex, trackingActive, favourites.isNotEmpty())
+            val (dotIndex, dotTotal) = tourDotPosition(steps, stepIndex, trackingActive, favourites.isNotEmpty())
 
             // Anchored title/body bubble. When it sits at the bottom it clears the
             // fixed nav bar below it.

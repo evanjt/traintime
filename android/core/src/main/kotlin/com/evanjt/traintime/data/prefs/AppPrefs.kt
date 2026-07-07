@@ -58,9 +58,27 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = true }
     }
 
-    // Re-arms the walkthrough so the "Replay walkthrough" Settings row can show it again.
+    // Re-arms the FULL walkthrough for the "Replay walkthrough" Settings row:
+    // both the legacy flag and the version reset so every step shows again.
     suspend fun markOnboardingUnseen() {
-        dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = false }
+        dataStore.edit {
+            it[KEY_HAS_SEEN_ONBOARDING] = false
+            it[KEY_SEEN_ONBOARDING_VERSION] = 0
+        }
+    }
+
+    // Highest tour version the user has finished. 0 = never; drives which steps a
+    // returning user is shown (only ones newer than this). Legacy users who
+    // finished the pre-versioning tour have the flag set but 0 here, handled by
+    // effectiveSeenVersion.
+    val seenOnboardingVersion: Flow<Int> =
+        dataStore.data.map { it[KEY_SEEN_ONBOARDING_VERSION] ?: 0 }
+
+    suspend fun setSeenOnboardingVersion(value: Int) {
+        dataStore.edit {
+            it[KEY_HAS_SEEN_ONBOARDING] = true
+            it[KEY_SEEN_ONBOARDING_VERSION] = value
+        }
     }
 
     // Manual appearance override (phone only): "system" follows the OS, "light"
@@ -179,6 +197,7 @@ class AppPrefs(context: Context) {
         val KEY_USE_ROUTED_DISTANCE = booleanPreferencesKey("useRoutedDistance")
         val KEY_MIRROR_TO_WATCH = booleanPreferencesKey("mirrorToWatch")
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
+        val KEY_SEEN_ONBOARDING_VERSION = intPreferencesKey("seenOnboardingVersion")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")
         val KEY_REVIEW_PROMPTED_VERSION = stringPreferencesKey("reviewPromptedVersion")

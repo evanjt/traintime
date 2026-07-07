@@ -12,6 +12,27 @@ struct TourStep: Identifiable {
     let stage: TourStage
     let title: String
     let body: String
+    // Tour version this step first appeared in. New installs see every step; an
+    // updater sees only steps newer than the version they last finished.
+    var introducedIn: Int = 1
+}
+
+// Bump whenever steps are added (new steps get introducedIn = this value).
+let currentTourVersion = 1
+
+// The version an updater effectively last saw. A stored version wins; otherwise a
+// legacy user who finished the old (pre-versioning) tour counts as v1, and a user
+// who never saw it is 0.
+func effectiveSeenVersion(hasSeen: Bool, seenVersion: Int) -> Int {
+    if seenVersion > 0 { return seenVersion }
+    return hasSeen ? 1 : 0
+}
+
+// Steps to run for a user who last saw `effectiveSeen`, up to `current`. New user
+// (0) → every step; updater → only steps newer than what they saw; up-to-date →
+// none. Takes the list explicitly so it is unit-testable with a synthetic step.
+func stepsToShow(_ steps: [TourStep], effectiveSeen: Int, current: Int) -> [TourStep] {
+    steps.filter { $0.introducedIn > effectiveSeen && $0.introducedIn <= current }
 }
 
 // Copy is held inline (not Localizable), tightly bound to the step it explains. Terse,
@@ -34,7 +55,8 @@ let tourSteps: [TourStep] = [
              body: "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train."),
     TourStep(stage: .route, title: "Saved routes and reminders",
              body: "Later trips wait as a saved route. Open it to see every leg, choose which "
-                 + "connections to track, and get a reminder before departure."),
+                 + "connections to track, and get a reminder before departure, timed to your "
+                 + "walk to the station if you turn that on."),
     TourStep(stage: .watch, title: "Take it to your watch",
              body: "Have a Garmin? Track on your phone and send a departure to your wrist. "
                  + "There's an Apple Watch app too."),

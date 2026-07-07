@@ -26,6 +26,7 @@ private enum StationHighlight { case list, modeChips, trackRow, favRow }
 // toggling things in the tour never touches the user's real data. onFinish fires on Done AND Skip.
 // Peer of the Android OnboardingTour.kt.
 struct OnboardingTour: View {
+    var steps: [TourStep] = tourSteps
     let onFinish: () -> Void
 
     @State private var stepIndex = 0
@@ -37,7 +38,7 @@ struct OnboardingTour: View {
 
     private let base = Int(Date().timeIntervalSince1970)
     private var departures: [Departure] { TourMockData.departures(base: base, mode: mode) }
-    private var step: TourStep { tourSteps[stepIndex] }
+    private var step: TourStep { steps[stepIndex] }
 
     private func favKey(_ d: Departure) -> String { "\(d.lineNumber)|\(d.destination)" }
     private func isFav(_ d: Departure) -> Bool { favourites.contains(favKey(d)) }
@@ -52,7 +53,7 @@ struct OnboardingTour: View {
             if let d = departures.first(where: { $0.lineNumber == TourMockData.favouriteLine }) {
                 toggleFavourite(d)
             }
-        } else if stepIndex < tourSteps.count - 1 {
+        } else if stepIndex < steps.count - 1 {
             if step.stage == .track { trackingActive = false }
             // Leaving the mode step returns the board to trains so the track and
             // favourite steps find IC1 and IR15.
@@ -134,16 +135,18 @@ struct OnboardingTour: View {
             if step.stage == .favourite && !favourites.isEmpty { return tourFavouriteDetailBody }
             return step.body
         }()
-        let nextLabel = stepIndex == tourSteps.count - 1 ? "Done" : "Next"
+        let nextLabel = stepIndex == steps.count - 1 ? "Done" : "Next"
         // The track and favourite steps each expand into a second page (live tracking /
-        // starred detail), so both sub-pages carry their own progress dot.
-        let trackStep = tourSteps.firstIndex(where: { $0.stage == .track }) ?? 0
-        let favStep = tourSteps.firstIndex(where: { $0.stage == .favourite }) ?? 0
-        let dotTotal = tourSteps.count + 2
+        // starred detail), so both sub-pages carry their own progress dot. A delta tour
+        // that omits either step drops its extra dot.
+        let trackStep = steps.firstIndex(where: { $0.stage == .track })
+        let favStep = steps.firstIndex(where: { $0.stage == .favourite })
+        let subPages = (trackStep != nil ? 1 : 0) + (favStep != nil ? 1 : 0)
+        let dotTotal = steps.count + subPages
         let dotIndex: Int = {
             var index = stepIndex
-            if stepIndex > trackStep || (stepIndex == trackStep && trackingActive) { index += 1 }
-            if stepIndex > favStep || (stepIndex == favStep && !favourites.isEmpty) { index += 1 }
+            if let t = trackStep, stepIndex > t || (stepIndex == t && trackingActive) { index += 1 }
+            if let f = favStep, stepIndex > f || (stepIndex == f && !favourites.isEmpty) { index += 1 }
             return index
         }()
         let bubble = CalloutBubble(

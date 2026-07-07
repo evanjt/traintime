@@ -9,6 +9,7 @@ struct PhoneSettingsView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @AppStorage("seenOnboardingVersion") private var seenOnboardingVersion = 0
     @AppStorage("routeReminderLeadMinutes") private var routeLeadMinutes = 15
     @AppStorage("connectionReminderLeadMinutes") private var connectionLeadMinutes = 3
     @AppStorage("distanceAwareReminder") private var distanceAwareReminder = false
@@ -231,7 +232,10 @@ struct PhoneSettingsView: View {
 
                     Button {
                         dismiss()
+                        // Replay the FULL tour: clear both the flag and the seen
+                        // version so every step shows again.
                         hasSeenOnboarding = false
+                        seenOnboardingVersion = 0
                     } label: {
                         HStack {
                             Image(systemName: "questionmark.circle")

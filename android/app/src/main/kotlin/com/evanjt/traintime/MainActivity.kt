@@ -35,7 +35,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
+import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
+import com.evanjt.traintime.ui.onboarding.stepsToShow
+import com.evanjt.traintime.ui.onboarding.tourSteps
 import com.evanjt.traintime.ui.pending.PendingRouteChip
 import com.evanjt.traintime.ui.pending.ReplaceRouteDialog
 import com.evanjt.traintime.ui.pending.ResumeRouteDialog
@@ -299,12 +303,20 @@ private fun RootView(
     }
 
     // First-launch walkthrough sits above everything until completed or skipped.
-    // It never auto-shows again once seen; a snackbar points to the Settings replay.
+    // A new install sees the full tour; an updater sees only steps added since
+    // they last finished it. A snackbar points to the Settings replay.
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
     val hasSeenOnboarding by viewModel.prefs.hasSeenOnboarding.collectAsState(initial = true)
-    if (!hasSeenOnboarding) {
+    val seenVersion by viewModel.prefs.seenOnboardingVersion.collectAsState(initial = CURRENT_TOUR_VERSION)
+    val tourSlice = stepsToShow(
+        tourSteps,
+        effectiveSeenVersion(hasSeenOnboarding, seenVersion),
+        CURRENT_TOUR_VERSION,
+    )
+    if (tourSlice.isNotEmpty()) {
         OnboardingTour(
+            steps = tourSlice,
             onComplete = {
                 viewModel.markOnboardingSeen()
                 snackbarScope.launch {

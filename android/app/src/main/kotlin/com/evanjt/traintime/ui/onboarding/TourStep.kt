@@ -9,7 +9,13 @@ data class TourStep(
     val stage: TourStage,
     val title: String,
     val body: String,
+    // Tour version this step first appeared in. New installs see every step;
+    // an updater sees only steps newer than the version they last finished.
+    val introducedIn: Int = 1,
 )
+
+// Bump whenever steps are added (new steps get introducedIn = this value).
+const val CURRENT_TOUR_VERSION = 1
 
 // Copy is held inline (not in strings.xml) because each line is tightly bound to
 // the step it explains; the rest of the tour (mock data, surfaces) is Kotlin too.
@@ -54,7 +60,8 @@ val tourSteps: List<TourStep> = listOf(
         TourStage.ROUTE_PLAN,
         "Saved routes and reminders",
         "Later trips wait as a saved route. Open it to see every leg, choose which " +
-            "connections to track, and get a reminder before departure.",
+            "connections to track, and get a reminder before departure, timed to your " +
+            "walk to the station if you turn that on.",
     ),
     TourStep(
         TourStage.WATCH,
@@ -77,14 +84,38 @@ const val TRACK_DETAIL_BODY =
 // in the list below.
 const val FAVOURITE_DETAIL_BODY = "It now sits above the gold line and still appears in the list below."
 
+// The version an updater effectively last saw. A stored version wins; otherwise
+// a legacy user who finished the old (pre-versioning) tour counts as v1, and a
+// user who never saw it is 0. Pure for testability.
+fun effectiveSeenVersion(hasSeen: Boolean, seenVersion: Int): Int =
+    when {
+        seenVersion > 0 -> seenVersion
+        hasSeen -> 1
+        else -> 0
+    }
+
+// Steps to run for a user who last saw `effectiveSeen`, up to `current`. A new
+// user (0) gets every step; an updater gets only steps newer than what they saw;
+// an up-to-date user gets none. Takes the list explicitly so it is unit-testable
+// with a synthetic future step.
+fun stepsToShow(steps: List<TourStep>, effectiveSeen: Int, current: Int): List<TourStep> =
+    steps.filter { it.introducedIn > effectiveSeen && it.introducedIn <= current }
+
 // Progress dots: the TRACK and FAVOURITE steps each expand into a second page
-// (live tracking / starred detail), so both sub-pages carry their own dot.
-// Pure so the dot arithmetic is unit-testable.
-fun tourDotPosition(stepIndex: Int, trackingActive: Boolean, hasFavourites: Boolean): Pair<Int, Int> {
-    val trackStep = tourSteps.indexOfFirst { it.stage == TourStage.TRACK }
-    val favStep = tourSteps.indexOfFirst { it.stage == TourStage.FAVOURITE }
+// (live tracking / starred detail), so both sub-pages carry their own dot. Works
+// on whatever subset is being shown, so a delta tour without those steps drops
+// their extra dots. Pure so the dot arithmetic is unit-testable.
+fun tourDotPosition(
+    steps: List<TourStep>,
+    stepIndex: Int,
+    trackingActive: Boolean,
+    hasFavourites: Boolean,
+): Pair<Int, Int> {
+    val trackStep = steps.indexOfFirst { it.stage == TourStage.TRACK }
+    val favStep = steps.indexOfFirst { it.stage == TourStage.FAVOURITE }
     var index = stepIndex
-    if (stepIndex > trackStep || (stepIndex == trackStep && trackingActive)) index++
-    if (stepIndex > favStep || (stepIndex == favStep && hasFavourites)) index++
-    return index to (tourSteps.size + 2)
+    if (trackStep >= 0 && (stepIndex > trackStep || (stepIndex == trackStep && trackingActive))) index++
+    if (favStep >= 0 && (stepIndex > favStep || (stepIndex == favStep && hasFavourites))) index++
+    val subPages = (if (trackStep >= 0) 1 else 0) + (if (favStep >= 0) 1 else 0)
+    return index to (steps.size + subPages)
 }

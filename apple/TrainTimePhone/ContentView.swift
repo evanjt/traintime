@@ -6,9 +6,24 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @AppStorage("seenOnboardingVersion") private var seenOnboardingVersion = 0
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @State private var showTourHint = false
     @State private var showRouteDetail = false
+
+    // New install → full tour; updater → only steps added since they last
+    // finished; up-to-date → nothing.
+    private var tourSlice: [TourStep] {
+        stepsToShow(
+            tourSteps,
+            effectiveSeen: effectiveSeenVersion(hasSeen: hasSeenOnboarding, seenVersion: seenOnboardingVersion),
+            current: currentTourVersion)
+    }
+
+    private func markTourSeen() {
+        hasSeenOnboarding = true
+        seenOnboardingVersion = currentTourVersion
+    }
 
     var body: some View {
         ZStack {
@@ -138,11 +153,11 @@ struct ContentView: View {
             }
         }
         .fullScreenCover(isPresented: Binding(
-            get: { !hasSeenOnboarding },
-            set: { presented in if !presented { hasSeenOnboarding = true } }
+            get: { !tourSlice.isEmpty },
+            set: { presented in if !presented { markTourSeen() } }
         )) {
-            OnboardingTour(onFinish: {
-                hasSeenOnboarding = true
+            OnboardingTour(steps: tourSlice, onFinish: {
+                markTourSeen()
                 withAnimation { showTourHint = true }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     withAnimation { showTourHint = false }

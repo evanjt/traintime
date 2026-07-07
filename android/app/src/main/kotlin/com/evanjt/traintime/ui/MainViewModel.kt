@@ -39,6 +39,7 @@ import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearLivenessBus
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.review.ReviewGate
+import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.data.prefs.PendingRouteStore
@@ -816,7 +817,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun markOnboardingSeen() {
-        viewModelScope.launch { prefs.markOnboardingSeen() }
+        viewModelScope.launch { prefs.setSeenOnboardingVersion(CURRENT_TOUR_VERSION) }
     }
 
     fun replayOnboarding() {
