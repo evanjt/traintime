@@ -2,6 +2,7 @@ using Toybox.WatchUi;
 using Toybox.Graphics;
 using Toybox.Math;
 using Toybox.Position;
+using Toybox.System;
 using Toybox.Time;
 
 module Renderer {
@@ -233,29 +234,61 @@ module Renderer {
                 loadMsg, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Contextual button hint at bottom
+        // Primary action label at the bottom; the accent arc marks the button
         if (view.mStationName != null && (view.mAppState == 1 || (view.mTrainData != null && view.mTrainData.size() > 0))) {
             var hintY = height * 92 / 100;
             var hintMaxW = DrawUtils.getUsableWidth(hintY + 6, width, height) - 10;
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
             var hint;
             if (view.mAppState == 0) {
-                hint = "Press START";
-            } else if (view.mAppState == 1) {
-                if (view.mCursorIndex == -1) {
-                    hint = "START=Next  DOWN";
-                } else {
-                    hint = "START=OK  BACK";
-                }
+                hint = "Select";
+            } else if (view.mCursorIndex == -1) {
+                hint = "Next station";
             } else {
-                hint = (view.mStationLat != null && view.mStationLon != null) ? "START=Nav" : "";
+                hint = "Track";
             }
-            if (!hint.equals("")) {
-                dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
-                    DrawUtils.truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-            }
+            dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
+                DrawUtils.truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
         }
+
+        drawButtonHints(dc, view, width, height);
+    }
+
+    // Arc ticks on the bezel at each physical button that does something in the
+    // current state. Gated per button via inputButtons, so two-button touch
+    // watches only show the buttons they actually have
+    function drawButtonHints(dc, view, width, height) {
+        if (!DrawUtils.isRound() || view.mAppState == 3) { return; }
+        var ib = System.getDeviceSettings().inputButtons;
+        var hasUpDown = (ib & System.BUTTON_INPUT_UP) != 0
+            && (ib & System.BUTTON_INPUT_DOWN) != 0;
+        var hasStart = (ib & (System.BUTTON_INPUT_START | System.BUTTON_INPUT_SELECT)) != 0;
+        var hasBack = (ib & (System.BUTTON_INPUT_ESC | System.BUTTON_INPUT_LAP)) != 0;
+
+        if (view.mAppState == 2) {
+            var canNav = view.mStationLat != null && view.mStationLon != null;
+            if (hasStart && canNav) { drawButtonHint(dc, width, height, 30, true); }
+            if (hasBack) { drawButtonHint(dc, width, height, 330, false); }
+            return;
+        }
+        if (hasStart) { drawButtonHint(dc, width, height, 30, true); }
+        if (hasUpDown) {
+            drawButtonHint(dc, width, height, 150, false);
+            drawButtonHint(dc, width, height, 210, false);
+        }
+        if (view.mAppState == 1 && hasBack) {
+            drawButtonHint(dc, width, height, 330, false);
+        }
+    }
+
+    function drawButtonHint(dc, width, height, centreDeg, accent) {
+        var r = width / 2 - DrawUtils.px(4, width);
+        dc.setPenWidth(DrawUtils.px(3, width));
+        dc.setColor(accent ? 0x55AAFF : 0x666666, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(width / 2, height / 2, r, Graphics.ARC_COUNTER_CLOCKWISE,
+            centreDeg - 8, centreDeg + 8);
+        dc.setPenWidth(1);
     }
 
     function isModeAvailable(view, mode) {
@@ -698,6 +731,8 @@ module Renderer {
 
         // Direction arrow (only visible when walking)
         drawDirectionArrow(dc, view, width, height, minY);
+
+        drawButtonHints(dc, view, width, height);
 
         // Map error toast overlay
         if (view.mMapError != null && view.mMapErrorTick != null) {
