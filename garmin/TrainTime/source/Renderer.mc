@@ -55,22 +55,6 @@ module Renderer {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                     modeLabel, Graphics.TEXT_JUSTIFY_CENTER);
-            } else if (view.mAppState == 1 && view.mCursorIndex == -1) {
-                // Highlighted station indicator (shows walk info + counter)
-                var walkTextH = dc.getFontHeight(Graphics.FONT_XTINY);
-                var rowCenterForBg = walkY + walkTextH / 2;
-                var usableBg = DrawUtils.getUsableWidth(rowCenterForBg, width, height);
-                var bgX = (width - usableBg) / 2 + 2;
-                dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(bgX, walkY, usableBg - 4, walkTextH);
-                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(bgX, walkY, 3, walkTextH);
-                var siText = view.mWalkInfo != null ? view.mWalkInfo : ((view.mStationIndex + 1) + "/" + ((view.mStations != null) ? view.mStations.size() : 1));
-                var walkMaxW = usableBg - 10;
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
-                    DrawUtils.truncateToFit(dc, siText, Graphics.FONT_XTINY, walkMaxW),
-                    Graphics.TEXT_JUSTIFY_CENTER);
             } else if (view.mWalkInfo != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
@@ -79,23 +63,70 @@ module Renderer {
                     walkText, Graphics.TEXT_JUSTIFY_CENTER);
             }
 
-            // Station name
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            // Station name. With the cursor on the header it becomes a carousel:
+            // chevrons + counter show that START cycles the nearby stations
             var stationY = height * 22 / 100;
             var stationMaxW = DrawUtils.getUsableWidth(stationY + 12, width, height) - 10;
+            var onHeader = (view.mAppState == 1 && view.mCursorIndex == -1);
+            var counter = null;
+            if (onHeader && view.mStations != null && view.mStations.size() > 1) {
+                counter = (view.mStationIndex + 1) + "/" + view.mStations.size();
+            }
             var stationText = view.mStationName.toUpper();
             var stationFont = Graphics.FONT_MEDIUM;
+            var nameMaxW = stationMaxW;
+            var triW = 0;
+            var triH = 0;
+            var gap = 0;
+            var counterW = 0;
+            if (onHeader) {
+                triH = dc.getFontHeight(Graphics.FONT_MEDIUM) / 2;
+                triW = 2 * triH / 3;
+                gap = DrawUtils.px(6, width);
+                if (counter != null) {
+                    counterW = dc.getTextDimensions(counter, Graphics.FONT_XTINY)[0] + gap;
+                }
+                nameMaxW = stationMaxW - 2 * (triW + gap) - counterW;
+            }
             var dims = dc.getTextDimensions(stationText, stationFont);
-            if (dims[0] > stationMaxW) {
+            if (dims[0] > nameMaxW) {
                 stationFont = Graphics.FONT_SMALL;
                 dims = dc.getTextDimensions(stationText, stationFont);
-                if (dims[0] > stationMaxW) {
+                if (dims[0] > nameMaxW) {
                     stationFont = Graphics.FONT_TINY;
-                    stationText = DrawUtils.truncateToFit(dc, stationText, stationFont, stationMaxW);
+                    stationText = DrawUtils.truncateToFit(dc, stationText, stationFont, nameMaxW);
+                    dims = dc.getTextDimensions(stationText, stationFont);
                 }
             }
-            dc.drawText(centerX, stationY, stationFont,
-                stationText, Graphics.TEXT_JUSTIFY_CENTER);
+            if (onHeader) {
+                var fontH = dc.getFontHeight(stationFont);
+                var midY = stationY + fontH / 2;
+                var assemblyW = triW + gap + dims[0] + gap + triW + counterW;
+                var ax = centerX - assemblyW / 2;
+                var bgPad = DrawUtils.px(4, width);
+                dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
+                dc.fillRoundedRectangle(ax - bgPad, stationY, assemblyW + 2 * bgPad,
+                    fontH, fontH / 4);
+                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+                dc.fillPolygon([[ax + triW, midY - triH / 2], [ax, midY],
+                    [ax + triW, midY + triH / 2]]);
+                var rx = ax + triW + gap + dims[0] + gap;
+                dc.fillPolygon([[rx, midY - triH / 2], [rx + triW, midY],
+                    [rx, midY + triH / 2]]);
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(ax + triW + gap, stationY, stationFont,
+                    stationText, Graphics.TEXT_JUSTIFY_LEFT);
+                if (counter != null) {
+                    var xtH = dc.getFontHeight(Graphics.FONT_XTINY);
+                    dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(rx + triW + gap, stationY + (fontH - xtH) / 2,
+                        Graphics.FONT_XTINY, counter, Graphics.TEXT_JUSTIFY_LEFT);
+                }
+            } else {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(centerX, stationY, stationFont,
+                    stationText, Graphics.TEXT_JUSTIFY_CENTER);
+            }
 
             if (view.mTrainData != null && view.mTrainData.size() > 0) {
                 // Train rows (favourites first, then regular)

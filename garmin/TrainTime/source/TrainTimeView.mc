@@ -874,13 +874,8 @@ class TrainTimeView extends WatchUi.View {
             timeStr = walkMinutes + " min";
         }
 
-        var info = timeStr + " walk - " + dist + "m";
-
-        if (mStations != null && mStations.size() > 1 && mAppState != 2) {
-            info = info + "  " + (mStationIndex + 1) + "/" + mStations.size();
-        }
-
-        return info;
+        // Station counter lives in the header carousel, not here
+        return timeStr + " walk - " + dist + "m";
     }
 
     // --- Station navigation ---
