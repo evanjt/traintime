@@ -208,9 +208,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // watch says hello. watchAlive is the combined indicator the UI renders.
     private var heartbeatJob: Job? = null
     private var garminLastAlive = 0L
+    // Version last announced by the Garmin watch over the Connect IQ liveness
+    // hello/alive (null until first heard). Same gate as Wear: pre-versioning
+    // Garmin builds send no v/pv and read as 0.4.x / protocol 0.
+    private var garminWatchProtocol: Int? = null
+    private var garminWatchVersion: String? = null
     private var wearLastAlive = 0L
     private var wearNodesPresent = false
     private var hasKnownWearNode = false
+    // Version last announced by the connected Wear watch (null until first
+    // liveness). Drives the Send-to-Watch update guard and the "please update"
+    // copy. A pre-versioning watch reports LEGACY_VERSION_NAME / protocol 0.
+    private var wearWatchProtocol: Int? = null
+    private var wearWatchVersion: String? = null
     private var wearMirrorJob: Job? = null
     var watchChecking by mutableStateOf(false)
         private set
@@ -422,10 +432,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Wear liveness announcements, the Data Layer peer of the hello/alive/bye
-    // handling for Garmin in applyReceivedWatchContext.
-    private fun handleWearLiveness(kind: String) {
-        when (kind) {
+    // handling for Garmin in applyReceivedWatchContext. The raw payload carries
+    // the watch's version (see WearSync.decodeLiveness); a bare kind string is a
+    // pre-versioning watch.
+    private fun handleWearLiveness(raw: String) {
+        val msg = WearSync.decodeLiveness(raw)
+        when (msg.kind) {
             WearSync.KIND_HELLO, WearSync.KIND_ALIVE -> {
+                wearWatchProtocol = msg.pv
+                wearWatchVersion = msg.displayVersion
                 val wasAlive = wearAliveFresh()
                 wearLastAlive = now()
                 wearNodesPresent = true
@@ -968,6 +983,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 showWatchStatus("No watch connected")
                 return@launch
             }
+            // Guard: a watch that has announced a protocol below the minimum is
+            // too old to parse the track command. Guide the user to update rather
+            // than reporting a false "Sent". A watch we have not heard from yet
+            // (null) is given the benefit of the doubt and the send is attempted.
+            val pv = when (watch.type) {
+                PhoneWatchType.WEAR -> wearWatchProtocol
+                PhoneWatchType.GARMIN -> garminWatchProtocol
+            }
+            if (pv != null && pv < WearSync.MIN_TRACK_PROTOCOL) {
+                val version = when (watch.type) {
+                    PhoneWatchType.WEAR -> wearWatchVersion
+                    PhoneWatchType.GARMIN -> garminWatchVersion
+                } ?: WearSync.LEGACY_VERSION_NAME
+                showWatchStatus("Update TrainTime on your watch ($version)")
+                return@launch
+            }
             val cmd = TrackCommand.from(focused, stationId)
             val ok = when (watch.type) {
                 PhoneWatchType.WEAR -> wearSync.sendTrack(cmd) > 0
@@ -986,6 +1017,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Liveness announcement, the watch app is open and reachable (hello on launch,
         // alive as its periodic heartbeat).
         if (ctx["kind"] == "hello" || ctx["kind"] == "alive") {
+            // A pre-versioning Garmin build sends no v/pv: read as 0.4.x / protocol 0.
+            garminWatchProtocol = (ctx["pv"] as? Number)?.toInt() ?: 0
+            garminWatchVersion = ctx["v"] as? String ?: WearSync.LEGACY_VERSION_NAME
             val wasAlive = garminAliveFresh()
             garminLastAlive = now()
             watchAlive = true

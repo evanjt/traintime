@@ -120,6 +120,15 @@ function testBuildTrackStartedNullFocused(logger) {
     return PhoneSync.buildTrackStarted(null, "8507000") == null;
 }
 
+// Liveness carries the version handshake so the phone can gate Send-to-Watch.
+(:test)
+function testBuildLivenessCarriesVersion(logger) {
+    var data = PhoneSync.buildLiveness("hello");
+    return data["kind"].equals("hello")
+        && data["v"].equals(AppVersion.VERSION)
+        && data["pv"] == PhoneSync.PROTOCOL_VERSION;
+}
+
 // Review-prompt gate. Timestamps in seconds; NOW is arbitrary but fixed.
 const REVIEW_NOW = 1750000000;
 const REVIEW_OLD_ENOUGH = REVIEW_NOW - ReviewPrompt.MIN_AGE_SEC;

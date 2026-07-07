@@ -1,5 +1,23 @@
 import Foundation
 
+/// Shared watch↔phone handshake versioning (Apple ecosystem peer of the Android
+/// `WearSync` protocol constants and Garmin `PhoneSync.PROTOCOL_VERSION`). A watch
+/// stamps every liveness announcement with its marketing version (`v`, for
+/// user-facing copy) and this monotonic protocol version (`pv`, for gating). Bump
+/// `version` only on a breaking payload change; raise `minTrackProtocol` to refuse
+/// Send-to-Watch against a watch too old to parse the current track command. A
+/// liveness message with no version field is a pre-versioning build: 0.4.x / pv 0.
+enum WatchSyncProtocol {
+    static let version = 1
+    static let minTrackProtocol = 1
+    static let legacyVersionName = "0.4.x"
+
+    /// This build's marketing version, for stamping outbound liveness.
+    static var localVersionName: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? legacyVersionName
+    }
+}
+
 struct FocusedDeparture {
     let destination: String
     let departureTimestamp: Int

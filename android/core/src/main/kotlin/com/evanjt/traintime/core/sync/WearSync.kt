@@ -35,7 +35,34 @@ object WearSync {
     // actions (mode / station / loc / back) matching the Garmin action contract.
     const val CMD_PATH = "/traintime/cmd"
 
+    // Handshake versioning. A watch stamps every liveness announcement with its
+    // marketing version (v, for user-facing copy) and this monotonic protocol
+    // version (pv, for gating logic). Bump PROTOCOL_VERSION only on a breaking
+    // payload change; raise MIN_TRACK_PROTOCOL to refuse Send-to-Watch against a
+    // watch too old to understand the current track command. A liveness message
+    // with no version field is a pre-versioning build: treated as 0.4.x / pv 0.
+    const val PROTOCOL_VERSION = 1
+    const val MIN_TRACK_PROTOCOL = 1
+    const val LEGACY_VERSION_NAME = "0.4.x"
+
+    // The local app's marketing version, set once by each module's Application
+    // (:app and :wear read their own BuildConfig.VERSION_NAME). Defaults to the
+    // legacy sentinel so an unset build still reports honestly.
+    @Volatile
+    var localVersionName: String = LEGACY_VERSION_NAME
+
     val json = Json { ignoreUnknownKeys = true }
+
+    // Encode a liveness announcement stamped with the local version. Always JSON
+    // so hello/alive carry v/pv; bye/reqLoc carry them too (harmless).
+    fun encodeLiveness(kind: String): String =
+        json.encodeToString(LivenessMessage(kind, localVersionName, PROTOCOL_VERSION))
+
+    // Decode a received liveness announcement. A bare kind string (no JSON) is a
+    // pre-versioning watch: reported as the legacy version with pv 0.
+    fun decodeLiveness(raw: String): LivenessMessage =
+        runCatching { json.decodeFromString<LivenessMessage>(raw) }
+            .getOrElse { LivenessMessage(kind = raw, v = LEGACY_VERSION_NAME, pv = 0) }
 
     fun encodeCommand(cmd: WearCommand): ByteArray =
         json.encodeToString(cmd).toByteArray(Charsets.UTF_8)
@@ -75,6 +102,22 @@ object WearSync {
     // Phone location used as a GPS fallback when the watch's own signal is weak.
     fun garminLocationPayload(lat: Double, lon: Double): Map<String, Any?> =
         mapOf("action" to "loc", "lat" to lat, "lon" to lon)
+}
+
+// Watch -> phone liveness announcement over LIVENESS_PATH. Superset of the bare
+// kind string: adds the watch's marketing version (v) and protocol version (pv)
+// so the phone can gate Send-to-Watch and name the version in "please update".
+@Serializable
+data class LivenessMessage(
+    val kind: String,
+    val v: String? = null,
+    val pv: Int = 0,
+) {
+    // True when this watch is too old to receive the current track command.
+    val trackOutdated: Boolean get() = pv < WearSync.MIN_TRACK_PROTOCOL
+
+    // A version string fit for user-facing copy, falling back to the legacy name.
+    val displayVersion: String get() = v ?: WearSync.LEGACY_VERSION_NAME
 }
 
 // Phone -> watch mirror command over CMD_PATH. Same actions and field names as

@@ -15,8 +15,14 @@ enum WatchPhoneSync {
         session.sendMessage(data, replyHandler: nil, errorHandler: { _ in })
     }
 
-    static func sendHello() { send(["kind": "hello"]) }
-    static func sendAlive() { send(["kind": "alive"]) }
+    // hello/alive carry the version handshake (v/pv) so the phone can gate
+    // Send-to-Watch; bye/reqLoc need no version.
+    private static func liveness(_ kind: String) -> [String: Any] {
+        ["kind": kind, "v": WatchSyncProtocol.localVersionName, "pv": WatchSyncProtocol.version]
+    }
+
+    static func sendHello() { send(liveness("hello")) }
+    static func sendAlive() { send(liveness("alive")) }
     static func sendBye() { send(["kind": "bye"]) }
     static func requestLocation() { send(["kind": "reqLoc"]) }
 

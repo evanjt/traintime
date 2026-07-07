@@ -120,7 +120,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
     // Fire-and-forget to every connected node; a phoneless watch is a silent
     // no-op, matching WatchPhoneSync on the Apple side.
     override suspend fun sendLiveness(kind: String) {
-        val bytes = kind.toByteArray(Charsets.UTF_8)
+        val bytes = WearSync.encodeLiveness(kind).toByteArray(Charsets.UTF_8)
         val nodes = runCatching { nodeClient.connectedNodes.await() }.getOrNull() ?: return
         for (node in nodes) {
             runCatching { messageClient.sendMessage(node.id, WearSync.LIVENESS_PATH, bytes).await() }

@@ -114,6 +114,14 @@ final class ParsingTests: XCTestCase {
         XCTAssertNil(data["stName"])
     }
 
+    func testWatchSyncProtocolContractIsStable() {
+        // The current build is never treated as outdated against itself.
+        XCTAssertGreaterThanOrEqual(WatchSyncProtocol.version, WatchSyncProtocol.minTrackProtocol)
+        // A pre-versioning watch (no v/pv) reads as protocol 0, below the minimum.
+        XCTAssertLessThan(0, WatchSyncProtocol.minTrackProtocol)
+        XCTAssertEqual(WatchSyncProtocol.legacyVersionName, "0.4.x")
+    }
+
     func testTourModeStepFollowsNearbyWithPerModeBoards() {
         XCTAssertEqual(tourSteps[0].stage, .nearby)
         XCTAssertEqual(tourSteps[1].stage, .mode)

@@ -8,6 +8,12 @@ using Toybox.System;
 // transmit fails silently, so absence of a phone is a no-op, never an error.
 module PhoneSync {
 
+    // Monotonic handshake protocol version, matched to the phone's
+    // WearSync.PROTOCOL_VERSION. Stamped on hello/alive so the phone can refuse
+    // Send-to-Watch against a watch too old to parse the current track command.
+    // A pre-versioning watch sends no v/pv, which the phone reads as 0.4.x.
+    const PROTOCOL_VERSION = 1;
+
     // Flipped on by the first real view show (TrainTimeView.onShow). The unit-test
     // harness never shows a view, and a transmit before then hangs the sim, CI
     // stalls before running a single test. Until activated every send is a no-op.
@@ -38,12 +44,19 @@ module PhoneSync {
     // can wake a closed watch-app on Garmin, so the phone must stay silent until the
     // user explicitly opens the watch. hello on launch, alive as a periodic heartbeat,
     // bye on exit. The phone listens and colours its indicator from these.
+    // Pure builder so the versioned liveness shape is unit-testable. hello/alive
+    // carry the marketing version (v) and protocol version (pv); the phone reads
+    // them to gate Send-to-Watch.
+    function buildLiveness(kind) {
+        return { "kind" => kind, "v" => AppVersion.VERSION, "pv" => PROTOCOL_VERSION };
+    }
+
     function sendHello() {
-        transmit({ "kind" => "hello" });
+        transmit(buildLiveness("hello"));
     }
 
     function sendAlive() {
-        transmit({ "kind" => "alive" });
+        transmit(buildLiveness("alive"));
     }
 
     function sendClosing() {

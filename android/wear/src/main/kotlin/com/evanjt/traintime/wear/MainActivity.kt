@@ -52,6 +52,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Stamp the watch's version so its liveness announcements carry it, before
+        // the ViewModel sends its first hello.
+        WearSync.localVersionName = BuildConfig.VERSION_NAME
         handleTrackIntent(intent)
         setContent {
             TrainTimeWearTheme { WearApp(viewModel) }
