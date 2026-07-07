@@ -1,8 +1,9 @@
 using Toybox.WatchUi;
+using Toybox.System;
 
 module FavouritesMenu {
 
-    // Context menu for tracking mode (State 2): star toggle + settings
+    // Context menu for tracking mode (State 2): star toggle + remind-on-phone + settings
     function openTrackingMenu(view) {
         var menu = new WatchUi.Menu2({:title => "Options"});
 
@@ -20,6 +21,19 @@ module FavouritesMenu {
                     {}
                 ));
             }
+        }
+
+        // Send the departure to the phone for a reminder. Only shown when a phone
+        // is connected and we have the origin coords the phone reminder needs.
+        if (System.getDeviceSettings().phoneConnected &&
+            focused != null && stationId != null &&
+            view.mStationLat != null && view.mStationLon != null) {
+            menu.addItem(new WatchUi.MenuItem(
+                "Remind on phone",
+                "",
+                :remindPhone,
+                {}
+            ));
         }
 
         menu.addItem(new WatchUi.MenuItem(
@@ -53,8 +67,12 @@ class FavouritesMenuDelegate extends WatchUi.Menu2InputDelegate {
                 var stationName = mView.mStationName != null ? mView.mStationName : "Station";
                 if (lineNumber != null && destination != null) {
                     FavouritesManager.toggleFavourite(stationId, lineNumber, destination, stationName);
+                    PhoneSync.sendFavourites();
                 }
             }
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+        } else if (id == :remindPhone) {
+            mView.remindOnPhone();
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         } else if (id == :openSettings) {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);

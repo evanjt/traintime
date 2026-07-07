@@ -121,6 +121,41 @@ module FavouritesManager {
         return parts;
     }
 
+    // Favourites as an array of {stId,line,dest,name} dicts for phone sync. The
+    // cross-platform wire shape both phone companions parse and build.
+    function getFavouritesForSync() {
+        var all = getAllFavourites();  // [line, dest, name, stId]
+        var result = [];
+        for (var i = 0; i < all.size(); i++) {
+            var e = all[i];
+            result.add({ "stId" => e[3], "line" => e[0], "dest" => e[1], "name" => e[2] });
+        }
+        return result;
+    }
+
+    // Outer-join an incoming favourites array (of {stId,line,dest,name}) into
+    // storage: add any the watch lacks, never remove (matching the phone's union).
+    // Returns true if the local set grew. Deliberately does NOT re-broadcast: each
+    // side pushes on its own change and the phone re-seeds on watch-open, which
+    // converges additions without an apply-triggered loop.
+    function applyUnionFromSync(incoming) {
+        if (incoming == null || !(incoming instanceof Lang.Array)) { return false; }
+        var before = getTotalCount();
+        for (var i = 0; i < incoming.size(); i++) {
+            var e = incoming[i];
+            if (e instanceof Lang.Dictionary) {
+                var stId = e["stId"];
+                var line = e["line"];
+                var dest = e["dest"];
+                var name = e["name"] != null ? e["name"] : stId;
+                if (stId != null && line != null && dest != null) {
+                    addFavourite(stId, line, dest, name);
+                }
+            }
+        }
+        return getTotalCount() != before;
+    }
+
     // Get all favourites as flat array of [lineNumber, destination, stationName, stationId]
     function getAllFavourites() {
         var favs = getFavourites();

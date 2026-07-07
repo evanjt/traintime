@@ -95,6 +95,38 @@ module PhoneSync {
         var data = buildTrackStarted(focused, stationId);
         if (data != null) { transmit(data); }
     }
+
+    // Ask the phone to save the focused departure as a reminder (the reverse of
+    // the phone's Send-to-Watch). Carries the origin station's id + coords so the
+    // phone synthesises the same one-leg route as a board save and schedules its
+    // distance-aware reminder. Pure builder for unit-testability.
+    function buildSaveReminder(focused, stationId, stationName, lat, lon) {
+        if (focused == null || stationId == null || lat == null || lon == null) { return null; }
+        var data = {
+            "kind" => "saveReminder",
+            "dest" => focused["dest"],
+            "depTs" => focused["depTs"],
+            "line" => focused["line"],
+            "stId" => stationId,
+            "stName" => stationName,
+            "lat" => lat,
+            "lon" => lon
+        };
+        if (focused["trainNum"] != null) { data["trainNum"] = focused["trainNum"]; }
+        return data;
+    }
+
+    function sendSaveReminder(focused, stationId, stationName, lat, lon) {
+        var data = buildSaveReminder(focused, stationId, stationName, lat, lon);
+        if (data != null) { transmit(data); }
+    }
+
+    // Push the watch's full favourites to the phone for the outer-join sync. Sent
+    // on every local star change and when the watch holds favourites the phone
+    // lacks; the phone unions them (never replaces).
+    function sendFavourites() {
+        transmit({ "kind" => "favourites", "favs" => FavouritesManager.getFavouritesForSync() });
+    }
 }
 
 class PhoneSyncListener extends Communications.ConnectionListener {

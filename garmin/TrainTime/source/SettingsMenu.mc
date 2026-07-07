@@ -212,6 +212,7 @@ class FavouritesListDelegate extends WatchUi.Menu2InputDelegate {
         if (idx >= 0 && idx < allFavs.size()) {
             var f = allFavs[idx];
             FavouritesManager.removeFavourite(f[3], f[0], f[1]);  // stationId, lineNumber, destination
+            PhoneSync.sendFavourites();
         }
         // Pop back to settings
         WatchUi.popView(WatchUi.SLIDE_RIGHT);

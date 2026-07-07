@@ -120,6 +120,50 @@ function testBuildTrackStartedNullFocused(logger) {
     return PhoneSync.buildTrackStarted(null, "8507000") == null;
 }
 
+// saveReminder payload shape (watch -> phone remind request).
+(:test)
+function testBuildSaveReminderFullPayload(logger) {
+    var focused = { "dest" => "Brig", "depTs" => 1718000600, "line" => "IR90", "trainNum" => "1820" };
+    var data = PhoneSync.buildSaveReminder(focused, "8507000", "Bern", 46.9489, 7.4396);
+    return data["kind"].equals("saveReminder") && data["dest"].equals("Brig")
+        && data["depTs"] == 1718000600 && data["line"].equals("IR90")
+        && data["stId"].equals("8507000") && data["stName"].equals("Bern")
+        && data["lat"] == 46.9489 && data["lon"] == 7.4396 && data["trainNum"].equals("1820");
+}
+
+(:test)
+function testBuildSaveReminderNeedsCoords(logger) {
+    var focused = { "dest" => "Brig", "depTs" => 1718000600, "line" => "IR90" };
+    return PhoneSync.buildSaveReminder(focused, "8507000", "Bern", null, 7.4396) == null
+        && PhoneSync.buildSaveReminder(null, "8507000", "Bern", 46.9489, 7.4396) == null;
+}
+
+// Favourites outer-join sync: apply a phone push, then read it back in wire shape.
+(:test)
+function testFavouritesUnionFromSync(logger) {
+    Storage.deleteValue("favourites");
+    FavouritesManager.addFavourite("8507000", "IC1", "Bern", "Bern");
+    var grew = FavouritesManager.applyUnionFromSync([
+        { "stId" => "8507000", "line" => "IC1", "dest" => "Bern", "name" => "Bern" },  // dup, no-op
+        { "stId" => "8501120", "line" => "IR90", "dest" => "Visp", "name" => "Lausanne" },
+    ]);
+    var count = FavouritesManager.getTotalCount();
+    var sync = FavouritesManager.getFavouritesForSync();
+    Storage.deleteValue("favourites");
+    return grew && count == 2 && sync.size() == 2 && sync[0]["stId"] != null && sync[0]["line"] != null;
+}
+
+(:test)
+function testFavouritesUnionNoGrowthOnDuplicate(logger) {
+    Storage.deleteValue("favourites");
+    FavouritesManager.addFavourite("8507000", "IC1", "Bern", "Bern");
+    var grew = FavouritesManager.applyUnionFromSync([
+        { "stId" => "8507000", "line" => "IC1", "dest" => "Bern", "name" => "Bern" },
+    ]);
+    Storage.deleteValue("favourites");
+    return grew == false;
+}
+
 // Liveness carries the version handshake so the phone can gate Send-to-Watch.
 (:test)
 function testBuildLivenessCarriesVersion(logger) {

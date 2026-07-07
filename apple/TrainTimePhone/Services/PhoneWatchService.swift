@@ -111,6 +111,15 @@ class PhoneWatchService: ObservableObject {
         static func location(lat: Double, lon: Double) -> [String: Any] {
             ["action": "loc", "lat": lat, "lon": lon]
         }
+
+        // The phone's favourites for the Garmin outer-join sync. The watch unions
+        // these into its own store (never replaces).
+        static func favourites(_ favourites: [Favourite]) -> [String: Any] {
+            ["action": "favourites",
+             "favs": favourites.map {
+                 ["stId": $0.stationId, "name": $0.stationName, "line": $0.lineNumber, "dest": $0.destination]
+             }]
+        }
     }
 
     /// True when a Garmin watch is currently reachable, so the phone can mirror to it.

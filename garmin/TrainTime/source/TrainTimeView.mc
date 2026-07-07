@@ -388,6 +388,28 @@ class TrainTimeView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
+    // Ask the phone to save the focused departure as a reminder. Needs the origin
+    // station's coords (the phone's distance-aware reminder is computed from them).
+    function remindOnPhone() {
+        if (mFocusedTrain == null || mStationId == null ||
+            mStationLat == null || mStationLon == null) {
+            return;
+        }
+        var stationName = mStationName != null ? mStationName : "Station";
+        PhoneSync.sendSaveReminder(mFocusedTrain, mStationId, stationName, mStationLat, mStationLon);
+        Haptics.vibrateShort();
+    }
+
+    // The phone pushed its favourites. Outer-join them into local storage. No
+    // push-back: the phone carries our favourites via its own change-push and the
+    // re-seed on watch-open, so applying never triggers a sync loop.
+    function applyFavouritesFromPhone(data) {
+        var favs = data.hasKey("favs") ? data["favs"] : null;
+        if (FavouritesManager.applyUnionFromSync(favs)) {
+            WatchUi.requestUpdate();
+        }
+    }
+
     function isRailCategory(cat) {
         return cat.equals("IR") || cat.equals("IC") || cat.equals("EC") || cat.equals("ICE")
             || cat.equals("TGV") || cat.equals("RJX") || cat.equals("RE") || cat.equals("R")
@@ -570,6 +592,12 @@ class TrainTimeView extends WatchUi.View {
     function handlePhoneMessage(data) {
         if (data == null || !data.hasKey("action")) { return; }
         var action = data["action"];
+        // Favourites sync applies in any state, including while tracking, so it
+        // sits ahead of the tracking guard below.
+        if (action.equals("favourites")) {
+            applyFavouritesFromPhone(data);
+            return;
+        }
         // Tracking is the end game: while tracking, the phone's navigation must
         // not pull the watch out. Only a fresh track command switches what it
         // tracks; location still flows through as a GPS fallback.
