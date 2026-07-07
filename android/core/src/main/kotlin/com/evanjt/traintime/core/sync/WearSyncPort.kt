@@ -10,4 +10,8 @@ interface WearSyncPort {
     suspend fun sendLiveness(kind: String)
 
     suspend fun connectedWatchNames(): List<String>
+
+    // Nodes that actually have the Wear app installed (declare the capability),
+    // for the phone's Send-to-Watch list. A superset check of connectedWatchNames.
+    suspend fun appInstalledWatchNames(): List<String>
 }

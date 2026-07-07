@@ -49,6 +49,8 @@ class WearViewModelTest {
         }
 
         override suspend fun connectedWatchNames(): List<String> = emptyList()
+
+        override suspend fun appInstalledWatchNames(): List<String> = emptyList()
     }
 
     private fun viewModel(sync: RecordingSync) =

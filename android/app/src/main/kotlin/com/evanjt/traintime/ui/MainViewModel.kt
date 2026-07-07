@@ -962,7 +962,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun currentConnectedWatches(): List<ConnectedWatch> {
-        val wear = wearSync.connectedWatchNames().mapIndexed { i, name ->
+        // Only watches that actually have the Wear app installed, so we never
+        // offer to send a departure to a paired watch that can't receive it.
+        val wear = wearSync.appInstalledWatchNames().mapIndexed { i, name ->
             ConnectedWatch("wear_$i", name, PhoneWatchType.WEAR)
         }
         val garmin = garminService.eligibleDevices().map { d ->

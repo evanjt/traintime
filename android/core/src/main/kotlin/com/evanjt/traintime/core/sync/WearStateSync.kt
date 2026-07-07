@@ -9,6 +9,7 @@ import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.DataMap
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -46,6 +47,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
     private val dataClient = Wearable.getDataClient(appContext)
     private val messageClient = Wearable.getMessageClient(appContext)
     private val nodeClient = Wearable.getNodeClient(appContext)
+    private val capabilityClient = Wearable.getCapabilityClient(appContext)
 
     private val echoGuard = SyncEchoGuard<SyncPayload>()
 
@@ -115,6 +117,15 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
     // Display names of connected watches, for the phone's "Send to Watch" UI.
     override suspend fun connectedWatchNames(): List<String> =
         runCatching { nodeClient.connectedNodes.await().map { it.displayName } }.getOrDefault(emptyList())
+
+    override suspend fun appInstalledWatchNames(): List<String> =
+        runCatching {
+            capabilityClient
+                .getCapability(WearSync.CAPABILITY_WEAR_APP, CapabilityClient.FILTER_REACHABLE)
+                .await()
+                .nodes
+                .map { it.displayName }
+        }.getOrDefault(emptyList())
 
     // Watch -> phone liveness announcement (hello / alive / bye / reqLoc).
     // Fire-and-forget to every connected node; a phoneless watch is a silent

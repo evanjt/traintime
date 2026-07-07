@@ -35,6 +35,11 @@ object WearSync {
     // actions (mode / station / loc / back) matching the Garmin action contract.
     const val CMD_PATH = "/traintime/cmd"
 
+    // Capability the Wear app declares (res/values/wear.xml). The phone lists only
+    // nodes that provide it for Send-to-Watch, so a paired watch without the app
+    // installed is not offered a departure it could never receive.
+    const val CAPABILITY_WEAR_APP = "traintime_wear_app"
+
     // Handshake versioning. A watch stamps every liveness announcement with its
     // marketing version (v, for user-facing copy) and this monotonic protocol
     // version (pv, for gating logic). Bump PROTOCOL_VERSION only on a breaking

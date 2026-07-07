@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Declares the app to the Wearable Data Layer so the phone can find watches
+         that actually have TrainTime installed (CapabilityClient), not merely
+         paired ones. Must match WearSync.CAPABILITY_WEAR_APP. -->
+    <string-array name="android_wear_capabilities">
+        <item>traintime_wear_app</item>
+    </string-array>
+</resources>
