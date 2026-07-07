@@ -5,7 +5,7 @@ import SwiftUI
 /// android ui/pending/PendingRouteChip.kt.
 struct PendingRouteChip: View {
     let route: PendingRoute
-    let notifyTs: Int?
+    let plan: NotifyPlan?
     let onTap: () -> Void
     let onDismiss: () -> Void
 
@@ -38,10 +38,23 @@ struct PendingRouteChip: View {
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if let notifyTs, notifyTs > now {
-                    Text("You'll be notified in \((notifyTs - now) / 60) min")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.ahead)
+                if let plan, plan.notifyTs > now {
+                    let mins = (plan.notifyTs - now) / 60
+                    if let walk = plan.walkMin {
+                        // Colour the calculated walk time and the fixed buffer
+                        // distinctly, so "in \(mins) min" isn't read as their sum.
+                        (Text("Notified in \(mins) min").foregroundColor(AppColors.ahead)
+                            + Text("  (~")
+                            + Text("\(walk) min walk").foregroundColor(AppColors.platform)
+                            + Text(" + ")
+                            + Text("\(plan.bufferMin) min buffer").foregroundColor(AppColors.amber)
+                            + Text(")"))
+                            .font(.caption)
+                    } else {
+                        Text("You'll be notified in \(mins) min")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.ahead)
+                    }
                 }
             }
             Spacer()

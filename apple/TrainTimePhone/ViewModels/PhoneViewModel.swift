@@ -386,12 +386,17 @@ class PhoneViewModel: ObservableObject {
     /// green "notified in X min" line on the pending-route chip. Nil when none.
     @Published var reminderNotifyTs: Int?
 
+    /// The reminder split into walk + buffer for the chip's coloured readout.
+    @Published var reminderPlan: NotifyPlan?
+
     /// Start/stop background distance tracking to match settings + the current
     /// route, and refresh the in-app notify countdown. The SLC monitor lives in
     /// ReminderTracker so it survives relaunch.
     func syncReminderTracking() {
         ReminderTracker.shared.syncFromSettings()
-        reminderNotifyTs = pendingRouteStore.pending.flatMap { PendingRouteNotifier.nextNotifyTs(for: $0) }
+        let plan = pendingRouteStore.pending.flatMap { PendingRouteNotifier.nextNotifyPlan(for: $0) }
+        reminderPlan = plan
+        reminderNotifyTs = plan?.notifyTs
     }
 
     /// Distance-aware test: computes the real distance from the current location
@@ -1655,6 +1660,10 @@ class PhoneViewModel: ObservableObject {
         var pending = pendingFor(offer, index: index)
         pending.status = PendingRoute.statusSaved
         pendingRouteStore.save(pending)
+        // Pin the reminder's walk time to where the user actually is now, not the
+        // last nearby-search coordinate, so the distance-aware lead matches the
+        // live walk shown on the board.
+        location.saveLastKnownCoordinate()
         PendingRouteNotifier.schedule(pending, now: now)
         syncReminderTracking()
         shareStatus = "Saved. We'll remind you before departure"

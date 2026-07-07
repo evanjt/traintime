@@ -2,6 +2,16 @@ import CoreLocation
 import Foundation
 import UserNotifications
 
+/// The scheduled reminder split into its parts, for the in-app readout. walkMin
+/// is nil outside distance-aware mode (nothing to break out); bufferMin is the
+/// user's chosen lead. Lets the chip colour the calculated walk time apart from
+/// the fixed buffer.
+struct NotifyPlan {
+    let notifyTs: Int
+    let walkMin: Int?
+    let bufferMin: Int
+}
+
 /// Schedules the "your train leaves soon" heads-up for a queued shared
 /// route. Port of android app notify/PendingRouteNotifier.kt, using a
 /// calendar-triggered local notification (delivered by the OS even after the
@@ -35,6 +45,22 @@ enum PendingRouteNotifier {
         PendingRouteLogic.notifyTs(
             route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
             userDistanceMeters: userDistanceMeters(for: route))
+    }
+
+    /// The reminder split into walk + buffer for the chip and resume prompt. Uses
+    /// the same distance and leads as schedule, so the readout matches what fires.
+    /// walkMin is nil in static mode or for a connection leg (no walk component).
+    static func nextNotifyPlan(for route: PendingRoute) -> NotifyPlan? {
+        let dist = userDistanceMeters(for: route)
+        guard let notifyTs = PendingRouteLogic.notifyTs(
+            route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
+            userDistanceMeters: dist) else { return nil }
+        let connection = PendingRouteLogic.isConnectionLeg(route)
+        let walkMin: Int? = (dist != nil && !connection)
+            ? Int(GeoUtils.walkMinutes(distanceMeters: dist!).rounded())
+            : nil
+        let bufferSec = connection ? connectionLeadSec : savedLeadSec
+        return NotifyPlan(notifyTs: notifyTs, walkMin: walkMin, bufferMin: bufferSec / 60)
     }
 
     /// Straight-line distance from the last known location to the current leg's

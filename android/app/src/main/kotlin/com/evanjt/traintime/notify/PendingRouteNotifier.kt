@@ -15,7 +15,18 @@ import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.PendingRouteLogic
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
+
+// The scheduled reminder split into its parts, for the in-app readout. walkMin
+// is null outside distance-aware mode (nothing to break out); bufferMin is the
+// user's chosen lead. Distinct from the raw notifyTs so the chip can colour the
+// calculated walk time apart from the fixed buffer.
+data class NotifyPlan(
+    val notifyTs: Long,
+    val walkMin: Int?,
+    val bufferMin: Int,
+)
 
 // Schedules the "your train leaves soon" heads-up for a queued shared route.
 // WorkManager rather than an exact alarm: it persists across process death
@@ -80,6 +91,21 @@ object PendingRouteNotifier {
         val savedLead = prefs.routeReminderLeadMinutes.first() * 60L
         val connectionLead = prefs.connectionReminderLeadMinutes.first() * 60L
         return PendingRouteLogic.notifyTs(route, savedLead, connectionLead, userDistanceMeters(prefs, route))
+    }
+
+    // The reminder split into walk + buffer for the chip and resume prompt. Uses
+    // the same distance and leads as schedule, so the readout matches what fires.
+    // walkMin is null in static mode or for a connection leg (no walk component).
+    suspend fun nextNotifyPlan(context: Context, route: PendingRoute): NotifyPlan? {
+        val prefs = AppPrefs(context)
+        val savedLead = prefs.routeReminderLeadMinutes.first() * 60L
+        val connectionLead = prefs.connectionReminderLeadMinutes.first() * 60L
+        val distance = userDistanceMeters(prefs, route)
+        val notifyTs = PendingRouteLogic.notifyTs(route, savedLead, connectionLead, distance) ?: return null
+        val connection = PendingRouteLogic.isConnectionLeg(route)
+        val walkMin = if (distance != null && !connection) GeoUtils.walkMinutes(distance).roundToInt() else null
+        val bufferSec = if (connection) connectionLead else savedLead
+        return NotifyPlan(notifyTs, walkMin, (bufferSec / 60).toInt())
     }
 
     // Straight-line distance from the last known location to the current leg's

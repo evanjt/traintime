@@ -47,6 +47,7 @@ import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
 import com.evanjt.traintime.domain.PendingRouteLogic
+import com.evanjt.traintime.notify.NotifyPlan
 import com.evanjt.traintime.notify.PendingRouteNotifier
 import com.evanjt.traintime.notify.RouteDistanceTracker
 import java.io.IOException
@@ -764,6 +765,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var reminderNotifyTs by mutableStateOf<Long?>(null)
         private set
 
+    // The reminder split into walk + buffer for the chip's coloured readout.
+    var reminderPlan by mutableStateOf<NotifyPlan?>(null)
+        private set
+
     // Start/stop background distance tracking to match the current settings and
     // whether a route is active, and refresh the in-app notify countdown. Called
     // from the toggles, foreground, and route save/clear.
@@ -771,7 +776,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val ctx = getApplication<Application>()
             val route = pendingRouteStore.current()
-            reminderNotifyTs = route?.let { PendingRouteNotifier.nextNotifyTs(ctx, it) }
+            val plan = route?.let { PendingRouteNotifier.nextNotifyPlan(ctx, it) }
+            reminderPlan = plan
+            reminderNotifyTs = plan?.notifyTs
             val active = route != null &&
                 prefs.distanceAwareReminder.first() &&
                 prefs.backgroundReminderTracking.first() &&
@@ -1889,6 +1896,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = offer.forceLegIndex ?: offer.route.targetRideLegIndex(nowSeconds()) ?: return
         val pending = pendingFor(offer, index).copy(status = PendingRoute.STATUS_SAVED)
         pendingRouteStore.save(pending)
+        // Pin the reminder's walk time to where the user actually is now, not the
+        // last nearby-search coordinate (only refreshed on a ~500 m move), so the
+        // distance-aware lead matches the live walk shown on the board.
+        location.saveLastKnownCoordinate()
         PendingRouteNotifier.schedule(getApplication(), pending, nowSeconds())
         notificationPermissionRequest = true
         syncReminderTracking()

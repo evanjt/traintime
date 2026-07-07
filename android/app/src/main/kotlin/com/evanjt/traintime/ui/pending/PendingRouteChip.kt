@@ -21,9 +21,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.PendingRoute
+import com.evanjt.traintime.notify.NotifyPlan
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -41,12 +45,13 @@ private fun countdownText(depTs: Long, now: Long): String {
 fun PendingRouteChip(
     route: PendingRoute,
     nowEpochSeconds: Long,
-    notifyTs: Long?,
+    plan: NotifyPlan?,
     onTap: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val leg = route.currentLeg ?: return
+    val palette = LocalAppPalette.current
     var confirmDiscard by remember { mutableStateOf(false) }
 
     Surface(
@@ -70,11 +75,27 @@ fun PendingRouteChip(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (notifyTs != null && notifyTs > nowEpochSeconds) {
+                if (plan != null && plan.notifyTs > nowEpochSeconds) {
+                    val mins = (plan.notifyTs - nowEpochSeconds) / 60
+                    val walk = plan.walkMin
                     Text(
-                        "You'll be notified in ${(notifyTs - nowEpochSeconds) / 60} min",
+                        // Colour the calculated walk time and the fixed buffer
+                        // distinctly, so "in 21 min" isn't mistaken for their sum.
+                        if (walk != null) {
+                            buildAnnotatedString {
+                                withStyle(SpanStyle(color = palette.ahead)) { append("Notified in $mins min") }
+                                append("  (~")
+                                withStyle(SpanStyle(color = palette.platform)) { append("$walk min walk") }
+                                append(" + ")
+                                withStyle(SpanStyle(color = palette.amber)) { append("${plan.bufferMin} min buffer") }
+                                append(")")
+                            }
+                        } else {
+                            buildAnnotatedString {
+                                withStyle(SpanStyle(color = palette.ahead)) { append("You'll be notified in $mins min") }
+                            }
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = LocalAppPalette.current.ahead,
                     )
                 }
             }

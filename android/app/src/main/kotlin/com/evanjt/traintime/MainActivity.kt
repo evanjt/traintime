@@ -215,7 +215,7 @@ private fun RootView(
                 PendingRouteChip(
                     route = pendingRoute,
                     nowEpochSeconds = chipNow,
-                    notifyTs = viewModel.reminderNotifyTs,
+                    plan = viewModel.reminderPlan,
                     onTap = { showRoute = true },
                     onDismiss = { viewModel.dismissPendingRoute() },
                 )
@@ -257,6 +257,8 @@ private fun RootView(
         ResumeRouteDialog(
             destination = pendingForResume.finalDestination,
             departure = resumeOffer,
+            walkMin = viewModel.reminderPlan?.walkMin,
+            bufferMin = viewModel.reminderPlan?.bufferMin,
             onTrack = { viewModel.resumePendingRoute() },
             onLater = { viewModel.deferResume() },
         )

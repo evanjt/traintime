@@ -67,7 +67,7 @@ struct ContentView: View {
             if let route = pendingRouteStore.pending, viewModel.appState != 2 {
                 PendingRouteChip(
                     route: route,
-                    notifyTs: viewModel.reminderNotifyTs,
+                    plan: viewModel.reminderPlan,
                     onTap: { showRouteDetail = true },
                     onDismiss: { viewModel.dismissPendingRoute() }
                 )
@@ -134,8 +134,15 @@ struct ContentView: View {
             Button("Later", role: .cancel) { viewModel.deferResume() }
         } message: {
             if let dep = viewModel.resumeOffer {
-                Text("\(dep.lineNumber) to \(dep.destination) departs in \(max(0, dep.minutesUntil)) min"
-                    + (dep.platform.isEmpty ? "" : " from platform \(dep.platform)"))
+                // A system alert renders plain text only (no per-word colour), so
+                // the walk + buffer split rides here as a second line.
+                let base = "\(dep.lineNumber) to \(dep.destination) departs in \(max(0, dep.minutesUntil)) min"
+                    + (dep.platform.isEmpty ? "" : " from platform \(dep.platform)")
+                if let plan = viewModel.reminderPlan, let walk = plan.walkMin {
+                    Text(base + "\nReminder: ~\(walk) min walk + \(plan.bufferMin) min buffer before")
+                } else {
+                    Text(base)
+                }
             }
         }
         .overlay(alignment: .bottom) {
