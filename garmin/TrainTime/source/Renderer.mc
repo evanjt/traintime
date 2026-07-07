@@ -16,8 +16,11 @@ module Renderer {
 
         view.mMaxVisibleTrains = (height < 240) ? 3 : 4;
 
-        // GPS quality indicator
-        drawGpsIndicator(dc, view, width, height);
+        // GPS quality indicator. Tracking draws its own next to the clock,
+        // centred, so the two never collide in the top-right arc
+        if (view.mAppState != 2) {
+            drawGpsIndicator(dc, view, width, height);
+        }
 
         // State 3: inactive
         if (view.mAppState == 3) {
@@ -348,17 +351,25 @@ module Renderer {
     }
 
     function drawGpsIndicator(dc, view, width, height) {
-        var barW = DrawUtils.px(3, width);
-        var gap = DrawUtils.px(2, width);
         var maxH = DrawUtils.px(13, width);
-        var totalW = 3 * barW + 2 * gap;
 
         // Position: top-right (same area as former dot)
         var midY = height * 14 / 100;
         var usable = DrawUtils.getUsableWidth(midY, width, height);
         var rightEdge = (width + usable) / 2 - DrawUtils.px(4, width);
-        var startX = rightEdge - totalW;
+        var startX = rightEdge - gpsBarsWidth(width);
         var baseY = midY + maxH / 2;  // bottom of tallest bar
+        drawGpsBars(dc, view, startX, baseY, width);
+    }
+
+    function gpsBarsWidth(width) {
+        return 3 * DrawUtils.px(3, width) + 2 * DrawUtils.px(2, width);
+    }
+
+    function drawGpsBars(dc, view, startX, baseY, width) {
+        var barW = DrawUtils.px(3, width);
+        var gap = DrawUtils.px(2, width);
+        var maxH = DrawUtils.px(13, width);
 
         // Determine fill level and color
         var fillCount;
@@ -491,27 +502,31 @@ module Renderer {
 
         if (view.mStationName == null) { return; }
 
-        // Station name + clock on same line
-        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        var stationY = height * 10 / 100;
+        // Status row centred in the top arc: [GPS bars] HH:MM. Centred placement
+        // keeps it clear of the round-display chord on every diameter
+        var yTop = height * 3 / 100;
         var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
+        var clockW = dc.getTextDimensions(timeStr, Graphics.FONT_XTINY)[0];
+        var gpsW = gpsBarsWidth(width);
+        var groupGap = DrawUtils.px(6, width);
+        var groupX = centerX - (gpsW + groupGap + clockW) / 2;
+        drawGpsBars(dc, view, groupX, yTop + xtinyH * 3 / 4, width);
+        dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(groupX + gpsW + groupGap, yTop, Graphics.FONT_XTINY,
+            timeStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Station name below the status row
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        var stationY = yTop + xtinyH;
         var stationMaxW = DrawUtils.getUsableWidth(stationY + 4, width, height) - 10;
         dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Clock below station name
-        var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
-        dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-        var clockY = stationY + xtinyH;
-        var clockUsable = DrawUtils.getUsableWidth(clockY + 4, width, height);
-        var clockRightEdge = (width + clockUsable) / 2 - 4;
-        dc.drawText(clockRightEdge, clockY, Graphics.FONT_XTINY,
-            timeStr, Graphics.TEXT_JUSTIFY_RIGHT);
-
         // Line + Destination (auto-downsize, line number in blue)
-        var destY = height * 18 / 100;
+        var destY = stationY + xtinyH + DrawUtils.px(2, width);
         var line = view.mFocusedTrain["line"];
         var dest = view.mFocusedTrain["dest"];
         var fullStr = "";
@@ -656,19 +671,29 @@ module Renderer {
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Walk info at bottom
-        if (view.mWalkInfo != null) {
+        // Walk info at bottom. On short screens the formation needs the room,
+        // so the walk line is the first thing to go
+        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+        var walkY = statusY + tinyH + DrawUtils.px(2, width);
+        var hasFormation = view.mFormationClasses != null
+            && view.mFormationClasses.size() > 0;
+        var showWalk = view.mWalkInfo != null;
+        if (showWalk && hasFormation) {
+            var formTop = height - xtinyH - (xtinyH + 3) - DrawUtils.px(4, width);
+            if (walkY + xtinyH > formTop) { showWalk = false; }
+        }
+        if (showWalk) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var walkY = statusY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
             var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
             dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Visual formation diagram
-        if (view.mFormationClasses != null) {
-            drawFormation(dc, view, width, height);
+        // Visual formation diagram, anchored to the bottom edge
+        if (hasFormation) {
+            var minTop = showWalk ? walkY + xtinyH : statusY + tinyH;
+            drawFormation(dc, view, width, height, minTop);
         }
 
         // Direction arrow (only visible when walking)
@@ -785,7 +810,7 @@ module Renderer {
         dc.fillRectangle(midX - w / 2, barY - over, w, barH + 2 * over);
     }
 
-    function drawFormation(dc, view, width, height) {
+    function drawFormation(dc, view, width, height, minTop) {
         var count = view.mFormationClasses.size();
         if (count == 0) { return; }
 
@@ -794,12 +819,22 @@ module Renderer {
         var wagonW = DrawUtils.px(8, width);
         var gap = DrawUtils.px(1, width);
         var locoW = DrawUtils.px(6, width);
+        var margin = DrawUtils.px(4, width);
+
+        // Anchor to the bottom edge; reclaim the sector-label row, then give
+        // up entirely, before overlapping whatever sits above
+        var drawLabels = true;
+        var formY = height - wagonH - (fontH + 3) - margin;
+        if (formY < minTop + DrawUtils.px(2, width)) {
+            drawLabels = false;
+            formY = height - wagonH - margin;
+            if (formY < minTop + DrawUtils.px(2, width)) { return; }
+        }
 
         // Total width needed
         var totalW = locoW + gap + count * wagonW + (count - 1) * gap;
 
         // Available width at the formation Y position
-        var formY = height * 82 / 100;
         var usable = DrawUtils.getUsableWidth(formY + wagonH / 2, width, height) - 10;
 
         // Scale down wagon width if formation doesn't fit
@@ -864,6 +899,7 @@ module Renderer {
         dc.drawLine(trainEndX, formY + wagonH, startX, formY + wagonH);
 
         // Direction arrow below locomotive
+        if (!drawLabels) { return; }
         var lineY = formY + wagonH + 2;
         var sectorTextY = lineY + 1;
         if (locoW > 0) {
