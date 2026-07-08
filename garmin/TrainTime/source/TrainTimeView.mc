@@ -53,8 +53,10 @@ class TrainTimeView extends WatchUi.View {
     var mFormationNumbers;  // Array of Number (wagon numbers)
     var mFormationSectors;  // Array of String (sector letters)
     var mFavouriteData; // favourite departures from API (separate from mTrainData)
-    var mMapError;      // error message to show as toast overlay
-    var mMapErrorTick;  // timestamp when error was set
+    var mToast;             // short-lived message overlay in the tracking view
+    var mToastTick;         // timestamp when the toast was set
+    var mReminderQueuedTs;  // when the pending reminder was queued (escalation timer)
+    var mReminderNotified;  // "will send later" toast shown for the current reminder
     var mManualStation; // true when a station was picked via quick-launch (suppress GPS re-search)
     var mPendingFavTrack; // {line, dest} awaiting a fetch to jump into tracking
     var mPhoneLat;        // last location pushed by the phone (backfill when watch GPS is weak)
@@ -113,8 +115,10 @@ class TrainTimeView extends WatchUi.View {
         mFormationNumbers = null;
         mFormationSectors = null;
         mFavouriteData = null;
-        mMapError = null;
-        mMapErrorTick = null;
+        mToast = null;
+        mToastTick = null;
+        mReminderQueuedTs = null;
+        mReminderNotified = true;
         mManualStation = false;
         mPendingFavTrack = null;
         mHintTime = null;
@@ -416,14 +420,24 @@ class TrainTimeView extends WatchUi.View {
 
     // Ask the phone to save the focused departure as a reminder. Needs the origin
     // station's coords (the phone's distance-aware reminder is computed from them).
+    // The payload goes into the outbox first: delivery is only certain once the
+    // phone app acks, everything before that is best-effort.
     function remindOnPhone() {
         if (mFocusedTrain == null || mStationId == null ||
             mStationLat == null || mStationLon == null) {
             return;
         }
         var stationName = mStationName != null ? mStationName : "Station";
-        PhoneSync.sendSaveReminder(mFocusedTrain, mStationId, stationName, mStationLat, mStationLon);
+        var payload = PhoneSync.buildSaveReminder(mFocusedTrain, mStationId, stationName,
+            mStationLat, mStationLon);
+        if (payload == null) { return; }
+        var now = Time.now().value();
+        ReminderQueue.enqueue(payload, payload["id"], now);
+        mReminderQueuedTs = now;
+        mReminderNotified = false;
+        PhoneSync.transmit(payload);
         Haptics.vibrateShort();
+        showToast("Sending to phone...");
     }
 
     // The phone pushed its favourites. Outer-join them into local storage. No
@@ -509,7 +523,7 @@ class TrainTimeView extends WatchUi.View {
 
     function enterMapView() {
         if (mStationLat == null || mStationLon == null) {
-            showMapError("No station location");
+            showToast("No station location");
             return;
         }
 
@@ -544,7 +558,7 @@ class TrainTimeView extends WatchUi.View {
 
         // Fallback: MapTrackView with polyline
         if (!(WatchUi has :MapTrackView)) {
-            showMapError("Navigation unavailable");
+            showToast("Navigation unavailable");
             return;
         }
         if (mMapActive) { return; }
@@ -597,13 +611,13 @@ class TrainTimeView extends WatchUi.View {
             WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
         } catch (e) {
             mMapActive = false;
-            showMapError("Map unavailable");
+            showToast("Map unavailable");
         }
     }
 
-    function showMapError(msg) {
-        mMapError = msg;
-        mMapErrorTick = Time.now().value();
+    function showToast(msg) {
+        mToast = msg;
+        mToastTick = Time.now().value();
         Haptics.vibrateShort();
         WatchUi.requestUpdate();
     }
@@ -618,6 +632,25 @@ class TrainTimeView extends WatchUi.View {
     function handlePhoneMessage(data) {
         if (data == null || !data.hasKey("action")) { return; }
         var action = data["action"];
+        // Ack first: draining on the ack's own arrival would retransmit the very
+        // reminder it clears.
+        if (action.equals("ackReminder")) {
+            if (ReminderQueue.ack(data.hasKey("id") ? data["id"] : null)) {
+                mReminderNotified = true;
+                showToast("Sent to phone");
+            }
+            return;
+        }
+        // Any other inbound message proves the phone app is listening: flush the
+        // reminder outbox.
+        ReminderQueue.drainIfDue(Time.now().value());
+        // The phone foregrounded and wants a liveness signal now, not at the
+        // next heartbeat.
+        if (action.equals("ping")) {
+            mLastAliveTs = Time.now().value();
+            PhoneSync.sendHello();
+            return;
+        }
         // Favourites sync applies in any state, including while tracking, so it
         // sits ahead of the tracking guard below.
         if (action.equals("favourites")) {
@@ -1164,6 +1197,16 @@ class TrainTimeView extends WatchUi.View {
             if (mLastAliveTs == null || (nowSec - mLastAliveTs) >= 7) {
                 mLastAliveTs = nowSec;
                 PhoneSync.sendAlive();
+            }
+        }
+
+        // No ack a few seconds after queuing a reminder means the phone app is
+        // not listening; say so once. The outbox delivers it when the app opens.
+        if (!mReminderNotified && mReminderQueuedTs != null
+                && Time.now().value() - mReminderQueuedTs > 5) {
+            mReminderNotified = true;
+            if (ReminderQueue.hasPending()) {
+                showToast("Will send when phone app opens");
             }
         }
 

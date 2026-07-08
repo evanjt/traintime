@@ -2,6 +2,7 @@ using Toybox.WatchUi;
 using Toybox.Application.Storage;
 using Toybox.Communications;
 using Toybox.System;
+using Toybox.Time;
 
 module SettingsMenu {
 
@@ -19,10 +20,17 @@ module SettingsMenu {
         var menu = new WatchUi.Menu2({:title => "Settings"});
 
         // Phone link status. The channel the phone uses to send departures here.
+        // Connected only means Bluetooth to Garmin Connect Mobile; an unacked
+        // reminder in the outbox is worth surfacing alongside.
         var phoneConnected = System.getDeviceSettings().phoneConnected;
+        ReminderQueue.prune(Time.now().value());
+        var phoneLabel = phoneConnected ? "Connected" : "Not connected";
+        if (ReminderQueue.hasPending()) {
+            phoneLabel = phoneLabel + " - reminder waiting";
+        }
         menu.addItem(new WatchUi.MenuItem(
             "Phone",
-            phoneConnected ? "Connected" : "Not connected",
+            phoneLabel,
             :phoneStatus,
             {}
         ));

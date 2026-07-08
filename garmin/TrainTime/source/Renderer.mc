@@ -776,9 +776,9 @@ module Renderer {
 
         drawButtonHints(dc, view, width, height);
 
-        // Map error toast overlay
-        if (view.mMapError != null && view.mMapErrorTick != null) {
-            var elapsed = Time.now().value() - view.mMapErrorTick;
+        // Toast overlay (map errors, reminder delivery)
+        if (view.mToast != null && view.mToastTick != null) {
+            var elapsed = Time.now().value() - view.mToastTick;
             if (elapsed < 3) {
                 var toastPad = DrawUtils.px(4, width);
                 var toastH = dc.getFontHeight(Graphics.FONT_SMALL) + 2 * toastPad;
@@ -788,10 +788,10 @@ module Renderer {
                 dc.fillRectangle(centerX - toastW / 2, toastY, toastW, toastH);
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, toastY + toastPad, Graphics.FONT_SMALL,
-                    view.mMapError, Graphics.TEXT_JUSTIFY_CENTER);
+                    view.mToast, Graphics.TEXT_JUSTIFY_CENTER);
             } else {
-                view.mMapError = null;
-                view.mMapErrorTick = null;
+                view.mToast = null;
+                view.mToastTick = null;
             }
         }
     }

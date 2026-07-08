@@ -12,7 +12,9 @@ module PhoneSync {
     // WearSync.PROTOCOL_VERSION. Stamped on hello/alive so the phone can refuse
     // Send-to-Watch against a watch too old to parse the current track command.
     // A pre-versioning watch sends no v/pv, which the phone reads as 0.4.x.
-    const PROTOCOL_VERSION = 1;
+    // pv 2: saveReminder carries an id, the watch answers ping with hello and
+    // consumes ackReminder (the phone only pings a pv >= 2 watch).
+    const PROTOCOL_VERSION = 2;
 
     // Flipped on by the first real view show (TrainTimeView.onShow). The unit-test
     // harness never shows a view, and a transmit before then hangs the sim, CI
@@ -110,11 +112,13 @@ module PhoneSync {
     // Ask the phone to save the focused departure as a reminder (the reverse of
     // the phone's Send-to-Watch). Carries the origin station's id + coords so the
     // phone synthesises the same one-leg route as a board save and schedules its
-    // distance-aware reminder. Pure builder for unit-testability.
+    // distance-aware reminder. The id is stable across retries: the phone acks it
+    // and dedupes on it. Pure builder for unit-testability.
     function buildSaveReminder(focused, stationId, stationName, lat, lon) {
         if (focused == null || stationId == null || lat == null || lon == null) { return null; }
         var data = {
             "kind" => "saveReminder",
+            "id" => ReminderQueue.buildId(stationId, focused["depTs"], focused["line"]),
             "dest" => focused["dest"],
             "depTs" => focused["depTs"],
             "line" => focused["line"],
