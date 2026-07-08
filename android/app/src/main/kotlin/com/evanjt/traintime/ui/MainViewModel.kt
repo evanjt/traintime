@@ -211,6 +211,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // watch says hello. watchAlive is the combined indicator the UI renders.
     private var heartbeatJob: Job? = null
     private var garminLastAlive = 0L
+    // Ping-gate bookkeeping, persisted across launches: the freshest signal ever
+    // heard (bye does not zero it, unlike garminLastAlive), the last bye, and the
+    // watch's protocol version. Together they say "the watch app is probably
+    // still open", the only case where a foreground ping is safe.
+    private var garminLastAliveHighWater = 0L
+    private var garminLastBye = 0L
+    private var garminWatchPv = 0
+    private var garminLinkStateLoaded = false
     // Version last announced by the Garmin watch over the Connect IQ liveness
     // hello/alive (null until first heard). Same gate as Wear: a pre-versioning
     // Garmin build sends no version and reads as 0.4.x.
@@ -346,7 +354,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             updateKnownButDisconnected()
             pushLocationNow()
             startHeartbeat()
+            maybePingGarmin()
         }
+    }
+
+    // Accelerate the green indicator when the phone foregrounds while the watch
+    // app is probably still open: ask it to say hello now instead of waiting out
+    // its heartbeat. Hard-gated (see WearSync.shouldPingGarmin), because a phone
+    // message can wake a closed Garmin watch-app.
+    private suspend fun maybePingGarmin() {
+        ensureGarminLinkState()
+        if (!mirrorToWatch || garminTargetIds.isEmpty() || garminAliveFresh()) return
+        if (!WearSync.shouldPingGarmin(garminLastAliveHighWater, garminLastBye, now(), garminWatchPv)) return
+        val payload = WearSync.garminPingPayload()
+        garminTargetIds.forEach { garminService.send(it, payload) }
+    }
+
+    private suspend fun ensureGarminLinkState() {
+        if (garminLinkStateLoaded) return
+        garminLinkStateLoaded = true
+        val (alive, bye, pv) = prefs.garminLinkState()
+        if (garminLastAliveHighWater == 0L) garminLastAliveHighWater = alive
+        if (garminLastBye == 0L) garminLastBye = bye
+        if (garminWatchPv == 0) garminWatchPv = pv
+    }
+
+    private suspend fun persistGarminLinkState() {
+        prefs.saveGarminLinkState(garminLastAliveHighWater, garminLastBye, garminWatchPv)
     }
 
     private suspend fun noteWearNodes(names: List<String>) {
@@ -465,6 +499,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         location.stop()
         stopTimer()
         stopHeartbeat()
+        // The ping gate must survive a process death while backgrounded.
+        viewModelScope.launch { persistGarminLinkState() }
     }
 
     fun onPermissionResult(granted: Boolean) {
@@ -1130,13 +1166,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Applies a state sync pushed from a watch (defaultMode). Garmin sends this via the
     // Connect IQ message channel; Wear arrives through the listener service / DataClient.
     private fun applyReceivedWatchContext(ctx: Map<String, Any?>) {
+        // Any message but bye proves the watch app is open, not just the explicit
+        // liveness kinds: a saveReminder or favourites push greens the indicator
+        // and unblocks the alive-gated sends (e.g. the reminder ack).
+        val wasAlive = garminAliveFresh()
+        if (ctx["kind"] != "bye") {
+            garminLastAlive = now()
+            garminLastAliveHighWater = garminLastAlive
+            recomputeWatchAlive()
+        }
         // Liveness announcement, the watch app is open and reachable (hello on launch,
         // alive as its periodic heartbeat).
         if (ctx["kind"] == "hello" || ctx["kind"] == "alive") {
             // A pre-versioning Garmin build sends no version: read as 0.4.x.
             garminWatchVersion = ctx["v"] as? String ?: WearSync.LEGACY_VERSION_NAME
-            val wasAlive = garminAliveFresh()
-            garminLastAlive = now()
+            garminWatchPv = (ctx["pv"] as? Number)?.toInt() ?: 0
             watchAlive = true
             watchChecking = false
             // A freshly-online watch jumps to whatever the phone is showing (tracking
@@ -1144,11 +1188,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (!wasAlive) syncCurrentStateToWatch()
             return
         }
-        // The watch app is closing, flip the indicator straight away.
+        // The watch app is closing, flip the indicator straight away. The high
+        // water mark stays: bye after alive is exactly what the ping gate reads.
         if (ctx["kind"] == "bye") {
             garminLastAlive = 0L
+            garminLastBye = now()
             recomputeWatchAlive()
             watchChecking = false
+            viewModelScope.launch { persistGarminLinkState() }
             return
         }
         // The watch is asking for the phone's location (its own GPS is weak).
@@ -1180,6 +1227,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val stId = ctx["stId"] as? String ?: return
         val lat = (ctx["lat"] as? Number)?.toDouble() ?: return
         val lon = (ctx["lon"] as? Number)?.toDouble() ?: return
+        // Ack receipt (not save) as soon as the payload parses, so the watch can
+        // clear its outbox: retries of the same id land here idempotently. An old
+        // watch sends no id and expects no ack.
+        (ctx["id"] as? String)?.let { ackReminderToGarmin(it) }
         val route = SharedRoute.single(
             originId = stId,
             originName = ctx["stName"] as? String ?: "Station",
@@ -1192,6 +1243,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         viewModelScope.launch {
             PendingRouteNotifier.saveAndSchedule(getApplication(), route, nowSeconds())
+        }
+    }
+
+    private fun ackReminderToGarmin(id: String) {
+        val payload = WearSync.garminAckReminderPayload(id)
+        viewModelScope.launch {
+            val ids = garminTargetIds.ifEmpty {
+                garminService.eligibleDevices().map { it.id }.also { garminTargetIds = it }
+            }
+            ids.forEach { garminService.send(it, payload) }
         }
     }
 

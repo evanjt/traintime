@@ -178,6 +178,26 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_BACKGROUND_REMINDER_TRACKING] = value }
     }
 
+    // Garmin liveness bookkeeping across launches. Drives the foreground ping
+    // gate: only a watch believed still open (alive after bye, recent) is pinged,
+    // because a phone message can wake a closed Garmin watch-app.
+    suspend fun garminLinkState(): Triple<Long, Long, Int> {
+        val prefs = dataStore.data.first()
+        return Triple(
+            prefs[KEY_GARMIN_LAST_ALIVE] ?: 0L,
+            prefs[KEY_GARMIN_LAST_BYE] ?: 0L,
+            prefs[KEY_GARMIN_PV] ?: 0,
+        )
+    }
+
+    suspend fun saveGarminLinkState(lastAlive: Long, lastBye: Long, pv: Int) {
+        dataStore.edit {
+            it[KEY_GARMIN_LAST_ALIVE] = lastAlive
+            it[KEY_GARMIN_LAST_BYE] = lastBye
+            it[KEY_GARMIN_PV] = pv
+        }
+    }
+
     suspend fun lastCoordinate(): Pair<Double, Double>? {
         val prefs = dataStore.data.first()
         val lat = prefs[KEY_LAST_LAT] ?: 0.0
@@ -211,6 +231,9 @@ class AppPrefs(context: Context) {
         val KEY_BACKGROUND_REMINDER_TRACKING = booleanPreferencesKey("backgroundReminderTracking")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
+        val KEY_GARMIN_LAST_ALIVE = longPreferencesKey("garminLastAliveTs")
+        val KEY_GARMIN_LAST_BYE = longPreferencesKey("garminLastByeTs")
+        val KEY_GARMIN_PV = intPreferencesKey("garminWatchPv")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")
         val KEY_MY_STATIONS = stringPreferencesKey("myStations_v1")
         val KEY_PENDING_ROUTES = stringPreferencesKey("pendingRoutes_v1")

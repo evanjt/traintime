@@ -141,6 +141,23 @@ object WearSync {
     fun garminLocationPayload(lat: Double, lon: Double): Map<String, Any?> =
         mapOf("action" to "loc", "lat" to lat, "lon" to lon)
 
+    // Receipt ack for a watch-queued reminder. The watch keeps the reminder in
+    // its outbox and retries until it sees this id come back.
+    fun garminAckReminderPayload(id: String): Map<String, Any?> =
+        mapOf("action" to "ackReminder", "id" to id)
+
+    // Foreground liveness probe; the watch answers with an immediate hello.
+    fun garminPingPayload(): Map<String, Any?> =
+        mapOf("action" to "ping")
+
+    // Gate for the foreground ping. A phone message can wake a closed Garmin
+    // watch-app, so only ping a watch that speaks pv 2 (treats ping as such),
+    // hasn't said bye since its last alive, and was heard from recently.
+    const val GARMIN_PING_WINDOW_MS = 30_000L
+
+    fun shouldPingGarmin(lastAliveMs: Long, lastByeMs: Long, nowMs: Long, pv: Int): Boolean =
+        pv >= 2 && lastAliveMs > lastByeMs && nowMs - lastAliveMs <= GARMIN_PING_WINDOW_MS
+
     // The phone's favourites, for the Garmin outer-join sync. The watch unions
     // these into its own store (never replaces).
     fun garminFavouritesPayload(favourites: List<Favourite>): Map<String, Any?> =
