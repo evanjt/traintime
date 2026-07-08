@@ -5,20 +5,22 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontWeight
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.ui.TrackingStatus
 
 // The queued route's train is on the live board. One tap starts tracking.
-// walkMin/bufferMin, when present, show the reminder's travel-time + buffer split.
+// walkText/slackText, when present, are the succinct reminder readout: walk time
+// then the ahead/behind margin on its own line, so the user sees at a glance
+// whether they can still make it.
 @Composable
 fun ResumeRouteDialog(
     destination: String,
     departure: Departure,
-    walkMin: Int?,
-    bufferMin: Int?,
+    walkText: String?,
+    slackText: String?,
+    slackStatus: TrackingStatus?,
     onTrack: () -> Unit,
     onLater: () -> Unit,
 ) {
@@ -33,16 +35,16 @@ fun ResumeRouteDialog(
                         "in ${departure.minutesUntil.coerceAtLeast(0)} min" +
                         (departure.platform.takeIf { it.isNotEmpty() }?.let { " from platform $it" } ?: ""),
                 )
-                if (walkMin != null && bufferMin != null) {
-                    Text(
-                        buildAnnotatedString {
-                            append("Reminder: ~")
-                            withStyle(SpanStyle(color = palette.platform)) { append("$walkMin min walk") }
-                            append(" + ")
-                            withStyle(SpanStyle(color = palette.amber)) { append("$bufferMin min buffer") }
-                            append(" before")
-                        },
-                    )
+                if (walkText != null) {
+                    Text(walkText, color = palette.platform)
+                }
+                if (slackText != null) {
+                    val color = when (slackStatus) {
+                        TrackingStatus.AHEAD -> palette.ahead
+                        TrackingStatus.BEHIND -> palette.behind
+                        else -> palette.onTime
+                    }
+                    Text(slackText, color = color, fontWeight = FontWeight.SemiBold)
                 }
             }
         },

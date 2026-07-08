@@ -133,11 +133,13 @@ struct ContentView: View {
                 // the walk + buffer split rides here as a second line.
                 let base = "\(dep.lineNumber) to \(dep.destination) departs in \(max(0, dep.minutesUntil)) min"
                     + (dep.platform.isEmpty ? "" : " from platform \(dep.platform)")
-                if let plan = viewModel.reminderPlan, let walk = plan.walkMin {
-                    Text(base + "\nReminder: ~\(walk) min walk + \(plan.bufferMin) min buffer before")
-                } else {
-                    Text(base)
-                }
+                // A system alert renders plain text only, so no per-line colour
+                // like the Android popup, but the walk + margin still get their
+                // own lines to keep the decision obvious.
+                let extra = [viewModel.resumeWalkText, viewModel.resumeSlackText]
+                    .compactMap { $0 }
+                    .joined(separator: "\n")
+                Text(extra.isEmpty ? base : base + "\n" + extra)
             }
         }
         .overlay(alignment: .bottom) {

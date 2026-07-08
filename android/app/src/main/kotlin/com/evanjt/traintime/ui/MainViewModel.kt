@@ -274,6 +274,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             pendingRouteStore.pending.collect {
                 pendingRoute = it
+                // A watch-sent route (or any store change) computes the reminder
+                // readout straight away, instead of waiting for the next
+                // foreground to run syncReminderTracking via onAppear.
+                syncReminderTracking()
                 // Mirror to the watch chip; the echo guard absorbs no-ops.
                 runCatching { wearSync.pushState() }
             }
@@ -1500,6 +1504,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (absBuf < 0.5) return "On time"
             val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
             return if (buf > 0) "$unit ahead" else "$unit behind"
+        }
+
+    // Resume-prompt readout, split so the popup can colour each part and put the
+    // margin on its own line. Slack is how much time is left after walking to the
+    // origin, in the same ahead/behind vocabulary as tracking. All null without a
+    // walk component (static mode or a connection leg), where slack has no meaning.
+    private val resumeSlackMinutes: Int?
+        get() {
+            val walk = reminderPlan?.walkMin ?: return null
+            val dep = resumeOffer ?: return null
+            return dep.minutesUntil - walk + dep.delay
+        }
+
+    val resumeWalkText: String?
+        get() = reminderPlan?.walkMin?.let { if (resumeOffer != null) "~$it min walk" else null }
+
+    val resumeSlackText: String?
+        get() {
+            val slack = resumeSlackMinutes ?: return null
+            return when {
+                slack == 0 -> "right on time"
+                slack > 0 -> "$slack min ahead"
+                else -> "${-slack} min behind"
+            }
+        }
+
+    val resumeSlackStatus: TrackingStatus?
+        get() = resumeSlackMinutes?.let {
+            when {
+                it > 0 -> TrackingStatus.AHEAD
+                it < 0 -> TrackingStatus.BEHIND
+                else -> TrackingStatus.ON_TIME
+            }
         }
 
     // Resolved to a palette colour in the composable so it follows light/dark.

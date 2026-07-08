@@ -268,8 +268,9 @@ private fun RootView(
         ResumeRouteDialog(
             destination = pendingForResume.finalDestination,
             departure = resumeOffer,
-            walkMin = viewModel.reminderPlan?.walkMin,
-            bufferMin = viewModel.reminderPlan?.bufferMin,
+            walkText = viewModel.resumeWalkText,
+            slackText = viewModel.resumeSlackText,
+            slackStatus = viewModel.resumeSlackStatus,
             onTrack = { viewModel.resumePendingRoute() },
             onLater = { viewModel.deferResume() },
         )

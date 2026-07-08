@@ -1078,6 +1078,26 @@ class PhoneViewModel: ObservableObject {
         return AppColors.onTime
     }
 
+    /// Resume-prompt readout, split so the margin sits on its own line in the
+    /// alert. Slack is how much time is left after walking to the origin, in the
+    /// same ahead/behind vocabulary as tracking. Both nil without a walk component
+    /// (static mode or a connection leg), where slack has no meaning.
+    private var resumeSlackMinutes: Int? {
+        guard let walk = reminderPlan?.walkMin, let dep = resumeOffer else { return nil }
+        return dep.minutesUntil - walk + dep.delay
+    }
+
+    var resumeWalkText: String? {
+        guard let walk = reminderPlan?.walkMin, resumeOffer != nil else { return nil }
+        return "~\(walk) min walk"
+    }
+
+    var resumeSlackText: String? {
+        guard let slack = resumeSlackMinutes else { return nil }
+        if slack == 0 { return "right on time" }
+        return slack > 0 ? "\(slack) min ahead" : "\(-slack) min behind"
+    }
+
     var directionToStation: Double? {
         guard let userCoord = location.coordinate,
               let station = currentStation,
