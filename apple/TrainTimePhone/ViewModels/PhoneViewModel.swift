@@ -62,7 +62,7 @@ class PhoneViewModel: ObservableObject {
     @Published var useRoutedDistance: Bool = UserDefaults.standard.bool(forKey: "useRoutedDistance")
 
     // MARK: - Watch Connectivity
-    let watchService = PhoneWatchService()
+    let watchService = PhoneWatchService.shared
     @Published var connectedWatches: [PhoneConnectedWatch] = []
     @Published var watchSendStatus: String? = nil
     // Mirror phone state + location to the primary watch. Optional overlay; off → the
@@ -446,9 +446,61 @@ class PhoneViewModel: ObservableObject {
     /// ReminderTracker so it survives relaunch.
     func syncReminderTracking() {
         ReminderTracker.shared.syncFromSettings()
+        refreshReminderPlan()
+    }
+
+    /// Recompute the chip's notify plan (no SLC toggling). Called on every live
+    /// fix so the walk readout tracks the routed measurement as the user moves.
+    private func refreshReminderPlan() {
         let plan = pendingRouteStore.pending.flatMap { PendingRouteNotifier.nextNotifyPlan(for: $0) }
         reminderPlan = plan
         reminderNotifyTs = plan?.notifyTs
+    }
+
+    /// Measure the routed walk (MKDirections) from the live location to the saved
+    /// route's origin and stash it for the notifier, so the chip and reminder lead
+    /// use the same basis as tracking (not a shorter straight line). Falls back to
+    /// the estimate when routed distance is off, there's no fix, or no origin.
+    func updatePendingRouteWalk() {
+        guard useRoutedDistance,
+              UserDefaults.standard.bool(forKey: "distanceAwareReminder"),
+              let route = pendingRouteStore.pending,
+              let leg = route.currentLeg,
+              let oLat = leg.originLat, let oLon = leg.originLon,
+              let originId = leg.originId,
+              let coord = location.coordinate else {
+            refreshReminderPlan()
+            return
+        }
+        let origin = CLLocationCoordinate2D(latitude: oLat, longitude: oLon)
+        let haversine = GeoUtils.haversineDistance(from: coord, to: origin)
+        // Fetch fresh for the origin (no useful pre-existing cache), refetching as
+        // the user moves, exactly as tracking does for the focused station.
+        if routing.shouldRefetch(stationId: originId, currentCoord: coord, currentHaversine: haversine) {
+            Task { [weak self] in
+                await self?.routing.fetchRoute(
+                    from: coord, to: origin, stationId: originId, currentHaversine: haversine)
+                await MainActor.run {
+                    self?.commitPendingWalk(routeId: route.id, originId: originId, haversine: haversine)
+                }
+            }
+        }
+        commitPendingWalk(routeId: route.id, originId: originId, haversine: haversine)
+    }
+
+    /// Persist the routed walk seconds for the notifier's `routedWalkSec`, then
+    /// refresh the chip. Nil interpolation (first fetch still in flight) leaves the
+    /// straight-line estimate showing until the route lands.
+    private func commitPendingWalk(routeId: String, originId: String, haversine: Double) {
+        guard let routed = routing.interpolate(stationId: originId, currentHaversine: haversine) else {
+            refreshReminderPlan()
+            return
+        }
+        let defaults = UserDefaults.standard
+        defaults.set(routeId, forKey: "pendingWalkRouteId")
+        defaults.set(Int(routed.time), forKey: "pendingWalkSec")
+        defaults.set(Int(Date().timeIntervalSince1970), forKey: "pendingWalkTs")
+        refreshReminderPlan()
     }
 
     /// Distance-aware test: computes the real distance from the current location
@@ -637,6 +689,9 @@ class PhoneViewModel: ObservableObject {
                 }
             }
         }
+
+        // Keep the saved-route chip + reminder lead on the live routed walk.
+        updatePendingRouteWalk()
 
         // Inactivity timeout in station view
         if appState == 0, Date().timeIntervalSince(lastInteractionTime) >= Timing.inactivityTimeout {

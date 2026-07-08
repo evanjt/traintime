@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.evanjt.traintime.MainActivity
+import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.evanjt.traintime.domain.PendingRouteLogic
 import java.time.Instant
@@ -47,13 +48,29 @@ class PendingRouteNotifyWorker(
         )
 
         PendingRouteNotifier.ensureChannel(applicationContext)
-        val notification = NotificationCompat.Builder(applicationContext, PendingRouteNotifier.CHANNEL_ID)
+        val builder = NotificationCompat.Builder(applicationContext, PendingRouteNotifier.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle("$line to ${normalized.finalDestination}")
             .setContentText("Departs $time from ${leg.originName}")
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
-            .build()
+
+        // Offer "Send to Watch" only when a Garmin is paired (cached by the VM;
+        // this worker has no SDK binding). Picking it on the watch runs the
+        // PendingIntent on the phone, which wakes the watch app into tracking.
+        if (AppPrefs(applicationContext).garminPairedNow()) {
+            val sendIntent = Intent(applicationContext, SendToWatchReceiver::class.java)
+                .putExtra(SendToWatchReceiver.EXTRA_ROUTE_ID, normalized.id)
+            val sendPending = PendingIntent.getBroadcast(
+                applicationContext,
+                1,
+                sendIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(android.R.drawable.ic_menu_send, "Send to Watch", sendPending)
+        }
+
+        val notification = builder.build()
         applicationContext.getSystemService(NotificationManager::class.java)
             .notify(PendingRouteNotifier.NOTIF_ID, notification)
         return Result.success()

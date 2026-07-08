@@ -22,6 +22,12 @@ enum PendingRouteNotifier {
     // enqueueUniqueWork(REPLACE)) and cancel removes exactly it.
     private static let identifier = "pendingRoute"
 
+    // Category carrying the "Send to Watch" action, registered by the AppDelegate.
+    // Attached to the reminder only when a Garmin is paired, so the action surfaces
+    // on the watch (over ANCS) exactly when it can do something.
+    static let garminCategory = "PENDING_ROUTE_GARMIN"
+    static let sendToWatchAction = "SEND_TO_WATCH"
+
     /// Saved-route lead in seconds, from the user's Settings choice (minutes).
     private static var savedLeadSec: Int {
         let minutes = UserDefaults.standard.integer(forKey: "routeReminderLeadMinutes")
@@ -42,9 +48,11 @@ enum PendingRouteNotifier {
     /// Absolute epoch-second the reminder is set to fire for this route, using
     /// the same rule as schedule. For the in-app "notified in X min" readout.
     static func nextNotifyTs(for route: PendingRoute) -> Int? {
-        PendingRouteLogic.notifyTs(
+        let dist = userDistanceMeters(for: route)
+        return PendingRouteLogic.notifyTs(
             route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
-            userDistanceMeters: userDistanceMeters(for: route))
+            userDistanceMeters: dist,
+            walkSecondsOverride: dist != nil ? routedWalkSec(for: route) : nil)
     }
 
     /// The reminder split into walk + buffer for the chip and resume prompt. Uses
@@ -52,15 +60,40 @@ enum PendingRouteNotifier {
     /// walkMin is nil in static mode or for a connection leg (no walk component).
     static func nextNotifyPlan(for route: PendingRoute) -> NotifyPlan? {
         let dist = userDistanceMeters(for: route)
+        // In distance-aware mode, prefer the routed walk the phone measured live
+        // (same MKDirections basis as tracking) over the straight-line estimate,
+        // so the chip and the lead match what tracking shows on arrival.
+        let routedSec = dist != nil ? routedWalkSec(for: route) : nil
         guard let notifyTs = PendingRouteLogic.notifyTs(
             route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
-            userDistanceMeters: dist) else { return nil }
+            userDistanceMeters: dist, walkSecondsOverride: routedSec) else { return nil }
         let connection = PendingRouteLogic.isConnectionLeg(route)
-        let walkMin: Int? = (dist != nil && !connection)
-            ? Int(GeoUtils.walkMinutes(distanceMeters: dist!).rounded())
-            : nil
+        let walkMin: Int?
+        if connection {
+            walkMin = nil
+        } else if let routedSec {
+            walkMin = Int((Double(routedSec) / 60).rounded())
+        } else if let dist {
+            walkMin = Int(GeoUtils.walkMinutes(distanceMeters: dist).rounded())
+        } else {
+            walkMin = nil
+        }
         let bufferSec = connection ? connectionLeadSec : savedLeadSec
         return NotifyPlan(notifyTs: notifyTs, walkMin: walkMin, bufferMin: bufferSec / 60)
+    }
+
+    /// The live routed walk to the current leg's origin, measured by the phone
+    /// (`PhoneViewModel.updatePendingRouteWalk`) via MKDirections and stashed here.
+    /// Nil unless routed distance is on, the stored value belongs to this route,
+    /// and it's fresh, so the notifier falls back to the straight-line estimate.
+    private static func routedWalkSec(for route: PendingRoute) -> Int? {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "useRoutedDistance"),
+              defaults.string(forKey: "pendingWalkRouteId") == route.id else { return nil }
+        let stamp = defaults.integer(forKey: "pendingWalkTs")
+        guard stamp > 0, Int(Date().timeIntervalSince1970) - stamp < 900 else { return nil }
+        let sec = defaults.integer(forKey: "pendingWalkSec")
+        return sec > 0 ? sec : nil
     }
 
     /// Straight-line distance from the last known location to the current leg's
@@ -93,9 +126,11 @@ enum PendingRouteNotifier {
 
     static func schedule(_ route: PendingRoute, now: Int) {
         requestAuthorizationIfNeeded()
+        let dist = userDistanceMeters(for: route)
         guard let notifyTs = PendingRouteLogic.notifyTs(
             route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
-            userDistanceMeters: userDistanceMeters(for: route)
+            userDistanceMeters: dist,
+            walkSecondsOverride: dist != nil ? routedWalkSec(for: route) : nil
         ), notifyTs > now, let leg = route.currentLeg else { return cancel() }
 
         let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
@@ -109,6 +144,11 @@ enum PendingRouteNotifier {
         content.body = "Departs \(depTime) from \(leg.originName)"
         content.sound = .default
         content.userInfo = ["deepLink": "traintime://resumeroute"]
+        // Offer "Send to Watch" only when a Garmin is paired (cached on the last
+        // watch refresh). The handler re-checks the live link before sending.
+        if UserDefaults.standard.bool(forKey: "garminPaired") {
+            content.categoryIdentifier = garminCategory
+        }
 
         let fireDate = Date(timeIntervalSince1970: TimeInterval(notifyTs))
         let components = Calendar.current.dateComponents(

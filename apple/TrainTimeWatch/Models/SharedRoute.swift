@@ -202,15 +202,24 @@ enum PendingRouteLogic {
     /// lead becomes the walk time to the origin station plus `savedLeadSec` as a
     /// buffer, capped at `maxLeadSec`. Nil distance keeps the static behaviour.
     /// Connection legs always use the short static connection lead.
+    ///
+    /// `walkSecondsOverride` wins over the straight-line estimate: it's the routed
+    /// walk time (MKDirections) the phone measures live, so the lead matches what
+    /// tracking shows on arrival instead of under-counting a straight line.
     static func notifyTs(
         _ route: PendingRoute,
         savedLeadSec: Int = minLeadSec,
         connectionLeadSec: Int = connectionLeadSec,
-        userDistanceMeters: Double? = nil
+        userDistanceMeters: Double? = nil,
+        walkSecondsOverride: Int? = nil
     ) -> Int? {
         guard let leg = route.currentLeg else { return nil }
         guard leg.isTrackable, !route.isLegMuted(route.cursor) else { return nil }
         if isConnectionLeg(route) { return leg.depTs - connectionLeadSec }
+        if let walkSec = walkSecondsOverride {
+            let lead = min(walkSec + savedLeadSec, maxLeadSec)
+            return leg.depTs - lead
+        }
         if let distance = userDistanceMeters {
             let walkSec = Int(GeoUtils.walkMinutes(distanceMeters: distance) * 60)
             let lead = min(walkSec + savedLeadSec, maxLeadSec)

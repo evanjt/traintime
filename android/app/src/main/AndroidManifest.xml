@@ -78,6 +78,11 @@
             android:name=".notify.RouteDistanceReceiver"
             android:exported="false" />
 
+        <!-- Reminder "Send to Watch" action: wakes the Garmin app into tracking. -->
+        <receiver
+            android:name=".notify.SendToWatchReceiver"
+            android:exported="false" />
+
         <!-- Wearable Data Layer: receive favourites / pinned stations / default
              mode pushed from the watch, plus hello/alive/bye liveness messages. -->
         <service

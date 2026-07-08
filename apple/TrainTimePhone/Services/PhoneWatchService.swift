@@ -31,16 +31,26 @@ struct PhoneConnectedWatch: Identifiable {
 }
 
 class PhoneWatchService: ObservableObject {
+    /// One Connect IQ registration per process, shared by the ViewModel and the
+    /// AppDelegate's background "Send to Watch" notification-action handler (which
+    /// runs with no ViewModel alive).
+    static let shared = PhoneWatchService()
+
     let wcService = WatchConnectivityService()
     let garminService = GarminConnectIQService()
 
     @Published var connectedWatches: [PhoneConnectedWatch] = []
 
+    private var initialised = false
+
     func initialize() {
+        guard !initialised else { return }
+        initialised = true
         garminService.initialize()
     }
 
     func shutdown() {
+        initialised = false
         garminService.shutdown()
     }
 
@@ -67,6 +77,11 @@ class PhoneWatchService: ObservableObject {
         }
 
         connectedWatches = watches
+
+        // Cache for the reminder scheduler: the "Send to Watch" notification action
+        // is only attached when a Garmin is known (schedule/notify runs with no live
+        // SDK). The action handler re-checks liveness before sending.
+        UserDefaults.standard.set(hasKnownGarmin, forKey: "garminPaired")
     }
 
     /// Connect IQ phone-app payloads for the action-dispatched Garmin contract the
@@ -93,6 +108,31 @@ class PhoneWatchService: ObservableObject {
                 if let name = station.name { data["stName"] = name }
                 if let lat = station.lat { data["stLat"] = lat }
                 if let lon = station.lon { data["stLon"] = lon }
+            }
+            return data
+        }
+
+        /// Track payload sourced from a saved-route leg (Send to Watch from the
+        /// reminder), rather than a live board row. Same contract as
+        /// track(_:station:); `dest` is the route's final destination, the leg
+        /// origin drives the watch's board poll + walk distance.
+        static func track(leg: RouteLeg, finalDestination: String) -> [String: Any] {
+            var data: [String: Any] = [
+                "action": "track",
+                "dest": finalDestination,
+                "depTs": leg.depTs,
+                "delay": 0,
+                "plat": "",
+                "platChg": false,
+                "cat": leg.category ?? "",
+                "line": leg.lineNumber ?? ""
+            ]
+            if let tn = leg.trainNumber { data["trainNum"] = tn }
+            if let stId = leg.originId {
+                data["stId"] = stId
+                data["stName"] = leg.originName
+                if let lat = leg.originLat { data["stLat"] = lat }
+                if let lon = leg.originLon { data["stLon"] = lon }
             }
             return data
         }

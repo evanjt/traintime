@@ -356,6 +356,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminTargetIds = garmin.map { it.id }
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
+            persistGarminPaired()
             pushLocationNow()
             startHeartbeat()
             maybePingGarmin()
@@ -973,7 +974,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminTargetIds = garmin.map { it.id }
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
+            persistGarminPaired()
         }
+    }
+
+    // Cache "a Garmin is paired" for the reminder worker, which can't sweep the
+    // Connect IQ SDK from its background window. hasKnownDevices includes
+    // paired-but-disconnected watches: the action then wakes them on select.
+    private suspend fun persistGarminPaired() {
+        prefs.setGarminPaired(garminService.hasKnownDevices())
     }
 
     fun setMirrorToWatch(value: Boolean) {

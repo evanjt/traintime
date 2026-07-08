@@ -2,6 +2,7 @@ package com.evanjt.traintime.core.sync
 
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.FocusedDeparture
+import com.evanjt.traintime.data.sbb.RouteLeg
 import com.evanjt.traintime.data.sbb.SharedRoute
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -276,6 +277,25 @@ data class TrackCommand(
     }
 
     companion object {
+        // Build a track command from a saved-route leg, for the reminder's
+        // "Send to Watch" action. dest uses the route's finalDestination (not
+        // leg.destName): the reminder the user tapped reads "$line to
+        // $finalDestination", so the watch shows the same headsign. platform is
+        // blank and delay 0 because the leg carries no live board data yet; the
+        // watch's own board fetch upgrades them once the train appears.
+        fun fromLeg(leg: RouteLeg, finalDestination: String) = TrackCommand(
+            destination = finalDestination,
+            departureTimestamp = leg.depTs,
+            lineNumber = leg.lineNumber ?: "",
+            category = leg.category ?: "",
+            trainNumber = leg.trainNumber,
+            operatorRef = null,
+            delay = 0,
+            platform = "",
+            platformChanged = false,
+            stationId = leg.originId,
+        )
+
         fun from(focused: FocusedDeparture, stationId: String?) = TrackCommand(
             destination = focused.destination,
             departureTimestamp = focused.departureTimestamp,

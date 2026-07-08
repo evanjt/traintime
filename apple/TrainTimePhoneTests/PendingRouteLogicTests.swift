@@ -126,6 +126,30 @@ final class PendingRouteLogicTests: XCTestCase {
         XCTAssertEqual(PendingRouteLogic.notifyTs(r, userDistanceMeters: 5000), dep - 3 * 60)
     }
 
+    func testRoutedWalkOverrideWinsOverStraightLineDistance() {
+        let dep = now + 7200
+        // Straight line says 10 min; the routed walk is 7 min longer. The override
+        // (routed seconds) drives the lead, not the haversine distance.
+        XCTAssertEqual(
+            PendingRouteLogic.notifyTs(
+                route([ride(dep: dep)]), savedLeadSec: 5 * 60,
+                userDistanceMeters: 830, walkSecondsOverride: 17 * 60),
+            dep - (17 + 5) * 60)
+    }
+
+    func testRoutedWalkOverrideIsCapped() {
+        let dep = now + 100_000
+        XCTAssertEqual(
+            PendingRouteLogic.notifyTs(route([ride(dep: dep)]), walkSecondsOverride: 100_000),
+            dep - PendingRouteLogic.maxLeadSec)
+    }
+
+    func testConnectionLegIgnoresRoutedWalkOverride() {
+        let dep = now + 7200
+        let r = route([ride(dep: now - 3600, train: "1"), ride(dep: dep, train: "2")], cursor: 1)
+        XCTAssertEqual(PendingRouteLogic.notifyTs(r, walkSecondsOverride: 30 * 60), dep - 3 * 60)
+    }
+
     func testIsConnectionLegTrueOnlyPastTheFirstRide() {
         XCTAssertFalse(PendingRouteLogic.isConnectionLeg(route([ride(dep: now + 3600)])))
         let r = route([ride(dep: now - 3600, train: "1"), ride(dep: now + 3600, train: "2")], cursor: 1)
