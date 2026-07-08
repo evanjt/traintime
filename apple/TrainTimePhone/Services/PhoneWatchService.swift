@@ -112,6 +112,18 @@ class PhoneWatchService: ObservableObject {
             ["action": "loc", "lat": lat, "lon": lon]
         }
 
+        // Receipt ack for a watch-queued reminder. The watch keeps the reminder
+        // in its outbox and retries until it sees this id come back.
+        static func ackReminder(id: String) -> [String: Any] {
+            ["action": "ackReminder", "id": id]
+        }
+
+        // Foreground liveness probe; the watch answers with an immediate hello.
+        // Only sent through the WatchSyncProtocol.shouldPingGarmin gate.
+        static func ping() -> [String: Any] {
+            ["action": "ping"]
+        }
+
         // The phone's favourites for the Garmin outer-join sync. The watch unions
         // these into its own store (never replaces).
         static func favourites(_ favourites: [Favourite]) -> [String: Any] {

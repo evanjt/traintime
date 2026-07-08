@@ -32,6 +32,15 @@ enum WatchSyncProtocol {
         guard parts.count >= 2, let major = Int(parts[0]), let minor = Int(parts[1]) else { return nil }
         return (major, minor)
     }
+
+    /// Gate for the foreground ping to a Garmin watch. A phone message can wake a
+    /// closed Garmin watch-app, so only ping one that speaks pv 2 (treats ping as
+    /// such), hasn't said bye since its last alive, and was heard from recently.
+    static let garminPingWindow: TimeInterval = 30
+
+    static func shouldPingGarmin(lastAlive: Date, lastBye: Date, now: Date, pv: Int) -> Bool {
+        pv >= 2 && lastAlive > lastBye && now.timeIntervalSince(lastAlive) <= garminPingWindow
+    }
 }
 
 struct FocusedDeparture {

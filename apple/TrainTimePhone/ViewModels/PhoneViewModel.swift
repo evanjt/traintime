@@ -83,6 +83,15 @@ class PhoneViewModel: ObservableObject {
     private var garminLastAlive: Date = .distantPast
     private var appleLastAlive: Date = .distantPast
     private var appleLastContact: Date = .distantPast // alive or bye, drives the amber window
+    // Ping-gate bookkeeping, persisted across launches: the freshest Garmin signal
+    // ever heard (bye does not zero it, unlike garminLastAlive), the last bye, and
+    // the watch's protocol version. Together they say "the watch app is probably
+    // still open", the only case where a foreground ping is safe.
+    private var garminLastAliveHighWater =
+        Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: "garminLastAliveTs"))
+    private var garminLastByeAt =
+        Date(timeIntervalSince1970: UserDefaults.standard.double(forKey: "garminLastByeTs"))
+    private var garminWatchPv = UserDefaults.standard.integer(forKey: "garminWatchPv")
     // Version last announced by each backend (nil until first heard). Drives the
     // Send-to-Watch update guard; a pre-versioning watch reports 0.4.x.
     private var garminWatchVersion: String?
@@ -217,7 +226,16 @@ class PhoneViewModel: ObservableObject {
     // backend's freshness; reqLoc is answered; anything else falls through to state sync.
     private func applyReceivedWatch(_ context: [String: Any], source: PhoneWatchType) {
         DispatchQueue.main.async {
-            switch context["kind"] as? String {
+            let kind = context["kind"] as? String
+            // Any Garmin message but the liveness kinds still proves the watch app
+            // is open: a saveReminder or favourites push greens the indicator and
+            // unblocks the alive-gated sends. hello/alive refresh inside markAlive
+            // (which needs the pre-refresh state for its transition sync).
+            if source == .garmin, let k = kind, !["hello", "alive", "bye"].contains(k) {
+                self.garminLastAlive = Date()
+                self.garminLastAliveHighWater = self.garminLastAlive
+            }
+            switch kind {
             case "hello", "alive":
                 self.markAlive(source, context: context)
             case "bye":
@@ -230,7 +248,7 @@ class PhoneViewModel: ObservableObject {
             case "saveReminder":
                 // The watch (Apple or Garmin) asked us to save its focused
                 // departure as a reminder; schedule it like a board save.
-                self.saveReminderFromWatch(context)
+                self.saveReminderFromWatch(context, source: source)
             case "favourites":
                 // The Garmin watch pushed its favourites: outer-join them into ours.
                 self.applyGarminFavourites(context["favs"])
@@ -243,7 +261,7 @@ class PhoneViewModel: ObservableObject {
     // Reconstruct the one-leg route the watch described and queue it for a reminder.
     // Coords are required (the distance-aware reminder needs them); numbers may
     // arrive as Int or Double across the WCSession / Connect IQ bridges.
-    private func saveReminderFromWatch(_ context: [String: Any]) {
+    private func saveReminderFromWatch(_ context: [String: Any], source: PhoneWatchType) {
         func intOf(_ key: String) -> Int? {
             if let i = context[key] as? Int { return i }
             if let d = context[key] as? Double { return Int(d) }
@@ -259,6 +277,13 @@ class PhoneViewModel: ObservableObject {
               let line = context["line"] as? String,
               let stId = context["stId"] as? String,
               let lat = doubleOf("lat"), let lon = doubleOf("lon") else { return }
+        // Ack receipt (not save) as soon as the payload parses, so the Garmin
+        // watch can clear its outbox: retries of the same id land here
+        // idempotently. Not through send() (alive-gated, mirror-gated) — an ack
+        // must always answer. An old watch sends no id and expects no ack.
+        if source == .garmin, let id = context["id"] as? String {
+            watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.ackReminder(id: id))
+        }
         let route = SharedRoute.single(
             originId: stId,
             originName: context["stName"] as? String ?? "Station",
@@ -295,8 +320,10 @@ class PhoneViewModel: ObservableObject {
         switch source {
         case .garmin:
             garminWatchVersion = v
+            garminWatchPv = context["pv"] as? Int ?? 0
             let wasAlive = garminAlive
             garminLastAlive = Date()
+            garminLastAliveHighWater = garminLastAlive
             watchChecking = false
             if !wasAlive { syncCurrentStateToWatch(to: .garmin) }
         case .appleWatch:
@@ -311,11 +338,36 @@ class PhoneViewModel: ObservableObject {
     private func markBye(_ source: PhoneWatchType) {
         switch source {
         case .garmin:
+            // The high water mark stays: bye after alive is exactly what the
+            // ping gate reads.
             garminLastAlive = .distantPast
+            garminLastByeAt = Date()
+            persistGarminLinkState()
         case .appleWatch:
             appleLastAlive = .distantPast
             appleLastContact = Date()
         }
+    }
+
+    private func persistGarminLinkState() {
+        UserDefaults.standard.set(garminLastAliveHighWater.timeIntervalSince1970, forKey: "garminLastAliveTs")
+        UserDefaults.standard.set(garminLastByeAt.timeIntervalSince1970, forKey: "garminLastByeTs")
+        UserDefaults.standard.set(garminWatchPv, forKey: "garminWatchPv")
+    }
+
+    // Accelerate the green indicator when the phone foregrounds while the watch
+    // app is probably still open: ask it to say hello now instead of waiting out
+    // its heartbeat. Deliberately not through send() (alive-gated) — the
+    // WatchSyncProtocol gate is the safety here.
+    private func maybePingGarmin() {
+        guard mirrorToWatch, watchService.hasGarminWatch, !garminAlive else { return }
+        guard WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: garminLastAliveHighWater,
+            lastBye: garminLastByeAt,
+            now: Date(),
+            pv: garminWatchPv
+        ) else { return }
+        watchService.sendToGarminWatches(PhoneWatchService.GarminPayload.ping())
     }
 
     // Applies a state sync pushed from any watch (defaultMode / favourites / pinned).
@@ -437,11 +489,13 @@ class PhoneViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.refreshConnectedWatches()
             self?.pushLocationNow()
+            self?.maybePingGarmin()
         }
     }
 
     func onDisappear() {
         updateWidgetCache() // the widget is only visible once we background; seed it with what was on screen
+        persistGarminLinkState() // the ping gate must survive a kill while backgrounded
         location.stop()
         stopTimer()
         livenessTimer?.cancel()

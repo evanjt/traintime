@@ -114,6 +114,34 @@ final class ParsingTests: XCTestCase {
         XCTAssertNil(data["stName"])
     }
 
+    func testGarminPingGateRequiresRecentAliveAfterByeOnPv2() {
+        let now = Date(timeIntervalSince1970: 1_718_000_000)
+        let bye = now.addingTimeInterval(-60)
+        XCTAssertTrue(WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: now.addingTimeInterval(-5), lastBye: bye, now: now, pv: 2))
+        // Old protocol never pinged
+        XCTAssertFalse(WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: now.addingTimeInterval(-5), lastBye: bye, now: now, pv: 1))
+        // Bye after alive: the watch app closed
+        XCTAssertFalse(WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: now.addingTimeInterval(-10), lastBye: now.addingTimeInterval(-5), now: now, pv: 2))
+        // Stale alive: outside the window
+        XCTAssertFalse(WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: now.addingTimeInterval(-31), lastBye: bye, now: now, pv: 2))
+        // Never heard from
+        XCTAssertFalse(WatchSyncProtocol.shouldPingGarmin(
+            lastAlive: .distantPast, lastBye: .distantPast, now: now, pv: 2))
+    }
+
+    func testGarminAckAndPingPayloadShapes() {
+        let ack = PhoneWatchService.GarminPayload.ackReminder(id: "8507000|1718000600|IC1")
+        XCTAssertEqual(ack["action"] as? String, "ackReminder")
+        XCTAssertEqual(ack["id"] as? String, "8507000|1718000600|IC1")
+        let ping = PhoneWatchService.GarminPayload.ping()
+        XCTAssertEqual(ping["action"] as? String, "ping")
+        XCTAssertEqual(ping.count, 1)
+    }
+
     func testSyncMinimumRequires05OrHigher() {
         XCTAssertTrue(WatchSyncProtocol.meetsSyncMinimum("0.5.0"))
         XCTAssertTrue(WatchSyncProtocol.meetsSyncMinimum("0.5.1"))
