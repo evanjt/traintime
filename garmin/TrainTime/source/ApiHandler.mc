@@ -40,21 +40,31 @@ module ApiHandler {
         view.mRequestStartTime = null;
 
         if (responseCode == 200 && data != null && data instanceof Lang.Dictionary) {
-            view.mTrainStations = parseStationGroup(data, "train");
-            view.mBusStations = parseStationGroup(data, "bus");
-            view.mTramStations = parseStationGroup(data, "tram");
-            view.mSpecialStations = parseStationGroup(data, "special");
+            var trains = parseStationGroup(data, "train");
+            var buses = parseStationGroup(data, "bus");
+            var trams = parseStationGroup(data, "tram");
+            var specials = parseStationGroup(data, "special");
 
-            if (view.mTrainStations.size() == 0 && view.mBusStations.size() == 0
-                    && view.mTramStations.size() == 0 && view.mSpecialStations.size() == 0) {
+            if (trains.size() == 0 && buses.size() == 0
+                    && trams.size() == 0 && specials.size() == 0) {
+                view.clearStationState();
                 view.mStatus = "No stations nearby";
                 view.mTrainData = null;
             } else {
+                view.resetForNewStations();
+                view.mTrainStations = trains;
+                view.mBusStations = buses;
+                view.mTramStations = trams;
+                view.mSpecialStations = specials;
                 rebuildModesAndSelect(view);
             }
         } else {
+            // A failed re-search keeps the loaded stations; only a first search
+            // with nothing on screen surfaces the error state
             view.mStatus = decodeError(responseCode);
-            view.mTrainData = null;
+            if (view.mStationId == null) {
+                view.mTrainData = null;
+            }
         }
         WatchUi.requestUpdate();
     }

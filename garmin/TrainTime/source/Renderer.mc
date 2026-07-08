@@ -272,14 +272,37 @@ module Renderer {
             if (hasBack) { drawButtonHint(dc, width, height, 330, false); }
             return;
         }
+        // Up/Down cycle modes in the station view; with one mode that's a no-op,
+        // so the arcs only appear when the buttons actually do something
+        var upDownActive = (view.mAppState == 1) || view.mAvailableModes.size() > 1;
         if (hasStart) { drawButtonHint(dc, width, height, 30, true); }
-        if (hasUpDown) {
-            drawButtonHint(dc, width, height, 150, false);
+        if (hasUpDown && upDownActive) {
+            drawButtonHint(dc, width, height, 180, false);
             drawButtonHint(dc, width, height, 210, false);
         }
         if (view.mAppState == 1 && hasBack) {
             drawButtonHint(dc, width, height, 330, false);
         }
+
+        // Just after launch or a mode change, name the buttons next to their arcs
+        if (view.mAppState == 0 && view.mHintTime != null
+                && Time.now().value() - view.mHintTime < 3) {
+            if (hasStart) { drawHintLabel(dc, width, height, 30, "Select"); }
+            if (hasUpDown && upDownActive) {
+                drawHintLabel(dc, width, height, 195, "Mode");
+            }
+        }
+    }
+
+    function drawHintLabel(dc, width, height, centreDeg, text) {
+        var r = width / 2 - DrawUtils.px(14, width);
+        var rad = centreDeg * Math.PI / 180.0;
+        var x = width / 2 + r * Math.cos(rad);
+        var y = height / 2 - r * Math.sin(rad) - dc.getFontHeight(Graphics.FONT_XTINY) / 2;
+        var just = (centreDeg < 90 || centreDeg > 270)
+            ? Graphics.TEXT_JUSTIFY_RIGHT : Graphics.TEXT_JUSTIFY_LEFT;
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, text, just);
     }
 
     function drawButtonHint(dc, width, height, centreDeg, accent) {
@@ -319,6 +342,17 @@ module Renderer {
             var cx = startX + i * iconSpacing;
             var isActive = (i == view.mCurrentMode);
             var available = isModeAvailable(view, i);
+
+            // Carousel-style pill behind the active icon: same treatment as the
+            // station header, marking the row as changeable
+            if (isActive && available) {
+                var pillPad = DrawUtils.px(3, width);
+                var pillTop = cy - s - 3 * s / 5 - DrawUtils.px(2, width);
+                var pillBot = underY + DrawUtils.px(2, width);
+                dc.setColor(0x004488, Graphics.COLOR_TRANSPARENT);
+                dc.fillRoundedRectangle(cx - s - pillPad, pillTop,
+                    2 * (s + pillPad), pillBot - pillTop, DrawUtils.px(3, width));
+            }
 
             var tint;
             if (isActive && available) {
@@ -484,10 +518,14 @@ module Renderer {
         var usable = DrawUtils.getUsableWidth(rowCenterY, width, height);
         var rightEdge = (width + usable) / 2 - 4;
 
+        // Departed rows dim to dark grey, but on the highlight fill that becomes
+        // unreadable, so the cursor lifts them to light grey
+        var goneTint = highlighted ? 0xAAAAAA : 0x666666;
+
         // Minutes column (right-aligned, FONT_TINY)
         var minText;
         if (isGone) {
-            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
             minText = "gone";
         } else if (minutesUntil == 0) {
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
@@ -511,14 +549,14 @@ module Renderer {
 
         // Connection ID column (FONT_XTINY)
         if (lineNumber != null && lineNumber.length() > 0) {
-            dc.setColor(isGone ? 0x666666 : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(isGone ? goneTint : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
             dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
                 lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
         // Destination column (FONT_XTINY, truncated to fit round edge)
         if (isGone) {
-            dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
         } else {
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         }
@@ -558,43 +596,22 @@ module Renderer {
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Line + Destination (auto-downsize, line number in blue)
+        // Destination gets the whole line; the line ID rides on the platform row
         var destY = stationY + xtinyH + DrawUtils.px(2, width);
-        var line = view.mFocusedTrain["line"];
         var dest = view.mFocusedTrain["dest"];
-        var fullStr = "";
-        if (line != null && !line.equals("")) {
-            fullStr = line + " ";
-        }
-        fullStr = fullStr + dest;
-        var destMaxW = DrawUtils.getUsableWidth(destY + 10, width, height) - 10;
+        var destMaxW = DrawUtils.getUsableWidth(destY, width, height) - 10;
         var destFont = Graphics.FONT_SMALL;
-        var fullDims = dc.getTextDimensions(fullStr, destFont);
-        if (fullDims[0] > destMaxW) {
+        if (dc.getTextDimensions(dest, destFont)[0] > destMaxW) {
             destFont = Graphics.FONT_TINY;
         }
-        // Draw line number (blue) + destination (white) separately
-        if (line != null && !line.equals("")) {
-            var lineStr = line + " ";
-            var lineDims = dc.getTextDimensions(lineStr, destFont);
-            var destDims = dc.getTextDimensions(dest, destFont);
-            var totalW = lineDims[0] + destDims[0];
-            var startTextX = centerX - totalW / 2;
-            dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(startTextX, destY, destFont, lineStr, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(startTextX + lineDims[0], destY, destFont,
-                DrawUtils.truncateToFit(dc, dest, destFont, destMaxW - lineDims[0]),
-                Graphics.TEXT_JUSTIFY_LEFT);
-        } else {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, destY, destFont,
-                DrawUtils.truncateToFit(dc, dest, destFont, destMaxW),
-                Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(centerX, destY, destFont,
+            DrawUtils.truncateToFit(dc, dest, destFont, destMaxW),
+            Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Platform + departure time (smaller, below destination)
+        // Line ID (blue) + platform + departure time on one row, centred as drawn
         var platY = destY + dc.getFontHeight(destFont) + 1;
+        var line = view.mFocusedTrain["line"];
         var plat = view.mFocusedTrain["plat"];
         var platChg = view.mFocusedTrain["platChg"];
         var platStr = "";
@@ -612,14 +629,39 @@ module Renderer {
                 platStr = timeStr2;
             }
         }
-        if (platStr.length() > 0) {
-            if (platChg) {
-                dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
-            } else {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        var lineStr = (line != null && !line.equals("")) ? line : "";
+        if (lineStr.length() > 0 && platStr.length() > 0) {
+            lineStr = lineStr + "  ";
+        }
+        if (lineStr.length() > 0 || platStr.length() > 0) {
+            var rowMaxW = DrawUtils.getUsableWidth(platY, width, height) - 10;
+            var lineW = 0;
+            if (lineStr.length() > 0) {
+                lineW = dc.getTextDimensions(lineStr, Graphics.FONT_XTINY)[0];
             }
-            dc.drawText(centerX, platY, Graphics.FONT_XTINY,
-                platStr, Graphics.TEXT_JUSTIFY_CENTER);
+            if (platStr.length() > 0) {
+                platStr = DrawUtils.truncateToFit(dc, platStr, Graphics.FONT_XTINY,
+                    rowMaxW - lineW);
+            }
+            var platW = 0;
+            if (platStr.length() > 0) {
+                platW = dc.getTextDimensions(platStr, Graphics.FONT_XTINY)[0];
+            }
+            var rowX = centerX - (lineW + platW) / 2;
+            if (lineStr.length() > 0) {
+                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(rowX, platY, Graphics.FONT_XTINY,
+                    lineStr, Graphics.TEXT_JUSTIFY_LEFT);
+            }
+            if (platStr.length() > 0) {
+                if (platChg) {
+                    dc.setColor(0xFF4400, Graphics.COLOR_TRANSPARENT);
+                } else {
+                    dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+                }
+                dc.drawText(rowX + lineW, platY, Graphics.FONT_XTINY,
+                    platStr, Graphics.TEXT_JUSTIFY_LEFT);
+            }
         }
 
         // Countdown + delay

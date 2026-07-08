@@ -29,6 +29,7 @@ class TrainTimeView extends WatchUi.View {
     var mSpecialStations;
     var mCurrentMode;
     var mModeChangedTime;  // drives the transient mode-name label
+    var mHintTime;         // drives the transient button labels next to the arcs
     var mAvailableModes;
     var mGpsQuality;
     var mLoadedFromCache;
@@ -116,6 +117,7 @@ class TrainTimeView extends WatchUi.View {
         mMapErrorTick = null;
         mManualStation = false;
         mPendingFavTrack = null;
+        mHintTime = null;
     }
 
     function onLayout(dc) {
@@ -160,6 +162,7 @@ class TrainTimeView extends WatchUi.View {
         // (onShow is called each time the display wakes, which would reset the inactivity timer)
         if (mLastInteractionTime == 0) {
             mLastInteractionTime = Time.now().value();
+            mHintTime = mLastInteractionTime;
         }
         mTimer = new Timer.Timer();
         mTimer.start(method(:onTimerTick), 5000, true);
@@ -228,6 +231,24 @@ class TrainTimeView extends WatchUi.View {
         mPendingFavTrack = null;
     }
 
+    // A fresh station search is being adopted: drop selection/tracking leftovers
+    // and stale departures, but keep nothing else — the caller replaces the
+    // station groups right after. Unlike clearStationState this never runs
+    // before the response, so a failed re-search can't strand the app stateless.
+    function resetForNewStations() {
+        if (mMapActive) {
+            mMapActive = false;
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        }
+        mAppState = 0;
+        mCursorIndex = 0;
+        mScrollOffset = 0;
+        mFocusedTrain = null;
+        mPendingFavTrack = null;
+        mTrainData = null;
+        mFavouriteData = null;
+    }
+
     function getStationsForMode(mode) {
         if (mode == 0) { return mTrainStations; }
         if (mode == 1) { return mBusStations; }
@@ -250,6 +271,7 @@ class TrainTimeView extends WatchUi.View {
         idx = (idx + 1) % mAvailableModes.size();
         mCurrentMode = mAvailableModes[idx];
         mModeChangedTime = Time.now().value();
+        mHintTime = mModeChangedTime;
         mStations = getStationsForMode(mCurrentMode);
         if (mStations != null && mStations.size() > 0) {
             mStationIndex = 0;
@@ -272,6 +294,7 @@ class TrainTimeView extends WatchUi.View {
         if (idx < 0) { idx = mAvailableModes.size() - 1; }
         mCurrentMode = mAvailableModes[idx];
         mModeChangedTime = Time.now().value();
+        mHintTime = mModeChangedTime;
         mStations = getStationsForMode(mCurrentMode);
         if (mStations != null && mStations.size() > 0) {
             mStationIndex = 0;
@@ -1112,13 +1135,13 @@ class TrainTimeView extends WatchUi.View {
             return;
         }
 
-        // Re-search stations if moved >500m from last search
-        if (hasMovedSignificantly(lat, lon)) {
-            clearStationState();
-        }
-
-        if (mStationId == null && !mRequestInFlight) {
-            mStatus = "Finding stations...";
+        // Re-search stations if moved >500m from last search. The loaded stations
+        // stay live until the new response is adopted, so a failed fetch never
+        // strands the app with nothing to show or cycle
+        if ((hasMovedSignificantly(lat, lon) || mStationId == null) && !mRequestInFlight) {
+            if (mStationId == null) {
+                mStatus = "Finding stations...";
+            }
             mRequestInFlight = true;
             mRequestStartTime = Time.now().value();
             ApiHandler.fetchStations(self, lat, lon);
@@ -1178,9 +1201,11 @@ class TrainTimeView extends WatchUi.View {
                     return;
                 }
 
-                // Re-search stations if moved >500m from last search (only in station/selection view)
-                if (mAppState <= 1 && !mManualStation && hasMovedSignificantly(lat, lon)) {
-                    clearStationState();
+                // Re-search stations if moved >500m from last search (only in
+                // station/selection view). Loaded stations stay until the
+                // response is adopted
+                if (mAppState <= 1 && !mManualStation && !mRequestInFlight
+                        && hasMovedSignificantly(lat, lon)) {
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();
                     ApiHandler.fetchStations(self, lat, lon);
