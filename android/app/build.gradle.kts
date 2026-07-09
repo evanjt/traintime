@@ -57,6 +57,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Ship native symbols so Play can symbolicate native crashes and ANRs.
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
 
