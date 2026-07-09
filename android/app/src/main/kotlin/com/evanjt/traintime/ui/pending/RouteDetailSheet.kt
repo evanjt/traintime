@@ -1,18 +1,21 @@
 package com.evanjt.traintime.ui.pending
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,8 +42,8 @@ private fun hhmm(depTs: Long): String =
 
 // The train connections of a saved route, current one highlighted. Walk legs
 // are omitted: the app tracks trains between stops, not walking. Each trackable
-// connection has a departure-reminder switch and a "Track now". Platforms come
-// from the live board when close to departure (platforms map by leg index).
+// connection has a departure-reminder switch, and tapping the card tracks it now.
+// Platforms come from the live board when close to departure (by leg index).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RouteDetailSheet(
@@ -60,7 +63,7 @@ fun RouteDetailSheet(
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             Text(
-                "Each connection can send a reminder before it departs. Turn one off, or track any now.",
+                "Tap any connection to track it now. Use its switch to turn the departure reminder off.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp),
@@ -95,58 +98,72 @@ private fun RideLegRow(
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val line = "${leg.category ?: ""}${leg.lineNumber ?: ""}"
-    val bg = if (isCurrent) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
-    Column(
+    // Every trackable connection reads as a tappable tile; the current one is
+    // outlined. Tap anywhere on it to track (the Remind switch keeps its own tap).
+    val bg = if (leg.isTrackable) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent
+    Row(
         Modifier
             .fillMaxWidth()
+            .padding(vertical = 3.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(bg)
-            .padding(vertical = 8.dp, horizontal = 8.dp),
+            .then(
+                if (isCurrent) {
+                    Modifier.border(
+                        1.5.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        RoundedCornerShape(10.dp),
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .then(if (leg.isTrackable) Modifier.clickable { onTrackNow() } else Modifier)
+            .padding(vertical = 8.dp, horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (line.isNotEmpty()) {
+        if (line.isNotEmpty()) {
+            Text(
+                line,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(palette.linePill(line, mode))
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+            )
+        }
+        Column(Modifier.weight(1f).padding(start = 8.dp)) {
+            Text("${leg.originName} to ${leg.destName}", fontWeight = FontWeight.Medium, maxLines = 1)
+            val times = "${hhmm(leg.depTs)} to ${hhmm(leg.arrTs)}"
+            Text(
+                if (platform != null) "$times · platform $platform" else times,
+                color = secondary,
+                fontSize = 12.sp,
+            )
+            if (isCurrent) {
                 Text(
-                    line,
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(palette.linePill(line, mode))
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                    "Next connection",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                 )
-            }
-            Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                Text("${leg.originName} to ${leg.destName}", fontWeight = FontWeight.Medium, maxLines = 1)
-                val times = "${hhmm(leg.depTs)} to ${hhmm(leg.arrTs)}"
-                Text(
-                    if (platform != null) "$times · platform $platform" else times,
-                    color = secondary,
-                    fontSize = 12.sp,
-                )
-            }
-            if (leg.isTrackable) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Remind", color = secondary, fontSize = 10.sp)
-                    Switch(checked = !muted, onCheckedChange = onSetTracked)
-                }
-            } else {
-                Text("Outside Switzerland", color = secondary, fontSize = 11.sp)
             }
         }
         if (leg.isTrackable) {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (isCurrent) "Next connection" else "",
-                    color = secondary,
-                    fontSize = 11.sp,
-                )
-                TextButton(onClick = onTrackNow) { Text("Track now") }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Remind", color = secondary, fontSize = 10.sp)
+                Switch(checked = !muted, onCheckedChange = onSetTracked)
             }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = secondary,
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        } else {
+            Text("Outside Switzerland", color = secondary, fontSize = 11.sp)
         }
     }
 }
