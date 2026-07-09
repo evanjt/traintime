@@ -42,7 +42,6 @@ import com.evanjt.traintime.ui.onboarding.stepsToShow
 import com.evanjt.traintime.ui.onboarding.tourSteps
 import com.evanjt.traintime.ui.pending.PendingRouteChip
 import com.evanjt.traintime.ui.pending.ReplaceRouteDialog
-import com.evanjt.traintime.ui.pending.ResumeRouteDialog
 import com.evanjt.traintime.ui.pending.RouteDetailSheet
 import com.evanjt.traintime.ui.settings.AttributionSheet
 import com.evanjt.traintime.ui.settings.ReviewPromptDialog
@@ -258,21 +257,6 @@ private fun RootView(
             onSetMuted = { index, muted -> viewModel.setLegMuted(index, muted) },
             onTrackLeg = { index -> viewModel.trackLeg(index) },
             onDismiss = { showRoute = false },
-        )
-    }
-
-    // Resume prompt: the queued route's train is on the live board.
-    val resumeOffer = viewModel.resumeOffer
-    val pendingForResume = viewModel.pendingRoute
-    if (resumeOffer != null && pendingForResume != null) {
-        ResumeRouteDialog(
-            destination = pendingForResume.finalDestination,
-            departure = resumeOffer,
-            walkText = viewModel.resumeWalkText,
-            slackText = viewModel.resumeSlackText,
-            slackStatus = viewModel.resumeSlackStatus,
-            onTrack = { viewModel.resumePendingRoute() },
-            onLater = { viewModel.deferResume() },
         )
     }
 

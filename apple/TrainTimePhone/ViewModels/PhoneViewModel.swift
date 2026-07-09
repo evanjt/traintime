@@ -127,9 +127,7 @@ class PhoneViewModel: ObservableObject {
     let pendingRouteStore = PendingRouteStore.shared
     @Published var shareStatus: String? = nil
     @Published var shareReplaceOffer: SharedRouteOffer? = nil
-    @Published var resumeOffer: Departure? = nil
     private var pendingShareTrack: SharedRouteOffer?
-    private var resumeCheckInFlight = false
 
     // MARK: - Computed
 
@@ -1133,26 +1131,6 @@ class PhoneViewModel: ObservableObject {
         return AppColors.onTime
     }
 
-    /// Resume-prompt readout, split so the margin sits on its own line in the
-    /// alert. Slack is how much time is left after walking to the origin, in the
-    /// same ahead/behind vocabulary as tracking. Both nil without a walk component
-    /// (static mode or a connection leg), where slack has no meaning.
-    private var resumeSlackMinutes: Int? {
-        guard let walk = reminderPlan?.walkMin, let dep = resumeOffer else { return nil }
-        return dep.minutesUntil - walk + dep.delay
-    }
-
-    var resumeWalkText: String? {
-        guard let walk = reminderPlan?.walkMin, resumeOffer != nil else { return nil }
-        return "~\(walk) min walk"
-    }
-
-    var resumeSlackText: String? {
-        guard let slack = resumeSlackMinutes else { return nil }
-        if slack == 0 { return "right on time" }
-        return slack > 0 ? "\(slack) min ahead" : "\(-slack) min behind"
-    }
-
     var directionToStation: Double? {
         guard let userCoord = location.coordinate,
               let station = currentStation,
@@ -1566,10 +1544,19 @@ class PhoneViewModel: ObservableObject {
             return
         }
 
-        // traintime://resumeroute, reminder notification tap.
+        // traintime://resumeroute, reminder notification tap. Track the current
+        // leg directly (no prompt); the chip covers the manual case.
         if url.host == "resumeroute" {
             if appState == 3 { resumeFromInactive() }
-            Task { @MainActor in await refreshPendingRoute() }
+            resumePendingRoute()
+            return
+        }
+
+        // traintime://sendtowatch, reminder "Send to Watch" action. The app is now
+        // foreground (Connect IQ only binds there), so push the route to Garmin.
+        if url.host == "sendtowatch" {
+            if appState == 3 { resumeFromInactive() }
+            sendPendingRouteToWatch()
             return
         }
 
@@ -1842,32 +1829,13 @@ class PhoneViewModel: ObservableObject {
             pendingRouteStore.save(normalized)
             PendingRouteNotifier.schedule(normalized, now: now)
         }
-        if appState != 2,
-           normalized.status != PendingRoute.statusTracking,
-           PendingRouteLogic.isResumable(normalized, now: now) {
-            await offerResume(normalized)
-        }
     }
 
-    /// One-shot board check for the resume prompt, outside the normal fetch
-    /// machinery so it can't disturb the visible station.
-    @MainActor
-    private func offerResume(_ route: PendingRoute) async {
-        guard !resumeCheckInFlight, resumeOffer == nil,
-              let leg = route.currentLeg, let stationId = leg.originId else { return }
-        resumeCheckInFlight = true
-        defer { resumeCheckInFlight = false }
-        guard let result = try? await TrainAPIService.fetchDepartures(stationId: stationId) else { return }
-        resumeOffer = matchDeparture(result.departures, leg: leg)
-    }
-
-    /// Notification tap / resume dialog Track / route-view "Track now" on the
-    /// current leg. An explicit resume always opens the countdown, even hours
-    /// out. A live board match gives real delay/platform, otherwise a local
-    /// countdown. Never re-queues.
+    /// Notification tap / route-view "Track now" on the current leg. An explicit
+    /// resume always opens the countdown, even hours out. A live board match gives
+    /// real delay/platform, otherwise a local countdown. Never re-queues.
     func resumePendingRoute() {
         guard let route = pendingRouteStore.pending else { return }
-        resumeOffer = nil
         let now = Int(Date().timeIntervalSince1970)
         guard let normalized = PendingRouteLogic.normalize(route, now: now) else {
             Task { @MainActor in await refreshPendingRoute() }
@@ -1876,11 +1844,40 @@ class PhoneViewModel: ObservableObject {
         trackLegImpl(normalized, index: normalized.cursor)
     }
 
+    /// Reminder "Send to Watch" action (traintime://sendtowatch). The app is now
+    /// foreground, so Connect IQ is bound. Build the current leg's track, wake the
+    /// Garmin app, and transmit over a short window (silent drop if it never wakes),
+    /// matching the Android path.
+    func sendPendingRouteToWatch() {
+        let now = Int(Date().timeIntervalSince1970)
+        guard let route = pendingRouteStore.pending.flatMap({ PendingRouteLogic.normalize($0, now: now) }),
+              let leg = route.currentLeg else { return }
+        watchService.initialize()
+        watchService.refreshConnectedWatches()
+        guard watchService.hasGarminWatch else {
+            watchSendStatus = "No watch connected"
+            return
+        }
+        let payload = PhoneWatchService.GarminPayload.track(leg: leg, finalDestination: route.finalDestination)
+        watchService.openGarminApp()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.watchService.sendToGarminWatches(payload)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+            self?.watchService.sendToGarminWatches(payload)
+            self?.watchSendStatus = "Sent to watch"
+            // Re-open once the track has landed: a launch issued while the watch was
+            // in its phone-notification view often doesn't foreground the app, so a
+            // second open pulls the now-tracking app to the front. Best-effort — the
+            // watch may still keep the notification view on top (a Garmin OS call).
+            self?.watchService.openGarminApp()
+        }
+    }
+
     /// Route-view "Track now" on any trackable leg (may jump ahead to a later
     /// connection). Untrackable legs (walk / outside Switzerland) are ignored.
     func trackLeg(_ index: Int) {
         guard let route = pendingRouteStore.pending else { return }
-        resumeOffer = nil
         let now = Int(Date().timeIntervalSince1970)
         guard let normalized = PendingRouteLogic.normalize(route, now: now) else {
             Task { @MainActor in await refreshPendingRoute() }
@@ -1958,12 +1955,7 @@ class PhoneViewModel: ObservableObject {
         return OnwardConnection(changeStation: curLeg.destName, leg: next, legIndex: nextIdx, changeMinutes: changeMinutes)
     }
 
-    func deferResume() {
-        resumeOffer = nil
-    }
-
     func dismissPendingRoute() {
-        resumeOffer = nil
         pendingRouteStore.clear()
         PendingRouteNotifier.cancel()
     }

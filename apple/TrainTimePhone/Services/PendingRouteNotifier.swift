@@ -144,9 +144,10 @@ enum PendingRouteNotifier {
         content.body = "Departs \(depTime) from \(leg.originName)"
         content.sound = .default
         content.userInfo = ["deepLink": "traintime://resumeroute"]
-        // Offer "Send to Watch" only when a Garmin is paired (cached on the last
-        // watch refresh). The handler re-checks the live link before sending.
-        if UserDefaults.standard.bool(forKey: "garminPaired") {
+        // Offer "Send to Watch" only when a Garmin has actually connected here at
+        // least once (sticky, cached on watch refresh). The handler re-checks the
+        // live link before sending.
+        if UserDefaults.standard.bool(forKey: "garminEverConnected") {
             content.categoryIdentifier = garminCategory
         }
 

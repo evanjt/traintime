@@ -96,10 +96,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        // "Send to Watch": wake the Garmin app and push the saved route into
-        // tracking, silently, without opening the phone.
+        // "Send to Watch": open the app via a deep link (Connect IQ only binds in
+        // the foreground) and let the ViewModel push the route, mirroring the
+        // Android path. Same mechanism as the default reminder tap below.
         if response.actionIdentifier == PendingRouteNotifier.sendToWatchAction {
-            sendPendingRouteToWatch(completion: completionHandler)
+            if let url = URL(string: "traintime://sendtowatch") {
+                UIApplication.shared.open(url)
+            }
+            completionHandler()
             return
         }
         if let deepLink = response.notification.request.content.userInfo["deepLink"] as? String,
@@ -107,42 +111,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             UIApplication.shared.open(url)
         }
         completionHandler()
-    }
-
-    /// Send the current saved route to a paired Garmin. The watch app must finish
-    /// launching before it can receive the track, so we open it, let device status
-    /// settle, then transmit twice over a short window (silent drop if it never
-    /// wakes). A background-task assertion keeps us alive through the window.
-    private func sendPendingRouteToWatch(completion: @escaping () -> Void) {
-        let bgTask = UIApplication.shared.beginBackgroundTask(withName: "SendToWatch")
-        let finish: () -> Void = {
-            completion()
-            if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
-        }
-
-        let now = Int(Date().timeIntervalSince1970)
-        guard let route = PendingRouteStore.shared.pending
-                .flatMap({ PendingRouteLogic.normalize($0, now: now) }),
-              let leg = route.currentLeg else { return finish() }
-
-        let service = PhoneWatchService.shared
-        service.initialize()
-        guard service.hasKnownGarmin else { return finish() }
-        let payload = PhoneWatchService.GarminPayload.track(
-            leg: leg, finalDestination: route.finalDestination)
-
-        // Let device statuses land, then wake the app.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            service.refreshConnectedWatches()
-            service.openGarminApp()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
-            service.sendToGarminWatches(payload)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.5) {
-            service.sendToGarminWatches(payload)
-            finish()
-        }
     }
 
     func userNotificationCenter(

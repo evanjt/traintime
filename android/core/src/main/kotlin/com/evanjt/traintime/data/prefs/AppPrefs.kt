@@ -198,16 +198,17 @@ class AppPrefs(context: Context) {
         }
     }
 
-    // A Garmin watch is known/paired. Cached by the ViewModel whenever watch
-    // links refresh, so the reminder worker (which has no SDK binding) can
-    // decide whether to offer the "Send to Watch" action without a BLE sweep.
-    val garminPaired: Flow<Boolean> =
-        dataStore.data.map { it[KEY_GARMIN_PAIRED] ?: false }
+    // Sticky: latched the first time a real Garmin (connected + TrainTime
+    // installed) is seen, and never cleared. The reminder worker (no SDK binding)
+    // reads it to decide whether to offer "Send to Watch", so a user who has never
+    // connected a Garmin never sees the action.
+    val garminEverConnected: Flow<Boolean> =
+        dataStore.data.map { it[KEY_GARMIN_EVER_CONNECTED] ?: false }
 
-    suspend fun garminPairedNow(): Boolean = garminPaired.first()
+    suspend fun garminEverConnectedNow(): Boolean = garminEverConnected.first()
 
-    suspend fun setGarminPaired(value: Boolean) {
-        dataStore.edit { it[KEY_GARMIN_PAIRED] = value }
+    suspend fun markGarminEverConnected() {
+        dataStore.edit { it[KEY_GARMIN_EVER_CONNECTED] = true }
     }
 
     suspend fun lastCoordinate(): Pair<Double, Double>? {
@@ -246,7 +247,7 @@ class AppPrefs(context: Context) {
         val KEY_GARMIN_LAST_ALIVE = longPreferencesKey("garminLastAliveTs")
         val KEY_GARMIN_LAST_BYE = longPreferencesKey("garminLastByeTs")
         val KEY_GARMIN_PV = intPreferencesKey("garminWatchPv")
-        val KEY_GARMIN_PAIRED = booleanPreferencesKey("garminPaired")
+        val KEY_GARMIN_EVER_CONNECTED = booleanPreferencesKey("garminEverConnected")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")
         val KEY_MY_STATIONS = stringPreferencesKey("myStations_v1")
         val KEY_PENDING_ROUTES = stringPreferencesKey("pendingRoutes_v1")

@@ -58,13 +58,19 @@ class PendingRouteNotifyWorker(
         // Offer "Send to Watch" only when a Garmin is paired (cached by the VM;
         // this worker has no SDK binding). Picking it on the watch runs the
         // PendingIntent on the phone, which wakes the watch app into tracking.
-        if (AppPrefs(applicationContext).garminPairedNow()) {
-            val sendIntent = Intent(applicationContext, SendToWatchReceiver::class.java)
-                .putExtra(SendToWatchReceiver.EXTRA_ROUTE_ID, normalized.id)
-            val sendPending = PendingIntent.getBroadcast(
+        if (AppPrefs(applicationContext).garminEverConnectedNow()) {
+            // Opens the app (not a background service): the Connect IQ SDK only
+            // binds to Garmin Connect with the app in the foreground, so the send
+            // has to run there. The app then wakes the watch and pushes the route.
+            val sendPending = PendingIntent.getActivity(
                 applicationContext,
                 1,
-                sendIntent,
+                Intent(
+                    Intent.ACTION_VIEW,
+                    "traintime://sendtowatch".toUri(),
+                    applicationContext,
+                    MainActivity::class.java,
+                ),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             builder.addAction(android.R.drawable.ic_menu_send, "Send to Watch", sendPending)

@@ -111,7 +111,7 @@ struct ContentView: View {
         .onChange(of: viewModel.openWriteReviewTick) { _, _ in
             openURL(PhoneViewModel.writeReviewURL)
         }
-        // Shared-route intake feedback + replace confirmation + resume prompt.
+        // Shared-route intake feedback + replace confirmation.
         .alert("Replace queued route?", isPresented: Binding(
             get: { viewModel.shareReplaceOffer != nil },
             set: { if !$0 { viewModel.dismissReplaceSharedRoute() } }
@@ -120,27 +120,6 @@ struct ContentView: View {
             Button("Keep existing", role: .cancel) { viewModel.dismissReplaceSharedRoute() }
         } message: {
             Text("You already have a route saved. Replace it with the trip to \(viewModel.shareReplaceOffer?.route.finalDestinationName ?? "")?")
-        }
-        .alert("Resume route to \(pendingRouteStore.pending?.finalDestination ?? "")?", isPresented: Binding(
-            get: { viewModel.resumeOffer != nil },
-            set: { if !$0 { viewModel.deferResume() } }
-        )) {
-            Button("Track") { viewModel.resumePendingRoute() }
-            Button("Later", role: .cancel) { viewModel.deferResume() }
-        } message: {
-            if let dep = viewModel.resumeOffer {
-                // A system alert renders plain text only (no per-word colour), so
-                // the walk + buffer split rides here as a second line.
-                let base = "\(dep.lineNumber) to \(dep.destination) departs in \(max(0, dep.minutesUntil)) min"
-                    + (dep.platform.isEmpty ? "" : " from platform \(dep.platform)")
-                // A system alert renders plain text only, so no per-line colour
-                // like the Android popup, but the walk + margin still get their
-                // own lines to keep the decision obvious.
-                let extra = [viewModel.resumeWalkText, viewModel.resumeSlackText]
-                    .compactMap { $0 }
-                    .joined(separator: "\n")
-                Text(extra.isEmpty ? base : base + "\n" + extra)
-            }
         }
         .overlay(alignment: .bottom) {
             if let status = viewModel.shareStatus {

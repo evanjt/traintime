@@ -78,10 +78,13 @@ class PhoneWatchService: ObservableObject {
 
         connectedWatches = watches
 
-        // Cache for the reminder scheduler: the "Send to Watch" notification action
-        // is only attached when a Garmin is known (schedule/notify runs with no live
-        // SDK). The action handler re-checks liveness before sending.
-        UserDefaults.standard.set(hasKnownGarmin, forKey: "garminPaired")
+        // Latch "a Garmin has actually connected here" for the reminder scheduler
+        // (schedule/notify runs with no live SDK). Sticky and set only from a live
+        // connection, so the "Send to Watch" action never appears for someone who
+        // has never connected a Garmin. The handler re-checks liveness before sending.
+        if hasGarminWatch {
+            UserDefaults.standard.set(true, forKey: "garminEverConnected")
+        }
     }
 
     /// Connect IQ phone-app payloads for the action-dispatched Garmin contract the

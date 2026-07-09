@@ -56,6 +56,7 @@ import java.time.ZoneId
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -184,11 +185,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // event: the first saved route asks contextually (API 33+).
     var pendingRoute by mutableStateOf<PendingRoute?>(null)
         private set
-    var resumeOffer by mutableStateOf<Departure?>(null)
-        private set
     var notificationPermissionRequest by mutableStateOf(false)
         private set
-    private var resumeCheckInFlight = false
 
     // The visible station was launched directly (shared route / resume), not
     // from a nearby search at the user's location. On exit we must re-search
@@ -356,7 +354,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminTargetIds = garmin.map { it.id }
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
-            persistGarminPaired()
+            persistGarminEverConnected()
             pushLocationNow()
             startHeartbeat()
             maybePingGarmin()
@@ -421,6 +419,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 watchChecking = false
                 recomputeWatchAlive()
             }
+        }
+    }
+
+    // Reminder "Send to Watch" action (traintime://sendtowatch). The app is now
+    // foreground, so Connect IQ can bind (it won't from a background service). Wait
+    // for the bind, wake the watch app, then push the saved route's current leg once
+    // it announces itself, with one retry to cover a send racing the cold start.
+    fun sendPendingRouteToWatch() {
+        viewModelScope.launch {
+            garminService.initialize()
+            val route = pendingRouteStore.current()
+                ?.let { PendingRouteLogic.normalize(it, nowSeconds()) } ?: return@launch
+            val leg = route.currentLeg ?: return@launch
+            val payload = TrackCommand.fromLeg(leg, route.finalDestination).toGarminMap()
+
+            // The bind is async even in the foreground; wait for it before querying.
+            val sdkDeadline = now() + 12_000
+            while (now() < sdkDeadline && !garminService.isAvailable) delay(200)
+
+            // eligibleDevices does a per-device BLE app-info query with no timeout;
+            // a paired-but-unreachable watch would hang it. Bound it so we always
+            // fall through to the "no watch" hint.
+            val garmin = withTimeoutOrNull(6_000) { garminService.eligibleDevices() } ?: emptyList()
+            garminTargetIds = garmin.map { it.id }
+            if (garmin.isEmpty()) {
+                showWatchStatus("No watch connected")
+                return@launch
+            }
+
+            // Wake the app, wait for its hello (flips garminAliveFresh), then send
+            // + retry to cover a send racing the cold start.
+            garmin.forEach { garminService.openApp(it.id) }
+            val aliveDeadline = now() + 8_000
+            while (now() < aliveDeadline && !garminAliveFresh()) delay(300)
+            garminTargetIds.forEach { garminService.send(it, payload) }
+            delay(2_000)
+            garminTargetIds.forEach { garminService.send(it, payload) }
+            // Re-open once the track has landed: a launch issued while the watch was
+            // in its phone-notification view often doesn't foreground the app, so a
+            // second open pulls the now-tracking app to the front. Best-effort — the
+            // watch may still keep the notification view on top (a Garmin OS call).
+            delay(500)
+            garminTargetIds.forEach { garminService.openApp(it) }
+            showWatchStatus("Sent to watch")
         }
     }
 
@@ -974,15 +1016,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminTargetIds = garmin.map { it.id }
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
-            persistGarminPaired()
+            persistGarminEverConnected()
         }
     }
 
-    // Cache "a Garmin is paired" for the reminder worker, which can't sweep the
-    // Connect IQ SDK from its background window. hasKnownDevices includes
-    // paired-but-disconnected watches: the action then wakes them on select.
-    private suspend fun persistGarminPaired() {
-        prefs.setGarminPaired(garminService.hasKnownDevices())
+    // Latch "a Garmin has actually connected here" for the reminder worker, which
+    // can't sweep the Connect IQ SDK from its background window. Sticky and set
+    // only from an eligible (connected + app-installed) device, so the "Send to
+    // Watch" action never appears for someone who has never connected a Garmin.
+    private suspend fun persistGarminEverConnected() {
+        if (garminTargetIds.isNotEmpty()) prefs.markGarminEverConnected()
     }
 
     fun setMirrorToWatch(value: Boolean) {
@@ -1515,39 +1558,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return if (buf > 0) "$unit ahead" else "$unit behind"
         }
 
-    // Resume-prompt readout, split so the popup can colour each part and put the
-    // margin on its own line. Slack is how much time is left after walking to the
-    // origin, in the same ahead/behind vocabulary as tracking. All null without a
-    // walk component (static mode or a connection leg), where slack has no meaning.
-    private val resumeSlackMinutes: Int?
-        get() {
-            val walk = reminderPlan?.walkMin ?: return null
-            val dep = resumeOffer ?: return null
-            return dep.minutesUntil - walk + dep.delay
-        }
-
-    val resumeWalkText: String?
-        get() = reminderPlan?.walkMin?.let { if (resumeOffer != null) "~$it min walk" else null }
-
-    val resumeSlackText: String?
-        get() {
-            val slack = resumeSlackMinutes ?: return null
-            return when {
-                slack == 0 -> "right on time"
-                slack > 0 -> "$slack min ahead"
-                else -> "${-slack} min behind"
-            }
-        }
-
-    val resumeSlackStatus: TrackingStatus?
-        get() = resumeSlackMinutes?.let {
-            when {
-                it > 0 -> TrackingStatus.AHEAD
-                it < 0 -> TrackingStatus.BEHIND
-                else -> TrackingStatus.ON_TIME
-            }
-        }
-
     // Resolved to a palette colour in the composable so it follows light/dark.
     val trackingStatus: TrackingStatus
         get() {
@@ -1779,10 +1789,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // traintime://resumeroute: reminder notification tap.
+        // traintime://resumeroute: reminder notification tap. Track the current
+        // leg directly (no prompt); the chip covers the manual case.
         if (uri.host == "resumeroute") {
             if (appState == 3) resumeFromInactive()
-            viewModelScope.launch { refreshPendingRoute() }
+            resumePendingRoute()
+            return
+        }
+
+        // traintime://sendtowatch: reminder "Send to Watch" action. Opens the app
+        // (Connect IQ only binds in the foreground) and pushes the route to Garmin.
+        if (uri.host == "sendtowatch") {
+            if (appState == 3) resumeFromInactive()
+            sendPendingRouteToWatch()
             return
         }
 
@@ -2019,7 +2038,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Pending-route lifecycle: normalize against the clock, expire, prompt.
     // Safe to call from anywhere. Advancement is time-derived and idempotent.
 
-    private suspend fun refreshPendingRoute(prompt: Boolean = true) {
+    // Normalise the stored route (advance past departed legs, reschedule the
+    // reminder) on app open. The saved-route chip shows the current leg; the user
+    // resumes from there, so there's no separate prompt.
+    private suspend fun refreshPendingRoute() {
         val current = pendingRouteStore.current() ?: return
         val normalized = PendingRouteLogic.normalize(current, nowSeconds())
         if (normalized == null) {
@@ -2032,36 +2054,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             pendingRouteStore.save(normalized)
             PendingRouteNotifier.schedule(getApplication(), normalized, nowSeconds())
         }
-        if (prompt && appState != 2 &&
-            normalized.status != PendingRoute.STATUS_TRACKING &&
-            PendingRouteLogic.isResumable(normalized, nowSeconds())
-        ) {
-            offerResume(normalized)
-        }
     }
 
-    // One-shot board check for the resume prompt, outside the normal fetch
-    // machinery so it can't disturb the visible station.
-    private suspend fun offerResume(route: PendingRoute) {
-        if (resumeCheckInFlight || resumeOffer != null) return
-        val leg = route.currentLeg ?: return
-        val stationId = leg.originId ?: return
-        resumeCheckInFlight = true
-        try {
-            val board = runCatching { api.fetchDepartures(stationId) }.getOrNull() ?: return
-            resumeOffer = matchDeparture(board.departures, leg)
-        } finally {
-            resumeCheckInFlight = false
-        }
-    }
-
-    // Notification tap / resume dialog Track / route-view "Track now" on the
-    // current leg. An explicit resume always opens the countdown, even hours
-    // out, a live board match gives real delay/platform, otherwise a local
-    // countdown. Never re-queues.
+    // Notification tap / route-view "Track now" on the current leg. An explicit
+    // resume always opens the countdown, even hours out, a live board match gives
+    // real delay/platform, otherwise a local countdown. Never re-queues.
     fun resumePendingRoute() {
         val route = pendingRoute ?: return
-        resumeOffer = null
         viewModelScope.launch {
             val normalized = PendingRouteLogic.normalize(route, nowSeconds()) ?: run {
                 refreshPendingRoute()
@@ -2075,7 +2074,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // connection). Untrackable legs (walk / outside Switzerland) are ignored.
     fun trackLeg(index: Int) {
         val route = pendingRoute ?: return
-        resumeOffer = null
         viewModelScope.launch {
             val normalized = PendingRouteLogic.normalize(route, nowSeconds()) ?: run {
                 refreshPendingRoute()
@@ -2137,12 +2135,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun deferResume() {
-        resumeOffer = null
-    }
-
     fun dismissPendingRoute() {
-        resumeOffer = null
         viewModelScope.launch {
             pendingRouteStore.clear()
             PendingRouteNotifier.cancel(getApplication())
