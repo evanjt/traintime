@@ -1,0 +1,4 @@
+Enregistrez n'importe quel départ comme rappel depuis le tableau.
+Les rappels d'itinéraire tiennent désormais compte de votre trajet à pied jusqu'à la gare, pour partir à temps.
+Ouvrez un itinéraire enregistré et touchez une correspondance pour la suivre.
+Avec une montre Garmin appairée, envoyez-lui un itinéraire enregistré depuis le rappel et gardez vos favoris synchronisés.

@@ -1,0 +1,4 @@
+Salva qualsiasi partenza come promemoria direttamente dal tabellone.
+I promemoria di percorso ora tengono conto del tuo tragitto a piedi fino alla stazione, così parti in tempo.
+Apri un percorso salvato e tocca una connessione per seguirla.
+Con un orologio Garmin abbinato, inviagli un percorso salvato dal promemoria e mantieni sincronizzati i tuoi preferiti.

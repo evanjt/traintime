@@ -1,0 +1,4 @@
+Save any departure as a reminder from the board.
+Route reminders now allow for your walk to the station, so you leave on time.
+Open a saved route and tap any connection to track it.
+With a paired Garmin watch, send a saved route to it from the reminder and keep favourites in sync.

@@ -1,5 +1,9 @@
 Partagez un trajet depuis SBB Mobile directement dans TrainTime et votre train est suivi aussitôt. Les trajets ultérieurs restent sous forme d'itinéraire enregistré que vous pouvez ouvrir à tout moment, avec un rappel avant le départ.
+Enregistrez n'importe quel départ comme rappel directement depuis le tableau.
+Les rappels d'itinéraire tiennent désormais compte de votre trajet à pied jusqu'à la gare, pour partir à temps. Définissez le délai d'avertissement dans les réglages.
+Ouvrez un itinéraire enregistré et touchez une correspondance pour la suivre.
 Votre Apple Watch reflète désormais ce que le téléphone suit, indique quand elle est active et se lance depuis le téléphone.
+Avec une montre Garmin appairée, envoyez-lui un itinéraire enregistré depuis le rappel et gardez vos favoris synchronisés.
 Une présentation rapide vous guide lors du premier lancement.
 Choisissez un thème clair, sombre ou système dans les réglages.
 Hors de la zone couverte, une carte indique maintenant où vous êtes.

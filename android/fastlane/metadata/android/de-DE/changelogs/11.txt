@@ -1,0 +1,4 @@
+Speichere jede Abfahrt direkt vom Fahrplan als Erinnerung.
+Routen-Erinnerungen berücksichtigen jetzt deinen Fussweg zur Station, damit du rechtzeitig losgehst.
+Öffne eine gespeicherte Route und tippe auf eine Verbindung, um sie zu verfolgen.
+Mit einer gekoppelten Garmin-Uhr sendest du ihr eine gespeicherte Route aus der Erinnerung und hältst deine Favoriten synchron.

@@ -1859,18 +1859,24 @@ class PhoneViewModel: ObservableObject {
             return
         }
         let payload = PhoneWatchService.GarminPayload.track(leg: leg, finalDestination: route.finalDestination)
+        // Wake the watch app, then send on its hello (garminAlive flips true) rather
+        // than a blind timer: a track sent before the watch registers for phone
+        // messages is dropped. Fall back to a bounded blind send if no hello arrives
+        // (never regress), then reopen so the now-tracking app pulls to the front — a
+        // launch issued from the watch's notification view often doesn't foreground it
+        // (a Garmin OS call). Mirrors Android's wait-for-alive path.
         watchService.openGarminApp()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            self?.watchService.sendToGarminWatches(payload)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            self?.watchService.sendToGarminWatches(payload)
-            self?.watchSendStatus = "Sent to watch"
-            // Re-open once the track has landed: a launch issued while the watch was
-            // in its phone-notification view often doesn't foreground the app, so a
-            // second open pulls the now-tracking app to the front. Best-effort — the
-            // watch may still keep the notification view on top (a Garmin OS call).
-            self?.watchService.openGarminApp()
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let deadline = Date().addingTimeInterval(8)
+            while Date() < deadline && !self.garminAlive {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+            }
+            self.watchService.sendToGarminWatches(payload)
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            self.watchService.sendToGarminWatches(payload)
+            self.watchSendStatus = "Sent to watch"
+            self.watchService.openGarminApp()
         }
     }
 
