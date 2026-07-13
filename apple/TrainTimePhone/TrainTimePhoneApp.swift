@@ -11,6 +11,10 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
     static let shared = ReminderTracker()
     private let manager = CLLocationManager()
 
+    /// Fired after the user resolves an authorization prompt (true = "Always"),
+    /// so the view model can reassure the user when they decline all-time access.
+    var onAuthorizationDecided: ((Bool) -> Void)?
+
     private override init() {
         super.init()
         manager.delegate = self
@@ -51,6 +55,7 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         syncFromSettings()
+        onAuthorizationDecided?(manager.authorizationStatus == .authorizedAlways)
     }
 }
 

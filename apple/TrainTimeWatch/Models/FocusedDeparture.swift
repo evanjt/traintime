@@ -44,7 +44,8 @@ enum WatchSyncProtocol {
 }
 
 struct FocusedDeparture {
-    let destination: String
+    // var: a protected route leg's terminus is upgraded from the live board match.
+    var destination: String
     let departureTimestamp: Int
     let lineNumber: String
     let category: String
@@ -53,6 +54,10 @@ struct FocusedDeparture {
     var delay: Int
     var platform: String
     var platformChanged: Bool
+    /// Set only when tracking a saved route: the route's final destination, so the
+    /// header keeps the train's own terminus while a "Tracking route to X" subtext
+    /// carries where the journey actually ends. Nil for board taps.
+    var routeDestination: String? = nil
 
     /// Seconds until departure (negative = departed)
     var secondsUntil: Int {

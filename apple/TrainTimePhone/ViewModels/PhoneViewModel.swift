@@ -722,7 +722,7 @@ class PhoneViewModel: ObservableObject {
         selectDepartureImpl(departures[index])
     }
 
-    private func selectDepartureImpl(_ dep: Departure) {
+    private func selectDepartureImpl(_ dep: Departure, routeDestination: String? = nil) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
         beginTracking(FocusedDeparture(
             destination: dep.destination,
@@ -733,7 +733,8 @@ class PhoneViewModel: ObservableObject {
             operatorRef: dep.operatorRef,
             delay: dep.delay,
             platform: dep.platform,
-            platformChanged: dep.platformChanged
+            platformChanged: dep.platformChanged,
+            routeDestination: routeDestination
         ))
         // Only a real board tap counts toward the review ask.
         maybeRequestReview()
@@ -743,8 +744,10 @@ class PhoneViewModel: ObservableObject {
     /// countdown is fully local (derived from depTs), so it runs without a board
     /// match. updateFocusedTrain keeps it until the train actually departs, then
     /// a live board match upgrades it with delay/platform.
-    private func enterProtectedTrack(_ leg: RouteLeg) {
+    private func enterProtectedTrack(_ leg: RouteLeg, routeDestination: String? = nil) {
         beginTracking(FocusedDeparture(
+            // Best-effort until a live board match upgrades it to the train's real
+            // terminus; the leg only carries its alight stop.
             destination: leg.destName,
             departureTimestamp: leg.depTs,
             lineNumber: leg.lineNumber ?? "",
@@ -753,7 +756,8 @@ class PhoneViewModel: ObservableObject {
             operatorRef: nil,
             delay: 0,
             platform: "",
-            platformChanged: false
+            platformChanged: false,
+            routeDestination: routeDestination
         ))
     }
 
@@ -1095,6 +1099,13 @@ class PhoneViewModel: ObservableObject {
             }
             focused.platform = best.platform
             focused.platformChanged = best.platformChanged
+        }
+
+        // A protected route leg starts with the leg's alight stop; the live board
+        // row carries the train's real terminus, so adopt it. Board taps already
+        // match on destination, so this is a no-op for them.
+        if !best.destination.isEmpty && best.destination != focused.destination {
+            focused.destination = best.destination
         }
 
         focused.delay = best.delay
@@ -1739,7 +1750,7 @@ class PhoneViewModel: ObservableObject {
             tracking.status = PendingRoute.statusTracking
             pendingRouteStore.save(tracking)
             PendingRouteNotifier.schedule(pending, now: now)
-            selectDepartureImpl(match)
+            selectDepartureImpl(match, routeDestination: pending.finalDestination)
         } else if leg.isTrackable, forced != nil || PendingRouteLogic.isResumable(pending, now: now) {
             // Not on the board yet, but the user explicitly opened it (forced),
             // or it's close enough to resume: open a local countdown that
@@ -1748,7 +1759,7 @@ class PhoneViewModel: ObservableObject {
             tracking.status = PendingRoute.statusTracking
             pendingRouteStore.save(tracking)
             PendingRouteNotifier.schedule(pending, now: now)
-            enterProtectedTrack(leg)
+            enterProtectedTrack(leg, routeDestination: pending.finalDestination)
         } else {
             // Far out or untrackable (e.g. outside Switzerland): queue + remind.
             saveOfferAsQueued(offer)
@@ -1804,6 +1815,63 @@ class PhoneViewModel: ObservableObject {
     /// Save an externally-built one-leg route (the watch's remind-on-phone command).
     func saveExternalRouteAsPending(_ route: SharedRoute) {
         saveRouteOffer(route)
+    }
+
+    /// Tracking-screen "Track in the background" flow. The button asks first so a
+    /// prominent disclosure (peer of Android's dialog) precedes the system prompt.
+    @Published var showBackgroundDisclosure = false
+    /// Set when the user continued but declined "Always"; not a failure, the
+    /// reminder still fires from the last known location.
+    @Published var showBackgroundDenied = false
+    private var awaitingBackgroundAuth = false
+
+    /// Button tap: show the disclosure before requesting location.
+    func requestTrackInBackground() {
+        showBackgroundDisclosure = true
+    }
+
+    /// Disclosure "Continue": save + request, and watch for a declined result.
+    func confirmTrackInBackground() {
+        showBackgroundDisclosure = false
+        awaitingBackgroundAuth = true
+        ReminderTracker.shared.onAuthorizationDecided = { [weak self] isAlways in
+            guard let self, self.awaitingBackgroundAuth else { return }
+            self.awaitingBackgroundAuth = false
+            ReminderTracker.shared.onAuthorizationDecided = nil
+            if !isAlways { self.showBackgroundDenied = true }
+        }
+        trackCurrentInBackground()
+    }
+
+    /// Tracking-screen "Track in the background": save what we're tracking as a
+    /// pending route so it rides the distance-aware reminder with the app closed,
+    /// then enable background distance tracking. syncReminderTracking asks for
+    /// Always location (the system prompt) when needed. Peer of
+    /// MainViewModel.trackCurrentInBackground.
+    func trackCurrentInBackground() {
+        lastInteractionTime = Date()
+        guard let focused = focusedTrain else { return }
+        UserDefaults.standard.set(true, forKey: "distanceAwareReminder")
+        UserDefaults.standard.set(true, forKey: "backgroundReminderTracking")
+        // A board tap isn't saved yet; a shared/saved route already is.
+        guard focused.routeDestination == nil, let station = currentStation else {
+            syncReminderTracking()
+            return
+        }
+        let route = SharedRoute.single(
+            originId: station.id,
+            originName: station.name ?? "",
+            originLat: station.lat,
+            originLon: station.lon,
+            destName: focused.destination,
+            depTs: focused.departureTimestamp,
+            lineNumber: focused.lineNumber,
+            trainNumber: focused.trainNumber
+        )
+        Task {
+            await openSharedRoute(SharedRouteOffer(route: route, sourceUrl: nil, saveOnly: true))
+            syncReminderTracking()
+        }
     }
 
     private func saveRouteOffer(_ route: SharedRoute) {
@@ -1909,7 +1977,7 @@ class PhoneViewModel: ObservableObject {
         let now = Int(Date().timeIntervalSince1970)
         PendingRouteNotifier.schedule(pending, now: now)
         setLaunchedStation(id: stationId, name: leg.originName, lat: leg.originLat, lon: leg.originLon)
-        enterProtectedTrack(leg)
+        enterProtectedTrack(leg, routeDestination: route.finalDestination)
     }
 
     /// Route-view per-leg track/notify toggle. Reschedules the reminder so a
