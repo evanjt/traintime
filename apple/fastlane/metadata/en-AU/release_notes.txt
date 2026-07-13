@@ -1,11 +1,12 @@
-Share a trip from SBB Mobile straight into TrainTime and it picks up your train. Later trips wait as a saved route you can open any time, with a reminder before departure.
-Save any departure as a reminder straight from the board.
-Route reminders now allow for your walk to the station, so you leave on time. Set how early to be warned in Settings.
-Open a saved route and tap any connection to start tracking it.
-Your Apple Watch now mirrors what the phone is tracking, shows when it is live, and launches from the phone.
-With a paired Garmin watch, send a saved route to it from the reminder, and your favourites stay in sync.
-A quick walkthrough introduces the app on first launch.
-Choose a light, dark or system appearance in Settings.
-When you are outside the service area, a map now shows where you are.
-Duplicate departures no longer appear in the list.
-Rate TrainTime from Settings if you like it.
+Big update!
+
+- Share a trip from SBB Mobile straight into TrainTime, and it picks up your train. Later trips are saved as a route you can open any time, with a reminder before departure.
+- Save any departure as a reminder straight from the board.
+- Route reminders now allow for your walk to the station, so you leave on time. Set how early to be warned in Settings.
+- Open a saved route and tap any connection to start tracking it.
+- Watch integration! Your Apple or Garmin Watch now mirrors what the phone is tracking, shows when it is live, and launches from the phone, sends a saved route to it from the reminder, and your favourites stay in sync.
+- A quick walkthrough introduces the app on first launch.
+- Choose a light, dark or system appearance in Settings.
+- Duplicate departures no longer appear in the list.
+
+Please rate TrainTime from Settings if you like it.

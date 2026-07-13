@@ -1,11 +1,12 @@
-Condividi un viaggio da SBB Mobile direttamente in TrainTime e il tuo treno viene seguito subito. I viaggi futuri restano come percorso salvato che puoi aprire in qualsiasi momento, con un promemoria prima della partenza.
-Salva qualsiasi partenza come promemoria direttamente dal tabellone.
-I promemoria di percorso ora tengono conto del tuo tragitto a piedi fino alla stazione, così parti in tempo. Imposta con quanto anticipo essere avvisato nelle impostazioni.
-Apri un percorso salvato e tocca una connessione per iniziare a seguirla.
-Il tuo Apple Watch ora rispecchia ciò che il telefono sta seguendo, mostra quando è attivo e si avvia dal telefono.
-Con un orologio Garmin abbinato, inviagli un percorso salvato dal promemoria e mantieni sincronizzati i tuoi preferiti.
-Una breve introduzione ti guida al primo avvio.
-Scegli un aspetto chiaro, scuro o di sistema nelle impostazioni.
-Fuori dall'area coperta, una mappa mostra ora dove ti trovi.
-Le partenze duplicate non appaiono più nell'elenco.
+Grande aggiornamento!
+
+- Condividi un viaggio da SBB Mobile direttamente in TrainTime e il tuo treno viene riconosciuto. I viaggi futuri vengono salvati come percorso che puoi aprire in qualsiasi momento, con un promemoria prima della partenza.
+- Salva qualsiasi partenza come promemoria direttamente dal tabellone.
+- I promemoria di percorso ora tengono conto del tuo tragitto a piedi fino alla stazione, così parti in tempo. Imposta con quanto anticipo essere avvisato nelle impostazioni.
+- Apri un percorso salvato e tocca una connessione per iniziare a seguirla.
+- Integrazione con l'orologio! Il tuo Apple Watch o orologio Garmin ora rispecchia ciò che il telefono sta seguendo, mostra quando è attivo, si avvia dal telefono, riceve un percorso salvato dal promemoria e i tuoi preferiti restano sincronizzati.
+- Una breve introduzione ti guida al primo avvio.
+- Scegli un aspetto chiaro, scuro o di sistema nelle impostazioni.
+- Le partenze duplicate non appaiono più nell'elenco.
+
 Valuta TrainTime dalle impostazioni se ti piace.
