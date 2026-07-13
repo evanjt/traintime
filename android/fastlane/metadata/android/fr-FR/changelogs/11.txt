@@ -1,4 +1,7 @@
-Enregistrez n'importe quel départ comme rappel depuis le tableau.
-Les rappels d'itinéraire tiennent désormais compte de votre trajet à pied jusqu'à la gare, pour partir à temps.
-Ouvrez un itinéraire enregistré et touchez une correspondance pour la suivre.
-Avec une montre Garmin appairée, envoyez-lui un itinéraire enregistré depuis le rappel et gardez vos favoris synchronisés.
+TrainTime est maintenant sur Android ! Aussi sur Garmin, Apple Watch et iOS.
+
+- Partagez un trajet depuis SBB Mobile dans TrainTime : votre train est reconnu. Les trajets suivants deviennent un itinéraire, avec rappel avant le départ.
+- Enregistrez tout départ comme rappel depuis le tableau.
+- Les rappels tiennent compte de votre trajet à pied jusqu'à la gare.
+- Votre montre Wear OS ou Garmin reflète ce que suit le téléphone et garde vos favoris synchronisés.
+- Les doublons ont disparu.

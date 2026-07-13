@@ -6,6 +6,61 @@ default_platform(:android)
 # Track names must match those configured in the Play Console
 # (internal | alpha = closed | beta = open | production).
 platform :android do
+  # supply uploads changelogs/<versionCode>.txt as the "What's new" text. A missing
+  # file uploads empty release notes silently, so fail loudly when one is absent.
+  # Returns the versionCode read from the app module.
+  private_lane :require_changelogs do
+    version_code = File.read(File.expand_path("../app/build.gradle.kts", __dir__))[/versionCode\s*=\s*(\d+)/, 1]
+    UI.user_error!("Could not read versionCode from app/build.gradle.kts") if version_code.nil?
+    Dir[File.expand_path("metadata/android/*/changelogs", __dir__)].sort.each do |dir|
+      locale = File.basename(File.dirname(dir))
+      changelog = File.join(dir, "#{version_code}.txt")
+      UI.user_error!("Missing release notes: metadata/android/#{locale}/changelogs/#{version_code}.txt") unless File.exist?(changelog)
+    end
+    version_code
+  end
+
+  desc "Tag release: publish to internal testing, stage the same build as a draft in open testing"
+  lane :ci_release do |options|
+    aab_path = options[:aab] ||
+      File.expand_path("../app/build/outputs/bundle/release/app-release.aab", __dir__)
+    UI.user_error!("AAB not found: #{aab_path}. Run `fastlane build` first.") unless File.exist?(aab_path)
+
+    mapping_path = options[:mapping]
+    if mapping_path.nil?
+      default_mapping = File.expand_path("../app/build/outputs/mapping/release/mapping.txt", __dir__)
+      mapping_path = default_mapping if File.exist?(default_mapping)
+    end
+
+    version_code = require_changelogs.to_i
+
+    # 1. Publish immediately to internal testing, uploading the AAB + release notes.
+    supply(
+      track: "internal",
+      aab: aab_path,
+      mapping: mapping_path,
+      release_status: "completed",
+      metadata_path: File.expand_path("metadata/android", __dir__),
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+
+    # 2. Stage the same build in open (beta) testing as a draft, for manual review
+    #    before going live to open testers. Release notes travel with the promotion.
+    supply(
+      track: "internal",
+      track_promote_to: "beta",
+      track_promote_release_status: "draft",
+      version_code: version_code,
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
   desc "Build a signed release AAB (gradle bundleRelease)"
   lane :build do
     gradle(
@@ -28,6 +83,7 @@ platform :android do
     end
 
     UI.user_error!("AAB not found: #{aab_path}. Run `fastlane build` first.") unless File.exist?(aab_path)
+    require_changelogs
     UI.message("Uploading #{aab_path} to #{track} track")
 
     supply(

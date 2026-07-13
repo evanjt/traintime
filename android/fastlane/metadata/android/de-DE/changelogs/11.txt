@@ -1,4 +1,7 @@
-Speichere jede Abfahrt direkt vom Fahrplan als Erinnerung.
-Routen-Erinnerungen berücksichtigen jetzt deinen Fussweg zur Station, damit du rechtzeitig losgehst.
-Öffne eine gespeicherte Route und tippe auf eine Verbindung, um sie zu verfolgen.
-Mit einer gekoppelten Garmin-Uhr sendest du ihr eine gespeicherte Route aus der Erinnerung und hältst deine Favoriten synchron.
+TrainTime ist jetzt auf Android! Auch auf Garmin, Apple Watch und iOS.
+
+- Teile eine Reise aus SBB Mobile direkt in TrainTime, und dein Zug wird erkannt. Spätere Etappen werden zur Route, die du jederzeit öffnest, mit Erinnerung vor der Abfahrt.
+- Speichere jede Abfahrt direkt vom Fahrplan als Erinnerung.
+- Routen-Erinnerungen berücksichtigen deinen Fussweg zur Station.
+- Deine Wear OS- oder Garmin-Uhr zeigt, was das Telefon verfolgt, und hält Favoriten synchron.
+- Doppelte Abfahrten sind weg.

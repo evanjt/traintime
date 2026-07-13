@@ -1,4 +1,7 @@
-Salva qualsiasi partenza come promemoria direttamente dal tabellone.
-I promemoria di percorso ora tengono conto del tuo tragitto a piedi fino alla stazione, così parti in tempo.
-Apri un percorso salvato e tocca una connessione per seguirla.
-Con un orologio Garmin abbinato, inviagli un percorso salvato dal promemoria e mantieni sincronizzati i tuoi preferiti.
+TrainTime è ora su Android! Anche su Garmin, Apple Watch e iOS.
+
+- Condividi un viaggio da SBB Mobile in TrainTime: il tuo treno viene riconosciuto. I viaggi successivi diventano un percorso, con promemoria prima della partenza.
+- Salva ogni partenza come promemoria dal tabellone.
+- I promemoria tengono conto del tuo tragitto a piedi fino alla stazione.
+- Il tuo orologio Wear OS o Garmin mostra ciò che segue il telefono e sincronizza i preferiti.
+- Le partenze duplicate sono sparite.

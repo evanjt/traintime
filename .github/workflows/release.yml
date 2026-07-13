@@ -478,7 +478,7 @@ jobs:
         working-directory: android
         env:
           SUPPLY_JSON_KEY: ${{ github.workspace }}/android/play-service-account.json
-        run: bundle exec fastlane android deploy track:"${{ vars.ANDROID_PLAY_TRACK || 'internal' }}" aab:"${{ github.workspace }}/android/release/app-release.aab"
+        run: bundle exec fastlane android ci_release aab:"${{ github.workspace }}/android/release/app-release.aab"
 
       - name: Summary
         if: steps.check_creds.outputs.skip != 'true'
@@ -486,6 +486,7 @@ jobs:
           echo "## Google Play Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Track:** ${{ vars.ANDROID_PLAY_TRACK || 'internal' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Internal testing:** published (live to internal testers)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Open testing:** staged as a draft (review and roll out in the console)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Build will appear in the [Play Console](https://play.google.com/console) shortly." >> $GITHUB_STEP_SUMMARY
