@@ -698,7 +698,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         departures.getOrNull(index)?.let { selectDepartureImpl(it) }
     }
 
-    private fun selectDepartureImpl(dep: Departure) {
+    private fun selectDepartureImpl(dep: Departure, routeDestination: String? = null) {
         val depTs = dep.departureTimestamp ?: return
         if (dep.isGone) return
         beginTracking(
@@ -712,6 +712,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 delay = dep.delay,
                 platform = dep.platform,
                 platformChanged = dep.platformChanged,
+                routeDestination = routeDestination,
             )
         )
         maybeRequestReview()
@@ -721,9 +722,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // countdown is fully local (derived from depTs), so it runs without a board
     // match; updateFocusedTrain keeps it until the train actually departs, then
     // a live board match upgrades it with delay/platform.
-    private fun enterProtectedTrack(leg: RouteLeg) {
+    private fun enterProtectedTrack(leg: RouteLeg, routeDestination: String? = null) {
         beginTracking(
             FocusedDeparture(
+                // Best-effort until a live board match upgrades it to the train's
+                // real terminus; the leg only carries its alight stop.
                 destination = leg.destName,
                 departureTimestamp = leg.depTs,
                 lineNumber = leg.lineNumber ?: "",
@@ -733,6 +736,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 delay = 0,
                 platform = "",
                 platformChanged = false,
+                routeDestination = routeDestination,
             )
         )
     }
@@ -819,6 +823,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearBackgroundLocationRequest() {
         backgroundLocationRequest = false
+    }
+
+    // Set when the user continued past the disclosure but declined "all the time".
+    // Not a failure: the route is saved and the reminder still fires from the last
+    // known location. Drives a reassuring dialog with a retry path.
+    var backgroundLocationDenied by mutableStateOf(false)
+        private set
+
+    fun onBackgroundLocationResult(granted: Boolean) {
+        backgroundLocationDenied = !granted
+    }
+
+    fun clearBackgroundLocationDenied() {
+        backgroundLocationDenied = false
     }
 
     fun setDistanceAwareReminder(value: Boolean) {
@@ -1530,6 +1548,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (best.platformChanged) haptics.doublePulse()
             updated = updated.copy(platform = best.platform, platformChanged = best.platformChanged)
         }
+        // A protected route leg starts with the leg's alight stop; the live board
+        // row carries the train's real terminus, so adopt it. Board taps already
+        // match on destination, so this is a no-op for them.
+        if (best.destination.isNotEmpty() && best.destination != updated.destination) {
+            updated = updated.copy(destination = best.destination)
+        }
         focusedTrain = updated.copy(delay = best.delay)
     }
 
@@ -1899,6 +1923,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { openSharedRoute(offer) }
     }
 
+    // Tracking-screen "Track in the background": save what we're tracking as a
+    // pending route so it rides the distance-aware reminder with the app closed,
+    // then enable background distance tracking. The pref change asks for
+    // background location through the prominent-disclosure dialog when needed.
+    fun trackCurrentInBackground() {
+        lastInteractionTime = now()
+        val focused = focusedTrain ?: return
+        val station = currentStation
+        // A board tap isn't saved yet; a shared/saved route already is.
+        if (focused.routeDestination == null && station != null) {
+            val route = SharedRoute.single(
+                originId = station.id,
+                originName = station.name ?: "",
+                originLat = station.lat,
+                originLon = station.lon,
+                destName = focused.destination,
+                depTs = focused.departureTimestamp,
+                lineNumber = focused.lineNumber,
+                trainNumber = focused.trainNumber,
+            )
+            viewModelScope.launch {
+                openSharedRoute(SharedRouteOffer(route = route, sourceUrl = null, saveOnly = true))
+            }
+        }
+        viewModelScope.launch {
+            prefs.setDistanceAwareReminder(true)
+            prefs.setBackgroundReminderTracking(true)
+            maybeRequestBackgroundLocation()
+            syncReminderTracking()
+        }
+    }
+
     // Bypass the nearby flow: show the leg's origin as the sole station and
     // fetch its board; the fetch completion decides track-now vs save-for-later.
     private fun proceedWithSharedRoute(offer: SharedRouteOffer) {
@@ -1991,7 +2047,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             match != null -> {
                 pendingRouteStore.save(pending.copy(status = PendingRoute.STATUS_TRACKING))
                 PendingRouteNotifier.schedule(getApplication(), pending, now)
-                selectDepartureImpl(match)
+                selectDepartureImpl(match, pending.finalDestination)
             }
             // Not on the board yet, but the user explicitly opened it (forced),
             // or it's close enough to resume: open a local countdown that
@@ -1999,7 +2055,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             leg.isTrackable && (forced != null || PendingRouteLogic.isResumable(pending, now)) -> {
                 pendingRouteStore.save(pending.copy(status = PendingRoute.STATUS_TRACKING))
                 PendingRouteNotifier.schedule(getApplication(), pending, now)
-                enterProtectedTrack(leg)
+                enterProtectedTrack(leg, pending.finalDestination)
             }
             // Far out or untrackable (e.g. outside Switzerland): queue + remind.
             else -> saveOfferAsQueued(offer)
@@ -2098,7 +2154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             PendingRouteNotifier.schedule(getApplication(), pending, nowSeconds())
         }
         setLaunchedStation(stationId, leg.originName, leg.originLat, leg.originLon)
-        enterProtectedTrack(leg)
+        enterProtectedTrack(leg, route.finalDestination)
     }
 
     // Route-view per-leg track/notify toggle. Reschedules the reminder so a

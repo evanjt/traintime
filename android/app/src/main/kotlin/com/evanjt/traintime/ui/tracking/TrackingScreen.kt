@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.StarOutline
@@ -155,6 +156,17 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 }
             }
 
+            // On a saved route the header keeps the train's own terminus; this
+            // line carries where the journey actually ends when they differ.
+            focused?.routeDestination?.takeIf { it != focused.destination }?.let { routeDest ->
+                Text(
+                    "Tracking route to $routeDest",
+                    color = secondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+
             // Platform + scheduled time
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -271,6 +283,17 @@ fun TrackingScreen(viewModel: MainViewModel) {
                     Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("Show on Map", modifier = Modifier.padding(start = 6.dp))
                 }
+            }
+
+            // Save this as a route and keep it going with the app closed via the
+            // distance-aware reminder. Asks for background location (disclosure)
+            // the first time it's used.
+            OutlinedButton(
+                onClick = { viewModel.trackCurrentInBackground() },
+                modifier = Modifier.padding(top = 12.dp),
+            ) {
+                Icon(Icons.Filled.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Track in the background", modifier = Modifier.padding(start = 6.dp))
             }
 
             // One watch button, mirroring iOS: a live watch takes an explicit send

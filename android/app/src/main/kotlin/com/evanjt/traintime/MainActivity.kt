@@ -34,6 +34,8 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.evanjt.traintime.review.ReviewLauncher
+import com.evanjt.traintime.ui.BackgroundLocationDeniedDialog
+import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
@@ -79,7 +81,21 @@ class MainActivity : ComponentActivity() {
     // routes this to the "Allow all the time" settings screen when fine location
     // is already granted; a denial just leaves the reminder foreground-only.
     private val backgroundLocationLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            val granted = android.os.Build.VERSION.SDK_INT < 29 ||
+                checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            viewModel.onBackgroundLocationResult(granted)
+        }
+
+    private fun openAppSettings() {
+        startActivity(
+            android.content.Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                android.net.Uri.fromParts("package", packageName, null),
+            ),
+        )
+    }
 
     private fun requestBackgroundLocationPermission() {
         if (android.os.Build.VERSION.SDK_INT >= 29 &&
@@ -112,6 +128,7 @@ class MainActivity : ComponentActivity() {
                         viewModel,
                         onRequestNotificationPermission = ::requestNotificationPermission,
                         onRequestBackgroundLocation = ::requestBackgroundLocationPermission,
+                        onOpenAppSettings = ::openAppSettings,
                     )
                 }
             }
@@ -156,6 +173,7 @@ private fun RootView(
     viewModel: MainViewModel,
     onRequestNotificationPermission: () -> Unit,
     onRequestBackgroundLocation: () -> Unit,
+    onOpenAppSettings: () -> Unit,
 ) {
     // scenePhase equivalent: foreground lifecycle drives timers and GPS.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -269,11 +287,28 @@ private fun RootView(
     }
 
     // Background-location ask when the user opts into background distance tracking.
-    LaunchedEffect(viewModel.backgroundLocationRequest) {
-        if (viewModel.backgroundLocationRequest) {
-            onRequestBackgroundLocation()
-            viewModel.clearBackgroundLocationRequest()
-        }
+    // Google Play requires a prominent disclosure before the system prompt, so gate
+    // the request behind an explicit consent dialog rather than launching directly.
+    if (viewModel.backgroundLocationRequest) {
+        BackgroundLocationDisclosureDialog(
+            onContinue = {
+                viewModel.clearBackgroundLocationRequest()
+                onRequestBackgroundLocation()
+            },
+            onDismiss = { viewModel.clearBackgroundLocationRequest() },
+        )
+    }
+
+    // Declined "all the time": reassure it still works from the last known
+    // location, and offer a one-tap path to grant it later.
+    if (viewModel.backgroundLocationDenied) {
+        BackgroundLocationDeniedDialog(
+            onOpenSettings = {
+                viewModel.clearBackgroundLocationDenied()
+                onOpenAppSettings()
+            },
+            onDismiss = { viewModel.clearBackgroundLocationDenied() },
+        )
     }
 
     if (viewModel.showStationPicker) {

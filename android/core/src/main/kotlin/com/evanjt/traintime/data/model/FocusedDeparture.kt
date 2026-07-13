@@ -13,6 +13,10 @@ data class FocusedDeparture(
     val delay: Int,
     val platform: String,
     val platformChanged: Boolean,
+    // Set only when tracking a saved route: the route's final destination, so the
+    // header can keep showing the train's own terminus while a "Tracking route to
+    // X" subtext carries where the journey actually ends. Null for board taps.
+    val routeDestination: String? = null,
 ) {
     fun secondsUntil(nowEpochSeconds: Long): Long = departureTimestamp - nowEpochSeconds
 
