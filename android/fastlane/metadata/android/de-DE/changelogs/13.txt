@@ -1,0 +1,1 @@
+- Behebt einen Absturz beim Start auf Telefonen mit installierter Garmin-Connect-App.

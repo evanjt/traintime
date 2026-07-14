@@ -1,0 +1,1 @@
+- Corregge un arresto anomalo all'avvio sui telefoni con l'app Garmin Connect installata.

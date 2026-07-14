@@ -1,0 +1,1 @@
+- Corrige un plantage au démarrage sur les téléphones où l'application Garmin Connect est installée.
