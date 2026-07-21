@@ -445,6 +445,44 @@ def build_locale(locale, strings, target, out_subdir, palette):
     render(html, width, height, os.path.join(STORE, out_subdir, locale, "03.png"))
 
 
+GARMIN_TILE_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><style>
+{css}
+:root {{ --pad: 0px; --cap: 10px; --sub: 10px; --rule: 4px; --glow: 40px; }}
+.canvas {{ align-items: center; justify-content: center; }}
+.canvas img {{
+  height: 440px;
+  filter: drop-shadow(0 10px 26px rgba(20, 22, 26, 0.3));
+}}
+</style></head>
+<body>
+  <div class="canvas">
+    <img src="file://{watch}">
+  </div>
+</body></html>
+"""
+
+
+def build_garmin_tiles(palette):
+    """Language-neutral 500x500 store screenshots: framed watch on the paper
+    ground. The Connect IQ dashboard caps uploads at 500x500 and 150 KB."""
+    p = PALETTES[palette]
+    for i, name in enumerate(
+        ["01-station-view", "02-train-selection", "03-focused-tracking"], 1
+    ):
+        html = GARMIN_TILE_HTML.format(
+            css=make_css(p),
+            watch=os.path.join(SCRIPT_DIR, "garmin", f"{name}-framed.png"),
+        )
+        png = os.path.join(STORE, "garmin", "tiles", f"{i:02d}.png")
+        render(html, 500, 500, png)
+        # PNG lands just over the dashboard's 150 KB cap; JPEG stays well under.
+        subprocess.run(
+            ["magick", png, "-quality", "92", png.replace(".png", ".jpg")], check=True,
+        )
+        os.unlink(png)
+
+
 def build_garmin_hero(locale, strings, palette):
     p = PALETTES[palette]
     html = GARMIN_HERO_HTML.format(
@@ -476,6 +514,8 @@ if __name__ == "__main__":
         del args[i:i + 2]
     locales = args or list(STRINGS)
     frame_wear()
+    print(f"[{palette}] Garmin tiles 500x500")
+    build_garmin_tiles(palette)
     for locale in locales:
         strings = STRINGS[locale]
         print(f"[{locale}/{palette}] Play phone 1080x2160")
