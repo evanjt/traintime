@@ -4,12 +4,21 @@ default_platform(:android)
 # android/keystore.properties or the KEYSTORE_* env vars (see app/build.gradle.kts).
 # The Play service-account JSON is referenced by the Appfile via SUPPLY_JSON_KEY.
 # Track names must match those configured in the Play Console
-# (internal | alpha = closed | beta = open | production).
+# (internal | alpha = closed | beta = open | production). Wear OS artifacts go to
+# the form-factor variants of those ids, prefixed "wear:".
 platform :android do
+  # Play names a release after the HIGHEST version code it contains, so a phone
+  # release can end up labelled with the watch's code if the two ever share an
+  # edit. Name each release explicitly to keep the Console unambiguous.
+  def release_name(code)
+    marketing = File.read(File.expand_path("../app/build.gradle.kts", __dir__))[/versionName\s*=\s*"([^"]+)"/, 1]
+    "#{code} (#{marketing})"
+  end
+
   # supply uploads changelogs/<versionCode>.txt as the "What's new" text. A missing
   # file uploads empty release notes silently, so fail loudly when one is absent.
   # Checks both the phone (:app) and watch (:wear) versionCodes.
-  # Returns the versionCode read from the app module.
+  # Returns [phone_code, wear_code].
   private_lane :require_changelogs do
     codes = ["app", "wear"].map do |mod|
       code = File.read(File.expand_path("../#{mod}/build.gradle.kts", __dir__))[/versionCode\s*=\s*(\d+)/, 1]
@@ -23,7 +32,7 @@ platform :android do
         UI.user_error!("Missing release notes: metadata/android/#{locale}/changelogs/#{code}.txt") unless File.exist?(changelog)
       end
     end
-    codes.first
+    codes.map(&:to_i)
   end
 
   desc "Tag release: publish to internal testing, stage the same build as a draft in open testing"
@@ -42,17 +51,25 @@ platform :android do
       mapping_path = default_mapping if File.exist?(default_mapping)
     end
 
-    version_code = require_changelogs.to_i
+    phone_code, wear_code = require_changelogs
+    metadata_dir = File.expand_path("metadata/android", __dir__)
 
-    # 1. Publish immediately to internal testing, uploading both AABs (phone + Wear OS)
-    #    in one edit + release notes. supply attaches the mapping to every versionCode
-    #    in the edit; harmless for :wear, which is unminified.
+    # Play rejects a bundle declaring android.hardware.type.watch from the mobile
+    # track, so phone and watch ship to separate form-factor tracks in separate
+    # edits. The watch track ids need "Use a dedicated release track for Wear OS"
+    # switched on under Play Console > Advanced settings > Form factors. Note the
+    # id is wear:internal, not the wear:qa named in Google's API docs.
+    #
+    # 1. Phone to internal testing, carrying the whole store listing: metadata,
+    #    images and BOTH changelogs live in the same tree, so the watch edit
+    #    below only has to claim its own release notes.
     supply(
       track: "internal",
-      aab_paths: [aab_path, wear_aab_path],
+      aab: aab_path,
+      version_name: release_name(phone_code),
       mapping: mapping_path,
       release_status: "completed",
-      metadata_path: File.expand_path("metadata/android", __dir__),
+      metadata_path: metadata_dir,
       # Feature graphic + phone/wear screenshots ship from metadata/android/
       # <locale>/images/, mirrored there by docs/screenshots/board.py --install.
       # Uploads replace the whole per-locale set; the repo is the source of truth.
@@ -60,20 +77,101 @@ platform :android do
       skip_upload_screenshots: false,
     )
 
-    # 2. Stage the same build in open (beta) testing as a draft, for manual review
-    #    before going live to open testers. Release notes travel with the promotion.
+    # 2. Watch to its own internal track. Listing assets are already up from the
+    #    phone edit; changelogs/<wear_code>.txt still has to travel with it.
     supply(
-      track: "internal",
-      track_promote_to: "beta",
-      track_promote_release_status: "draft",
-      version_code: version_code,
-      skip_upload_aab: true,
-      skip_upload_apk: true,
+      track: "wear:internal",
+      aab: wear_aab_path,
+      version_name: release_name(wear_code),
+      release_status: "completed",
+      metadata_path: metadata_dir,
       skip_upload_metadata: true,
-      skip_upload_changelogs: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
     )
+
+    # 3. Stage both in open (beta) testing as drafts, for manual review before
+    #    going live to open testers. Release notes travel with the promotion.
+    {
+      "internal" => ["beta", phone_code],
+      "wear:internal" => ["wear:beta", wear_code],
+    }.each do |from_track, (to_track, code)|
+      supply(
+        track: from_track,
+        track_promote_to: to_track,
+        track_promote_release_status: "draft",
+        version_code: code,
+        skip_upload_aab: true,
+        skip_upload_apk: true,
+        skip_upload_metadata: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+      )
+    end
+  end
+
+  desc "Release bundles ALREADY in the Play library to their tracks, with listing and release notes"
+  lane :publish_uploaded do
+    phone_code, wear_code = require_changelogs
+    metadata_dir = File.expand_path("metadata/android", __dir__)
+
+    # Recovery path for when the artifacts reached Play but the release did not,
+    # e.g. a console upload that failed validation. A version code can only be
+    # uploaded once, so retain the existing ones instead of re-uploading.
+    {
+      "internal" => [phone_code, false],
+      "wear:internal" => [wear_code, true],
+    }.each do |track, (code, listing_already_sent)|
+      supply(
+        track: track,
+        version_codes_to_retain: [code],
+        version_name: release_name(code),
+        release_status: "completed",
+        metadata_path: metadata_dir,
+        skip_upload_aab: true,
+        skip_upload_apk: true,
+        skip_upload_metadata: listing_already_sent,
+        skip_upload_images: listing_already_sent,
+        skip_upload_screenshots: listing_already_sent,
+      )
+    end
+  end
+
+  desc "Print what Play currently holds: every track, release status and version code"
+  lane :play_state do
+    require "supply"
+    require "supply/client"
+    Supply.config = FastlaneCore::Configuration.create(
+      Supply::Options.available_options,
+      json_key: ENV.fetch("SUPPLY_JSON_KEY"),
+      package_name: "com.evanjt.traintime",
+    )
+    client = Supply::Client.make_from_config
+    client.begin_edit(package_name: Supply.config[:package_name])
+    UI.message("Bundles in library: #{client.aab_version_codes.inspect}")
+    client.tracks.each do |track|
+      releases = track.releases.to_a
+      UI.message("#{track.track}: (no releases)") if releases.empty?
+      releases.each do |rel|
+        UI.message("#{track.track}: status=#{rel.status} codes=#{(rel.version_codes || []).join(',')} name=#{rel.name.inspect}")
+      end
+    end
+    # Live listing images against the repo, so a stale upload is obvious. Play
+    # reports a sha256 of the bytes it stored, which matches the file we sent.
+    require "digest"
+    Dir[File.expand_path("metadata/android/*/", __dir__)].sort.each do |dir|
+      lang = File.basename(dir)
+      ["phoneScreenshots", "wearScreenshots"].each do |type|
+        live = client.fetch_images(image_type: type, language: lang).to_a
+        local = Dir[File.join(dir, "images", type, "*.png")].sort
+        local_hashes = local.map { |f| Digest::SHA256.file(f).hexdigest }
+        matched = live.count { |img| local_hashes.include?(img.sha256) }
+        state = matched == local.size && live.size == local.size ? "in sync" : "STALE"
+        UI.message("#{lang} #{type}: live=#{live.size} repo=#{local.size} matching=#{matched} #{state}")
+      end
+    end
+    client.abort_current_edit
   end
 
   desc "Build a signed release AAB (gradle bundleRelease)"
@@ -103,51 +201,93 @@ platform :android do
       UI.user_error!("AAB not found: #{path}. Run `fastlane build` first.") unless File.exist?(path)
     end
     require_changelogs
-    UI.message("Uploading #{aab_path} + #{wear_aab_path} to #{track} track")
+    metadata_dir = File.expand_path("metadata/android", __dir__)
+    UI.message("Uploading #{aab_path} to #{track}, #{wear_aab_path} to wear:#{track}")
 
+    # Separate edits per form factor, same reason as ci_release: Play refuses a
+    # watch bundle on a mobile track.
     supply(
       track: track,
-      aab_paths: [aab_path, wear_aab_path],
+      aab: aab_path,
       mapping: mapping_path,
-      metadata_path: File.expand_path("metadata/android", __dir__),
+      metadata_path: metadata_dir,
       skip_upload_images: false,
       skip_upload_screenshots: false,
       release_status: "completed",
     )
+
+    supply(
+      track: "wear:#{track}",
+      aab: wear_aab_path,
+      metadata_path: metadata_dir,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "completed",
+    )
   end
 
-  desc "Promote the latest internal build to the closed (alpha) track"
+  # A promotion moves an existing release between tracks, so every upload has to be
+  # off. Leaving changelogs on makes supply hunt for release notes with no version
+  # code and abort.
+  PROMOTE_SKIPS = {
+    skip_upload_aab: true,
+    skip_upload_apk: true,
+    skip_upload_metadata: true,
+    skip_upload_changelogs: true,
+    skip_upload_images: true,
+    skip_upload_screenshots: true,
+  }.freeze
+
+  # Play only defines well-known form-factor track ids for production, open
+  # testing and internal. There is no wear:alpha, so the watch has no closed
+  # testing step and goes to production straight from its internal track.
+  TO_CLOSED = { "internal" => "alpha" }.freeze
+  TO_PRODUCTION = { "alpha" => "production", "wear:internal" => "wear:production" }.freeze
+
+  desc "Promote the latest internal build to the closed (alpha) track. Phone only"
   lane :promote_to_closed do
-    supply(
-      track: "internal",
-      track_promote_to: "alpha",
-      skip_upload_aab: true,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-    )
+    TO_CLOSED.each do |from, to|
+      supply(**PROMOTE_SKIPS, track: from, track_promote_to: to)
+    end
   end
 
-  desc "Promote the closed (alpha) track to production (10% staged rollout)"
-  lane :promote_to_production do
-    supply(
-      track: "alpha",
-      track_promote_to: "production",
-      skip_upload_aab: true,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      rollout: "0.1",
-    )
+  desc "Promote to production at full rollout. Options: only:<track match> rollout:<0-1>"
+  lane :promote_to_production do |options|
+    # Full rollout by default. Note a staged value only works on a track that has
+    # released before: Play refuses to stage a track's very first release.
+    rollout = (options[:rollout] || "1").to_s
+    TO_PRODUCTION.each do |from, to|
+      # only: resumes a half-finished run without disturbing a rollout that has
+      # already started, e.g. only:wear once the phone has gone out.
+      next if options[:only] && !to.include?(options[:only])
+      supply(**PROMOTE_SKIPS, track: from, track_promote_to: to, rollout: rollout)
+    end
   end
 
-  desc "Upload store metadata only, no binary"
-  lane :metadata do
+  desc "Take an in-progress staged rollout to 100%. Options: track:<name>"
+  lane :complete_rollout do |options|
+    supply(**PROMOTE_SKIPS, track: options[:track] || "production", rollout: "1")
+  end
+
+  desc "Upload the store listing only: text and images, no binary, no release notes"
+  lane :metadata do |options|
+    # supply resolves a single track release even for a listing-only push, and
+    # errors when a track holds more than one. Anchor it to the phone's release on
+    # internal; nothing is written there because changelogs are skipped. Override
+    # with track: / version_code: if that release has moved on.
     supply(
       metadata_path: File.expand_path("metadata/android", __dir__),
+      track: options[:track] || "internal",
+      version_code: (options[:version_code] || require_changelogs.first).to_i,
       skip_upload_aab: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
+      skip_upload_apk: true,
+      # Release notes belong to a track release, not the listing.
+      skip_upload_changelogs: true,
+      # Feature graphic + screenshots live in the repo (board.py --install mirrors
+      # them here) and are the source of truth, so a listing push carries them.
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
     )
   end
 end
