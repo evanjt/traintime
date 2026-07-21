@@ -1,1 +1,1 @@
-Keeps pace with the latest phone release.
+First Wear OS release: nearby departures, live tracking with countdown, delay and platform, favourites and pinned stations synced with your phone.

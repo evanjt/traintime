@@ -1,3 +1,1 @@
-- Im Hintergrund verfolgen: Speichere den verfolgten Zug als Route und erhalte eine auf deinen Fussweg abgestimmte Erinnerung, auch bei geschlossener App.
-- Die Verfolgung zeigt jetzt immer das Zugziel, mit dem Routenziel darunter.
-- Klarere Hinweise beim Aktivieren von Hintergrund-Erinnerungen.
+- Kleinere Verbesserungen und Wartung.

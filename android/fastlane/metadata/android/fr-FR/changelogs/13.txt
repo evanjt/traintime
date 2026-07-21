@@ -1,1 +1,3 @@
+- Nouveau : TrainTime sur Wear OS. Suivez vos départs au poignet et envoyez un train du téléphone à la montre. Favoris, gares épinglées et mode par défaut restent synchronisés.
 - Corrige un plantage au démarrage sur les téléphones où l'application Garmin Connect est installée.
+- La visite guidée présente désormais les applications montre.

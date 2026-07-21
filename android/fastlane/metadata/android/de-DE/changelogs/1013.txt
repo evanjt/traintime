@@ -1,1 +1,1 @@
-Hält Schritt mit der neuesten Telefon-Version.
+Erste Version für Wear OS: Abfahrten in der Nähe, Live-Tracking mit Countdown, Verspätung und Gleis, Favoriten und angepinnte Stationen synchron mit dem Handy.

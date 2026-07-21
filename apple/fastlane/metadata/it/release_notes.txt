@@ -1,3 +1,1 @@
-- Traccia in background: mentre segui un treno, salvalo come percorso e ricevi un promemoria basato sul tuo tragitto a piedi, anche con l'app chiusa.
-- Il tracciamento mostra ora sempre la destinazione del treno, con la fine del percorso sotto.
-- Messaggi più chiari quando attivi i promemoria in background.
+- Piccoli miglioramenti e manutenzione.

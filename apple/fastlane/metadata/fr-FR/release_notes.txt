@@ -1,3 +1,1 @@
-- Suivi en arrière-plan : pendant le suivi d'un train, enregistrez-le comme itinéraire et recevez un rappel calé sur votre trajet à pied, même l'app fermée.
-- Le suivi affiche désormais toujours la destination du train, avec la fin de votre itinéraire en dessous.
-- Messages plus clairs à l'activation des rappels en arrière-plan.
+- Améliorations mineures et maintenance.
