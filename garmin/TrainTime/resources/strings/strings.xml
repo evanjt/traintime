@@ -1,3 +1,93 @@
 <strings>
     <string id="AppName">TrainTime</string>
+
+    <!-- Station view -->
+    <string id="Inactive">Inactive</string>
+    <string id="PressResume">Press to resume</string>
+    <string id="ModeTrains">Trains</string>
+    <string id="ModeBuses">Buses</string>
+    <string id="ModeTrams">Trams</string>
+    <string id="ModeSpecials">Boats &amp; lifts</string>
+    <string id="NoDepartures">No departures</string>
+    <string id="Loading">Loading...</string>
+    <string id="HintSelect">Select</string>
+    <string id="HintNextStation">Next station</string>
+    <string id="HintTrack">Track</string>
+    <string id="HintMode">Mode</string>
+    <string id="RowGone">gone</string>
+    <string id="RowNow">now</string>
+
+    <!-- Tracking view -->
+    <string id="NowFull">now</string>
+    <string id="Departed">Departed</string>
+    <string id="PlatformFmt">Pl. $1$</string>
+    <string id="MinutesFmt">$1$ min</string>
+    <string id="NoGps">No GPS</string>
+    <string id="SecAheadFmt">$1$s ahead</string>
+    <string id="MinAheadFmt">$1$ min ahead</string>
+    <string id="SecBehindFmt">$1$s behind</string>
+    <string id="MinBehindFmt">$1$ min behind</string>
+    <string id="OnTime">On time</string>
+
+    <!-- Status and errors -->
+    <string id="WaitingGps">Waiting for GPS...</string>
+    <string id="FindingStations">Finding stations...</string>
+    <string id="UpdatingStations">Updating stations...</string>
+    <string id="NotInSwitzerland">Not in Switzerland</string>
+    <string id="NoStationsNearby">No stations nearby</string>
+    <string id="RateLimited">Rate limited</string>
+    <string id="ServerError">Server error</string>
+    <string id="TimeoutError">Timeout</string>
+    <string id="NoConnection">No connection</string>
+    <string id="ConnectionError">Connection error</string>
+    <string id="ErrorFmt">Error: $1$</string>
+
+    <!-- Toasts -->
+    <string id="SendingToPhone">Sending to phone...</string>
+    <string id="SentToPhone">Sent to phone</string>
+    <string id="WillSendLater">Will send when phone app opens</string>
+    <string id="NoStationLocation">No station location</string>
+    <string id="NavUnavailable">Navigation unavailable</string>
+    <string id="MapUnavailable">Map unavailable</string>
+
+    <!-- Walk info -->
+    <string id="WalkUnder1">&lt;1 min</string>
+    <string id="WalkInfoFmt">$1$ walk - $2$m</string>
+
+    <!-- Settings menu -->
+    <string id="SettingsTitle">Settings</string>
+    <string id="ModeTrain">Train</string>
+    <string id="ModeBus">Bus</string>
+    <string id="ModeTram">Tram</string>
+    <string id="Phone">Phone</string>
+    <string id="Connected">Connected</string>
+    <string id="NotConnected">Not connected</string>
+    <string id="ReminderWaitingFmt">$1$ - reminder waiting</string>
+    <string id="PinStation">Pin station</string>
+    <string id="UnpinStation">Unpin station</string>
+    <string id="DefaultMode">Default Mode</string>
+    <string id="QuickLaunch">Quick launch</string>
+    <string id="PinnedCountFmt">$1$ pinned</string>
+    <string id="Favourites">Favourites</string>
+    <string id="SavedCountFmt">$1$ saved</string>
+    <string id="RateApp">Rate this app</string>
+    <string id="OpensOnPhone">Opens on your phone</string>
+    <string id="Version">Version</string>
+    <string id="DataLabel">Data</string>
+    <string id="StationLabel">Station</string>
+
+    <!-- Tracking options menu -->
+    <string id="OptionsTitle">Options</string>
+    <string id="Star">Star</string>
+    <string id="Unstar">Unstar</string>
+    <string id="RemindOnPhone">Remind on phone</string>
+
+    <!-- Review prompt -->
+    <string id="EnjoyingApp">Enjoying TrainTime?</string>
+    <string id="YesRate">Yes, rate it</string>
+    <string id="NotNow">Not now</string>
+    <string id="DontAskAgain">Don't ask again</string>
+
+    <!-- Glance -->
+    <string id="PinAStation">Pin a station</string>
 </strings>

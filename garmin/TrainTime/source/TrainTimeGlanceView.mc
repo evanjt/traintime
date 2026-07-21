@@ -48,7 +48,7 @@ class TrainTimeGlanceView extends WatchUi.GlanceView {
 
         var pinned = Storage.getValue("myStations");
         if (pinned == null || !(pinned instanceof Lang.Array) || pinned.size() == 0) {
-            line = "Pin a station";
+            line = WatchUi.loadResource(Rez.Strings.PinAStation);
         } else if (lat != null) {
             var best = null;
             var bestDist = null;
@@ -70,7 +70,8 @@ class TrainTimeGlanceView extends WatchUi.GlanceView {
                 } else {
                     distStr = " · " + bestDist.toNumber() + " m";
                 }
-                var nm = (best["name"] != null) ? best["name"] : "Station";
+                var nm = (best["name"] != null)
+                    ? best["name"] : WatchUi.loadResource(Rez.Strings.StationLabel);
                 line = nm + distStr;
             }
         }

@@ -5,7 +5,7 @@ module FavouritesMenu {
 
     // Context menu for tracking mode (State 2): star toggle + remind-on-phone + settings
     function openTrackingMenu(view) {
-        var menu = new WatchUi.Menu2({:title => "Options"});
+        var menu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.OptionsTitle)});
 
         var stationId = view.mStationId;
         var focused = view.mFocusedTrain;
@@ -15,7 +15,7 @@ module FavouritesMenu {
             if (lineNumber != null && destination != null) {
                 var isFav = FavouritesManager.isFavourite(stationId, lineNumber, destination);
                 menu.addItem(new WatchUi.MenuItem(
-                    isFav ? "Unstar" : "Star",
+                    isFav ? Txt.t(Rez.Strings.Unstar) : Txt.t(Rez.Strings.Star),
                     lineNumber + " " + destination,
                     :toggleStar,
                     {}
@@ -29,7 +29,7 @@ module FavouritesMenu {
             focused != null && stationId != null &&
             view.mStationLat != null && view.mStationLon != null) {
             menu.addItem(new WatchUi.MenuItem(
-                "Remind on phone",
+                Txt.t(Rez.Strings.RemindOnPhone),
                 "",
                 :remindPhone,
                 {}
@@ -37,7 +37,7 @@ module FavouritesMenu {
         }
 
         menu.addItem(new WatchUi.MenuItem(
-            "Settings",
+            Txt.t(Rez.Strings.SettingsTitle),
             "",
             :openSettings,
             {}
@@ -64,7 +64,8 @@ class FavouritesMenuDelegate extends WatchUi.Menu2InputDelegate {
             if (stationId != null && focused != null) {
                 var lineNumber = focused["line"];
                 var destination = focused["dest"];
-                var stationName = mView.mStationName != null ? mView.mStationName : "Station";
+                var stationName = mView.mStationName != null
+                    ? mView.mStationName : Txt.t(Rez.Strings.StationLabel);
                 if (lineNumber != null && destination != null) {
                     FavouritesManager.toggleFavourite(stationId, lineNumber, destination, stationName);
                     PhoneSync.sendFavourites();

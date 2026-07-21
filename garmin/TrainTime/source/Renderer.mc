@@ -1,5 +1,6 @@
 using Toybox.WatchUi;
 using Toybox.Graphics;
+using Toybox.Lang;
 using Toybox.Math;
 using Toybox.Position;
 using Toybox.System;
@@ -27,10 +28,10 @@ module Renderer {
         if (view.mAppState == 3) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             dc.drawText(centerX, height * 40 / 100, Graphics.FONT_MEDIUM,
-                "Inactive", Graphics.TEXT_JUSTIFY_CENTER);
+                Txt.t(Rez.Strings.Inactive), Graphics.TEXT_JUSTIFY_CENTER);
             dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
             dc.drawText(centerX, height * 55 / 100, Graphics.FONT_TINY,
-                "Press to resume", Graphics.TEXT_JUSTIFY_CENTER);
+                Txt.t(Rez.Strings.PressResume), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
 
@@ -50,10 +51,10 @@ module Renderer {
             var modeLabel = null;
             if (view.mAppState == 0 && view.mModeChangedTime != null
                     && Time.now().value() - view.mModeChangedTime < 3) {
-                if (view.mCurrentMode == 0) { modeLabel = "Trains"; }
-                else if (view.mCurrentMode == 1) { modeLabel = "Buses"; }
-                else if (view.mCurrentMode == 2) { modeLabel = "Trams"; }
-                else { modeLabel = "Boats & lifts"; }
+                if (view.mCurrentMode == 0) { modeLabel = Txt.t(Rez.Strings.ModeTrains); }
+                else if (view.mCurrentMode == 1) { modeLabel = Txt.t(Rez.Strings.ModeBuses); }
+                else if (view.mCurrentMode == 2) { modeLabel = Txt.t(Rez.Strings.ModeTrams); }
+                else { modeLabel = Txt.t(Rez.Strings.ModeSpecials); }
             }
             if (modeLabel != null) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
@@ -216,10 +217,10 @@ module Renderer {
             } else if (view.mTrainData != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                    "No departures", Graphics.TEXT_JUSTIFY_CENTER);
+                    Txt.t(Rez.Strings.NoDepartures), Graphics.TEXT_JUSTIFY_CENTER);
             } else {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                var bodyMsg = "Loading...";
+                var bodyMsg = Txt.t(Rez.Strings.Loading);
                 if (!view.mRequestInFlight) {
                     bodyMsg = view.mStatus;
                 }
@@ -229,7 +230,7 @@ module Renderer {
         } else {
             // No station yet, show status or loading indicator
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-            var loadMsg = view.mRequestInFlight ? "Loading..." : view.mStatus;
+            var loadMsg = view.mRequestInFlight ? Txt.t(Rez.Strings.Loading) : view.mStatus;
             dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
                 loadMsg, Graphics.TEXT_JUSTIFY_CENTER);
         }
@@ -241,11 +242,11 @@ module Renderer {
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
             var hint;
             if (view.mAppState == 0) {
-                hint = "Select";
+                hint = Txt.t(Rez.Strings.HintSelect);
             } else if (view.mCursorIndex == -1) {
-                hint = "Next station";
+                hint = Txt.t(Rez.Strings.HintNextStation);
             } else {
-                hint = "Track";
+                hint = Txt.t(Rez.Strings.HintTrack);
             }
             dc.drawText(centerX, hintY, Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, hint, Graphics.FONT_XTINY, hintMaxW),
@@ -287,9 +288,9 @@ module Renderer {
         // Just after launch or a mode change, name the buttons next to their arcs
         if (view.mAppState == 0 && view.mHintTime != null
                 && Time.now().value() - view.mHintTime < 3) {
-            if (hasStart) { drawHintLabel(dc, width, height, 30, "Select"); }
+            if (hasStart) { drawHintLabel(dc, width, height, 30, Txt.t(Rez.Strings.HintSelect)); }
             if (hasUpDown && upDownActive) {
-                drawHintLabel(dc, width, height, 195, "Mode");
+                drawHintLabel(dc, width, height, 195, Txt.t(Rez.Strings.HintMode));
             }
         }
     }
@@ -577,10 +578,10 @@ module Renderer {
         var minText;
         if (isGone) {
             dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
-            minText = "gone";
+            minText = Txt.t(Rez.Strings.RowGone);
         } else if (minutesUntil == 0) {
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-            minText = "now";
+            minText = Txt.t(Rez.Strings.RowNow);
         } else if (minutesUntil <= 2) {
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
             minText = minutesUntil + "'";
@@ -667,7 +668,7 @@ module Renderer {
         var platChg = view.mFocusedTrain["platChg"];
         var platStr = "";
         if (plat != null && !plat.equals("")) {
-            platStr = "Pl. " + plat;
+            platStr = Lang.format(Txt.t(Rez.Strings.PlatformFmt), [plat]);
         }
         var depTs = view.mFocusedTrain["depTs"];
         if (depTs != null) {
@@ -723,10 +724,10 @@ module Renderer {
 
         var minStr;
         if (minutesUntil < -0.5) {
-            minStr = "Departed";
+            minStr = Txt.t(Rez.Strings.Departed);
             dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
         } else if (minutesUntil < 0.083) {
-            minStr = "now";
+            minStr = Txt.t(Rez.Strings.NowFull);
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
         } else if (minutesUntil < 3.0) {
             var totalSec = (minutesUntil * 60.0).toNumber();
@@ -739,7 +740,7 @@ module Renderer {
                 dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
             }
         } else {
-            minStr = minutesUntil.toNumber() + " min";
+            minStr = Lang.format(Txt.t(Rez.Strings.MinutesFmt), [minutesUntil.toNumber()]);
             dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
         }
         dc.drawText(centerX, minY, Graphics.FONT_MEDIUM,
@@ -763,7 +764,7 @@ module Renderer {
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             dc.drawText(centerX, statusY, Graphics.FONT_TINY,
-                "No GPS", Graphics.TEXT_JUSTIFY_CENTER);
+                Txt.t(Rez.Strings.NoGps), Graphics.TEXT_JUSTIFY_CENTER);
         } else {
             var schedBuf = minutesUntil - walkMin;
             var effectBuf = schedBuf + delay;
@@ -772,21 +773,21 @@ module Renderer {
             if (effectBuf > 0.5) {
                 if (effectBuf < 1.5) {
                     var sec = (effectBuf * 60.0).toNumber();
-                    statusStr = sec + "s ahead";
+                    statusStr = Lang.format(Txt.t(Rez.Strings.SecAheadFmt), [sec]);
                 } else {
-                    statusStr = effectBuf.toNumber() + " min ahead";
+                    statusStr = Lang.format(Txt.t(Rez.Strings.MinAheadFmt), [effectBuf.toNumber()]);
                 }
                 dc.setColor(0x00FF00, Graphics.COLOR_TRANSPARENT);
             } else if (effectBuf < -0.5) {
                 if (effectBuf > -1.5) {
                     var sec = ((-effectBuf) * 60.0).toNumber();
-                    statusStr = sec + "s behind";
+                    statusStr = Lang.format(Txt.t(Rez.Strings.SecBehindFmt), [sec]);
                 } else {
-                    statusStr = (-effectBuf).toNumber() + " min behind";
+                    statusStr = Lang.format(Txt.t(Rez.Strings.MinBehindFmt), [(-effectBuf).toNumber()]);
                 }
                 dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
             } else {
-                statusStr = "On time";
+                statusStr = Txt.t(Rez.Strings.OnTime);
                 dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
             }
 

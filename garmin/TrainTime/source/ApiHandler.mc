@@ -7,12 +7,12 @@ using Toybox.Application.Storage;
 module ApiHandler {
 
     function decodeError(responseCode) {
-        if (responseCode == 429) { return "Rate limited"; }
-        if (responseCode == 500) { return "Server error"; }
-        if (responseCode == -104) { return "Timeout"; }
-        if (responseCode == -400) { return "No connection"; }
-        if (responseCode < 0) { return "Connection error"; }
-        return "Error: " + responseCode;
+        if (responseCode == 429) { return Txt.t(Rez.Strings.RateLimited); }
+        if (responseCode == 500) { return Txt.t(Rez.Strings.ServerError); }
+        if (responseCode == -104) { return Txt.t(Rez.Strings.TimeoutError); }
+        if (responseCode == -400) { return Txt.t(Rez.Strings.NoConnection); }
+        if (responseCode < 0) { return Txt.t(Rez.Strings.ConnectionError); }
+        return Lang.format(Txt.t(Rez.Strings.ErrorFmt), [responseCode]);
     }
 
     function fetchStations(view, lat, lon) {
@@ -48,7 +48,7 @@ module ApiHandler {
             if (trains.size() == 0 && buses.size() == 0
                     && trams.size() == 0 && specials.size() == 0) {
                 view.clearStationState();
-                view.mStatus = "No stations nearby";
+                view.mStatus = Txt.t(Rez.Strings.NoStationsNearby);
                 view.mTrainData = null;
             } else {
                 view.resetForNewStations();

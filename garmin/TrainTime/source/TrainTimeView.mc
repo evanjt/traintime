@@ -69,7 +69,7 @@ class TrainTimeView extends WatchUi.View {
         View.initialize();
         mLocationInfo = null;
         mTrainData = null;
-        mStatus = "Loading...";
+        mStatus = Txt.t(Rez.Strings.Loading);
         mStationId = null;
         mStationName = null;
         mRequestInFlight = false;
@@ -143,7 +143,7 @@ class TrainTimeView extends WatchUi.View {
 
         // Set initial status when no station and no activity
         if (mStationId == null && !mRequestInFlight && !mLoadedFromCache) {
-            mStatus = "Waiting for GPS...";
+            mStatus = Txt.t(Rez.Strings.WaitingGps);
         }
 
         // If OS cache failed, try our own persistent storage
@@ -155,7 +155,7 @@ class TrainTimeView extends WatchUi.View {
                 mLastSearchLon = savedLon;
                 mLoadedFromCache = true;
                 mGpsQuality = Position.QUALITY_LAST_KNOWN;
-                mStatus = "Finding stations...";
+                mStatus = Txt.t(Rez.Strings.FindingStations);
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 ApiHandler.fetchStations(self, savedLat, savedLon);
@@ -427,7 +427,7 @@ class TrainTimeView extends WatchUi.View {
             mStationLat == null || mStationLon == null) {
             return;
         }
-        var stationName = mStationName != null ? mStationName : "Station";
+        var stationName = mStationName != null ? mStationName : Txt.t(Rez.Strings.StationLabel);
         var payload = PhoneSync.buildSaveReminder(mFocusedTrain, mStationId, stationName,
             mStationLat, mStationLon);
         if (payload == null) { return; }
@@ -437,7 +437,7 @@ class TrainTimeView extends WatchUi.View {
         mReminderNotified = false;
         PhoneSync.transmit(payload);
         Haptics.vibrateShort();
-        showToast("Sending to phone...");
+        showToast(Txt.t(Rez.Strings.SendingToPhone));
     }
 
     // The phone pushed its favourites. Outer-join them into local storage. No
@@ -527,7 +527,7 @@ class TrainTimeView extends WatchUi.View {
 
     function enterMapView() {
         if (mStationLat == null || mStationLon == null) {
-            showToast("No station location");
+            showToast(Txt.t(Rez.Strings.NoStationLocation));
             return;
         }
 
@@ -547,7 +547,7 @@ class TrainTimeView extends WatchUi.View {
                 }
 
                 // Save station as waypoint and navigate
-                var name = mStationName != null ? mStationName : "Station";
+                var name = mStationName != null ? mStationName : Txt.t(Rez.Strings.StationLabel);
                 PersistedContent.saveWaypoint(stationLoc, {:name => name});
                 iter = PersistedContent.getAppWaypoints();
                 var wp = iter.next();
@@ -562,7 +562,7 @@ class TrainTimeView extends WatchUi.View {
 
         // Fallback: MapTrackView with polyline
         if (!(WatchUi has :MapTrackView)) {
-            showToast("Navigation unavailable");
+            showToast(Txt.t(Rez.Strings.NavUnavailable));
             return;
         }
         if (mMapActive) { return; }
@@ -615,7 +615,7 @@ class TrainTimeView extends WatchUi.View {
             WatchUi.pushView(mapView, new TrainTimeMapDelegate(self), WatchUi.SLIDE_LEFT);
         } catch (e) {
             mMapActive = false;
-            showToast("Map unavailable");
+            showToast(Txt.t(Rez.Strings.MapUnavailable));
         }
     }
 
@@ -641,7 +641,7 @@ class TrainTimeView extends WatchUi.View {
         if (action.equals("ackReminder")) {
             if (ReminderQueue.ack(data.hasKey("id") ? data["id"] : null)) {
                 mReminderNotified = true;
-                showToast("Sent to phone");
+                showToast(Txt.t(Rez.Strings.SentToPhone));
             }
             return;
         }
@@ -698,7 +698,7 @@ class TrainTimeView extends WatchUi.View {
             mCurrentMode = mode;
             var pos = effectivePosition();
             if (pos != null && !mRequestInFlight) {
-                mStatus = "Finding stations...";
+                mStatus = Txt.t(Rez.Strings.FindingStations);
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 ApiHandler.fetchStations(self, pos[0], pos[1]);
@@ -784,7 +784,7 @@ class TrainTimeView extends WatchUi.View {
         if (!phoneLocFresh()) { return false; }
         if (mStationId != null || mManualStation || mAppState >= 2) { return false; }
         if (mRequestInFlight) { return true; }
-        mStatus = "Finding stations...";
+        mStatus = Txt.t(Rez.Strings.FindingStations);
         mRequestInFlight = true;
         mRequestStartTime = Time.now().value();
         ApiHandler.fetchStations(self, mPhoneLat, mPhoneLon);
@@ -935,13 +935,13 @@ class TrainTimeView extends WatchUi.View {
         var walkMinutes = (dist / 83.0).toNumber();
         var timeStr;
         if (walkMinutes < 1) {
-            timeStr = "<1 min";
+            timeStr = Txt.t(Rez.Strings.WalkUnder1);
         } else {
-            timeStr = walkMinutes + " min";
+            timeStr = Lang.format(Txt.t(Rez.Strings.MinutesFmt), [walkMinutes]);
         }
 
         // Station counter lives in the header carousel, not here
-        return timeStr + " walk - " + dist + "m";
+        return Lang.format(Txt.t(Rez.Strings.WalkInfoFmt), [timeStr, dist]);
     }
 
     // --- Station navigation ---
@@ -1013,7 +1013,7 @@ class TrainTimeView extends WatchUi.View {
         mFavouriteData = null;
         mWalkInfo = "";
         if (mLocationInfo != null) { updateWalkDistance(); }
-        mStatus = (name != null) ? name : "Station";
+        mStatus = (name != null) ? name : Txt.t(Rez.Strings.StationLabel);
         mLastInteractionTime = Time.now().value();
         mLastFetchTime = 0;
         mRequestInFlight = true;
@@ -1036,7 +1036,7 @@ class TrainTimeView extends WatchUi.View {
         mAvailableModes = [ mCurrentMode ];
         mTrainData = null;
         mFavouriteData = null;
-        mStatus = (name != null) ? name : "Station";
+        mStatus = (name != null) ? name : Txt.t(Rez.Strings.StationLabel);
         mPendingFavTrack = { "line" => line, "dest" => dest };
         mLastInteractionTime = Time.now().value();
         mLastFetchTime = 0;
@@ -1063,7 +1063,7 @@ class TrainTimeView extends WatchUi.View {
         }
         mPendingFavTrack = null;
         if (match == null) {
-            mStatus = (mStationName != null) ? mStationName : "Station";
+            mStatus = (mStationName != null) ? mStationName : Txt.t(Rez.Strings.StationLabel);
             return;
         }
         mFocusedTrain = {
@@ -1139,7 +1139,7 @@ class TrainTimeView extends WatchUi.View {
                 // Outside Switzerland with no station, fall back to the phone's
                 // location if it has one, else ask for it.
                 if (!searchFromPhoneLocation()) {
-                    mStatus = "Not in Switzerland";
+                    mStatus = Txt.t(Rez.Strings.NotInSwitzerland);
                     requestPhoneLocation();
                 }
                 WatchUi.requestUpdate();
@@ -1169,7 +1169,7 @@ class TrainTimeView extends WatchUi.View {
                 clearStationState();
             }
             if (!mRequestInFlight) {
-                mStatus = "Updating stations...";
+                mStatus = Txt.t(Rez.Strings.UpdatingStations);
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 ApiHandler.fetchStations(self, lat, lon);
@@ -1183,7 +1183,7 @@ class TrainTimeView extends WatchUi.View {
         // strands the app with nothing to show or cycle
         if ((hasMovedSignificantly(lat, lon) || mStationId == null) && !mRequestInFlight) {
             if (mStationId == null) {
-                mStatus = "Finding stations...";
+                mStatus = Txt.t(Rez.Strings.FindingStations);
             }
             mRequestInFlight = true;
             mRequestStartTime = Time.now().value();
@@ -1216,7 +1216,7 @@ class TrainTimeView extends WatchUi.View {
                 && Time.now().value() - mReminderQueuedTs > 5) {
             mReminderNotified = true;
             if (ReminderQueue.hasPending()) {
-                showToast("Will send when phone app opens");
+                showToast(Txt.t(Rez.Strings.WillSendLater));
             }
         }
 
@@ -1246,7 +1246,7 @@ class TrainTimeView extends WatchUi.View {
                 if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
                     if (mStationId == null) {
                         if (!searchFromPhoneLocation()) {
-                            mStatus = "Not in Switzerland";
+                            mStatus = Txt.t(Rez.Strings.NotInSwitzerland);
                             requestPhoneLocation();
                         }
                         WatchUi.requestUpdate();
@@ -1329,7 +1329,7 @@ class TrainTimeView extends WatchUi.View {
                 ApiHandler.fetchDepartures(self, mStationId);
             } else if (mLocationInfo != null && mLocationInfo.position != null) {
                 mLastFetchTime = nowFetch;
-                mStatus = "Finding stations...";
+                mStatus = Txt.t(Rez.Strings.FindingStations);
                 mRequestInFlight = true;
                 mRequestStartTime = Time.now().value();
                 var coords = mLocationInfo.position.toDegrees();

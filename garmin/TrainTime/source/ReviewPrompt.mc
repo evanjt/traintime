@@ -51,10 +51,11 @@ module ReviewPrompt {
         }
         // Shown counts as asked for this version, whatever option follows.
         Storage.setValue("reviewPromptedVersion", AppVersion.VERSION);
-        var menu = new WatchUi.Menu2({:title => "Enjoying TrainTime?"});
-        menu.addItem(new WatchUi.MenuItem("Yes, rate it", "Opens on your phone", :rate, {}));
-        menu.addItem(new WatchUi.MenuItem("Not now", null, :notNow, {}));
-        menu.addItem(new WatchUi.MenuItem("Don't ask again", null, :never, {}));
+        var menu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.EnjoyingApp)});
+        menu.addItem(new WatchUi.MenuItem(
+            Txt.t(Rez.Strings.YesRate), Txt.t(Rez.Strings.OpensOnPhone), :rate, {}));
+        menu.addItem(new WatchUi.MenuItem(Txt.t(Rez.Strings.NotNow), null, :notNow, {}));
+        menu.addItem(new WatchUi.MenuItem(Txt.t(Rez.Strings.DontAskAgain), null, :never, {}));
         WatchUi.pushView(menu, new ReviewPromptDelegate(), WatchUi.SLIDE_UP);
     }
 }

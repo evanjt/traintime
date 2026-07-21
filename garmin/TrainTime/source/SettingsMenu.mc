@@ -1,6 +1,7 @@
 using Toybox.WatchUi;
 using Toybox.Application.Storage;
 using Toybox.Communications;
+using Toybox.Lang;
 using Toybox.System;
 using Toybox.Time;
 
@@ -11,25 +12,26 @@ module SettingsMenu {
     const STORE_URL = "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb";
 
     function modeLabel(mode) {
-        if (mode == 1) { return "Bus"; }
-        if (mode == 2) { return "Tram"; }
-        return "Train";
+        if (mode == 1) { return Txt.t(Rez.Strings.ModeBus); }
+        if (mode == 2) { return Txt.t(Rez.Strings.ModeTram); }
+        return Txt.t(Rez.Strings.ModeTrain);
     }
 
     function open(view) {
-        var menu = new WatchUi.Menu2({:title => "Settings"});
+        var menu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.SettingsTitle)});
 
         // Phone link status. The channel the phone uses to send departures here.
         // Connected only means Bluetooth to Garmin Connect Mobile; an unacked
         // reminder in the outbox is worth surfacing alongside.
         var phoneConnected = System.getDeviceSettings().phoneConnected;
         ReminderQueue.prune(Time.now().value());
-        var phoneLabel = phoneConnected ? "Connected" : "Not connected";
+        var phoneLabel = phoneConnected
+            ? Txt.t(Rez.Strings.Connected) : Txt.t(Rez.Strings.NotConnected);
         if (ReminderQueue.hasPending()) {
-            phoneLabel = phoneLabel + " - reminder waiting";
+            phoneLabel = Lang.format(Txt.t(Rez.Strings.ReminderWaitingFmt), [phoneLabel]);
         }
         menu.addItem(new WatchUi.MenuItem(
-            "Phone",
+            Txt.t(Rez.Strings.Phone),
             phoneLabel,
             :phoneStatus,
             {}
@@ -39,7 +41,7 @@ module SettingsMenu {
         if (view != null && view.mStationId != null) {
             var pinned = MyStationsManager.isPinned(view.mStationId);
             menu.addItem(new WatchUi.MenuItem(
-                pinned ? "Unpin station" : "Pin station",
+                pinned ? Txt.t(Rez.Strings.UnpinStation) : Txt.t(Rez.Strings.PinStation),
                 view.mStationName != null ? view.mStationName : "",
                 :pinStation,
                 {}
@@ -50,7 +52,7 @@ module SettingsMenu {
         if (defaultMode == null) { defaultMode = 0; }
 
         menu.addItem(new WatchUi.MenuItem(
-            "Default Mode",
+            Txt.t(Rez.Strings.DefaultMode),
             modeLabel(defaultMode),
             :defaultMode,
             {}
@@ -59,8 +61,8 @@ module SettingsMenu {
         // Quick launch: pinned stations and favourite trains.
         if (MyStationsManager.getCount() > 0 || FavouritesManager.getTotalCount() > 0) {
             menu.addItem(new WatchUi.MenuItem(
-                "Quick launch",
-                MyStationsManager.getCount() + " pinned",
+                Txt.t(Rez.Strings.QuickLaunch),
+                Lang.format(Txt.t(Rez.Strings.PinnedCountFmt), [MyStationsManager.getCount()]),
                 :quickLaunch,
                 {}
             ));
@@ -69,27 +71,27 @@ module SettingsMenu {
         var favCount = FavouritesManager.getTotalCount();
         if (favCount > 0) {
             menu.addItem(new WatchUi.MenuItem(
-                "Favourites",
-                favCount + " saved",
+                Txt.t(Rez.Strings.Favourites),
+                Lang.format(Txt.t(Rez.Strings.SavedCountFmt), [favCount]),
                 :favourites,
                 {}
             ));
         }
         menu.addItem(new WatchUi.MenuItem(
-            "Rate this app",
-            "Opens on your phone",
+            Txt.t(Rez.Strings.RateApp),
+            Txt.t(Rez.Strings.OpensOnPhone),
             :rate,
             {}
         ));
         menu.addItem(new WatchUi.MenuItem(
-            "Version",
+            Txt.t(Rez.Strings.Version),
             AppVersion.VERSION,
             :version,
             {}
         ));
         // Data attribution, matching the Apple/Wear settings footers.
         menu.addItem(new WatchUi.MenuItem(
-            "Data",
+            Txt.t(Rez.Strings.DataLabel),
             "opentransportdata.swiss",
             :dataSource,
             {}
@@ -99,12 +101,12 @@ module SettingsMenu {
     }
 
     function openQuickLaunch(view) {
-        var menu = new WatchUi.Menu2({:title => "Quick launch"});
+        var menu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.QuickLaunch)});
         var pinned = MyStationsManager.getMyStations();
         for (var i = 0; i < pinned.size(); i++) {
             menu.addItem(new WatchUi.MenuItem(
                 pinned[i]["name"],
-                "Station",
+                Txt.t(Rez.Strings.StationLabel),
                 i,
                 {}
             ));
@@ -137,7 +139,8 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             if (mView != null) {
                 mView.togglePinCurrentStation();
                 var pinned = MyStationsManager.isPinned(mView.mStationId);
-                item.setLabel(pinned ? "Unpin station" : "Pin station");
+                item.setLabel(pinned
+                    ? Txt.t(Rez.Strings.UnpinStation) : Txt.t(Rez.Strings.PinStation));
             }
         } else if (item.getId() == :defaultMode) {
             var current = Storage.getValue("defaultMode");
@@ -156,7 +159,7 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (item.getId() == :favourites) {
             // Open favourites submenu
             var allFavs = FavouritesManager.getAllFavourites();
-            var subMenu = new WatchUi.Menu2({:title => "Favourites"});
+            var subMenu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.Favourites)});
             for (var i = 0; i < allFavs.size(); i++) {
                 var f = allFavs[i];
                 subMenu.addItem(new WatchUi.MenuItem(
