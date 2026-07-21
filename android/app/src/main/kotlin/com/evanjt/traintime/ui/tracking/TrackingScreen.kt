@@ -220,7 +220,8 @@ fun TrackingScreen(viewModel: MainViewModel) {
             TrackingBar(
                 schedBuf = viewModel.trackingScheduledBuffer,
                 effectBuf = viewModel.trackingEffectiveBuffer,
-                hasGps = viewModel.gpsQuality != GpsQuality.UNAVAILABLE,
+                hasGps = viewModel.gpsQuality != GpsQuality.UNAVAILABLE &&
+                    viewModel.gpsQuality != GpsQuality.LAST_KNOWN,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
 
@@ -307,7 +308,13 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 var showWatchMenu by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = {
-                        if (watches.size > 1) showWatchMenu = true else viewModel.sendToPrimaryOrOpen()
+                        when {
+                            // The watch already tracks this departure; a re-send
+                            // would only make it re-enter and buzz again.
+                            viewModel.watchTrackingFocused -> {}
+                            watches.size > 1 -> showWatchMenu = true
+                            else -> viewModel.sendToPrimaryOrOpen()
+                        }
                     }) {
                         if (viewModel.watchChecking) {
                             CircularProgressIndicator(strokeWidth = 2.dp, color = palette.platform, modifier = Modifier.size(18.dp))
@@ -324,7 +331,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                             )
                         }
                         Text(
-                            if (viewModel.watchAlive || !hasGarmin) "Send to watch" else "Open on watch",
+                            if (viewModel.watchTrackingFocused) "Tracking on watch" else "Track on watch",
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }

@@ -14,7 +14,10 @@ module PhoneSync {
     // A pre-versioning watch sends no v/pv, which the phone reads as 0.4.x.
     // pv 2: saveReminder carries an id, the watch answers ping with hello and
     // consumes ackReminder (the phone only pings a pv >= 2 watch).
-    const PROTOCOL_VERSION = 2;
+    // pv 3: hello/alive carry the tracked departure (trk/trkLn) while tracking,
+    // and trackEnded is sent when tracking stops. A pv >= 3 phone treats a
+    // heartbeat without trk as "not tracking".
+    const PROTOCOL_VERSION = 3;
 
     // Flipped on by the first real view show (TrainTimeView.onShow). The unit-test
     // harness never shows a view, and a transmit before then hangs the sim, CI
@@ -25,7 +28,8 @@ module PhoneSync {
         if (enabled) { return; }
         enabled = true;
         // Announce we're up so a listening phone greens its link indicator at once.
-        sendHello();
+        // Nothing is tracked yet at first view show, so no state rides along.
+        sendHello(null);
     }
 
     function transmit(data) {
@@ -59,21 +63,34 @@ module PhoneSync {
     // bye on exit. The phone listens and colours its indicator from these.
     // Pure builder so the versioned liveness shape is unit-testable. hello/alive
     // carry the marketing version (v) and protocol version (pv); the phone reads
-    // them to gate Send-to-Watch.
-    function buildLiveness(kind) {
-        return { "kind" => kind, "v" => AppVersion.VERSION, "pv" => PROTOCOL_VERSION };
+    // them to gate Send-to-Watch. While tracking, `focused` (the mFocusedTrain
+    // dict, else null) adds trk/trkLn so the phone mirrors the tracking state
+    // from the heartbeat alone — edge messages only make it prompt.
+    function buildLiveness(kind, focused) {
+        var data = { "kind" => kind, "v" => AppVersion.VERSION, "pv" => PROTOCOL_VERSION };
+        if (focused != null) {
+            data["trk"] = focused["depTs"];
+            data["trkLn"] = focused["line"];
+        }
+        return data;
     }
 
-    function sendHello() {
-        transmit(buildLiveness("hello"));
+    function sendHello(focused) {
+        transmit(buildLiveness("hello", focused));
     }
 
-    function sendAlive() {
-        transmit(buildLiveness("alive"));
+    function sendAlive(focused) {
+        transmit(buildLiveness("alive", focused));
     }
 
     function sendClosing() {
         transmit({ "kind" => "bye" });
+    }
+
+    // Tracking stopped (manual exit or the departure left). The heartbeat would
+    // catch up within ~7s; this makes the phone's button flip back immediately.
+    function sendTrackEnded() {
+        transmit({ "kind" => "trackEnded" });
     }
 
     // Ask the phone to send its current location. Used as a GPS fallback when the

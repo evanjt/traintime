@@ -59,7 +59,8 @@ extension TrainTimeViewModel {
 
     var trackingStatusText: String {
         let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return "No GPS" }
+        // Cached coordinates prove nothing about where we are now; no verdict.
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return "No GPS" }
         let absBuf = abs(buf)
         if absBuf < 0.5 { return "On time" }
         // Show seconds when close (< 1.5 min), minutes otherwise (matches Garmin)
@@ -69,7 +70,7 @@ extension TrainTimeViewModel {
 
     var trackingStatusColor: Color {
         let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return AppColors.barGray }
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return AppColors.barGray }
         if buf > 0.5 { return AppColors.ahead }
         if buf < -0.5 { return AppColors.behind }
         return AppColors.onTime

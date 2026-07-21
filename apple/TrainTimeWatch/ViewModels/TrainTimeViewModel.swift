@@ -147,12 +147,18 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     // MARK: - WatchConnectivity
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if activationState == .activated { WatchPhoneSync.sendHello() }
+        if activationState == .activated { WatchPhoneSync.sendHello(tracking: livenessTracking) }
     }
 
     func sessionReachabilityDidChange(_ session: WCSession) {
         // The phone became reachable (e.g. it just opened). Re-announce so it greens promptly.
-        if session.isReachable { WatchPhoneSync.sendHello() }
+        if session.isReachable { WatchPhoneSync.sendHello(tracking: livenessTracking) }
+    }
+
+    /// The focused departure stamped onto hello/alive while tracking, so the
+    /// phone mirrors the tracking state from the heartbeat alone.
+    private var livenessTracking: FocusedDeparture? {
+        appState == 2 ? focusedTrain : nil
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
@@ -400,7 +406,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
         // Announce we're up so a listening phone greens its link indicator at once.
-        WatchPhoneSync.sendHello()
+        WatchPhoneSync.sendHello(tracking: livenessTracking)
     }
 
     func onDisappear() {
@@ -500,7 +506,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         let nowSec = Int(Date().timeIntervalSince1970)
         if nowSec - lastAliveTsSec >= 7 {
             lastAliveTsSec = nowSec
-            WatchPhoneSync.sendAlive()
+            WatchPhoneSync.sendAlive(tracking: livenessTracking)
         }
 
         // Request timeout check
@@ -702,6 +708,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func enterInactiveState() {
+        if appState == 2 { WatchPhoneSync.sendTrackEnded() }
         appState = 3
         location.setTrackingAccuracy(false)
         focusedTrain = nil
@@ -773,6 +780,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func exitToStationView() {
+        if appState == 2 { WatchPhoneSync.sendTrackEnded() }
         lastInteractionTime = Date()
         appState = 0
         location.setTrackingAccuracy(false)

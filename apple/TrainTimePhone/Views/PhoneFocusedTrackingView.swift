@@ -182,12 +182,16 @@ struct PhoneFocusedTrackingView: View {
                                     isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch,
                                     size: 16
                                 )
-                                Text(viewModel.primaryWatchLiveness == .green ? "Send to watch" : "Open on watch")
+                                Text(viewModel.watchTrackingFocused ? "Tracking on watch" : "Track on watch")
                                     .font(.subheadline)
                             }
                             .frame(maxWidth: 200)
                         } primaryAction: {
-                            viewModel.sendToPrimaryOrOpen()
+                            // The watch already tracks this departure; a re-send
+                            // would only make it re-enter and buzz again.
+                            if !viewModel.watchTrackingFocused {
+                                viewModel.sendToPrimaryOrOpen()
+                            }
                         }
                         .buttonStyle(.bordered)
                         .onAppear { viewModel.refreshConnectedWatches() }

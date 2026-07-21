@@ -28,6 +28,11 @@ class LocationService(context: Context, private val prefs: AppPrefs) {
     private val appContext = context.applicationContext
     private val fused = LocationServices.getFusedLocationProviderClient(appContext)
 
+    private companion object {
+        // OS last-known fixes older than this are seeded as cached, not live.
+        const val SEED_MAX_AGE_MS = 120_000L
+    }
+
     private val _coordinate = MutableStateFlow<LatLon?>(null)
     val coordinate: StateFlow<LatLon?> = _coordinate
 
@@ -46,7 +51,7 @@ class LocationService(context: Context, private val prefs: AppPrefs) {
     private var tracking = false
 
     val gpsQuality: GpsQuality
-        get() = GpsQuality.from(horizontalAccuracy)
+        get() = if (loadedFromCache) GpsQuality.LAST_KNOWN else GpsQuality.from(horizontalAccuracy)
 
     val loadedFromCache: Boolean
         get() = _coordinate.value != null && horizontalAccuracy == -1.0
@@ -95,8 +100,15 @@ class LocationService(context: Context, private val prefs: AppPrefs) {
 
         if (_coordinate.value == null) {
             val seeded = runCatching { fused.lastLocation.await() }.getOrNull()
-            if (seeded != null) {
+            if (seeded != null && System.currentTimeMillis() - seeded.time <= SEED_MAX_AGE_MS) {
                 onFix(seeded)
+            } else if (seeded != null && abs(seeded.latitude) <= 90 && abs(seeded.longitude) <= 180) {
+                // An old OS fix still finds nearby stations fast, but it keeps
+                // its original (often good) accuracy while being from wherever
+                // the phone last resolved — possibly another city. Mark it
+                // cached so nothing downstream treats it as proof of position.
+                horizontalAccuracy = -1.0
+                _coordinate.value = LatLon(seeded.latitude, seeded.longitude)
             } else {
                 prefs.lastCoordinate()?.let { (lat, lon) ->
                     horizontalAccuracy = -1.0

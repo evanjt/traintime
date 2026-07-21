@@ -7,7 +7,10 @@ import Foundation
 /// future breaking-payload gate). A liveness message with no version field is a
 /// pre-versioning build, read as the legacy version 0.4.x.
 enum WatchSyncProtocol {
-    static let version = 1
+    // pv 2: hello/alive carry the tracked departure (trk/trkLn) while tracking,
+    // and trackEnded is sent when tracking stops. A phone seeing pv >= 2 treats
+    // a heartbeat without trk as "not tracking".
+    static let version = 2
     static let legacyVersionName = "0.4.x"
 
     /// The only current constraint: the sync features require a watch reporting

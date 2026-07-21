@@ -497,6 +497,7 @@ class TrainTimeView extends WatchUi.View {
         // Ask here, not at tracking entry, so the prompt never covers a live
         // countdown. The gate makes this rare.
         if (wasTracking) {
+            PhoneSync.sendTrackEnded();
             ReviewPrompt.maybeShow();
         }
         WatchUi.requestUpdate();
@@ -506,6 +507,9 @@ class TrainTimeView extends WatchUi.View {
         if (mMapActive) {
             mMapActive = false;
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        }
+        if (mAppState == 2) {
+            PhoneSync.sendTrackEnded();
         }
         mAppState = 3;
         mFocusedTrain = null;
@@ -648,7 +652,7 @@ class TrainTimeView extends WatchUi.View {
         // next heartbeat.
         if (action.equals("ping")) {
             mLastAliveTs = Time.now().value();
-            PhoneSync.sendHello();
+            PhoneSync.sendHello(mAppState == 2 ? mFocusedTrain : null);
             return;
         }
         // Favourites sync applies in any state, including while tracking, so it
@@ -747,6 +751,12 @@ class TrainTimeView extends WatchUi.View {
     function phoneLocFresh() {
         if (mPhoneLat == null || mPhoneLon == null || mPhoneLocTs == null) { return false; }
         return (Time.now().value() - mPhoneLocTs) < 120;
+    }
+
+    // The state effectivePosition() would resolve to a phone coordinate: our own
+    // GPS is unusable and a fresh relay exists. Drives the phone-relay indicator.
+    function usingPhoneLoc() {
+        return !gpsUsableInBounds() && phoneLocFresh();
     }
 
     // Best-known user position: a usable in-bounds watch fix wins; else a fresh
@@ -1196,7 +1206,7 @@ class TrainTimeView extends WatchUi.View {
             var nowSec = Time.now().value();
             if (mLastAliveTs == null || (nowSec - mLastAliveTs) >= 7) {
                 mLastAliveTs = nowSec;
-                PhoneSync.sendAlive();
+                PhoneSync.sendAlive(mAppState == 2 ? mFocusedTrain : null);
             }
         }
 

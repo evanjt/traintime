@@ -51,8 +51,10 @@ import com.evanjt.traintime.notify.NotifyPlan
 import com.evanjt.traintime.notify.PendingRouteNotifier
 import com.evanjt.traintime.notify.RouteDistanceTracker
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -237,6 +239,86 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var watchKnownButDisconnected by mutableStateOf(false)
         private set
 
+    // Departure the watch reports it is tracking: set by trackStarted and by
+    // trk/trkLn on the pv>=3 liveness heartbeat, cleared by trackEnded, bye and
+    // liveness loss. This is what flips "Track on watch" to "Tracking on watch".
+    var watchTrackingDepTs by mutableStateOf<Long?>(null)
+        private set
+    var watchTrackingLine by mutableStateOf<String?>(null)
+        private set
+    // Full trackStarted payload when we saw one (the heartbeat only carries
+    // depTs/line). Needed to rebuild a FocusedDeparture for tap-to-follow.
+    private var watchTrackingInfo: Map<String, Any?>? = null
+    // Which backend announced the tracking, so only its own liveness can
+    // confirm or clear the claim.
+    private var watchTrackingSource: PhoneWatchType? = null
+    private var wearWatchPv = 0
+    // The user asked to track on a closed watch: openWatchApp is in flight and
+    // the next hello must carry the track command first. Without this, a stale
+    // alive reading used to route the tap into a send the closed app never saw.
+    private var pendingWatchTrackSend = false
+
+    // The watch is tracking the same departure the phone is focused on.
+    val watchTrackingFocused: Boolean
+        get() {
+            val focused = focusedTrain ?: return false
+            val depTs = watchTrackingDepTs ?: return false
+            val line = watchTrackingLine
+            return focused.departureTimestamp == depTs &&
+                (line.isNullOrEmpty() || focused.lineNumber == line)
+        }
+
+    private fun clearWatchTracking() {
+        watchTrackingDepTs = null
+        watchTrackingLine = null
+        watchTrackingInfo = null
+        watchTrackingSource = null
+    }
+
+    // "IC 8 → Brig · 14:54" for the station-view chip; built from the last
+    // trackStarted payload, or just line + time when only the heartbeat spoke.
+    val watchTrackingLabel: String?
+        get() {
+            val depTs = watchTrackingDepTs ?: return null
+            val info = watchTrackingInfo
+            val line = (info?.get("line") as? String).takeUnless { it.isNullOrEmpty() } ?: watchTrackingLine
+            val dest = (info?.get("dest") as? String).takeUnless { it.isNullOrEmpty() }
+            val time = DateTimeFormatter.ofPattern("HH:mm")
+                .format(Instant.ofEpochSecond(depTs).atZone(ZoneId.systemDefault()))
+            val head = listOfNotNull(line.takeUnless { it.isNullOrEmpty() }, dest?.let { "→ $it" })
+                .joinToString(" ")
+            return if (head.isEmpty()) time else "$head · $time"
+        }
+
+    val watchTrackingFollowable: Boolean
+        get() {
+            val info = watchTrackingInfo ?: return false
+            return (info["depTs"] as? Number)?.toLong() == watchTrackingDepTs &&
+                !(info["dest"] as? String).isNullOrEmpty()
+        }
+
+    // Enter the phone's tracking view on the departure the watch is tracking,
+    // without mirroring back (the watch already owns this track).
+    fun followWatchTracking() {
+        val depTs = watchTrackingDepTs ?: return
+        val info = watchTrackingInfo ?: return
+        if ((info["depTs"] as? Number)?.toLong() != depTs) return
+        beginTracking(
+            FocusedDeparture(
+                destination = info["dest"] as? String ?: return,
+                departureTimestamp = depTs,
+                lineNumber = info["line"] as? String ?: "",
+                category = info["cat"] as? String ?: "",
+                trainNumber = info["trainNum"] as? String,
+                operatorRef = info["opRef"] as? String,
+                delay = (info["delay"] as? Number)?.toInt() ?: 0,
+                platform = info["plat"] as? String ?: "",
+                platformChanged = info["platChg"] as? Boolean ?: false,
+            ),
+            mirror = false,
+        )
+    }
+
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
@@ -407,7 +489,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             // Already open, just push the current view to it, no relaunch needed.
             if (watchAlive) {
-                syncCurrentStateToWatch()
+                if (pendingWatchTrackSend) {
+                    pendingWatchTrackSend = false
+                    sendFocusedTrackFirst()
+                } else {
+                    syncCurrentStateToWatch()
+                }
                 return@launch
             }
             watchChecking = true
@@ -478,6 +565,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     // Grey when a watch is paired but not reachable. knownDevices is a local
                     // SDK lookup (no BLE), so it's cheap to re-evaluate each tick.
                     updateKnownButDisconnected()
+                    // A dead heartbeat takes the tracking claim with it: better
+                    // no indicator than a stale "Tracking on watch".
+                    val trackingStale = when (watchTrackingSource) {
+                        PhoneWatchType.GARMIN -> !garminAliveFresh()
+                        PhoneWatchType.WEAR -> !wearAliveFresh()
+                        null -> false
+                    }
+                    if (watchTrackingDepTs != null && trackingStale) clearWatchTracking()
                 }
                 delay(3000)
             }
@@ -524,18 +619,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         when (msg.kind) {
             WearSync.KIND_HELLO, WearSync.KIND_ALIVE -> {
                 wearWatchVersion = msg.displayVersion
+                wearWatchPv = msg.pv
                 val wasAlive = wearAliveFresh()
                 wearLastAlive = now()
                 wearNodesPresent = true
                 recomputeWatchAlive()
+                // pv>=2 heartbeats carry the tracked departure; absence on such
+                // a watch means "not tracking" (older watches stay edge-driven).
+                if (msg.trk != null) {
+                    if ((watchTrackingInfo?.get("depTs") as? Number)?.toLong() != msg.trk) {
+                        watchTrackingInfo = msg.track?.toGarminMap()
+                    }
+                    watchTrackingDepTs = msg.trk
+                    watchTrackingLine = msg.trkLn
+                    watchTrackingSource = PhoneWatchType.WEAR
+                } else if (msg.pv >= 2 && watchTrackingSource == PhoneWatchType.WEAR) {
+                    clearWatchTracking()
+                }
                 // A freshly-online watch jumps to whatever the phone is showing.
                 if (!wasAlive) syncCurrentStateToWear()
             }
             WearSync.KIND_BYE -> {
                 wearLastAlive = 0L
                 recomputeWatchAlive()
+                if (watchTrackingSource == PhoneWatchType.WEAR) clearWatchTracking()
             }
             WearSync.KIND_REQ_LOC -> replyWithLocationToWear()
+            WearSync.KIND_TRACK_STARTED -> {
+                // The watch entered tracking (its own tap, or the echo of our
+                // track command — the echo doubles as the delivery ack).
+                watchTrackingDepTs = msg.trk
+                watchTrackingLine = msg.trkLn
+                watchTrackingInfo = msg.track?.toGarminMap()
+                watchTrackingSource = PhoneWatchType.WEAR
+            }
+            WearSync.KIND_TRACK_ENDED -> {
+                if (watchTrackingSource != PhoneWatchType.GARMIN) clearWatchTracking()
+            }
         }
     }
 
@@ -743,8 +863,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Shared tracking entry: from a real board tap or a synthesised shared-route
     // leg. Everything downstream (timer cadence, watch/Garmin mirror, formation)
-    // is identical once we have a FocusedDeparture.
-    private fun beginTracking(focused: FocusedDeparture) {
+    // is identical once we have a FocusedDeparture. mirror=false when following
+    // a track the watch already owns — re-sending it would make the watch
+    // re-enter (and re-vibrate) its own tracking.
+    private fun beginTracking(focused: FocusedDeparture, mirror: Boolean = true) {
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
@@ -770,9 +892,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         // Mirror the same focused train onto the watch (immediate, a tap is a
         // strong, deliberate action). Keeps the manual "Send to Watch" too.
-        val trackCmd = TrackCommand.from(focused, stationId)
-        mirrorToGarmin(trackCmd.toGarminMap())
-        if (canMessageWear()) viewModelScope.launch { wearSync.sendTrack(trackCmd) }
+        if (mirror) {
+            val trackCmd = TrackCommand.from(focused, stationId)
+            mirrorToGarmin(trackCmd.toGarminMap())
+            if (canMessageWear()) viewModelScope.launch { wearSync.sendTrack(trackCmd) }
+        }
     }
 
     fun enterInactiveState() {
@@ -1098,6 +1222,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Reply to a Wear watch's explicit reqLoc with the phone's current coordinate.
     private fun replyWithLocationToWear() {
+        if (location.loadedFromCache) return
         if (!mirrorToWatch || !wearNodesPresent) return
         val coord = location.coordinate.value ?: return
         viewModelScope.launch { wearSync.sendCommand(WearCommand("loc", lat = coord.lat, lon = coord.lon)) }
@@ -1119,6 +1244,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // the watch so it has a fallback for weak GPS. Debounced ≥10 s / ≥100 m so a
     // settled phone (or a mock-GPS app) keeps the watch fed without flooding.
     private fun maybePushLocationToWatch(coord: LatLon) {
+        // A cached coordinate may be from another city; relaying it hands the
+        // watch a confident-looking fix with zero proof behind it.
+        if (location.loadedFromCache) return
         val garminOk = canMessageWatch()
         val wearOk = canMessageWear()
         if (!garminOk && !wearOk) return
@@ -1138,6 +1266,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Force-push the current location to all eligible watches, bypassing the
     // movement/time debounce. Used on app open and when opening the watch app.
     private fun pushLocationNow() {
+        if (location.loadedFromCache) return
         val garminOk = canMessageWatch()
         val wearOk = canMessageWear()
         if (!garminOk && !wearOk) return
@@ -1156,9 +1285,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // makes the watch button (header or tracking screen) open the watch onto the same view.
     private fun syncCurrentStateToWatch() {
         if (!canMessageWatch()) return
-        pushLocationNow()
-        // Re-seed favourites so a freshly-opened watch unions in anything it lacks.
-        pushFavouritesToGarmin(favouritesList)
         val focused = focusedTrain
         val payload = if (appState == 2 && focused != null) {
             TrackCommand.from(focused, currentStation?.id).toGarminMap()
@@ -1166,12 +1292,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             currentStation?.let { st ->
                 WearSync.garminStationPayload(st.id, st.name ?: "Station", st.lat, st.lon)
             }
-        } ?: return
-        viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+        }
+        // View payload first: when the user is waiting on a countdown, the track
+        // command must not queue behind a location push and a favourites blob.
+        if (payload != null) {
+            viewModelScope.launch { garminTargetIds.forEach { garminService.send(it, payload) } }
+        }
+        pushLocationNow()
+        // Re-seed favourites so a freshly-opened watch unions in anything it lacks.
+        pushFavouritesToGarmin(favouritesList)
+    }
+
+    // The pending-track path: the tracked departure goes out first, then the
+    // location/favourites seeding, then one delayed resend unless the watch's
+    // trackStarted echo already confirmed it landed (a send can race the watch's
+    // cold start and vanish — the silent "it just didn't track" failure).
+    private fun sendFocusedTrackFirst() {
+        val focused = focusedTrain
+        if (appState != 2 || focused == null) {
+            syncCurrentStateToWatch()
+            return
+        }
+        val payload = TrackCommand.from(focused, currentStation?.id).toGarminMap()
+        viewModelScope.launch {
+            garminTargetIds.forEach { garminService.send(it, payload) }
+            pushLocationNow()
+            pushFavouritesToGarmin(favouritesList)
+            delay(2_000)
+            if (!watchTrackingFocused) {
+                garminTargetIds.forEach { garminService.send(it, payload) }
+            }
+        }
     }
 
     // Reply to a watch's explicit reqLoc with the phone's current coordinate.
     private fun replyWithLocation() {
+        if (location.loadedFromCache) return
         if (!mirrorToWatch || garminTargetIds.isEmpty()) return
         val coord = location.coordinate.value ?: return
         val payload = WearSync.garminLocationPayload(coord.lat, coord.lon)
@@ -1214,14 +1370,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             val cmd = TrackCommand.from(focused, stationId)
+            val garminDeviceId = watch.id.removePrefix("garmin_")
             val ok = when (watch.type) {
                 PhoneWatchType.WEAR -> wearSync.sendTrack(cmd) > 0
-                PhoneWatchType.GARMIN -> {
-                    val deviceId = watch.id.removePrefix("garmin_")
-                    garminService.sendTrack(deviceId, cmd.toGarminMap())
-                }
+                PhoneWatchType.GARMIN -> garminService.sendTrack(garminDeviceId, cmd.toGarminMap())
             }
             showWatchStatus(if (ok) "Sent to ${watch.name}" else "Failed to send")
+
+            // SDK SUCCESS means "delivered to the device", not "the app saw it".
+            // On a pv>=3 watch the trackStarted echo is the real ack; no echo
+            // means the app was probably closed behind a stale alive reading, so
+            // relaunch it with the track queued instead of leaving a false "Sent".
+            if (ok && watch.type == PhoneWatchType.GARMIN && garminWatchPv >= 3) {
+                delay(4_000)
+                if (!watchTrackingFocused && appState == 2 && focusedTrain == focused) {
+                    pendingWatchTrackSend = true
+                    watchChecking = true
+                    showWatchStatus("Watch app not responding, reopening...")
+                    garminService.openApp(garminDeviceId)
+                    delay(8_000)
+                    if (watchChecking) {
+                        watchChecking = false
+                        recomputeWatchAlive()
+                    }
+                }
+            }
         }
     }
 
@@ -1233,7 +1406,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             connectedWatches = currentConnectedWatches()
             val hasGarminLink = watchLinks.any { it.type == PhoneWatchType.GARMIN }
-            if (!watchAlive && hasGarminLink) openWatchApp() else sendToWatch()
+            if (!watchAlive && hasGarminLink) {
+                // Launch path: remember the intent so the hello answers with the
+                // track command first, not the generic state sync.
+                pendingWatchTrackSend = appState == 2 && focusedTrain != null
+                openWatchApp()
+            } else {
+                sendToWatch()
+            }
         }
     }
 
@@ -1257,9 +1437,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminWatchPv = (ctx["pv"] as? Number)?.toInt() ?: 0
             watchAlive = true
             watchChecking = false
-            // A freshly-online watch jumps to whatever the phone is showing (tracking
-            // train, or current station) and gets seeded with the phone's location.
-            if (!wasAlive) syncCurrentStateToWatch()
+            // pv>=3 heartbeats carry the tracked departure; their absence on
+            // such a watch means "not tracking". Older watches stay edge-driven
+            // (trackStarted only), so silence doesn't clear them here.
+            val trk = (ctx["trk"] as? Number)?.toLong()
+            if (trk != null) {
+                if ((watchTrackingInfo?.get("depTs") as? Number)?.toLong() != trk) watchTrackingInfo = null
+                watchTrackingDepTs = trk
+                watchTrackingLine = ctx["trkLn"] as? String
+                watchTrackingSource = PhoneWatchType.GARMIN
+            } else if (garminWatchPv >= 3 && watchTrackingSource == PhoneWatchType.GARMIN) {
+                clearWatchTracking()
+            }
+            // A user-initiated track send takes priority and goes out first —
+            // it's the time-critical payload. Otherwise a freshly-online watch
+            // jumps to whatever the phone is showing (tracking train, or current
+            // station) and gets seeded with the phone's location.
+            if (pendingWatchTrackSend) {
+                pendingWatchTrackSend = false
+                sendFocusedTrackFirst()
+            } else if (!wasAlive) {
+                syncCurrentStateToWatch()
+            }
+            return
+        }
+        // The watch entered tracking (its own tap, or the echo of our track
+        // command — the echo doubles as the delivery ack).
+        if (ctx["kind"] == "trackStarted") {
+            watchTrackingDepTs = (ctx["depTs"] as? Number)?.toLong()
+            watchTrackingLine = ctx["line"] as? String
+            watchTrackingInfo = ctx
+            watchTrackingSource = PhoneWatchType.GARMIN
+            return
+        }
+        if (ctx["kind"] == "trackEnded") {
+            if (watchTrackingSource != PhoneWatchType.WEAR) clearWatchTracking()
             return
         }
         // The watch app is closing, flip the indicator straight away. The high
@@ -1269,6 +1481,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             garminLastBye = now()
             recomputeWatchAlive()
             watchChecking = false
+            if (watchTrackingSource != PhoneWatchType.WEAR) clearWatchTracking()
             viewModelScope.launch { persistGarminLinkState() }
             return
         }
@@ -1371,6 +1584,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun exitToStationView() {
         val wasTracking = appState == 2
         onTrackingEnded(if (wasTracking) focusedTrain?.departureTimestamp else null)
+        // A queued "track on watch" intent dies with the tracking session.
+        pendingWatchTrackSend = false
         lastInteractionTime = now()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -1575,7 +1790,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val trackingStatusText: String
         get() {
             val buf = trackingEffectiveBuffer
-            if (gpsQuality == GpsQuality.UNAVAILABLE) return "No GPS"
+            // A cached coordinate is zero proof of position: computing an
+            // ahead/behind verdict from it produced the "800 min behind"
+            // failure when the seed was a city away.
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return "No GPS"
             val absBuf = kotlin.math.abs(buf)
             if (absBuf < 0.5) return "On time"
             val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
@@ -1585,7 +1803,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Resolved to a palette colour in the composable so it follows light/dark.
     val trackingStatus: TrackingStatus
         get() {
-            if (gpsQuality == GpsQuality.UNAVAILABLE) return TrackingStatus.NO_GPS
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return TrackingStatus.NO_GPS
             val buf = trackingEffectiveBuffer
             return when {
                 buf > 0.5 -> TrackingStatus.AHEAD

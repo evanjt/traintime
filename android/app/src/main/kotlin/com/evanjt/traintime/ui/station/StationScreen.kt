@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.theme.tint
@@ -133,8 +135,13 @@ fun StationScreen(
                     )
                 }
             }
+            // A crossed pin means zero proof of position: no fix at all, or only
+            // a cached coordinate that may be from another city.
             Icon(
-                Icons.Filled.LocationOn,
+                when (viewModel.gpsQuality) {
+                    GpsQuality.LAST_KNOWN, GpsQuality.UNAVAILABLE -> Icons.Filled.LocationOff
+                    else -> Icons.Filled.LocationOn
+                },
                 contentDescription = "GPS quality",
                 tint = viewModel.gpsQuality.tint,
             )
@@ -178,6 +185,36 @@ fun StationScreen(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp),
         )
+
+        // The watch is tracking a departure while the phone shows the board:
+        // say so, and (when the full payload is known) tap to follow along.
+        viewModel.watchTrackingLabel?.let { label ->
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            ) {
+                Surface(
+                    onClick = { viewModel.followWatchTracking() },
+                    enabled = viewModel.watchTrackingFollowable,
+                    shape = RoundedCornerShape(12.dp),
+                    tonalElevation = 3.dp,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Watch,
+                            contentDescription = null,
+                            tint = Color(0xFF34C759),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text("Tracking on watch · $label", fontSize = 13.sp)
+                    }
+                }
+            }
+        }
 
         // Departure list
         if (viewModel.departures.isEmpty() && viewModel.favouriteDepartures.isEmpty()) {

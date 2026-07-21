@@ -16,15 +16,26 @@ enum WatchPhoneSync {
     }
 
     // hello/alive carry the version handshake (v/pv) so the phone can gate
-    // Send-to-Watch; bye/reqLoc need no version.
-    private static func liveness(_ kind: String) -> [String: Any] {
-        ["kind": kind, "v": WatchSyncProtocol.localVersionName, "pv": WatchSyncProtocol.version]
+    // Send-to-Watch; bye/reqLoc need no version. While tracking, `tracking` adds
+    // trk/trkLn so the phone mirrors the tracking state from the heartbeat alone —
+    // trackStarted/trackEnded only make it prompt.
+    private static func liveness(_ kind: String, tracking focused: FocusedDeparture?) -> [String: Any] {
+        var data: [String: Any] = ["kind": kind, "v": WatchSyncProtocol.localVersionName, "pv": WatchSyncProtocol.version]
+        if let focused {
+            data["trk"] = focused.departureTimestamp
+            data["trkLn"] = focused.lineNumber
+        }
+        return data
     }
 
-    static func sendHello() { send(liveness("hello")) }
-    static func sendAlive() { send(liveness("alive")) }
+    static func sendHello(tracking focused: FocusedDeparture? = nil) { send(liveness("hello", tracking: focused)) }
+    static func sendAlive(tracking focused: FocusedDeparture? = nil) { send(liveness("alive", tracking: focused)) }
     static func sendBye() { send(["kind": "bye"]) }
     static func requestLocation() { send(["kind": "reqLoc"]) }
+
+    /// Tracking stopped (manual exit or the departure left). The heartbeat would
+    /// catch up within ~7 s; this flips the phone's button back immediately.
+    static func sendTrackEnded() { send(["kind": "trackEnded"]) }
 
     /// "Yes, rate it" on the watch: watchOS has no review page, so the phone opens ours.
     /// Unlike the liveness messages this must not be dropped when the phone is unreachable,

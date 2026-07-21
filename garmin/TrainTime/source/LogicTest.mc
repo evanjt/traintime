@@ -167,10 +167,19 @@ function testFavouritesUnionNoGrowthOnDuplicate(logger) {
 // Liveness carries the version handshake so the phone can gate Send-to-Watch.
 (:test)
 function testBuildLivenessCarriesVersion(logger) {
-    var data = PhoneSync.buildLiveness("hello");
+    var data = PhoneSync.buildLiveness("hello", null);
     return data["kind"].equals("hello")
         && data["v"].equals(AppVersion.VERSION)
-        && data["pv"] == PhoneSync.PROTOCOL_VERSION;
+        && data["pv"] == PhoneSync.PROTOCOL_VERSION
+        && !data.hasKey("trk");
+}
+
+// While tracking, liveness mirrors the focused departure so the phone's
+// track-on-watch button reflects state from the heartbeat alone.
+(:test)
+function testBuildLivenessCarriesTracking(logger) {
+    var data = PhoneSync.buildLiveness("alive", { "depTs" => 1750000000, "line" => "IC8" });
+    return data["trk"] == 1750000000 && data["trkLn"].equals("IC8");
 }
 
 // Review-prompt gate. Timestamps in seconds; NOW is arbitrary but fixed.
