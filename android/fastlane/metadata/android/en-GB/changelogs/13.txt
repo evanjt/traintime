@@ -1,0 +1,1 @@
+- Fixes a startup crash on phones with the Garmin Connect app installed.

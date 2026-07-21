@@ -523,6 +523,10 @@ def build_feature_graphic(locale, strings, palette):
 # App Store Connect uses the bare "it" locale where Play uses "it-IT".
 APPLE_LOCALE = {"it-IT": "it"}
 
+# Byte-identical locale mirrors on both stores. en-GB is the English the Swiss
+# storefronts index for search; en-AU is what English readers see via fallback.
+MIRRORS = {"en-AU": ["en-GB"]}
+
 
 def install(locales):
     """Mirror rendered assets into the fastlane upload trees so a tag release
@@ -534,15 +538,20 @@ def install(locales):
 
     play_meta = os.path.join(REPO, "android", "fastlane", "metadata", "android")
     apple_shots = os.path.join(REPO, "apple", "fastlane", "screenshots")
+    targets = []
     for locale in locales:
+        targets.append(locale)
+        targets.extend(MIRRORS.get(locale, []))
+    for locale in targets:
+        source = next((s for s, ms in MIRRORS.items() if locale in ms), locale)
         images = os.path.join(play_meta, locale, "images")
         phone = os.path.join(images, "phoneScreenshots")
         shutil.rmtree(phone, ignore_errors=True)
         os.makedirs(phone)
         for i in (1, 2, 3):
-            shutil.copy(os.path.join(STORE, "play", locale, f"{i:02d}.png"), phone)
+            shutil.copy(os.path.join(STORE, "play", source, f"{i:02d}.png"), phone)
         shutil.copy(
-            os.path.join(STORE, "feature", locale, "featureGraphic.png"),
+            os.path.join(STORE, "feature", source, "featureGraphic.png"),
             os.path.join(images, "featureGraphic.png"),
         )
 
@@ -560,7 +569,7 @@ def install(locales):
         shutil.rmtree(adir, ignore_errors=True)
         os.makedirs(adir)
         for i in (1, 2, 3):
-            shutil.copy(os.path.join(STORE, "appstore", locale, f"{i:02d}.png"), adir)
+            shutil.copy(os.path.join(STORE, "appstore", source, f"{i:02d}.png"), adir)
         for i in (1, 2):
             shutil.copy(
                 os.path.join(STORE, "watchos", f"{i:02d}.png"),

@@ -1,1 +1,1 @@
-Orari, binario e ritardi
+Orari FFS in tempo reale

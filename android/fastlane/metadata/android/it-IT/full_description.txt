@@ -1,27 +1,33 @@
-TrainTime porta le partenze dei trasporti pubblici svizzeri direttamente in tasca. Guarda cosa parte dalle fermate di treno, tram e bus, dai battelli, dalle funivie e dalle funicolari nelle vicinanze, con ritardi in tempo reale, numeri di binario e distanza a piedi. Il feedback aptico quando sei in ritardo ti aiuta a non perdere una partenza.
+Il tuo polso ha Internet e un GPS preciso. L'orario svizzero è esatto al minuto. TrainTime unisce le due cose: partenze FFS, treno, bus e tram in tempo reale intorno a te, con binario, ritardo e tempo a piedi, e a ogni passo sai se ce la fai. Basta treni persi perché dovevi sbloccare il telefono. Uno sguardo e via.
 
-<b>Partenze nelle vicinanze</b>
-TrainTime usa la tua posizione per trovare le fermate svizzere più vicine e mostra le prossime partenze con destinazione, binario, ritardo e direzione di marcia.
+<b>Nelle vicinanze</b>
+Le fermate più vicine, trovate col GPS. Niente ricerche nell'orario. Ogni partenza mostra destinazione, linea, binario, ritardo e direzione di marcia.
 
-<b>Segui la tua partenza</b>
-Tocca una partenza per seguirla. Un conto alla rovescia in tempo reale mostra il tempo che ti resta in base alla distanza a piedi dalla fermata, così sai se ce la farai. Consulta la composizione completa del treno per sapere esattamente dove posizionarti sul binario.
+<b>Segui</b>
+Tocca una partenza per seguirla. Un conto alla rovescia in tempo reale contro il tuo tragitto a piedi ti dice se ce la fai. La composizione del treno indica dove metterti sul binario.
 
-<b>Widget nella schermata Home</b>
-Aggiungi il widget per vedere la tua prossima partenza a colpo d'occhio. Toccalo per aprire l'app direttamente in modalità di monitoraggio.
+<b>Preferiti</b>
+Segna una corsa con una stella e resta sopra la linea dorata, in ogni stazione. Fissa la tua stazione di casa perché resti in cima.
 
-<b>Diversi mezzi di trasporto</b>
-Passa tra treni, bus, tram, battelli, funicolari e funivie. Sfoglia fino a 5 fermate vicine per mezzo, su 4 tipi di trasporto. TrainTime mostra solo ciò che ti circonda.
+<b>Orologio</b>
+Nativo su Wear OS, Apple Watch e Garmin. Invia una partenza dal telefono all'orologio, e il telefono mostra in tempo reale cosa sta seguendo l'orologio. Preferiti, stazioni fissate e modalità predefinita restano sincronizzati. L'app Garmin si abbina a iPhone come ad Android.
 
-<b>In tutta la Svizzera</b>
-Basato sui dati in tempo reale di opentransportdata.swiss, con oltre 51'000 fermate in tutto il paese.
+<b>Percorsi</b>
+Condividi un viaggio da SBB Mobile e TrainTime riprende le tue coincidenze. Salvalo come percorso e ricevi un promemoria prima della partenza, calibrato sul tuo tragitto a piedi.
 
-<b>Anche su Garmin e Apple</b>
-TrainTime è disponibile anche per orologi Garmin, Apple Watch e iPhone, nei rispettivi store.
+<b>Widget</b>
+Aggiungi il widget per le prossime partenze nella schermata Home. Toccalo per aprire direttamente il monitoraggio.
 
-<b>Privacy al primo posto</b>
-Nessun account richiesto. Nessun tracciamento. Nessuna analisi. Le tue coordinate vengono elaborate in memoria dalla nostra API e subito eliminate, mai memorizzate né condivise. Informativa sulla privacy completa su traintime.ch/privacy.
+<b>Mezzi</b>
+Treni, bus, tram, battelli, funicolari e funivie. Fino a 5 fermate vicine per mezzo.
+
+<b>Tutta la Svizzera</b>
+Dati orario in tempo reale di opentransportdata.swiss: FFS (SBB/CFF), AutoPostale e operatori regionali, oltre 51'000 fermate.
+
+<b>Privacy</b>
+Nessun account, nessun tracciamento, nessuna analisi. Le tue coordinate vengono elaborate in memoria e subito eliminate, mai memorizzate né condivise. Tutto su traintime.ch/privacy.
 
 <b>Open source</b>
-L'app e l'API sono entrambe open source.
+L'app Train Time e la sua API sono entrambe open source.
 
-Questa app non è affiliata né approvata da FFS o da altri operatori di trasporto svizzeri. I dati sulle partenze provengono da opentransportdata.swiss e potrebbero non essere sempre accurati o aggiornati.
+Non affiliata né approvata da FFS o da altri operatori svizzeri. I dati sulle partenze provengono da opentransportdata.swiss. TrainTime non si assume responsabilità per l'accuratezza dei dati o per il tuo treno perso. Buona fortuna!

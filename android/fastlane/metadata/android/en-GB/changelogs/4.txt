@@ -1,0 +1,1 @@
+First Android release of TrainTime. Live Swiss departures, focused tracking with a local countdown, and a home screen widget.

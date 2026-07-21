@@ -1,1 +1,1 @@
-Fahrplan, Gleis & Verspätung
+Zug, Bus & Tram in Echtzeit

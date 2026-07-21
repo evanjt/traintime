@@ -1,0 +1,2 @@
+A quick walkthrough now greets new users on first launch.
+Choose System, Light or Dark in Settings, and rate the app from there too.

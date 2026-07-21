@@ -1,1 +1,1 @@
-horaire,arrêt,retard,quai,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,train,Genève,CFF
+SBB,FFS,horaire,arrêt,quai,retard,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,gare

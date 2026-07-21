@@ -1,27 +1,33 @@
-TrainTime bringt die Abfahrten des öffentlichen Verkehrs der Schweiz direkt in deine Tasche. Sieh, was von nahegelegenen Bahn-, Tram- und Bushaltestellen, Schiffen, Luftseilbahnen und Standseilbahnen abfährt, mit Verspätungen in Echtzeit, Gleisnummern und Gehdistanz. Haptisches Feedback, wenn du spät dran bist, hilft dir, keine Abfahrt zu verpassen.
+Dein Handgelenk hat Internet und präzises GPS. Der Schweizer Fahrplan stimmt auf die Minute. TrainTime verbindet beides: Live-Abfahrten von SBB, Zug, Bus und Tram in deiner Umgebung, mit Gleis, Verspätung und Gehzeit, und mit jedem Schritt siehst du, ob du es noch schaffst. Kein verpasster Zug mehr, weil du erst das Handy entsperren musst. Hinschauen und los.
 
-<b>Abfahrten in der Nähe</b>
-TrainTime nutzt deinen Standort, um die nächstgelegenen Schweizer Haltestellen zu finden, und zeigt die nächsten Abfahrten mit Ziel, Gleis, Verspätung und Fahrtrichtung.
+<b>In der Nähe</b>
+Die nächstgelegenen Haltestellen, per GPS gefunden. Kein Suchen im Fahrplan. Jede Abfahrt zeigt Ziel, Linie, Gleis, Verspätung und Fahrtrichtung.
 
-<b>Abfahrt verfolgen</b>
-Tippe auf eine Abfahrt, um sie zu verfolgen. Ein Live-Countdown zeigt anhand deiner Gehdistanz zur Haltestelle, wie viel Zeit dir bleibt und ob du es schaffst. Sieh die vollständige Wagenreihung, damit du genau weisst, wo du dich auf dem Perron hinstellen musst.
+<b>Verfolgen</b>
+Tippe auf eine Abfahrt, um ihr zu folgen. Ein Live-Countdown gegen deinen Fussweg zur Haltestelle sagt dir, ob du es schaffst. Die Wagenreihung zeigt, wo du auf dem Perron stehen musst.
 
-<b>Home-Screen-Widget</b>
-Füge das Widget hinzu, um deine nächste Abfahrt auf einen Blick zu sehen. Tippe darauf, um direkt im Verfolgungsmodus zu starten.
+<b>Favoriten</b>
+Markiere eine Verbindung mit einem Stern und sie steht an jeder Station über der goldenen Linie. Pinne deine Heimstation an, damit sie vorne bleibt.
 
-<b>Verschiedene Verkehrsmittel</b>
-Wechsle zwischen Zügen, Bussen, Trams, Schiffen, Standseilbahnen und Luftseilbahnen. Durchsuche bis zu 5 nahegelegene Haltestellen pro Verkehrsmittel über 4 Verkehrsarten. TrainTime zeigt nur, was sich in deiner Umgebung befindet.
+<b>Uhr</b>
+Nativ auf Wear OS, Apple Watch und Garmin. Sende eine Abfahrt vom Handy an die Uhr, und das Handy zeigt live, was die Uhr verfolgt. Favoriten, angepinnte Stationen und Standardmodus bleiben synchron. Die Garmin-App koppelt mit iPhone wie Android.
 
-<b>In der ganzen Schweiz</b>
-Basierend auf Echtzeitdaten von opentransportdata.swiss, mit über 51'000 Haltestellen im ganzen Land.
+<b>Routen</b>
+Teile eine Reise aus SBB Mobile und TrainTime übernimmt deine Verbindungen. Speichere sie als Route und erhalte eine Erinnerung vor der Abfahrt, abgestimmt auf deinen Fussweg.
 
-<b>Auch auf Garmin und Apple</b>
-TrainTime läuft auch auf Garmin-Uhren, der Apple Watch und dem iPhone, erhältlich in den jeweiligen Stores.
+<b>Widget</b>
+Hol dir das Widget für die nächsten Abfahrten auf den Home-Screen. Tippe darauf und du bist direkt in der Verfolgung.
 
-<b>Datenschutz zuerst</b>
-Kein Konto nötig. Kein Tracking. Keine Analyse. Deine Koordinaten werden von unserer API im Arbeitsspeicher verarbeitet und sofort verworfen, nie gespeichert oder weitergegeben. Vollständige Datenschutzerklärung unter traintime.ch/privacy.
+<b>Verkehrsmittel</b>
+Züge, Busse, Trams, Schiffe, Standseilbahnen und Luftseilbahnen. Bis zu 5 nahe Haltestellen pro Verkehrsmittel.
+
+<b>Die ganze Schweiz</b>
+Echtzeit-Fahrplandaten von opentransportdata.swiss: SBB (CFF/FFS), Postauto und regionale Betriebe, über 51'000 Haltestellen.
+
+<b>Datenschutz</b>
+Kein Konto, kein Tracking, keine Analyse. Deine Koordinaten werden im Speicher verarbeitet und sofort verworfen, nie gespeichert oder geteilt. Alles unter traintime.ch/privacy.
 
 <b>Open Source</b>
-App und API sind beide Open Source.
+Die Train Time App und ihre API sind beide Open Source.
 
-Diese App ist nicht mit SBB oder einem anderen Schweizer Verkehrsbetrieb verbunden oder von diesen unterstützt. Die Abfahrtsdaten stammen von opentransportdata.swiss und sind möglicherweise nicht immer korrekt oder aktuell.
+Nicht mit der SBB oder einem anderen Schweizer Verkehrsbetrieb verbunden oder von diesen unterstützt. Die Abfahrtsdaten stammen von opentransportdata.swiss. TrainTime übernimmt keine Verantwortung für die Genauigkeit der Daten oder deinen verpassten Zug. Viel Glück!

@@ -1,1 +1,1 @@
-ÖPNV,Haltestelle,Tram,Bus,Postauto,Schiff,Seilbahn,Nahverkehr,Perron,Zug,Echtzeit,Uhr,Widget
+SBB,CFF,Fahrplan,Haltestelle,Postauto,Schiff,Seilbahn,Perron,Gleis,Nahverkehr,Verspätung,Uhr,Widget

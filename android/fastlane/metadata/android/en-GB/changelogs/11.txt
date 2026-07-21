@@ -1,0 +1,7 @@
+TrainTime is now on Android! Also on Garmin, Apple Watch and iOS.
+
+- Share a trip from SBB Mobile into TrainTime and it picks up your train. Later legs are saved as a route you can open any time, with a reminder before departure.
+- Save any departure as a reminder from the board.
+- Route reminders now allow for your walk to the station, so you leave on time.
+- Your Wear OS or Garmin watch mirrors what the phone is tracking and keeps favourites in sync.
+- Duplicate departures are gone.

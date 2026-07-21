@@ -1,0 +1,3 @@
+- Track in the background: while tracking a train, save it as a route and get a reminder timed to your walk, even with the app closed.
+- Tracking now always shows the train's destination, with your route's end underneath.
+- Clearer prompts when you turn on background reminders.
