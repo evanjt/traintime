@@ -75,13 +75,13 @@ struct FocusedDeparture {
     /// Formatted countdown string matching Garmin logic
     var countdownText: String {
         let secs = secondsUntil
-        if secs < -30 { return "Departed" }
-        if secs < 5 { return "now" }
+        if secs < -30 { return String(localized: "Departed") }
+        if secs < 5 { return String(localized: "now") }
         let totalMin = secs / 60
         let remSec = secs % 60
         if totalMin < 3 {
             return String(format: "%d:%02d", totalMin, remSec)
         }
-        return "\(totalMin) min"
+        return String(localized: "\(totalMin) min")
     }
 }

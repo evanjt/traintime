@@ -1,0 +1,118 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime"
+          }
+        }
+      }
+    },
+    "NSBluetoothAlwaysUsageDescription": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime nutzt Bluetooth, um über die Garmin Connect App eine gekoppelte Garmin-Uhr zu erreichen und verfolgte Abfahrten ans Handgelenk zu senden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime uses Bluetooth to reach a paired Garmin watch through the Garmin Connect app, so tracked departures can be sent to your wrist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime utilise le Bluetooth pour joindre une montre Garmin appairée via l'app Garmin Connect et envoyer les départs suivis à votre poignet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime usa il Bluetooth per raggiungere un orologio Garmin abbinato tramite l'app Garmin Connect e inviare le partenze seguite al polso."
+          }
+        }
+      }
+    },
+    "NSLocationAlwaysAndWhenInUseUsageDescription": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime nutzt deinen Standort im Hintergrund nur für Erinnerungen zu gespeicherten Routen, um den Alarm auf deine Distanz zur Station abzustimmen. Optional und standardmässig aus."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime uses your location in the background only for saved-route reminders, to time the alert to your distance from the station. This is optional and off by default."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime utilise votre position en arrière-plan uniquement pour les rappels d'itinéraires enregistrés, afin de caler l'alerte sur votre distance à l'arrêt. Optionnel et désactivé par défaut."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime usa la tua posizione in background solo per i promemoria dei percorsi salvati, per calibrare l'avviso sulla distanza dalla stazione. Facoltativo e disattivato di default."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime braucht deinen Standort, um Stationen in der Nähe zu finden und Abfahrtszeiten zu zeigen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime needs your location to find nearby Swiss train stations and show departure times."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime a besoin de votre position pour trouver les gares proches et afficher les départs."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime ha bisogno della tua posizione per trovare le stazioni vicine e mostrare le partenze."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

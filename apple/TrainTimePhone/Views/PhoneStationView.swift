@@ -182,7 +182,7 @@ struct PhoneStationView: View {
                 Button {
                     viewModel.toggleFavourite(departure: departure)
                 } label: {
-                    Label(isFavourite ? "Unfavourite" : "Favourite",
+                    Label(isFavourite ? String(localized: "Unfavourite") : String(localized: "Favourite"),
                           systemImage: isFavourite ? "star.slash.fill" : "star.fill")
                 }
                 .tint(AppColors.favouriteStar)
@@ -201,7 +201,7 @@ struct PhoneStationView: View {
                 Button {
                     viewModel.toggleFavourite(departure: departure)
                 } label: {
-                    Label(isFavourite ? "Remove Favourite" : "Add Favourite",
+                    Label(isFavourite ? String(localized: "Remove Favourite") : String(localized: "Add Favourite"),
                           systemImage: isFavourite ? "star.slash" : "star")
                 }
                 if !departure.isGone {

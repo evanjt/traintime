@@ -18,8 +18,8 @@ struct PhoneSettingsView: View {
 
     private var reminderSummary: String {
         distanceAwareReminder
-            ? "You'll be notified your walk time + \(routeLeadMinutes) min before departure"
-            : "You'll be notified \(routeLeadMinutes) min before departure"
+            ? String(localized: "You'll be notified your walk time + \(routeLeadMinutes) min before departure")
+            : String(localized: "You'll be notified \(routeLeadMinutes) min before departure")
     }
 
     private let savedLeadOptions = [5, 10, 15, 30]
@@ -35,9 +35,9 @@ struct PhoneSettingsView: View {
 
     private func watchStatusText(_ liveness: WatchLiveness) -> String {
         switch liveness {
-        case .green: return "Open"
-        case .amber: return "App closed"
-        case .grey: return "Not connected"
+        case .green: return String(localized: "Open")
+        case .amber: return String(localized: "App closed")
+        case .grey: return String(localized: "Not connected")
         case .hidden: return ""
         }
     }
@@ -66,6 +66,20 @@ struct PhoneSettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "globe")
+                            Text("Language")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Section {
@@ -122,8 +136,8 @@ struct PhoneSettingsView: View {
                     Text("Route reminders")
                 } footer: {
                     Text(distanceAwareReminder
-                        ? "The lead becomes your walk time to the station plus the minutes above. Background updates keep it accurate as you move."
-                        : "Reminders for a saved route. The connection lead is used once you're already on the way.")
+                        ? String(localized: "The lead becomes your walk time to the station plus the minutes above. Background updates keep it accurate as you move.")
+                        : String(localized: "Reminders for a saved route. The connection lead is used once you're already on the way."))
                 }
 
                 if !favouritesStore.favourites.isEmpty {

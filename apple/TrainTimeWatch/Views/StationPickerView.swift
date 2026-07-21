@@ -35,7 +35,7 @@ struct StationPickerView: View {
                     Button {
                         viewModel.togglePinnedStation(station)
                     } label: {
-                        Label(pinned ? "Unpin" : "Pin", systemImage: pinned ? "pin.slash" : "pin")
+                        Label(pinned ? String(localized: "Unpin") : String(localized: "Pin"), systemImage: pinned ? "pin.slash" : "pin")
                     }
                     .tint(AppColors.platform)
                 }

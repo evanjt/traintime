@@ -84,7 +84,7 @@ final class GarminConnectIQService: NSObject {
     func getConnectedDevices() -> [GarminDevice] {
         devices
             .filter { statuses[$0.uuid] == .connected }
-            .map { GarminDevice(id: $0.uuid?.uuidString ?? "", name: $0.friendlyName ?? "Garmin Watch") }
+            .map { GarminDevice(id: $0.uuid?.uuidString ?? "", name: $0.friendlyName ?? String(localized: "Garmin Watch")) }
     }
 
     func sendMessage(to device: GarminDevice, data: [String: Any], completion: @escaping (Bool) -> Void) {

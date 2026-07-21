@@ -8,11 +8,10 @@ struct PhoneAttributionView: View {
     var body: some View {
         List {
             Section("Departure data") {
-                Text("Live departures from Open Transport Data Switzerland, operated by Swiss "
-                    + "Federal Railways (SBB), via the OJP API.")
+                Text(String(localized: "Live departures from Open Transport Data Switzerland, operated by Swiss Federal Railways (SBB), via the OJP API."))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                linkRow("Terms of use", "opentransportdata.swiss",
+                linkRow(String(localized: "Terms of use"), "opentransportdata.swiss",
                         "https://opentransportdata.swiss/en/terms-of-use/")
             }
 
@@ -24,7 +23,7 @@ struct PhoneAttributionView: View {
             }
 
             Section {
-                linkRow("Garmin Connect IQ Mobile SDK", "© Garmin. Used under its SDK licence.",
+                linkRow("Garmin Connect IQ Mobile SDK", String(localized: "© Garmin. Used under its SDK licence."),
                         "https://developer.garmin.com/connect-iq/")
             } header: {
                 Text("Open source & third party")

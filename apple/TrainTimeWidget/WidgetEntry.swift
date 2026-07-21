@@ -17,8 +17,8 @@ struct WidgetDeparture: Codable {
 
     func minutesText(at date: Date) -> String {
         let m = minutesUntil(at: date)
-        if m < 0 { return "gone" }
-        if m == 0 { return "now" }
+        if m < 0 { return String(localized: "gone") }
+        if m == 0 { return String(localized: "now") }
         return "\(m)'"
     }
 

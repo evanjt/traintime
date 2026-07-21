@@ -1,2 +1,3 @@
 - L'iPhone affiche désormais en direct ce que votre montre suit.
+- TrainTime parle désormais allemand, français et italien, selon les réglages de langue de votre iPhone.
 - Améliorations mineures et maintenance.

@@ -11,7 +11,7 @@ struct MapView: View {
                let stationCoord = station.coordinate {
                 Map {
                     // Station annotation
-                    Marker(station.name ?? "Station", coordinate: stationCoord)
+                    Marker(station.name ?? String(localized: "Station"), coordinate: stationCoord)
                         .tint(.red)
 
                     // User location shown via default Map behavior
@@ -25,7 +25,7 @@ struct MapView: View {
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             let destination = MKMapItem(placemark: MKPlacemark(coordinate: stationCoord))
-                            destination.name = station.name ?? "Station"
+                            destination.name = station.name ?? String(localized: "Station")
                             destination.openInMaps(launchOptions: [
                                 MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking
                             ])

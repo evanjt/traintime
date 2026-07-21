@@ -26,8 +26,8 @@ struct PendingRouteChip: View {
         let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
         let depTime = Self.timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))
         let mins = max(0, (leg.depTs - now) / 60)
-        let countdown = mins >= 60 ? "in \(mins / 60) h \(mins % 60)" : "in \(mins) min"
-        return "\(line) departs \(depTime) · \(countdown)"
+        let countdown = mins >= 60 ? String(localized: "in \(mins / 60) h \(mins % 60)") : String(localized: "in \(mins) min")
+        return String(localized: "\(line) departs \(depTime) · \(countdown)")
     }
 
     var body: some View {

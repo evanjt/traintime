@@ -1,2 +1,3 @@
 - The iPhone now shows what your watch is tracking, live.
+- TrainTime now speaks German, French and Italian, following your iPhone's language settings.
 - Minor improvements and maintenance.

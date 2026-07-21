@@ -60,12 +60,12 @@ extension TrainTimeViewModel {
     var trackingStatusText: String {
         let buf = trackingEffectiveBuffer
         // Cached coordinates prove nothing about where we are now; no verdict.
-        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return "No GPS" }
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return String(localized: "No GPS") }
         let absBuf = abs(buf)
-        if absBuf < 0.5 { return "On time" }
+        if absBuf < 0.5 { return String(localized: "On time") }
         // Show seconds when close (< 1.5 min), minutes otherwise (matches Garmin)
-        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
-        return buf > 0 ? "\(unit) ahead" : "\(unit) behind"
+        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : String(localized: "\(Int(absBuf)) min")
+        return buf > 0 ? String(localized: "\(unit) ahead") : String(localized: "\(unit) behind")
     }
 
     var trackingStatusColor: Color {

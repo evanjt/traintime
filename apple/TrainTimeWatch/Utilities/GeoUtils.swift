@@ -33,7 +33,7 @@ enum GeoUtils {
         } else {
             walkMin = Int(walkMinutes(distanceMeters: distanceMeters))
         }
-        let timeStr = walkMin < 1 ? "<1 min" : "\(walkMin) min"
-        return "\(timeStr) walk - \(Int(distanceMeters))m"
+        let timeStr = walkMin < 1 ? String(localized: "<1 min") : String(localized: "\(walkMin) min")
+        return String(localized: "\(timeStr) walk - \(Int(distanceMeters))m")
     }
 }

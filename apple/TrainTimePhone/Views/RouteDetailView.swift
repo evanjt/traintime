@@ -78,8 +78,8 @@ struct RouteDetailView: View {
                 Text("\(leg.originName) to \(leg.destName)")
                     .fontWeight(.medium)
                     .lineLimit(1)
-                let times = "\(Self.hhmm(leg.depTs)) to \(Self.hhmm(leg.arrTs))"
-                Text(viewModel.routeLegPlatforms[index].map { "\(times) · platform \($0)" } ?? times)
+                let times = String(localized: "\(Self.hhmm(leg.depTs)) to \(Self.hhmm(leg.arrTs))")
+                Text(viewModel.routeLegPlatforms[index].map { String(localized: "\(times) · platform \($0)") } ?? times)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if isCurrent {

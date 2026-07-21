@@ -1,0 +1,34 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSLocationWhenInUseUsageDescription": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime braucht deinen Standort, um Stationen in der Nähe für das Widget zu finden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime needs your location to find nearby stations for the widget."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime a besoin de votre position pour trouver les arrêts proches pour le widget."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime ha bisogno della tua posizione per trovare le fermate vicine per il widget."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

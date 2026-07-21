@@ -82,7 +82,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // Register the "Send to Watch" action so it can surface on a paired Garmin.
         let sendToWatch = UNNotificationAction(
             identifier: PendingRouteNotifier.sendToWatchAction,
-            title: "Send to Watch", options: [])
+            title: String(localized: "Send to Watch"), options: [])
         UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(
                 identifier: PendingRouteNotifier.garminCategory,

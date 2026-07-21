@@ -56,8 +56,8 @@ struct WatchRouteView: View {
                     Text("\(leg.originName) to \(leg.destName)")
                         .font(.system(size: 13, weight: .medium))
                         .lineLimit(1)
-                    let times = "\(Self.hhmm(leg.depTs)) to \(Self.hhmm(leg.arrTs))"
-                    Text(viewModel.routeLegPlatforms[index].map { "\(times) · platform \($0)" } ?? times)
+                    let times = String(localized: "\(Self.hhmm(leg.depTs)) to \(Self.hhmm(leg.arrTs))")
+                    Text(viewModel.routeLegPlatforms[index].map { String(localized: "\(times) · platform \($0)") } ?? times)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -68,7 +68,7 @@ struct WatchRouteView: View {
                     get: { !route.isLegMuted(index) },
                     set: { on in viewModel.setLegMuted(index, muted: !on) }
                 )) {
-                    Text(isCurrent ? "Track · remind" : "Remind")
+                    Text(isCurrent ? String(localized: "Track · remind") : String(localized: "Remind"))
                         .font(.system(size: 11))
                 }
                 Button {

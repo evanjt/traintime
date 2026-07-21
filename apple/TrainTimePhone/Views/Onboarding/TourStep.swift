@@ -38,39 +38,35 @@ func stepsToShow(_ steps: [TourStep], effectiveSeen: Int, current: Int) -> [Tour
 // Copy is held inline (not Localizable), tightly bound to the step it explains. Terse,
 // second-person, no marketing tone.
 let tourSteps: [TourStep] = [
-    TourStep(stage: .nearby, title: "Departures around you",
-             body: "The nearest stations and their live departures. Here's Bern Bahnhof."),
-    TourStep(stage: .mode, title: "Trains, buses, trams",
-             body: "Switch what you see with the mode chips. Each mode has its own nearby stops."),
-    TourStep(stage: .track, title: "Track a departure",
-             body: "Tap a departure to follow it."),
-    TourStep(stage: .favourite, title: "Star your lines",
-             body: "Swipe a line right, or hold it, to favourite it."),
-    TourStep(stage: .pin, title: "Pin a station",
-             body: "Pinned stations lead the list whenever they're among the five nearest, so your "
-                 + "home station stays first."),
-    TourStep(stage: .settings, title: "Set your default mode",
-             body: "Pick the mode you ride most. TrainTime opens on it."),
-    TourStep(stage: .share, title: "Bring trips from SBB",
-             body: "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train."),
-    TourStep(stage: .route, title: "Saved routes and reminders",
-             body: "Later trips wait as a saved route. Open it to see every leg, choose which "
-                 + "connections to track, and get a reminder before departure, timed to your "
-                 + "walk to the station if you turn that on."),
-    TourStep(stage: .watch, title: "Take it to your watch",
-             body: "Have a Garmin? Track on your phone and send a departure to your wrist. "
-                 + "There's an Apple Watch app too."),
-    TourStep(stage: .widget, title: "Add the widget",
-             body: "Put your next departures on the home screen."),
+    TourStep(stage: .nearby, title: String(localized: "Departures around you"),
+             body: String(localized: "The nearest stations and their live departures. Here's Bern Bahnhof.")),
+    TourStep(stage: .mode, title: String(localized: "Trains, buses, trams"),
+             body: String(localized: "Switch what you see with the mode chips. Each mode has its own nearby stops.")),
+    TourStep(stage: .track, title: String(localized: "Track a departure"),
+             body: String(localized: "Tap a departure to follow it.")),
+    TourStep(stage: .favourite, title: String(localized: "Star your lines"),
+             body: String(localized: "Swipe a line right, or hold it, to favourite it.")),
+    TourStep(stage: .pin, title: String(localized: "Pin a station"),
+             body: String(localized: "Pinned stations lead the list whenever they're among the five nearest, so your home station stays first.")),
+    TourStep(stage: .settings, title: String(localized: "Set your default mode"),
+             body: String(localized: "Pick the mode you ride most. TrainTime opens on it.")),
+    TourStep(stage: .share, title: String(localized: "Bring trips from SBB"),
+             body: String(localized: "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train.")),
+    TourStep(stage: .route, title: String(localized: "Saved routes and reminders"),
+             body: String(localized: "Later trips wait as a saved route. Open it to see every leg, choose which connections to track, and get a reminder before departure, timed to your walk to the station if you turn that on.")),
+    TourStep(stage: .watch, title: String(localized: "Take it to your watch"),
+             body: String(localized: "Have a Garmin? Track on your phone and send a departure to your wrist. There's an Apple Watch app too.")),
+    TourStep(stage: .widget, title: String(localized: "Add the widget"),
+             body: String(localized: "Put your next departures on the home screen.")),
 ]
 
 // Shown once a departure row has been tapped and the tracking surface is up.
 let tourTrackDetailBody =
-    "Your location and the departure time update live to tell you if you'll make it on foot."
+    String(localized: "Your location and the departure time update live to tell you if you'll make it on foot.")
 
 // Shown once a line has been favourited: it appears in the favourites block above and stays in
 // the list below.
-let tourFavouriteDetailBody = "It now sits above the gold line and still appears in the list below."
+let tourFavouriteDetailBody = String(localized: "It now sits above the gold line and still appears in the list below.")
 
 let connectIQStoreURL = URL(string: "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb")!
 

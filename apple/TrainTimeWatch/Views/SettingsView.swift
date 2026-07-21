@@ -86,7 +86,7 @@ struct SettingsView: View {
                 HStack {
                     Text("iPhone")
                     Spacer()
-                    Text(phoneReachable ? "Connected" : "Not reachable")
+                    Text(phoneReachable ? String(localized: "Connected") : String(localized: "Not reachable"))
                         .foregroundStyle(phoneReachable ? Color.green : Color.secondary)
                 }
                 HStack {

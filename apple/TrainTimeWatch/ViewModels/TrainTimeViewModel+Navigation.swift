@@ -188,7 +188,7 @@ extension TrainTimeViewModel {
         }
 
         routing.clearCache()
-        status = "Finding stations..."
+        status = String(localized: "Finding stations...")
     }
 
     // MARK: - Helpers

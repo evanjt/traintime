@@ -1,2 +1,3 @@
 - L'iPhone ora mostra in tempo reale cosa sta seguendo il tuo orologio.
+- TrainTime ora parla tedesco, francese e italiano, seguendo le impostazioni della lingua del tuo iPhone.
 - Piccoli miglioramenti e manutenzione.

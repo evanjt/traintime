@@ -79,6 +79,12 @@
 		F0A100000000000000000004 /* FormationDiagramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000002 /* FormationDiagramView.swift */; };
 		F0A100000000000000000005 /* Formation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000001 /* Formation.swift */; };
 		F0DBC95E77AF41B1B71A8425 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 07FBBC2455BC4C3696800498 /* Assets.xcassets */; };
+		CA7A10C0F11E0000000000B1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10C0F11E0000000000A1 /* Localizable.xcstrings */; };
+		CA7A10F0F11E0000000000B2 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10F0F11E0000000000A2 /* InfoPlist.xcstrings */; };
+		CA7A10C0F11E0000000000B3 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10C0F11E0000000000A3 /* Localizable.xcstrings */; };
+		CA7A10F0F11E0000000000B4 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10F0F11E0000000000A4 /* InfoPlist.xcstrings */; };
+		CA7A10C0F11E0000000000B5 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10C0F11E0000000000A5 /* Localizable.xcstrings */; };
+		CA7A10F0F11E0000000000B6 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA7A10F0F11E0000000000A6 /* InfoPlist.xcstrings */; };
 		F42F6B6AA79557220D0AA424 /* Formation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000001 /* Formation.swift */; };
 		F5261D412B808F5400CF1210 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
 		F6FB9DC453C04B64BEF75371 /* DepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583F0998708C4748991F75B5 /* DepartureRowView.swift */; };
@@ -232,6 +238,8 @@
 		S0P100000000000000000001 /* TrainTimeShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TrainTimeShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		02625399D810FA6B5C14FD14 /* MyStationsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MyStationsTests.swift; sourceTree = "<group>"; };
 		07FBBC2455BC4C3696800498 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CA7A10C0F11E0000000000A3 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CA7A10F0F11E0000000000A4 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0CD4893706A946E245A1D536 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
 		S0F1000000000000000000A1 /* WatchRouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRouteView.swift; sourceTree = "<group>"; };
@@ -292,6 +300,8 @@
 		P0F100000000000000000009 /* PhoneModePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModePickerView.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000A /* PhoneStationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationPickerView.swift; sourceTree = "<group>"; };
 		P0F10000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CA7A10C0F11E0000000000A1 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CA7A10F0F11E0000000000A2 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		P0F10000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		P0F10000000000000000000D /* PhoneWatchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000301 /* WatchLivenessIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLivenessIndicator.swift; sourceTree = "<group>"; };
@@ -312,6 +322,8 @@
 		W0F100000000000000000003 /* WidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetViews.swift; sourceTree = "<group>"; };
 		W0F100000000000000000004 /* RefreshIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshIntent.swift; sourceTree = "<group>"; };
 		W0F100000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CA7A10C0F11E0000000000A5 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CA7A10F0F11E0000000000A6 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		W0F100000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		W0F100000000000000000007 /* SwitchModeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchModeIntent.swift; sourceTree = "<group>"; };
 		W0F100000000000000000008 /* SwitchStationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchStationIntent.swift; sourceTree = "<group>"; };
@@ -435,6 +447,8 @@
 				444F8A9B1C2D3E4F5A6B7C8D /* Utilities */,
 				555FAB0C2D3E4F5A6B7C8D9E /* ViewModels */,
 				07FBBC2455BC4C3696800498 /* Assets.xcassets */,
+				CA7A10C0F11E0000000000A3 /* Localizable.xcstrings */,
+				CA7A10F0F11E0000000000A4 /* InfoPlist.xcstrings */,
 				5B51C424F9264A23AD022694 /* Info.plist */,
 			);
 			path = TrainTimeWatch;
@@ -546,6 +560,8 @@
 				P0G100000000000000000003 /* Views */,
 				P0G100000000000000000004 /* Services */,
 				P0F10000000000000000000B /* Assets.xcassets */,
+				CA7A10C0F11E0000000000A1 /* Localizable.xcstrings */,
+				CA7A10F0F11E0000000000A2 /* InfoPlist.xcstrings */,
 				P0F10000000000000000000C /* Info.plist */,
 				P0F100000000000000000011 /* TrainTimePhone.entitlements */,
 			);
@@ -617,6 +633,8 @@
 				W0F100000000000000000008 /* SwitchStationIntent.swift */,
 				W0F100000000000000000009 /* WidgetAccessoryViews.swift */,
 				W0F100000000000000000005 /* Assets.xcassets */,
+				CA7A10C0F11E0000000000A5 /* Localizable.xcstrings */,
+				CA7A10F0F11E0000000000A6 /* InfoPlist.xcstrings */,
 				W0F100000000000000000006 /* Info.plist */,
 				W0F10000000000000000000A /* TrainTimeWidget.entitlements */,
 			);
@@ -769,6 +787,9 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
+				fr,
+				it,
 			);
 			mainGroup = 8B1A4211B1894783A138DD95;
 			packageReferences = (
@@ -809,6 +830,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F0DBC95E77AF41B1B71A8425 /* Assets.xcassets in Resources */,
+				CA7A10C0F11E0000000000B3 /* Localizable.xcstrings in Resources */,
+				CA7A10F0F11E0000000000B4 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -825,6 +848,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				P0A10000000000000000000B /* Assets.xcassets in Resources */,
+				CA7A10C0F11E0000000000B1 /* Localizable.xcstrings in Resources */,
+				CA7A10F0F11E0000000000B2 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -833,6 +858,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				W0A100000000000000000005 /* Assets.xcassets in Resources */,
+				CA7A10C0F11E0000000000B5 /* Localizable.xcstrings in Resources */,
+				CA7A10F0F11E0000000000B6 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -13,7 +13,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
-    @Published var status: String = "GPS: Searching..."
+    @Published var status: String = String(localized: "GPS: Searching...")
 
     // MARK: - Station Data (per mode)
     @Published var trainStations: [Station] = []
@@ -108,7 +108,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     var stationName: String {
-        currentStation?.name ?? "Station"
+        currentStation?.name ?? String(localized: "Station")
     }
 
     // MARK: - Init
@@ -306,7 +306,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private func setLaunchedStation(id: String, name: String?, lat: Double?, lon: Double?) {
         lastInteractionTime = Date()
         if appState == 3 { resumeFromInactive() }
-        let station = Station(id: id, name: name ?? "Station", lat: lat, lon: lon, mode: currentMode, dist: nil, embeddedDepartures: nil)
+        let station = Station(id: id, name: name ?? String(localized: "Station"), lat: lat, lon: lon, mode: currentMode, dist: nil, embeddedDepartures: nil)
         switch currentMode {
         case .train: trainStations = [station]
         case .bus: busStations = [station]
@@ -320,7 +320,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
     private func showStationFromPhone(_ data: [String: Any]) {
         guard let stId = data["stId"] as? String else { return }
-        let name = data["name"] as? String ?? "Station"
+        let name = data["name"] as? String ?? String(localized: "Station")
         let lat = data["lat"] as? Double
         let lon = data["lon"] as? Double
         setLaunchedStation(id: stId, name: name, lat: lat, lon: lon)
@@ -388,7 +388,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     private func searchFromPhoneLocation() {
         guard appState <= 1, phoneLocFresh(), let lat = phoneLat, let lon = phoneLon else { return }
         guard !requestInFlight else { return }
-        if stations.isEmpty { status = "Updating stations..." }
+        if stations.isEmpty { status = String(localized: "Updating stations...") }
         fetchStations(lat: lat, lon: lon)
     }
 
@@ -456,7 +456,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     searchFromPhoneLocation()
                 } else {
                     requestPhoneLocation()
-                    status = "GPS: Searching..."
+                    status = String(localized: "GPS: Searching...")
                 }
             }
             return
@@ -470,7 +470,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     searchFromPhoneLocation()
                 } else {
                     requestPhoneLocation()
-                    status = "Not in Switzerland"
+                    status = String(localized: "Not in Switzerland")
                 }
             }
             return
@@ -483,14 +483,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
             if !requestInFlight {
-                if stations.isEmpty { status = "Updating stations..." }
+                if stations.isEmpty { status = String(localized: "Updating stations...") }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
             return
         }
 
         if stations.isEmpty && !requestInFlight {
-            status = "Finding stations..."
+            status = String(localized: "Finding stations...")
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
     }
@@ -693,11 +693,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func remindOnPhone() {
         guard let focused = focusedTrain, let station = currentStation,
               let stationId = station.id, let lat = station.lat, let lon = station.lon else {
-            flashReminderStatus("No station location")
+            flashReminderStatus(String(localized: "No station location"))
             return
         }
-        WatchPhoneSync.sendSaveReminder(focused, stationId: stationId, stationName: station.name ?? "Station", lat: lat, lon: lon)
-        flashReminderStatus("Sent to phone")
+        WatchPhoneSync.sendSaveReminder(focused, stationId: stationId, stationName: station.name ?? String(localized: "Station"), lat: lat, lon: lon)
+        flashReminderStatus(String(localized: "Sent to phone"))
     }
 
     private func flashReminderStatus(_ message: String) {
@@ -763,7 +763,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         guard let focused = focusedTrain, let station = currentStation, let stationId = station.id else { return }
         favouritesStore.toggle(
             stationId: stationId,
-            stationName: station.name ?? "Station",
+            stationName: station.name ?? String(localized: "Station"),
             lineNumber: focused.lineNumber,
             destination: focused.destination
         )
@@ -829,14 +829,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     rebuildModesAndSelect(preserveStationId: prevStationId)
 
                     if stations.isEmpty {
-                        status = "No stations nearby"
+                        status = String(localized: "No stations nearby")
                     }
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
-                    handleError(error, context: "Stations")
+                    handleError(error, context: String(localized: "Stations"))
                 }
             }
         }
@@ -880,7 +880,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     departuresRefreshing = false
                     pendingFavTrack = nil
                     pendingRouteLeg = nil
-                    handleError(error, context: "Departures")
+                    handleError(error, context: String(localized: "Departures"))
                 }
             }
         }
@@ -893,7 +893,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func launchStation(id: String, name: String?, lat: Double? = nil, lon: Double? = nil) {
         showStationFromPhone([
             "stId": id,
-            "name": name ?? "Station",
+            "name": name ?? String(localized: "Station"),
             "lat": lat as Any,
             "lon": lon as Any,
         ])
@@ -1009,16 +1009,16 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if let apiError = error as? TrainAPIError {
             switch apiError {
             case .rateLimited:
-                status = "Rate limited"
+                status = String(localized: "Rate limited")
             case .httpError(let code):
-                status = "\(context): \(code)"
+                status = String(localized: "\(context): \(code)")
             case .noData:
-                status = "\(context) error"
+                status = String(localized: "\(context) error")
             case .networkError:
-                status = "No connection"
+                status = String(localized: "No connection")
             }
         } else {
-            status = "\(context) error"
+            status = String(localized: "\(context) error")
         }
         departures = []
         favouriteDepartures = []

@@ -19,10 +19,10 @@ enum TransportMode: Int, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .train: return "Train"
-        case .bus: return "Bus"
-        case .tram: return "Tram"
-        case .special: return "Special"
+        case .train: return String(localized: "Train")
+        case .bus: return String(localized: "Bus")
+        case .tram: return String(localized: "Tram")
+        case .special: return String(localized: "Special")
         }
     }
 

@@ -222,7 +222,7 @@ struct WidgetEntryView: View {
 
                 if favShown.isEmpty && regularShown.isEmpty {
                     Spacer()
-                    Text(entry.outsideSwitzerland ? "Outside of Switzerland" : "No departures")
+                    Text(entry.outsideSwitzerland ? String(localized: "Outside of Switzerland") : String(localized: "No departures"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
@@ -277,7 +277,7 @@ struct WidgetEntryView: View {
             if entry.stationCount > 1 {
                 Button(intent: SwitchStationIntent()) {
                     HStack(spacing: 3) {
-                        Text(entry.stationName ?? "Station")
+                        Text(entry.stationName ?? String(localized: "Station"))
                             .font(headerFont)
                             .foregroundStyle(.primary)
                             .lineLimit(1)
@@ -295,7 +295,7 @@ struct WidgetEntryView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                Text(entry.stationName ?? "Station")
+                Text(entry.stationName ?? String(localized: "Station"))
                     .font(headerFont)
                     .foregroundStyle(.primary)
                     .lineLimit(1)

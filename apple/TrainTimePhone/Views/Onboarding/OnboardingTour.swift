@@ -135,7 +135,7 @@ struct OnboardingTour: View {
             if step.stage == .favourite && !favourites.isEmpty { return tourFavouriteDetailBody }
             return step.body
         }()
-        let nextLabel = stepIndex == steps.count - 1 ? "Done" : "Next"
+        let nextLabel = stepIndex == steps.count - 1 ? String(localized: "Done") : String(localized: "Next")
         // The track and favourite steps each expand into a second page (live tracking /
         // starred detail), so both sub-pages carry their own progress dot. A delta tour
         // that omits either step drops its extra dot.
@@ -443,7 +443,7 @@ struct TourWatchCard: View {
                     Button {
                         UIApplication.shared.open(URL(string: "itms-watchs://")!, options: [:], completionHandler: nil)
                     } label: {
-                        WatchTileButtonLabel(icon: "applewatch", text: "Open Watch app")
+                        WatchTileButtonLabel(icon: "applewatch", text: String(localized: "Open Watch app"))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.mini)
@@ -452,8 +452,7 @@ struct TourWatchCard: View {
             Text("The Apple Watch app is included with TrainTime. Install it from the Watch app.")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Track on your phone and a departure mirrors to a paired watch, which also reads the "
-                + "phone's location, handy indoors. The watch icon turns green when it's live.")
+            Text(String(localized: "Track on your phone and a departure mirrors to a paired watch, which also reads the phone's location, handy indoors. The watch icon turns green when it's live."))
                 .font(.system(size: 12)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -505,7 +504,7 @@ private struct SyncBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: synced ? "checkmark.circle.fill" : "xmark.circle.fill")
-            Text(synced ? "Syncs live" : "No sync")
+            Text(synced ? String(localized: "Syncs live") : String(localized: "No sync"))
         }
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(synced ? WatchLivenessIndicator.green : Color.secondary)
@@ -516,17 +515,17 @@ private struct SyncBadge: View {
 
 // Live tracking-demo helpers. Mirror FocusedDeparture.countdownText + the real status logic.
 private func tourCountdownText(_ secs: Int) -> String {
-    if secs < 5 { return "now" }
+    if secs < 5 { return String(localized: "now") }
     let m = secs / 60, s = secs % 60
-    return m < 3 ? String(format: "%d:%02d", m, s) : "\(m) min"
+    return m < 3 ? String(format: "%d:%02d", m, s) : String(localized: "\(m) min")
 }
 
 private func tourStatusText(_ buffer: Double) -> String {
     // Same status wording as the real tracking screen (PhoneViewModel.trackingStatusText).
     let absBuf = abs(buffer)
-    if absBuf < 0.5 { return "On time" }
-    let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
-    return buffer > 0 ? "\(unit) ahead" : "\(unit) behind"
+    if absBuf < 0.5 { return String(localized: "On time") }
+    let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : String(localized: "\(Int(absBuf)) min")
+    return buffer > 0 ? String(localized: "\(unit) ahead") : String(localized: "\(unit) behind")
 }
 
 private func tourStatusColor(_ buffer: Double) -> Color {

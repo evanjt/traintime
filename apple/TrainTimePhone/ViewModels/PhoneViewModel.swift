@@ -1,12 +1,13 @@
 import SwiftUI
 import CoreLocation
 import Combine
+import Foundation
 import WidgetKit
 
 class PhoneViewModel: ObservableObject {
     // Shown (and used as the gate for the faint Swiss-outline backdrop) when the phone is
     // located outside Switzerland with no stations to show.
-    static let outOfBoundsStatus = "Not in Switzerland"
+    static let outOfBoundsStatus = String(localized: "Not in Switzerland")
 
     // MARK: - Services
     let location = PhoneLocationService()
@@ -18,7 +19,7 @@ class PhoneViewModel: ObservableObject {
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
     @Published var showReviewPrompt = false // timed review ask (Yes / Not now / Don't ask again)
     @Published var openWriteReviewTick = 0 // a watch asked to rate; the view opens the write-review page
-    @Published var status: String = "GPS: Searching..."
+    @Published var status: String = String(localized: "GPS: Searching...")
 
     static let writeReviewURL = URL(string: "https://apps.apple.com/app/id6760388620?action=write-review")!
     let reviewStore = ReviewStore()
@@ -167,7 +168,7 @@ class PhoneViewModel: ObservableObject {
     }
 
     var stationName: String {
-        currentStation?.name ?? "Station"
+        currentStation?.name ?? String(localized: "Station")
     }
 
     // MARK: - Init
@@ -310,7 +311,7 @@ class PhoneViewModel: ObservableObject {
         }
         let route = SharedRoute.single(
             originId: stId,
-            originName: context["stName"] as? String ?? "Station",
+            originName: context["stName"] as? String ?? String(localized: "Station"),
             originLat: lat, originLon: lon,
             destName: dest, depTs: depTs,
             lineNumber: line, trainNumber: context["trainNum"] as? String
@@ -640,8 +641,8 @@ class PhoneViewModel: ObservableObject {
         let originName = leg?.originName ?? currentStation?.name
         guard let coord = location.coordinate, let originLat, let originLon, let originName else {
             PendingRouteNotifier.notify(
-                title: "Distance test",
-                body: "Turn on location and open the app near a station first.")
+                title: String(localized: "Distance test"),
+                body: String(localized: "Turn on location and open the app near a station first."))
             return
         }
         let dist = GeoUtils.haversineDistance(
@@ -653,8 +654,8 @@ class PhoneViewModel: ObservableObject {
         let walkSec = Int(GeoUtils.walkMinutes(distanceMeters: dist) * 60)
         let leadMin = min(walkSec + savedLeadSec, PendingRouteLogic.maxLeadSec) / 60
         PendingRouteNotifier.notify(
-            title: "Distance test: \(originName)",
-            body: "\(Int(dist)) m away (~\(walkMin) min walk). Reminder would fire \(leadMin) min before departure.")
+            title: String(localized: "Distance test: \(originName)"),
+            body: String(localized: "\(Int(dist)) m away (~\(walkMin) min walk). Reminder would fire \(leadMin) min before departure."))
     }
 
     func onAppear() {
@@ -713,7 +714,7 @@ class PhoneViewModel: ObservableObject {
 
         guard let coord = coord else {
             if stations.isEmpty {
-                status = "GPS: Searching..."
+                status = String(localized: "GPS: Searching...")
             }
             return
         }
@@ -734,14 +735,14 @@ class PhoneViewModel: ObservableObject {
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
             loadedFromCache = false
             if !requestInFlight {
-                if stations.isEmpty { status = "Updating stations..." }
+                if stations.isEmpty { status = String(localized: "Updating stations...") }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
             return
         }
 
         if stations.isEmpty && !requestInFlight {
-            status = "Finding stations..."
+            status = String(localized: "Finding stations...")
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
     }
@@ -989,7 +990,7 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date() // curating favourites shouldn't trip the inactivity timeout
         favouritesStore.toggle(
             stationId: stationId,
-            stationName: station.name ?? "Station",
+            stationName: station.name ?? String(localized: "Station"),
             lineNumber: lineNumber,
             destination: destination
         )
@@ -1078,7 +1079,7 @@ class PhoneViewModel: ObservableObject {
         }
 
         if let st = currentStation, let id = st.id {
-            let name = st.name ?? "Station"
+            let name = st.name ?? String(localized: "Station")
             let coord = st.coordinate
             mirrorDebounced {
                 PhoneWatchService.GarminPayload.station(id: id, name: name, lat: coord?.latitude, lon: coord?.longitude)
@@ -1196,7 +1197,7 @@ class PhoneViewModel: ObservableObject {
         }
 
         routing.clearCache()
-        status = "Finding stations..."
+        status = String(localized: "Finding stations...")
     }
 
     // MARK: - Focused Train Update
@@ -1265,11 +1266,11 @@ class PhoneViewModel: ObservableObject {
         // Cached coordinates prove nothing about where we are now: computing an
         // ahead/behind verdict from one produced the "800 min behind" failure
         // when the seed was a city away.
-        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return "No GPS" }
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return String(localized: "No GPS") }
         let absBuf = abs(buf)
-        if absBuf < 0.5 { return "On time" }
-        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
-        return buf > 0 ? "\(unit) ahead" : "\(unit) behind"
+        if absBuf < 0.5 { return String(localized: "On time") }
+        let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : String(localized: "\(Int(absBuf)) min")
+        return buf > 0 ? String(localized: "\(unit) ahead") : String(localized: "\(unit) behind")
     }
 
     var trackingStatusColor: Color {
@@ -1315,14 +1316,14 @@ class PhoneViewModel: ObservableObject {
                     rebuildModesAndSelect(preserveStationId: prevStationId)
 
                     if stations.isEmpty {
-                        status = "No stations nearby"
+                        status = String(localized: "No stations nearby")
                     }
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
-                    handleError(error, context: "Stations")
+                    handleError(error, context: String(localized: "Stations"))
                 }
             }
         }
@@ -1369,7 +1370,7 @@ class PhoneViewModel: ObservableObject {
                 pendingShareTrack = nil
                 saveOfferAsQueued(offer)
             }
-            handleError(error, context: "Departures")
+            handleError(error, context: String(localized: "Departures"))
         }
     }
 
@@ -1398,16 +1399,16 @@ class PhoneViewModel: ObservableObject {
         if let apiError = error as? TrainAPIError {
             switch apiError {
             case .rateLimited:
-                status = "Rate limited"
+                status = String(localized: "Rate limited")
             case .httpError(let code):
-                status = "\(context): \(code)"
+                status = String(localized: "\(context): \(code)")
             case .noData:
-                status = "\(context) error"
+                status = String(localized: "\(context) error")
             case .networkError:
-                status = "No connection"
+                status = String(localized: "No connection")
             }
         } else {
-            status = "\(context) error"
+            status = String(localized: "\(context) error")
         }
         departures = []
         favouriteDepartures = []
@@ -1436,7 +1437,7 @@ class PhoneViewModel: ObservableObject {
     func sendToWatch(_ watch: PhoneConnectedWatch) {
         guard let focused = focusedTrain else { return }
         if let version = outdatedWatchVersion(for: watch.type) {
-            watchSendStatus = "Update TrainTime on your watch (\(version))"
+            watchSendStatus = String(localized: "Update TrainTime on your watch (\(version))")
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
                 self?.watchSendStatus = nil
             }
@@ -1444,7 +1445,7 @@ class PhoneViewModel: ObservableObject {
         }
         watchService.sendTrackCommand(to: watch, departure: focused, station: currentStation) { [weak self] success in
             DispatchQueue.main.async {
-                self?.watchSendStatus = success ? "Sent to \(watch.name)" : "Failed to send"
+                self?.watchSendStatus = success ? String(localized: "Sent to \(watch.name)") : String(localized: "Failed to send")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     self?.watchSendStatus = nil
                 }
@@ -1461,7 +1462,7 @@ class PhoneViewModel: ObservableObject {
                           !self.watchTrackingFocused else { return }
                     self.pendingWatchTrackSend = true
                     self.watchChecking = true
-                    self.showWatchStatus("Watch app not responding, reopening...")
+                    self.showWatchStatus(String(localized: "Watch app not responding, reopening..."))
                     self.watchService.openGarminApp()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 8) { self.watchChecking = false }
                 }
@@ -1471,7 +1472,7 @@ class PhoneViewModel: ObservableObject {
 
     func sendToWatch() {
         guard let watch = connectedWatches.first else {
-            watchSendStatus = "No watch connected"
+            watchSendStatus = String(localized: "No watch connected")
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
                 self?.watchSendStatus = nil
             }
@@ -1591,7 +1592,7 @@ class PhoneViewModel: ObservableObject {
             send(PhoneWatchService.GarminPayload.track(focused, station: currentStation), to: backend)
         } else if let st = currentStation, let id = st.id {
             let coord = st.coordinate
-            send(PhoneWatchService.GarminPayload.station(id: id, name: st.name ?? "Station", lat: coord?.latitude, lon: coord?.longitude), to: backend)
+            send(PhoneWatchService.GarminPayload.station(id: id, name: st.name ?? String(localized: "Station"), lat: coord?.latitude, lon: coord?.longitude), to: backend)
         }
     }
 
@@ -1626,7 +1627,7 @@ class PhoneViewModel: ObservableObject {
         case .garmin:
             refreshConnectedWatches()
             if !watchService.hasGarminWatch {
-                showWatchStatus("No watch connected")
+                showWatchStatus(String(localized: "No watch connected"))
                 return
             }
             if garminAlive {
@@ -1654,10 +1655,10 @@ class PhoneViewModel: ObservableObject {
                     syncCurrentStateToWatch(to: .appleWatch)
                 }
             } else {
-                showWatchStatus("Open TrainTime on your watch")
+                showWatchStatus(String(localized: "Open TrainTime on your watch"))
             }
         case .none:
-            showWatchStatus("No watch connected")
+            showWatchStatus(String(localized: "No watch connected"))
         }
     }
 
@@ -1809,7 +1810,7 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         if appState == 3 { resumeFromInactive() }
         guard let link = SBBShareLink.find(in: text) else {
-            shareStatus = "No SBB trip link found"
+            shareStatus = String(localized: "No SBB trip link found")
             return
         }
         var sourceUrl: String?
@@ -1820,12 +1821,12 @@ class PhoneViewModel: ObservableObject {
                 await openSharedRoute(SharedRouteOffer(route: route, sourceUrl: sourceUrl))
             } catch let error as SBBDecodeError {
                 switch error {
-                case .unsupportedVersion: shareStatus = "This SBB link format isn't supported yet"
-                case .noRideLegs: shareStatus = "Nothing to track in this trip"
-                case .malformed: shareStatus = "Couldn't read this trip link"
+                case .unsupportedVersion: shareStatus = String(localized: "This SBB link format isn't supported yet")
+                case .noRideLegs: shareStatus = String(localized: "Nothing to track in this trip")
+                case .malformed: shareStatus = String(localized: "Couldn't read this trip link")
                 }
             } catch {
-                shareStatus = "Couldn't open the link. Check your connection"
+                shareStatus = String(localized: "Couldn't open the link. Check your connection")
             }
         }
     }
@@ -1860,12 +1861,12 @@ class PhoneViewModel: ObservableObject {
     private func proceedWithSharedRoute(_ offer: SharedRouteOffer) {
         let now = Int(Date().timeIntervalSince1970)
         guard let index = offer.route.targetRideLegIndex(now: now) else {
-            shareStatus = "This trip is already underway or finished"
+            shareStatus = String(localized: "This trip is already underway or finished")
             return
         }
         let leg = offer.route.legs[index]
         guard let stationId = leg.originId else {
-            shareStatus = "Couldn't read this trip link"
+            shareStatus = String(localized: "Couldn't read this trip link")
             return
         }
         pendingShareTrack = offer
@@ -1881,7 +1882,7 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         if appState == 3 { resumeFromInactive() }
         let station = Station(
-            id: id, name: name ?? "Station", lat: lat, lon: lon,
+            id: id, name: name ?? String(localized: "Station"), lat: lat, lon: lon,
             mode: currentMode, dist: nil, embeddedDepartures: nil
         )
         switch currentMode {
@@ -1987,7 +1988,7 @@ class PhoneViewModel: ObservableObject {
         location.saveLastKnownCoordinate()
         PendingRouteNotifier.schedule(pending, now: now)
         syncReminderTracking()
-        shareStatus = "Saved. We'll remind you before departure"
+        shareStatus = String(localized: "Saved. We'll remind you before departure")
         // Don't strand the user on the remote origin board. The queued route
         // lives in the chip now. Return to their real location.
         returnToNearbyIfLaunched()
@@ -2000,7 +2001,7 @@ class PhoneViewModel: ObservableObject {
     func saveDepartureAsPending(_ departure: Departure) {
         lastInteractionTime = Date()
         guard let station = currentStation, departure.departureTimestamp != nil else {
-            shareStatus = "Couldn't save this departure"
+            shareStatus = String(localized: "Couldn't save this departure")
             return
         }
         saveRouteOffer(SharedRoute.forDeparture(station: station, departure: departure))
@@ -2084,7 +2085,7 @@ class PhoneViewModel: ObservableObject {
         guard let normalized = PendingRouteLogic.normalize(current, now: now) else {
             pendingRouteStore.clear()
             PendingRouteNotifier.cancel()
-            shareStatus = "Saved route to \(current.finalDestination) has passed"
+            shareStatus = String(localized: "Saved route to \(current.finalDestination) has passed")
             return
         }
         if normalized != current {
@@ -2117,7 +2118,7 @@ class PhoneViewModel: ObservableObject {
         watchService.initialize()
         watchService.refreshConnectedWatches()
         guard watchService.hasGarminWatch else {
-            watchSendStatus = "No watch connected"
+            watchSendStatus = String(localized: "No watch connected")
             return
         }
         let payload = PhoneWatchService.GarminPayload.track(leg: leg, finalDestination: route.finalDestination)
@@ -2137,7 +2138,7 @@ class PhoneViewModel: ObservableObject {
             self.watchService.sendToGarminWatches(payload)
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             self.watchService.sendToGarminWatches(payload)
-            self.watchSendStatus = "Sent to watch"
+            self.watchSendStatus = String(localized: "Sent to watch")
             self.watchService.openGarminApp()
         }
     }

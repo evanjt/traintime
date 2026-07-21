@@ -140,8 +140,9 @@ enum PendingRouteNotifier {
         let depTime = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))
 
         let content = UNMutableNotificationContent()
-        content.title = "\(line.isEmpty ? "Train" : line) to \(route.finalDestination)"
-        content.body = "Departs \(depTime) from \(leg.originName)"
+        let displayLine = line.isEmpty ? String(localized: "Train") : line
+        content.title = String(localized: "\(displayLine) to \(route.finalDestination)")
+        content.body = String(localized: "Departs \(depTime) from \(leg.originName)")
         content.sound = .default
         content.userInfo = ["deepLink": "traintime://resumeroute"]
         // Offer "Send to Watch" only when a Garmin has actually connected here at
@@ -164,7 +165,7 @@ enum PendingRouteNotifier {
     /// without waiting for a real departure. Own identifier so it never
     /// disturbs a scheduled reminder.
     static func sendTest() {
-        notify(title: "Test reminder", body: "Route reminders are working. This is a test.")
+        notify(title: String(localized: "Test reminder"), body: String(localized: "Route reminders are working. This is a test."))
     }
 
     /// Posts a short-delay notification in the reminder channel. Used by the test

@@ -182,7 +182,7 @@ struct PhoneFocusedTrackingView: View {
                                     isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch,
                                     size: 16
                                 )
-                                Text(viewModel.watchTrackingFocused ? "Tracking on watch" : "Track on watch")
+                                Text(viewModel.watchTrackingFocused ? String(localized: "Tracking on watch") : String(localized: "Track on watch"))
                                     .font(.subheadline)
                             }
                             .frame(maxWidth: 200)
@@ -321,7 +321,7 @@ struct PhoneMapView: View {
             if let station = viewModel.currentStation,
                let stationCoord = station.coordinate {
                 Map {
-                    Marker(station.name ?? "Station", coordinate: stationCoord)
+                    Marker(station.name ?? String(localized: "Station"), coordinate: stationCoord)
                         .tint(.red)
                     UserAnnotation()
                 }
@@ -343,7 +343,7 @@ struct PhoneMapView: View {
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             let destination = MKMapItem(placemark: MKPlacemark(coordinate: stationCoord))
-                            destination.name = station.name ?? "Station"
+                            destination.name = station.name ?? String(localized: "Station")
                             destination.openInMaps(launchOptions: [
                                 MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking
                             ])
@@ -352,7 +352,7 @@ struct PhoneMapView: View {
                         }
                     }
                 }
-                .navigationTitle(station.name ?? "Station")
+                .navigationTitle(station.name ?? String(localized: "Station"))
                 .navigationBarTitleDisplayMode(.inline)
             } else {
                 Text("No station selected")
