@@ -1,3 +1,1 @@
-- Neu: TrainTime für Wear OS. Verfolge Abfahrten direkt am Handgelenk und sende einen Zug vom Handy an die Uhr. Favoriten, angepinnte Stationen und Standardmodus bleiben synchron.
 - Behebt einen Absturz beim Start auf Telefonen mit installierter Garmin-Connect-App.
-- Die App-Tour stellt neu die Uhren-Apps vor.

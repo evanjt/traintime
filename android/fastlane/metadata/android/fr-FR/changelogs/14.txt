@@ -1,0 +1,2 @@
+- Nouveau : TrainTime sur Wear OS. Suivez vos départs au poignet et envoyez un train du téléphone à la montre. Favoris, gares épinglées et mode par défaut restent synchronisés.
+- La visite guidée présente désormais les applications montre.

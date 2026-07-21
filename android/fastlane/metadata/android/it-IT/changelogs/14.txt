@@ -1,0 +1,2 @@
+- Novità: TrainTime per Wear OS. Segui le partenze dal polso e invia un treno dal telefono all'orologio. Preferiti, stazioni fissate e modalità predefinita restano sincronizzati.
+- Il tour dell'app ora presenta le app per orologio.

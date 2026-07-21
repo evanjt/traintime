@@ -1,0 +1,1 @@
+Prima versione per Wear OS: partenze nelle vicinanze, monitoraggio in tempo reale con conto alla rovescia, ritardo e binario, preferiti e stazioni fissate sincronizzati con il telefono.
