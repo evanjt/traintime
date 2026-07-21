@@ -424,7 +424,7 @@ module Renderer {
         var midY = height * 14 / 100;
         var usable = DrawUtils.getUsableWidth(midY, width, height);
         var rightEdge = (width + usable) / 2 - DrawUtils.px(4, width);
-        var startX = rightEdge - gpsBarsWidth(width);
+        var startX = rightEdge - gpsIndicatorWidth(view, width);
         var baseY = midY + maxH / 2;  // bottom of tallest bar
         drawGpsBars(dc, view, startX, baseY, width);
     }
@@ -433,7 +433,26 @@ module Renderer {
         return 3 * DrawUtils.px(3, width) + 2 * DrawUtils.px(2, width);
     }
 
+    // Width of whatever drawGpsBars will render: the phone-relay glyph is a
+    // little wider than the bars, so layout asks here instead of gpsBarsWidth.
+    function gpsIndicatorWidth(view, width) {
+        if (view.usingPhoneLoc()) { return phoneRelayIconWidth(width); }
+        return gpsBarsWidth(width);
+    }
+
+    function phoneRelayIconWidth(width) {
+        // phone body + gap + two wave arcs
+        return DrawUtils.px(7, width) + DrawUtils.px(2, width) + DrawUtils.px(7, width);
+    }
+
     function drawGpsBars(dc, view, startX, baseY, width) {
+        // Position resolves to a phone-relayed coordinate: show the phone glyph
+        // instead of bars for our own (unusable) GPS.
+        if (view.usingPhoneLoc()) {
+            drawPhoneRelayIcon(dc, startX, baseY, width);
+            return;
+        }
+
         var barW = DrawUtils.px(3, width);
         var gap = DrawUtils.px(2, width);
         var maxH = DrawUtils.px(13, width);
@@ -441,7 +460,8 @@ module Renderer {
         // Determine fill level and color
         var fillCount;
         var fillColor;
-        if (view.mLoadedFromCache || view.mGpsQuality == Position.QUALITY_LAST_KNOWN) {
+        var cached = view.mLoadedFromCache || view.mGpsQuality == Position.QUALITY_LAST_KNOWN;
+        if (cached) {
             fillCount = 3;
             fillColor = 0x888888;
         } else if (view.mGpsQuality == Position.QUALITY_NOT_AVAILABLE) {
@@ -471,6 +491,37 @@ module Renderer {
             }
             dc.fillRectangle(bx, by, barW, bh);
         }
+
+        // A cached coordinate is zero proof of where we are now: cross the
+        // (grey) bars out rather than leaving them looking like a live fix.
+        if (cached) {
+            var barsW = gpsBarsWidth(width);
+            dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(DrawUtils.px(2, width));
+            dc.drawLine(startX, baseY, startX + barsW, baseY - maxH);
+            dc.drawLine(startX, baseY - maxH, startX + barsW, baseY);
+            dc.setPenWidth(1);
+        }
+    }
+
+    // Variant C "phone waves": phone outline with two arcs radiating from its
+    // right edge, drawn in the info-blue used for line ids. Shown while the
+    // watch is navigating on a coordinate relayed from the phone.
+    function drawPhoneRelayIcon(dc, startX, baseY, width) {
+        var h = DrawUtils.px(13, width);
+        var phoneW = DrawUtils.px(7, width);
+        var top = baseY - h;
+
+        dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(DrawUtils.px(1, width));
+        dc.drawRoundedRectangle(startX, top, phoneW, h, DrawUtils.px(2, width));
+
+        // Waves centred on the phone's right edge, opening rightward
+        var cx = startX + phoneW + DrawUtils.px(1, width);
+        var cy = top + h / 2;
+        dc.drawArc(cx, cy, DrawUtils.px(3, width), Graphics.ARC_COUNTER_CLOCKWISE, 320, 40);
+        dc.drawArc(cx, cy, DrawUtils.px(6, width), Graphics.ARC_COUNTER_CLOCKWISE, 320, 40);
+        dc.setPenWidth(1);
     }
 
     function drawTrainRow(dc, train, y, width, height, highlighted, isFav) {
@@ -580,7 +631,7 @@ module Renderer {
         var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
         var clockW = dc.getTextDimensions(timeStr, Graphics.FONT_XTINY)[0];
-        var gpsW = gpsBarsWidth(width);
+        var gpsW = gpsIndicatorWidth(view, width);
         var groupGap = DrawUtils.px(6, width);
         var groupX = centerX - (gpsW + groupGap + clockW) / 2;
         drawGpsBars(dc, view, groupX, yTop + xtinyH * 3 / 4, width);

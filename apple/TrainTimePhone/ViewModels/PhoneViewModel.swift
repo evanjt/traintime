@@ -101,6 +101,21 @@ class PhoneViewModel: ObservableObject {
     @Published private var livenessTick = 0
     // A Garmin open attempt is in flight (spinner). Apple can't be launched, so it's Garmin-only.
     @Published var watchChecking = false
+    // Departure a watch reports it is tracking: set by trackStarted and by trk/trkLn
+    // on the state-carrying liveness heartbeat (Garmin pv>=3, Apple pv>=2), cleared
+    // by trackEnded and bye; validity additionally requires the owning backend to be
+    // alive. This is what flips "Track on watch" to "Tracking on watch".
+    @Published private(set) var watchTrackingDepTs: Int?
+    @Published private(set) var watchTrackingLine: String?
+    // Full trackStarted payload when we saw one (the heartbeat only carries
+    // depTs/line). Needed to rebuild a FocusedDeparture for tap-to-follow.
+    private var watchTrackingInfo: [String: Any]?
+    private var watchTrackingSource: PhoneWatchType?
+    private var appleWatchPv = 0
+    // The user asked to track on a closed watch: openWatchApp is in flight and the
+    // next hello must carry the track command first. Without this, a stale alive
+    // reading used to route the tap into a send the closed app never saw.
+    private var pendingWatchTrackSend = false
 
     // MARK: - Internal State
     let routing = RoutingService.shared
@@ -250,6 +265,17 @@ class PhoneViewModel: ObservableObject {
             case "favourites":
                 // The Garmin watch pushed its favourites: outer-join them into ours.
                 self.applyGarminFavourites(context["favs"])
+            case "trackStarted":
+                // The watch entered tracking (its own tap, or the echo of our
+                // track command — the echo doubles as the delivery ack).
+                self.watchTrackingDepTs = self.intValue(context["depTs"])
+                self.watchTrackingLine = context["line"] as? String
+                self.watchTrackingInfo = context
+                self.watchTrackingSource = source
+            case "trackEnded":
+                if self.watchTrackingSource == source || self.watchTrackingSource == nil {
+                    self.clearWatchTracking()
+                }
             default:
                 self.applyReceivedWatchContext(context)
             }
@@ -323,17 +349,34 @@ class PhoneViewModel: ObservableObject {
             garminLastAlive = Date()
             garminLastAliveHighWater = garminLastAlive
             watchChecking = false
-            if !wasAlive { syncCurrentStateToWatch(to: .garmin) }
+            applyLivenessTracking(context, source: .garmin, statefulPv: garminWatchPv >= 3)
+            // A user-initiated track send takes priority and goes out first — it's
+            // the time-critical payload. Otherwise the freshly-online watch jumps
+            // to whatever the phone is showing.
+            if pendingWatchTrackSend {
+                pendingWatchTrackSend = false
+                sendFocusedTrackFirst(to: .garmin)
+            } else if !wasAlive {
+                syncCurrentStateToWatch(to: .garmin)
+            }
         case .appleWatch:
             appleWatchVersion = v
+            appleWatchPv = context["pv"] as? Int ?? 0
             let wasAlive = appleAlive
             appleLastAlive = Date()
             appleLastContact = Date()
-            if !wasAlive { syncCurrentStateToWatch(to: .appleWatch) }
+            applyLivenessTracking(context, source: .appleWatch, statefulPv: appleWatchPv >= 2)
+            if pendingWatchTrackSend {
+                pendingWatchTrackSend = false
+                sendFocusedTrackFirst(to: .appleWatch)
+            } else if !wasAlive {
+                syncCurrentStateToWatch(to: .appleWatch)
+            }
         }
     }
 
     private func markBye(_ source: PhoneWatchType) {
+        if watchTrackingSource == source { clearWatchTracking() }
         switch source {
         case .garmin:
             // The high water mark stays: bye after alive is exactly what the
@@ -351,6 +394,92 @@ class PhoneViewModel: ObservableObject {
         UserDefaults.standard.set(garminLastAliveHighWater.timeIntervalSince1970, forKey: "garminLastAliveTs")
         UserDefaults.standard.set(garminLastByeAt.timeIntervalSince1970, forKey: "garminLastByeTs")
         UserDefaults.standard.set(garminWatchPv, forKey: "garminWatchPv")
+    }
+
+    // MARK: - Watch tracking state
+
+    private func intValue(_ any: Any?) -> Int? {
+        if let i = any as? Int { return i }
+        if let d = any as? Double { return Int(d) }
+        return nil
+    }
+
+    private func clearWatchTracking() {
+        watchTrackingDepTs = nil
+        watchTrackingLine = nil
+        watchTrackingInfo = nil
+        watchTrackingSource = nil
+    }
+
+    // trk/trkLn on a hello/alive mirror the tracked departure; their absence on a
+    // watch whose pv promises state means "not tracking". Older watches stay
+    // edge-driven (trackStarted only), so silence doesn't clear them here.
+    private func applyLivenessTracking(_ context: [String: Any], source: PhoneWatchType, statefulPv: Bool) {
+        if let trk = intValue(context["trk"]) {
+            if intValue(watchTrackingInfo?["depTs"]) != trk { watchTrackingInfo = nil }
+            watchTrackingDepTs = trk
+            watchTrackingLine = context["trkLn"] as? String
+            watchTrackingSource = source
+        } else if statefulPv, watchTrackingSource == source {
+            clearWatchTracking()
+        }
+    }
+
+    /// A watch claims to be tracking and its liveness is fresh — a dead heartbeat
+    /// takes the claim with it, so this can never show stale state.
+    var watchTrackingActive: Bool {
+        guard watchTrackingDepTs != nil, let src = watchTrackingSource else { return false }
+        switch src {
+        case .garmin: return garminAlive
+        case .appleWatch: return appleAlive
+        }
+    }
+
+    /// The watch is tracking the same departure the phone is focused on.
+    var watchTrackingFocused: Bool {
+        guard watchTrackingActive, let focused = focusedTrain, let depTs = watchTrackingDepTs else { return false }
+        if let line = watchTrackingLine, !line.isEmpty, line != focused.lineNumber { return false }
+        return focused.departureTimestamp == depTs
+    }
+
+    /// "IC 8 → Brig · 14:54" for the board-view chip; built from the last
+    /// trackStarted payload, or just line + time when only the heartbeat spoke.
+    var watchTrackingLabel: String? {
+        guard watchTrackingActive, let depTs = watchTrackingDepTs else { return nil }
+        let infoLine = (watchTrackingInfo?["line"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let line = infoLine ?? watchTrackingLine.flatMap { $0.isEmpty ? nil : $0 }
+        let dest = (watchTrackingInfo?["dest"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm"
+        let time = fmt.string(from: Date(timeIntervalSince1970: TimeInterval(depTs)))
+        var head: [String] = []
+        if let line { head.append(line) }
+        if let dest { head.append("→ \(dest)") }
+        return head.isEmpty ? time : "\(head.joined(separator: " ")) · \(time)"
+    }
+
+    var watchTrackingFollowable: Bool {
+        guard watchTrackingActive, let info = watchTrackingInfo else { return false }
+        return intValue(info["depTs"]) == watchTrackingDepTs && !((info["dest"] as? String) ?? "").isEmpty
+    }
+
+    /// Enter the phone's tracking view on the departure the watch is tracking,
+    /// without mirroring back (the watch already owns this track).
+    func followWatchTracking() {
+        guard let depTs = watchTrackingDepTs, let info = watchTrackingInfo,
+              intValue(info["depTs"]) == depTs,
+              let dest = info["dest"] as? String, !dest.isEmpty else { return }
+        beginTracking(FocusedDeparture(
+            destination: dest,
+            departureTimestamp: depTs,
+            lineNumber: info["line"] as? String ?? "",
+            category: info["cat"] as? String ?? "",
+            trainNumber: info["trainNum"] as? String,
+            operatorRef: info["opRef"] as? String,
+            delay: intValue(info["delay"]) ?? 0,
+            platform: info["plat"] as? String ?? "",
+            platformChanged: info["platChg"] as? Bool ?? false
+        ), mirror: false)
     }
 
     // Accelerate the green indicator when the phone foregrounds while the watch
@@ -763,8 +892,10 @@ class PhoneViewModel: ObservableObject {
 
     /// Shared tracking entry: from a real board tap or a synthesised shared-route
     /// leg. Everything downstream (timer cadence, watch/Garmin mirror, formation)
-    /// is identical once we have a FocusedDeparture.
-    private func beginTracking(_ focused: FocusedDeparture) {
+    /// is identical once we have a FocusedDeparture. mirror=false when following
+    /// a track the watch already owns — re-sending it would make the watch
+    /// re-enter (and re-buzz) its own tracking.
+    private func beginTracking(_ focused: FocusedDeparture, mirror mirrorToWatches: Bool = true) {
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
@@ -788,7 +919,9 @@ class PhoneViewModel: ObservableObject {
 
         // Mirror the same focused train onto the watch (immediate: a tap is a
         // strong, deliberate action).
-        mirror(PhoneWatchService.GarminPayload.track(focused, station: currentStation))
+        if mirrorToWatches {
+            mirror(PhoneWatchService.GarminPayload.track(focused, station: currentStation))
+        }
     }
 
     func enterInactiveState() {
@@ -876,6 +1009,8 @@ class PhoneViewModel: ObservableObject {
     func exitToStationView() {
         let wasTracking = appState == 2
         onTrackingEnded(wasTracking ? focusedTrain?.departureTimestamp : nil)
+        // A queued "track on watch" intent dies with the tracking session.
+        pendingWatchTrackSend = false
         lastInteractionTime = Date()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -1127,7 +1262,10 @@ class PhoneViewModel: ObservableObject {
 
     var trackingStatusText: String {
         let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return "No GPS" }
+        // Cached coordinates prove nothing about where we are now: computing an
+        // ahead/behind verdict from one produced the "800 min behind" failure
+        // when the seed was a city away.
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return "No GPS" }
         let absBuf = abs(buf)
         if absBuf < 0.5 { return "On time" }
         let unit = absBuf < 1.5 ? "\(Int(absBuf * 60))s" : "\(Int(absBuf)) min"
@@ -1136,7 +1274,7 @@ class PhoneViewModel: ObservableObject {
 
     var trackingStatusColor: Color {
         let buf = trackingEffectiveBuffer
-        if gpsQuality == .unavailable { return AppColors.barGray }
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return AppColors.barGray }
         if buf > 0.5 { return AppColors.ahead }
         if buf < -0.5 { return AppColors.behind }
         return AppColors.onTime
@@ -1310,6 +1448,23 @@ class PhoneViewModel: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     self?.watchSendStatus = nil
                 }
+                // SDK success means "reached the device", not "the app saw it".
+                // On a pv>=3 Garmin the trackStarted echo is the real ack; no echo
+                // means the app was probably closed behind a stale alive reading,
+                // so relaunch it with the track queued instead of leaving a false
+                // "Sent".
+                guard success, watch.type == .garmin, (self?.garminWatchPv ?? 0) >= 3 else { return }
+                let depTs = focused.departureTimestamp
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    guard let self, self.appState == 2,
+                          self.focusedTrain?.departureTimestamp == depTs,
+                          !self.watchTrackingFocused else { return }
+                    self.pendingWatchTrackSend = true
+                    self.watchChecking = true
+                    self.showWatchStatus("Watch app not responding, reopening...")
+                    self.watchService.openGarminApp()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 8) { self.watchChecking = false }
+                }
             }
         }
     }
@@ -1333,6 +1488,9 @@ class PhoneViewModel: ObservableObject {
         if primaryWatchLiveness == .green {
             sendToWatch()
         } else {
+            // Launch path: remember the intent so the hello answers with the
+            // track command first, not the generic state sync.
+            pendingWatchTrackSend = appState == 2 && focusedTrain != nil
             openWatchApp()
         }
     }
@@ -1385,6 +1543,9 @@ class PhoneViewModel: ObservableObject {
     // fallback. Debounced ≥10 s / ≥100 m so a settled phone (or a mock-GPS app) keeps the
     // watch fed without flooding.
     private func maybePushLocationToWatch(_ coord: CLLocationCoordinate2D) {
+        // A cached coordinate may be from another city; relaying it hands the
+        // watch a confident-looking fix with zero proof behind it.
+        guard !location.loadedFromCache else { return }
         guard resolvedPrimaryWatch != nil else { return }
         let movedEnough = lastPushedLoc.map { GeoUtils.haversineDistance(from: $0, to: coord) >= 100 } ?? true
         if !movedEnough, Date().timeIntervalSince(lastLocPushTime) < 10 { return }
@@ -1396,7 +1557,7 @@ class PhoneViewModel: ObservableObject {
     // Force-push the current location to the primary watch, bypassing the debounce. Used on
     // app open so a watch sitting on "Not in Switzerland" picks up the phone's position.
     private func pushLocationNow() {
-        guard let coord = location.coordinate else { return }
+        guard let coord = location.coordinate, !location.loadedFromCache else { return }
         lastPushedLoc = coord
         lastLocPushTime = Date()
         mirror(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude))
@@ -1404,34 +1565,57 @@ class PhoneViewModel: ObservableObject {
 
     // Reply to a backend's explicit reqLoc with the phone's current coordinate.
     private func replyWithLocation(to source: PhoneWatchType) {
-        guard mirrorToWatch, let coord = location.coordinate else { return }
+        guard mirrorToWatch, let coord = location.coordinate, !location.loadedFromCache else { return }
         send(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude), to: source)
     }
 
-    // Push the phone's current view onto a freshly-opened watch: location, plus either the
-    // tracked train or the current station. The peer of Android's syncCurrentStateToWatch.
+    // Push the phone's current view onto a freshly-opened watch: the tracked train
+    // or current station first — when the user is waiting on a countdown, the track
+    // command must not queue behind a location push and a favourites blob — then the
+    // location and favourites seeding. The peer of Android's syncCurrentStateToWatch.
     private func syncCurrentStateToWatch(to backend: PhoneWatchType) {
-        guard mirrorToWatch, let coord = location.coordinate else {
-            // No location yet, still mirror the view if we have one.
-            sendCurrentView(to: backend)
-            return
-        }
-        send(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude), to: backend)
-        lastPushedLoc = coord
-        lastLocPushTime = Date()
         sendCurrentView(to: backend)
-    }
-
-    private func sendCurrentView(to backend: PhoneWatchType) {
+        if mirrorToWatch, let coord = location.coordinate, !location.loadedFromCache {
+            send(PhoneWatchService.GarminPayload.location(lat: coord.latitude, lon: coord.longitude), to: backend)
+            lastPushedLoc = coord
+            lastLocPushTime = Date()
+        }
         // Re-seed favourites so a freshly-opened Garmin watch unions in any it lacks.
         if backend == .garmin {
             send(PhoneWatchService.GarminPayload.favourites(favouritesStore.favourites), to: .garmin)
         }
+    }
+
+    private func sendCurrentView(to backend: PhoneWatchType) {
         if appState == 2, let focused = focusedTrain {
             send(PhoneWatchService.GarminPayload.track(focused, station: currentStation), to: backend)
         } else if let st = currentStation, let id = st.id {
             let coord = st.coordinate
             send(PhoneWatchService.GarminPayload.station(id: id, name: st.name ?? "Station", lat: coord?.latitude, lon: coord?.longitude), to: backend)
+        }
+    }
+
+    // The pending-track path: the tracked departure goes out first, then the
+    // location/favourites seeding, then one delayed resend unless the watch's
+    // trackStarted echo already confirmed it landed (a send can race the watch's
+    // cold start and vanish — the silent "it just didn't track" failure).
+    private func sendFocusedTrackFirst(to backend: PhoneWatchType) {
+        guard appState == 2, let focused = focusedTrain else {
+            syncCurrentStateToWatch(to: backend)
+            return
+        }
+        let payload = PhoneWatchService.GarminPayload.track(focused, station: currentStation)
+        send(payload, to: backend)
+        pushLocationNow()
+        if backend == .garmin {
+            send(PhoneWatchService.GarminPayload.favourites(favouritesStore.favourites), to: .garmin)
+        }
+        let depTs = focused.departureTimestamp
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self, self.appState == 2,
+                  self.focusedTrain?.departureTimestamp == depTs,
+                  !self.watchTrackingFocused else { return }
+            self.send(payload, to: backend)
         }
     }
 
@@ -1446,7 +1630,12 @@ class PhoneViewModel: ObservableObject {
                 return
             }
             if garminAlive {
-                syncCurrentStateToWatch(to: .garmin)
+                if pendingWatchTrackSend {
+                    pendingWatchTrackSend = false
+                    sendFocusedTrackFirst(to: .garmin)
+                } else {
+                    syncCurrentStateToWatch(to: .garmin)
+                }
                 return
             }
             watchChecking = true
@@ -1458,7 +1647,12 @@ class PhoneViewModel: ObservableObject {
             }
         case .appleWatch:
             if watchService.wcService.isReachable {
-                syncCurrentStateToWatch(to: .appleWatch)
+                if pendingWatchTrackSend {
+                    pendingWatchTrackSend = false
+                    sendFocusedTrackFirst(to: .appleWatch)
+                } else {
+                    syncCurrentStateToWatch(to: .appleWatch)
+                }
             } else {
                 showWatchStatus("Open TrainTime on your watch")
             }

@@ -151,7 +151,8 @@ fun WearTrackingScreen(vm: WearViewModel) {
             TrackingBarWear(
                 schedBuf = vm.trackingScheduledBuffer,
                 effectBuf = vm.trackingEffectiveBuffer,
-                hasGps = vm.gpsQuality != GpsQuality.UNAVAILABLE,
+                hasGps = vm.gpsQuality != GpsQuality.UNAVAILABLE &&
+                    vm.gpsQuality != GpsQuality.LAST_KNOWN,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
 

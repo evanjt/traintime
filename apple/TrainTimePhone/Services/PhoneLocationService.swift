@@ -10,8 +10,16 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
     @Published var horizontalAccuracy: Double?
     @Published var authorizationDenied = false
 
+    /// Seeds older than this are marked cached rather than live.
+    private static let seedMaxAge: TimeInterval = 120
+
+    /// The held coordinate is a cached one (persisted, or an old OS fix), not a live fix.
+    var loadedFromCache: Bool {
+        coordinate != nil && horizontalAccuracy == -1
+    }
+
     var gpsQuality: GPSQuality {
-        GPSQuality.from(accuracy: horizontalAccuracy)
+        loadedFromCache ? .lastKnown : GPSQuality.from(accuracy: horizontalAccuracy)
     }
 
     var isInSwitzerland: Bool {
@@ -32,11 +40,18 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
     func start() {
         manager.requestWhenInUseAuthorization()
         // Seed from the OS last-known fix so stations can show immediately, before the
-        // first live update arrives (analog of Garmin's Position.getInfo()).
+        // first live update arrives (analog of Garmin's Position.getInfo()). An old fix
+        // keeps its original (often good) accuracy while being from wherever the phone
+        // last resolved — possibly another city — so past the age gate it's marked
+        // cached and nothing downstream treats it as proof of position.
         if coordinate == nil, let cached = manager.location {
             coordinate = cached.coordinate
-            horizontalAccuracy = cached.horizontalAccuracy
-            speed = cached.speed
+            if Date().timeIntervalSince(cached.timestamp) <= Self.seedMaxAge {
+                horizontalAccuracy = cached.horizontalAccuracy
+                speed = cached.speed
+            } else {
+                horizontalAccuracy = -1
+            }
         }
         manager.startUpdatingLocation()
     }

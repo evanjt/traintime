@@ -44,7 +44,7 @@ class WearViewModelTest {
 
         override suspend fun pushState() {}
 
-        override suspend fun sendLiveness(kind: String) {
+        override suspend fun sendLiveness(kind: String, tracking: com.evanjt.traintime.core.sync.TrackCommand?) {
             liveness += kind
         }
 

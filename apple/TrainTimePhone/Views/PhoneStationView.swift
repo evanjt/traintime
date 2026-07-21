@@ -27,7 +27,10 @@ struct PhoneStationView: View {
                     .buttonStyle(.plain)
                     .padding(.trailing, 4)
                 }
-                Image(systemName: "location.fill")
+                // Crossed pin = zero proof of position: no fix at all, or only a
+                // cached coordinate that may be from another city.
+                Image(systemName: viewModel.gpsQuality == .lastKnown || viewModel.gpsQuality == .unavailable
+                    ? "location.slash.fill" : "location.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(viewModel.gpsQuality.color)
                 Button { showSettings = true } label: {
@@ -67,6 +70,29 @@ struct PhoneStationView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)
                 .padding(.bottom, 8)
+
+            // The watch is tracking a departure while the phone shows the board:
+            // say so, and (when the full payload is known) tap to follow along.
+            if let label = viewModel.watchTrackingLabel {
+                Button {
+                    viewModel.followWatchTracking()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "applewatch")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.green)
+                        Text("Tracking on watch · \(label)")
+                            .font(.footnote)
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.watchTrackingFollowable)
+                .padding(.bottom, 8)
+            }
 
             // Departure list
             if viewModel.departures.isEmpty {

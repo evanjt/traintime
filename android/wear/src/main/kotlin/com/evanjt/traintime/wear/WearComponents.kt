@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Train
 import androidx.compose.material.icons.filled.Tram
@@ -82,7 +83,12 @@ fun ModeIconRow(vm: WearViewModel) {
 
 @Composable
 fun GpsIcon(quality: GpsQuality, modifier: Modifier = Modifier) {
-    Icon(Icons.Filled.LocationOn, contentDescription = "GPS", tint = quality.tint, modifier = modifier.size(15.dp))
+    // Crossed pin = zero proof of position (no fix, or a cached coordinate).
+    val icon = when (quality) {
+        GpsQuality.LAST_KNOWN, GpsQuality.UNAVAILABLE -> Icons.Filled.LocationOff
+        else -> Icons.Filled.LocationOn
+    }
+    Icon(icon, contentDescription = "GPS", tint = quality.tint, modifier = modifier.size(15.dp))
 }
 
 @Composable

@@ -392,7 +392,7 @@ class WearViewModel(
         }
         startTimer(if (appState == 2) Timing.TRACKING_REFRESH_INTERVAL else Timing.NORMAL_REFRESH_INTERVAL)
         // Announce we're up so a listening phone greens its link indicator at once.
-        viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_HELLO) }
+        viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_HELLO, livenessTracking()) }
     }
 
     fun onDisappear() {
@@ -401,6 +401,14 @@ class WearViewModel(
         // The heartbeat stops with the timer, so the phone ambers while we're
         // backgrounded, same semantics as the Apple watch's bye.
         viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_BYE) }
+    }
+
+    // The focused departure stamped onto hello/alive while tracking, so the
+    // phone mirrors the tracking state from the heartbeat alone.
+    private fun livenessTracking(): TrackCommand? {
+        val focused = focusedTrain ?: return null
+        if (appState != 2) return null
+        return TrackCommand.from(focused, currentStation?.id)
     }
 
     fun onPermissionResult(granted: Boolean) {
@@ -515,6 +523,15 @@ class WearViewModel(
         lastVibeTick = 0
         lastFetchTime = 0
         formation = null
+
+        // Reflect the same focused train on the phone (parity with the Garmin and
+        // Apple watch trackStarted echoes — it doubles as the delivery ack).
+        viewModelScope.launch {
+            wearSync.sendLiveness(
+                WearSync.KIND_TRACK_STARTED,
+                TrackCommand.from(focused, currentStation?.id),
+            )
+        }
         val trainNumber = focused.trainNumber
         if (trainNumber != null && Formation.isRailCategory(focused.category) && formationStationId != null) {
             val date = formationDateString()
@@ -622,7 +639,7 @@ class WearViewModel(
         // Same ≥7 s cadence as the Apple watch; stops with the timer on background.
         if (now() - lastAliveSentTs >= 7_000) {
             lastAliveSentTs = now()
-            viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_ALIVE) }
+            viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_ALIVE, livenessTracking()) }
         }
 
         val startTime = requestStartTime
@@ -764,6 +781,9 @@ class WearViewModel(
     }
 
     fun enterInactiveState() {
+        if (appState == 2) {
+            viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_TRACK_ENDED) }
+        }
         appState = 3
         location.setTrackingAccuracy(false)
         focusedTrain = null
@@ -843,6 +863,9 @@ class WearViewModel(
     }
 
     fun exitToStationView() {
+        if (appState == 2) {
+            viewModelScope.launch { wearSync.sendLiveness(WearSync.KIND_TRACK_ENDED) }
+        }
         lastInteractionTime = now()
         appState = 0
         location.setTrackingAccuracy(false)
@@ -1007,7 +1030,8 @@ class WearViewModel(
     val trackingStatusText: String
         get() {
             val buf = trackingEffectiveBuffer
-            if (gpsQuality == GpsQuality.UNAVAILABLE) return "No GPS"
+            // Cached coordinates prove nothing about where we are now; no verdict.
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return "No GPS"
             val absBuf = kotlin.math.abs(buf)
             if (absBuf < 0.5) return "On time"
             val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
@@ -1016,7 +1040,7 @@ class WearViewModel(
 
     val trackingStatus: TrackingStatus
         get() {
-            if (gpsQuality == GpsQuality.UNAVAILABLE) return TrackingStatus.NO_GPS
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return TrackingStatus.NO_GPS
             val buf = trackingEffectiveBuffer
             return when {
                 buf > 0.5 -> TrackingStatus.AHEAD

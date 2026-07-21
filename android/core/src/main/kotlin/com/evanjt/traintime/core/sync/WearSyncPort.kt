@@ -7,7 +7,9 @@ interface WearSyncPort {
 
     suspend fun pushState()
 
-    suspend fun sendLiveness(kind: String)
+    // `tracking` mirrors the watch's tracked departure onto hello/alive (and the
+    // full command onto trackStarted); null when not tracking.
+    suspend fun sendLiveness(kind: String, tracking: TrackCommand? = null)
 
     // Watch -> phone: ask the phone to save the focused departure as a reminder.
     // Returns whether it reached a connected phone.

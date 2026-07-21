@@ -33,6 +33,10 @@ object WearSync {
     const val KIND_ALIVE = "alive"
     const val KIND_BYE = "bye"
     const val KIND_REQ_LOC = "reqLoc"
+    // Watch -> phone tracking announcements, riding the liveness path: started
+    // carries the full track command (tap-to-follow needs it), ended is bare.
+    const val KIND_TRACK_STARTED = "trackStarted"
+    const val KIND_TRACK_ENDED = "trackEnded"
 
     // MessageClient command channel (phone -> watch) for the non-track mirror
     // actions (mode / station / loc / back) matching the Garmin action contract.
@@ -56,10 +60,12 @@ object WearSync {
 
     // Handshake versioning. A watch stamps every liveness announcement with its
     // marketing version (v, for gating + user-facing copy) and this monotonic
-    // protocol version (pv, reserved for a future breaking-payload gate). A
-    // liveness message with no version field is a pre-versioning build, read as
-    // the legacy version 0.4.x.
-    const val PROTOCOL_VERSION = 1
+    // protocol version (pv). A liveness message with no version field is a
+    // pre-versioning build, read as the legacy version 0.4.x.
+    // pv 2: hello/alive carry the tracked departure (trk/trkLn) while tracking,
+    // and trackStarted/trackEnded ride the liveness path. A phone seeing pv >= 2
+    // treats a heartbeat without trk as "not tracking".
+    const val PROTOCOL_VERSION = 2
     const val LEGACY_VERSION_NAME = "0.4.x"
 
     // The only current constraint: the sync features (Send-to-Watch, mirroring)
@@ -93,9 +99,18 @@ object WearSync {
     val json = Json { ignoreUnknownKeys = true }
 
     // Encode a liveness announcement stamped with the local version. Always JSON
-    // so hello/alive carry v/pv; bye/reqLoc carry them too (harmless).
-    fun encodeLiveness(kind: String): String =
-        json.encodeToString(LivenessMessage(kind, localVersionName, PROTOCOL_VERSION))
+    // so hello/alive carry v/pv; bye/reqLoc carry them too (harmless). While the
+    // watch is tracking, `tracking` mirrors the departure onto hello/alive (and
+    // carries the full command on trackStarted, for the phone's tap-to-follow).
+    fun encodeLiveness(kind: String, tracking: TrackCommand? = null): String =
+        json.encodeToString(
+            LivenessMessage(
+                kind, localVersionName, PROTOCOL_VERSION,
+                trk = tracking?.departureTimestamp,
+                trkLn = tracking?.lineNumber,
+                track = tracking,
+            ),
+        )
 
     // Decode a received liveness announcement. A bare kind string (no JSON) is a
     // pre-versioning watch: reported as the legacy version with pv 0.
@@ -183,6 +198,11 @@ data class LivenessMessage(
     val kind: String,
     val v: String? = null,
     val pv: Int = 0,
+    // pv >= 2: the departure the watch is tracking (depTs + line), stamped on
+    // hello/alive while tracking; trackStarted also carries the full command.
+    val trk: Long? = null,
+    val trkLn: String? = null,
+    val track: TrackCommand? = null,
 ) {
     // True when this watch is new enough (0.5.x+) for the sync features.
     val syncCapable: Boolean get() = WearSync.meetsSyncMinimum(v)
