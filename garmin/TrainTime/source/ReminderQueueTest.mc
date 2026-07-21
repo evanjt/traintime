@@ -115,7 +115,9 @@ function testReminderDrainThrottled(logger) {
     return once && twice;
 }
 
+// The phone gates its tracking mirror on a Garmin pv >= 3, so the constant may
+// rise with a new payload contract but must never fall back under that gate.
 (:test)
-function testProtocolVersionTwo(logger) {
-    return PhoneSync.PROTOCOL_VERSION == 2;
+function testProtocolVersionFloor(logger) {
+    return PhoneSync.PROTOCOL_VERSION >= 3;
 }
