@@ -99,12 +99,19 @@ def make_css(p):
   .sub {{
     margin-top: calc(var(--cap) * 0.34);
     font-size: var(--sub);
+    line-height: 1.2;
     font-weight: 400;
     color: {p['sub']};
     letter-spacing: 0.01em;
   }}
-  /* The favourites separator from the app, as the board's dividing line.
-     The bright segment travels across the set: shot 1 left, 2 centre, 3 right. */
+  /* Fixed so the rule lands at the same height on every shot. Without it the
+     rule rides on the text: a subcaption that wraps to two lines (French and
+     German need it) pushes it down and the set looks misaligned side by side.
+     Sized for the worst case, two caption lines over two subcaption lines. */
+  .head {{ height: var(--headh); }}
+  /* The favourites separator from the app, as the board's dividing line. The
+     bright segment is the position indicator: it travels left to right across
+     the set, and its width is one shot's share of the bar (see seg_positions). */
   .rule {{
     margin-top: calc(var(--cap) * 0.52);
     height: var(--rule);
@@ -114,7 +121,7 @@ def make_css(p):
   .rule::before {{
     content: '';
     position: absolute; left: var(--seg, 0%); top: 0; bottom: 0;
-    width: 27%;
+    width: var(--segw, 27%);
     background: {p['seg']};
   }}
   .stage {{
@@ -145,14 +152,16 @@ PHONE_HTML = """<!doctype html>
 <html><head><meta charset="utf-8"><style>
 {css}
 :root {{
-  --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg};
+  --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg}; --segw: {segw}; --headh: {headh}px;
   --devw: {devw}px; --devr: {devr}px; --bezel: {bezel}px; --glow: {glow}px;
 }}
 </style></head>
 <body>
   <div class="canvas">
-    <div class="caption">{caption}</div>
-    <div class="sub">{sub_text}</div>
+    <div class="head">
+      <div class="caption">{caption}</div>
+      <div class="sub">{sub_text}</div>
+    </div>
     <div class="rule"></div>
     <div class="stage">
       <div class="device">
@@ -167,7 +176,7 @@ WATCHES_HTML = """<!doctype html>
 <html><head><meta charset="utf-8"><style>
 {css}
 :root {{
-  --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg};
+  --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg}; --segw: {segw}; --headh: {headh}px;
   --glow: {glow}px;
 }}
 .trio {{
@@ -190,8 +199,10 @@ WATCHES_HTML = """<!doctype html>
 </style></head>
 <body>
   <div class="canvas">
-    <div class="caption">{caption}</div>
-    <div class="sub">{sub_text}</div>
+    <div class="head">
+      <div class="caption">{caption}</div>
+      <div class="sub">{sub_text}</div>
+    </div>
     <div class="rule"></div>
     <div class="trio">
       {items}
@@ -350,13 +361,40 @@ def shots(locale, strings, out_subdir):
     if out_subdir == "play":
         track = os.path.join(SCRIPT_DIR, "android", "01-tracking.png")
         fav = os.path.join(SCRIPT_DIR, "android", "02-station-fav.png")
+        widget = os.path.join(SCRIPT_DIR, "android", "03-widget.png")
     else:
         track = os.path.join(SCRIPT_DIR, "iphone", "02-focused-tracking-raw.png")
         fav = os.path.join(REPO, "screenshots", "04-station-light-fav.png")
+        widget = os.path.join(SCRIPT_DIR, "iphone", "04-widget-raw.png")
     return [
         ("01", track, strings["track_cap"], strings["track_sub"]),
         ("02", fav, strings["fav_cap"], strings["fav_sub"]),
+        ("03", widget, strings["widget_cap"], strings["widget_sub"]),
     ]
+
+
+# Phone shots plus the closing watch frame.
+SHOT_COUNT = 4
+
+
+def head_height(cap, sub):
+    """Height of the caption block, matching the CSS in make_css.
+
+    Two caption lines at line-height 1.04, the subcaption's 0.34em top margin,
+    then two subcaption lines at 1.2. Two of each is the worst case any locale
+    needs, so reserving it keeps the rule at one height across the whole set."""
+    return round(2 * cap * 1.04 + cap * 0.34 + 2 * sub * 1.2)
+
+
+def seg_positions(count):
+    """Left offsets and width for the rule's position indicator, as CSS percents.
+
+    The segment is one shot's share of the bar, minus the same visual breathing
+    room the three-shot set was drawn with (27% rather than a full third), and
+    the last one ends flush with the right edge."""
+    width = 81.0 / count
+    step = (100.0 - width) / (count - 1)
+    return [f"{i * step:.4g}%" for i in range(count)], f"{width:.4g}%"
 
 
 # Wording follows apple/fastlane/metadata/: DE is informal du with Swiss ss,
@@ -367,6 +405,8 @@ STRINGS = {
         "track_sub": "Live countdown, platform and walking time.",
         "fav_cap": "Favourites first,\nat every station",
         "fav_sub": "Star a connection to pin it to the top of that station's board.",
+        "widget_cap": "Departures on your\nhome screen",
+        "widget_sub": "A live board without opening the app.",
         "watch_cap": "On every\nwrist",
         "watch_sub_play": "Wear OS and Garmin, phone optional.",
         "watch_sub_appstore": "Apple Watch and Garmin, iPhone optional.",
@@ -378,6 +418,8 @@ STRINGS = {
         "track_sub": "Live-Countdown, Gleis und Gehdistanz.",
         "fav_cap": "Favoriten zuerst,\nan jeder Station",
         "fav_sub": "Mit einem Stern bleibt eine Verbindung an ihrer Haltestelle ganz oben.",
+        "widget_cap": "Abfahrten auf dem\nStartbildschirm",
+        "widget_sub": "Ein Live-Board, ohne die App zu öffnen.",
         "watch_cap": "An jedem\nHandgelenk",
         "watch_sub_play": "Wear OS und Garmin, auch ohne Handy.",
         "watch_sub_appstore": "Apple Watch und Garmin, auch ohne iPhone.",
@@ -389,6 +431,8 @@ STRINGS = {
         "track_sub": "Compte à rebours en direct, quai et distance à pied.",
         "fav_cap": "Vos favoris d'abord,\nà chaque arrêt",
         "fav_sub": "Ajoutez une étoile à une liaison pour l'épingler en haut du tableau de cet arrêt.",
+        "widget_cap": "Vos départs sur\nl'écran d'accueil",
+        "widget_sub": "Un tableau en direct sans ouvrir l'app.",
         "watch_cap": "À chaque\npoignet",
         "watch_sub_play": "Wear OS et Garmin, téléphone facultatif.",
         "watch_sub_appstore": "Apple Watch et Garmin, iPhone facultatif.",
@@ -400,6 +444,8 @@ STRINGS = {
         "track_sub": "Conto alla rovescia live, binario e distanza a piedi.",
         "fav_cap": "Preferiti in cima,\na ogni fermata",
         "fav_sub": "Aggiungi una stella a un collegamento per fissarlo in cima al tabellone di quella fermata.",
+        "widget_cap": "Partenze sulla tua\nschermata Home",
+        "widget_sub": "Un tabellone live senza aprire l'app.",
         "watch_cap": "Su ogni\npolso",
         "watch_sub_play": "Wear OS e Garmin, telefono facoltativo.",
         "watch_sub_appstore": "Apple Watch e Garmin, iPhone facoltativo.",
@@ -415,12 +461,14 @@ def build_locale(locale, strings, target, out_subdir, palette):
     width, height = target
     pad = int(width * 0.078)
     cap = int(width * 0.082)
-    # Three shots, three rule positions: the amber segment travels with the swipe.
-    segs = ["0%", "36.5%", "73%"]
+    # One rule position per shot: the bright segment travels with the swipe.
+    segs, segw = seg_positions(SHOT_COUNT)
+    sub = int(cap * 0.42)
+    headh = head_height(cap, sub)
     sizes = dict(
-        css=css, pad=pad, cap=cap, sub=int(cap * 0.42), rule=max(4, width // 270),
+        css=css, pad=pad, cap=cap, sub=sub, rule=max(4, width // 270),
         devw=int(width * 0.86), devr=int(width * 0.115), bezel=max(8, width // 108),
-        glow=int(width * 0.16),
+        glow=int(width * 0.16), segw=segw, headh=headh,
     )
     for i, (stem, screen, caption, sub_text) in enumerate(shots(locale, strings, out_subdir)):
         html = PHONE_HTML.format(
@@ -451,13 +499,13 @@ def build_locale(locale, strings, target, out_subdir, palette):
         for src, label in watches
     )
     html = WATCHES_HTML.format(
-        css=css, pad=pad, cap=cap, sub=int(cap * 0.42), rule=max(4, width // 270),
-        seg=segs[2], grey=p["sub"], glow=int(width * 0.16),
+        css=css, pad=pad, cap=cap, sub=sub, rule=max(4, width // 270),
+        seg=segs[-1], segw=segw, headh=headh, grey=p["sub"], glow=int(width * 0.16),
         gap=int(width * 0.022), shadow=int(width * 0.016), blur=int(width * 0.055),
         framedh=int(width * 0.46), label=int(width * 0.026),
         caption=strings["watch_cap"], sub_text=watch_sub, items=items,
     )
-    render(html, width, height, os.path.join(STORE, out_subdir, locale, "03.png"))
+    render(html, width, height, os.path.join(STORE, out_subdir, locale, f"{SHOT_COUNT:02d}.png"))
 
 
 GARMIN_TILE_HTML = """<!doctype html>
@@ -548,7 +596,7 @@ def install(locales):
         phone = os.path.join(images, "phoneScreenshots")
         shutil.rmtree(phone, ignore_errors=True)
         os.makedirs(phone)
-        for i in (1, 2, 3):
+        for i in range(1, SHOT_COUNT + 1):
             shutil.copy(os.path.join(STORE, "play", source, f"{i:02d}.png"), phone)
         shutil.copy(
             os.path.join(STORE, "feature", source, "featureGraphic.png"),
@@ -568,7 +616,7 @@ def install(locales):
         adir = os.path.join(apple_shots, APPLE_LOCALE.get(locale, locale))
         shutil.rmtree(adir, ignore_errors=True)
         os.makedirs(adir)
-        for i in (1, 2, 3):
+        for i in range(1, SHOT_COUNT + 1):
             shutil.copy(os.path.join(STORE, "appstore", source, f"{i:02d}.png"), adir)
         for i in (1, 2):
             shutil.copy(
