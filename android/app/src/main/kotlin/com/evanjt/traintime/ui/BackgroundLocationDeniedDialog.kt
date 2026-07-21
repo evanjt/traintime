@@ -4,6 +4,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.evanjt.traintime.R
 
 // Shown when the user continued past the disclosure but declined "all the time".
 // Not a failure: the route is saved and the reminder still fires, it just uses
@@ -16,19 +18,15 @@ fun BackgroundLocationDeniedDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Using your last location") },
+        title = { Text(stringResource(R.string.bg_denied_title)) },
         text = {
-            Text(
-                "That's fine. Your reminder still works, using your last known " +
-                    "location instead of live updates. Allow all-time access any " +
-                    "time to make it live.",
-            )
+            Text(stringResource(R.string.bg_denied_body))
         },
         confirmButton = {
-            TextButton(onClick = onOpenSettings) { Text("Open settings") }
+            TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Keep as is") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.keep_as_is)) }
         },
     )
 }

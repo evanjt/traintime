@@ -18,8 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.os.LocaleListCompat
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,9 +41,11 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.review.ReviewLauncher
+import com.evanjt.traintime.wear.R
 
 @Composable
 fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
@@ -67,11 +72,11 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                 ) {
-                    Text("Phone  ", color = MaterialTheme.colors.onBackground, fontSize = 13.sp)
+                    Text(stringResource(R.string.phone_label) + "  ", color = MaterialTheme.colors.onBackground, fontSize = 13.sp)
                     Text(
                         when (vm.phoneConnected) {
-                            true -> "Connected"
-                            false -> "Not connected"
+                            true -> stringResource(CoreR.string.connected)
+                            false -> stringResource(CoreR.string.not_connected)
                             null -> "…"
                         },
                         color = if (vm.phoneConnected == true) {
@@ -85,7 +90,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
             }
             item {
                 Text(
-                    "Default mode",
+                    stringResource(CoreR.string.default_mode),
                     color = MaterialTheme.colors.onBackground,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -97,9 +102,40 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                 ToggleChip(
                     checked = vm.defaultMode == mode,
                     onCheckedChange = { vm.updateDefaultMode(mode) },
-                    label = { Text(mode.label) },
+                    label = { Text(stringResource(mode.labelRes)) },
                     toggleControl = {
                         androidx.wear.compose.material.RadioButton(selected = vm.defaultMode == mode)
+                    },
+                    colors = ToggleChipDefaults.toggleChipColors(),
+                )
+            }
+            // In-app language, same radio idiom as the default mode above.
+            // AppCompatDelegate persists the choice and recreates the activity;
+            // the AppPrefs copy is for the tracking-service notification.
+            item {
+                Text(
+                    stringResource(R.string.language),
+                    color = MaterialTheme.colors.onBackground,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
+                )
+            }
+            items(languageOptions) { (tag, label) ->
+                val currentTag = AppCompatDelegate.getApplicationLocales()
+                    .toLanguageTags().substringBefore(",").substringBefore("-")
+                ToggleChip(
+                    checked = currentTag == tag,
+                    onCheckedChange = {
+                        vm.updateAppLanguage(tag)
+                        AppCompatDelegate.setApplicationLocales(
+                            LocaleListCompat.forLanguageTags(tag),
+                        )
+                    },
+                    label = { Text(label) },
+                    toggleControl = {
+                        androidx.wear.compose.material.RadioButton(selected = currentTag == tag)
                     },
                     colors = ToggleChipDefaults.toggleChipColors(),
                 )
@@ -110,7 +146,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
             if (vm.pinnedStations.isNotEmpty() || vm.favouritesList.isNotEmpty()) {
                 item {
                     Text(
-                        "Quick launch",
+                        stringResource(R.string.quick_launch),
                         color = MaterialTheme.colors.onBackground,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
@@ -125,7 +161,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                             onNavigateHome()
                         },
                         label = { Text(pinned.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        secondaryLabel = { Text("Station") },
+                        secondaryLabel = { Text(stringResource(CoreR.string.station_fallback)) },
                         colors = ChipDefaults.secondaryChipColors(),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -151,7 +187,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
             if (vm.favouritesList.isNotEmpty()) {
                 item {
                     Text(
-                        "Favourites (${vm.favouritesList.size})",
+                        stringResource(R.string.favourites_n_fmt, vm.favouritesList.size),
                         color = MaterialTheme.colors.onBackground,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
@@ -164,7 +200,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                 }
                 item {
                     Text(
-                        "Hold a favourite to remove it.",
+                        stringResource(R.string.hold_fav_remove),
                         color = MaterialTheme.colors.onSurfaceVariant,
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center,
@@ -175,7 +211,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
             item {
                 Chip(
                     onClick = { activity?.let { ReviewLauncher.openStoreListing(it) } },
-                    label = { Text("Rate TrainTime") },
+                    label = { Text(stringResource(R.string.rate_traintime)) },
                     colors = ChipDefaults.secondaryChipColors(),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
@@ -191,7 +227,7 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
             }
             item {
                 Text(
-                    "Data: opentransportdata.swiss",
+                    stringResource(R.string.data_attribution),
                     color = MaterialTheme.colors.onSurfaceVariant,
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
@@ -201,6 +237,16 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
         }
     }
 }
+
+// "" = follow the watch language. Language names are endonyms, identical in
+// every locale, so they are not resources.
+private val languageOptions = listOf(
+    "" to "Auto",
+    "en" to "English",
+    "de" to "Deutsch",
+    "fr" to "Français",
+    "it" to "Italiano",
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

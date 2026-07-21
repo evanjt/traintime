@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrainTime</string>
+    <string name="widget_description">Le partenze vicine a colpo d\'occhio</string>
+
+    <!-- Settings sheet -->
+    <string name="appearance">Aspetto</string>
+    <string name="opt_system">Sistema</string>
+    <string name="opt_light">Chiaro</string>
+    <string name="opt_dark">Scuro</string>
+    <string name="language">Lingua</string>
+    <string name="watch_link">Collegamento orologio</string>
+    <string name="n_connected_fmt">%1$d connessi</string>
+    <string name="version">Versione</string>
+    <string name="replay_walkthrough">Rivedi la guida</string>
+    <string name="rate_this_app">Valuta l\'app</string>
+    <string name="attribution">Fonti</string>
+    <string name="route_reminders">Promemoria percorso</string>
+    <string name="notifications">Notifiche</string>
+    <string name="allowed">Attive</string>
+    <string name="turn_on">Attiva</string>
+    <string name="remind_before_departure">Ricordamelo prima della partenza</string>
+    <string name="before_a_connection">Prima di una coincidenza</string>
+    <string name="n_min_fmt">%1$d min</string>
+    <string name="adjust_distance">Adatta alla distanza dalla fermata</string>
+    <string name="adjust_distance_desc">L\'anticipo diventa il tuo tempo a piedi + i minuti sopra</string>
+    <string name="update_background">Aggiorna in background</string>
+    <string name="update_background_desc">Resta preciso mentre ti muovi, anche ad app chiusa</string>
+    <string name="notify_walk_plus_fmt">Sarai avvisato il tuo tempo a piedi + %1$d min prima della partenza</string>
+    <string name="notify_lead_fmt">Sarai avvisato %1$d min prima della partenza</string>
+    <string name="send_test_notification">Invia notifica di prova</string>
+    <string name="test_distance_reminder">Prova promemoria distanza</string>
+    <string name="mirror_to_watch">Duplica sull\'orologio</string>
+    <string name="mirror_to_watch_desc">Invia treno seguito, modo, stazione e posizione all\'orologio</string>
+    <string name="no_favourites_yet">Ancora nessun preferito</string>
+    <string name="remove">Rimuovi</string>
+
+    <!-- Attribution sheet -->
+    <string name="attribution_subtitle">I dati e il software dietro TrainTime.</string>
+    <string name="departure_data">Dati di partenza</string>
+    <string name="departure_data_desc">Partenze in tempo reale da Open Transport Data Switzerland, gestito dalle Ferrovie federali svizzere (FFS), tramite l\'API OJP.</string>
+    <string name="terms_of_use">Condizioni d\'uso</string>
+    <string name="map_heading">Mappa</string>
+    <string name="map_desc">Confine svizzero da Natural Earth, risoluzione 1:10m, pubblico dominio.</string>
+    <string name="open_source_third_party">Open source e terze parti</string>
+    <string name="kotlinx_desc">Coroutine e serializzazione. Apache License 2.0</string>
+    <string name="play_services_desc">Posizione, wearable, recensioni in-app. Termini Google</string>
+    <string name="garmin_sdk_desc">© Garmin. Usato secondo la licenza SDK.</string>
+
+    <!-- Dialogs -->
+    <string name="bg_track_title">Seguire in background?</string>
+    <string name="bg_track_body">TrainTime rileva la tua posizione per calibrare il promemoria del percorso, anche ad app chiusa o inutilizzata. Puoi rifiutare: useremo l\'ultima posizione nota.</string>
+    <string name="continue_label">Continua</string>
+    <string name="bg_denied_title">Uso l\'ultima posizione</string>
+    <string name="bg_denied_body">Va benissimo. Il promemoria funziona comunque, con l\'ultima posizione nota invece degli aggiornamenti live. Concedi l\'accesso continuo quando vuoi per renderlo live.</string>
+    <string name="open_settings">Apri impostazioni</string>
+    <string name="keep_as_is">Lascia così</string>
+    <string name="review_body">Una breve recensione aiuta altri pendolari a trovare l\'app.</string>
+    <string name="replace_route_title">Sostituire il percorso salvato?</string>
+    <string name="replace_route_body_fmt">Hai già un percorso salvato. Sostituirlo con il viaggio per %1$s?</string>
+    <string name="replace">Sostituisci</string>
+    <string name="keep_existing">Tieni quello attuale</string>
+
+    <!-- Onboarding tour -->
+    <string name="tour_step_of_fmt">Passo %1$d di %2$d</string>
+    <string name="skip">Salta</string>
+    <string name="next">Avanti</string>
+    <string name="done">Fatto</string>
+    <string name="tour_nearby_title">Le partenze intorno a te</string>
+    <string name="tour_nearby_body">Le fermate più vicine con le loro partenze live. Qui: Bern Bahnhof.</string>
+    <string name="tour_modes_title">Treni, bus, tram</string>
+    <string name="tour_modes_body">Cambia vista con i selettori di modo. Ogni modo ha le sue fermate.</string>
+    <string name="tour_track_title">Segui una partenza</string>
+    <string name="tour_track_body">Tocca una partenza per seguirla.</string>
+    <string name="tour_tracking_extra">La tua posizione e l\'orario di partenza si aggiornano live e ti dicono se ce la fai a piedi.</string>
+    <string name="tour_star_title">Le tue linee con la stella</string>
+    <string name="tour_star_body">Scorri una linea a destra, o tienila premuta, per salvarla nei preferiti.</string>
+    <string name="tour_starred_extra">Ora sta sopra la linea dorata e resta anche nell\'elenco sotto.</string>
+    <string name="tour_pin_title">Fissa una stazione</string>
+    <string name="tour_pin_body">Le stazioni fissate guidano l\'elenco quando sono tra le cinque più vicine. Così la tua stazione resta in cima.</string>
+    <string name="tour_mode_title">Scegli il modo predefinito</string>
+    <string name="tour_mode_body">Scegli il mezzo che usi di più. TrainTime si apre lì.</string>
+    <string name="tour_sbb_title">Porta i viaggi da FFS</string>
+    <string name="tour_sbb_body">Condividi un viaggio da FFS Mobile? Invialo a TrainTime e riprende il tuo treno.</string>
+    <string name="tour_routes_title">Percorsi salvati e promemoria</string>
+    <string name="tour_routes_body">I viaggi successivi attendono come percorso salvato. Aprilo per vedere ogni tratta, scegliere le coincidenze da seguire e ricevere un promemoria prima della partenza, calibrato sulla tua camminata se lo attivi.</string>
+    <string name="tour_watch_title">Portalo al polso</string>
+    <string name="tour_watch_body">Wear OS e Garmin si sincronizzano live: segui sul telefono e invia una partenza al polso. C\'è anche un\'app Apple Watch per iPhone.</string>
+    <string name="tour_widget_title">Aggiungi il widget</string>
+    <string name="tour_widget_body">Le tue prossime partenze nella schermata Home.</string>
+    <string name="tour_replay_snackbar">Puoi rivedere la guida quando vuoi nelle impostazioni.</string>
+
+    <!-- Onboarding mock screens -->
+    <string name="platform_full_fmt">Binario %1$s</string>
+    <string name="nearby_stations">Fermate vicine</string>
+    <string name="pin">Fissa</string>
+    <string name="selected">Selezionata</string>
+    <string name="works_with_iphone">Anche per iPhone</string>
+    <string name="syncs_live">Sincronizza live</string>
+    <string name="for_iphone">Per iPhone</string>
+    <string name="watch_mirror_hint">Segui sul telefono e la partenza si riflette su un orologio abbinato, che legge anche la posizione del telefono, utile al chiuso. L\'icona orologio diventa verde quando è live.</string>
+    <string name="from_sbb_app">Dall\'app FFS Mobile</string>
+    <string name="share_to">Condividi con</string>
+    <string name="trip_opens_here">Il tuo viaggio si apre qui, seguito e pronto.</string>
+    <string name="each_connection_reminder">Ogni coincidenza può inviare un promemoria. Seguine una subito.</string>
+    <string name="add_to_home_screen">Aggiungi alla schermata Home</string>
+    <string name="add_widget_hint">Aggiungi il widget TrainTime dalla schermata Home.</string>
+
+    <!-- Station screen -->
+    <string name="open_watch_cd">Apri TrainTime sull\'orologio</string>
+    <string name="watch_settings_cd">Orologio, apri impostazioni</string>
+    <string name="gps_quality_cd">Qualità GPS</string>
+    <string name="pick_station_cd">Scegli stazione</string>
+    <string name="tracking_on_watch_fmt">Seguito sull\'orologio · %1$s</string>
+    <string name="remind_me">Ricordamelo</string>
+    <string name="favourite">Preferito</string>
+    <string name="unfavourite">Rimuovi preferito</string>
+    <string name="stations_title">Fermate</string>
+    <string name="pin_station">Fissa stazione</string>
+    <string name="unpin_station">Sblocca stazione</string>
+    <string name="my_stations">Le mie stazioni</string>
+
+    <!-- Tracking screen -->
+    <string name="open_on_watch">Apri sull\'orologio</string>
+    <string name="send_to_watch">Invia all\'orologio</string>
+    <string name="toggle_favourite_cd">Attiva/disattiva preferito</string>
+    <string name="tracking_route_to_fmt">Seguo il percorso per %1$s</string>
+    <string name="show_on_map">Mostra sulla mappa</string>
+    <string name="track_in_background">Segui in background</string>
+    <string name="tracking_on_watch">Seguito sull\'orologio</string>
+    <string name="track_on_watch">Segui sull\'orologio</string>
+    <string name="direction_to_station_cd">Direzione della fermata</string>
+    <string name="direction_of_travel_cd">Direzione di marcia</string>
+
+    <!-- Pending route chip + sheet -->
+    <string name="departs_fmt">%1$s parte alle %2$s</string>
+    <string name="notified_in_fmt">Promemoria tra %1$d min</string>
+    <string name="youll_be_notified_in_fmt">Sarai avvisato tra %1$d min</string>
+    <string name="walk_min_fmt">%1$d min a piedi</string>
+    <string name="buffer_fmt">%1$d min di margine</string>
+    <string name="discard_route_cd">Elimina percorso</string>
+    <string name="discard_route_title">Eliminare il percorso salvato?</string>
+    <string name="discard_route_body_fmt">Il percorso per %1$s sarà dimenticato.</string>
+    <string name="discard">Elimina</string>
+    <string name="keep">Tieni</string>
+    <string name="route_sheet_hint">Tocca una coincidenza per seguirla subito. Con l\'interruttore spegni il promemoria di partenza.</string>
+
+    <!-- Widget -->
+    <string name="as_of_fmt">agg. %1$s</string>
+    <string name="no_departures">Nessuna partenza</string>
+    <string name="updating">Aggiorno</string>
+    <string name="refresh_label">↻ Aggiorna</string>
+    <string name="platform_short_fmt">Bin. %1$s</string>
+    <string name="widget_refresh_channel">Aggiornamento widget</string>
+    <string name="updating_departures">Aggiorno le partenze</string>
+
+    <!-- Notifications -->
+    <string name="channel_saved_routes">Promemoria percorso</string>
+    <string name="test_reminder_title">Promemoria di prova</string>
+    <string name="test_reminder_body">I promemoria funzionano. Questo è un test.</string>
+    <string name="notif_departs_fmt">Parte alle %1$s da %2$s</string>
+    <string name="distance_test_title">Test distanza</string>
+    <string name="distance_test_need_loc">Attiva la posizione e apri prima l\'app vicino a una fermata.</string>
+    <string name="distance_test_title_fmt">Test distanza: %1$s</string>
+    <string name="distance_test_body_fmt">A %1$d m (~%2$d min a piedi). Il promemoria partirebbe %3$d min prima della partenza.</string>
+
+    <!-- Snackbars and share intake -->
+    <string name="no_watch_connected">Nessun orologio connesso</string>
+    <string name="sent_to_watch">Inviato all\'orologio</string>
+    <string name="sent_to_fmt">Inviato a %1$s</string>
+    <string name="failed_to_send">Invio non riuscito</string>
+    <string name="update_watch_fmt">Aggiorna TrainTime sull\'orologio (%1$s)</string>
+    <string name="watch_not_responding">L\'app orologio non risponde, riapro...</string>
+    <string name="no_sbb_link">Nessun link di viaggio FFS trovato</string>
+    <string name="sbb_link_unsupported">Questo formato di link FFS non è ancora supportato</string>
+    <string name="nothing_to_track">Niente da seguire in questo viaggio</string>
+    <string name="cant_read_link">Impossibile leggere questo link</string>
+    <string name="check_connection">Impossibile aprire il link. Controlla la connessione</string>
+    <string name="cant_save_departure">Impossibile salvare questa partenza</string>
+    <string name="trip_underway">Questo viaggio è già in corso o concluso</string>
+    <string name="saved_will_remind">Salvato. Ti avviseremo prima della partenza</string>
+    <string name="route_passed_fmt">Il percorso salvato per %1$s è passato</string>
+</resources>

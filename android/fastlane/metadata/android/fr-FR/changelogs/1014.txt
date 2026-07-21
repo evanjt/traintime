@@ -1,1 +1,2 @@
 Première version Wear OS : départs à proximité, suivi en direct avec compte à rebours, retard et voie, favoris et gares épinglées synchronisés avec votre téléphone.
+Désormais en français, allemand, anglais et italien.

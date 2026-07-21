@@ -64,7 +64,7 @@ class TourStepTest {
     // Synthetic future step one version past the real tour, so it is always the
     // sole newest step regardless of what CURRENT_TOUR_VERSION introduces.
     private val nextVersion = CURRENT_TOUR_VERSION + 1
-    private val futureStep = TourStep(TourStage.WIDGET, "New thing", "Body", introducedIn = nextVersion)
+    private val futureStep = TourStep(TourStage.WIDGET, 0, 0, introducedIn = nextVersion)
     private val futureSteps = tourSteps + futureStep
 
     @Test

@@ -15,6 +15,8 @@ import com.evanjt.traintime.core.sync.WearCommandBus
 import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.core.sync.WearSyncPort
+import com.evanjt.traintime.core.R as CoreR
+import com.evanjt.traintime.wear.R
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -36,6 +38,7 @@ import com.evanjt.traintime.data.sbb.RouteLeg
 import com.evanjt.traintime.data.sbb.matchDeparture
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
+import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.LocationService
 import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.review.ReviewGate
@@ -76,7 +79,7 @@ class WearViewModel(
     var pendingRoute by mutableStateOf<PendingRoute?>(null)
         private set
     private var pendingResumeInFlight = false
-    var status by mutableStateOf("GPS: Searching...")
+    var status by mutableStateOf(application.getString(CoreR.string.status_gps_searching))
         private set
     var showReviewPrompt by mutableStateOf(false)
         private set
@@ -161,6 +164,16 @@ class WearViewModel(
     private fun now(): Long = System.currentTimeMillis()
     private fun nowSeconds(): Long = now() / 1000
 
+    // Pre-33 the AppCompat override never reaches the application context
+    // (every Wear 3 watch is pre-33), so resolve against a context wrapped in
+    // the stored language tag.
+    private var appLanguageTag = ""
+
+    private fun str(id: Int): String =
+        LocaleUtil.localised(getApplication(), appLanguageTag).getString(id)
+    private fun str(id: Int, vararg args: Any): String =
+        LocaleUtil.localised(getApplication(), appLanguageTag).getString(id, *args)
+
     val stations: List<Station>
         get() = when (currentMode) {
             TransportMode.TRAIN -> trainStations
@@ -173,13 +186,18 @@ class WearViewModel(
         get() = stations.getOrNull(stationIndex)
 
     val walkInfo: String
-        get() = currentStation?.walkInfo(stationIndex, stations.size) ?: ""
+        get() = currentStation?.walkInfo(
+            LocaleUtil.localised(getApplication(), appLanguageTag),
+            stationIndex,
+            stations.size,
+        ) ?: ""
 
     val stationName: String
-        get() = currentStation?.name ?: "Station"
+        get() = currentStation?.name ?: str(CoreR.string.station_fallback)
 
     init {
         wearSync.isWatch = true
+        viewModelScope.launch { prefs.appLanguage.collect { appLanguageTag = it } }
         viewModelScope.launch { prefs.ensureFirstLaunchTimestamp() }
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
@@ -212,7 +230,7 @@ class WearViewModel(
         }
         viewModelScope.launch {
             location.authorizationDenied.collect { denied ->
-                if (denied && stations.isEmpty()) status = "Location permission required"
+                if (denied && stations.isEmpty()) status = str(CoreR.string.status_location_permission)
             }
         }
         viewModelScope.launch {
@@ -275,7 +293,7 @@ class WearViewModel(
         if (appState == 3) resumeFromInactive()
         val station = Station(
             id = stId,
-            name = name ?: "Station",
+            name = name ?: str(CoreR.string.station_fallback),
             lat = lat,
             lon = lon,
             mode = currentMode,
@@ -371,7 +389,7 @@ class WearViewModel(
         val lon = phoneLon
         if (appState > 1 || !phoneLocFresh() || lat == null || lon == null) return
         if (requestInFlight) return
-        if (stations.isEmpty()) status = "Updating stations..."
+        if (stations.isEmpty()) status = str(CoreR.string.status_updating_stations)
         fetchStations(lat, lon)
     }
 
@@ -554,7 +572,7 @@ class WearViewModel(
         val lat = station?.lat
         val lon = station?.lon
         if (station == null || lat == null || lon == null) {
-            flashReminderStatus("No station location")
+            flashReminderStatus(str(R.string.no_station_location))
             return
         }
         val cmd = ReminderCommand(
@@ -563,13 +581,13 @@ class WearViewModel(
             lineNumber = focused.lineNumber,
             trainNumber = focused.trainNumber,
             stationId = station.id,
-            stationName = station.name ?: "Station",
+            stationName = station.name ?: str(CoreR.string.station_fallback),
             lat = lat,
             lon = lon,
         )
         viewModelScope.launch {
             val ok = wearSync.sendReminder(cmd)
-            flashReminderStatus(if (ok) "Saved on phone" else "Open TrainTime on your phone")
+            flashReminderStatus(str(if (ok) R.string.saved_on_phone else R.string.open_phone_hint))
         }
     }
 
@@ -603,7 +621,7 @@ class WearViewModel(
 
         if (coord == null) {
             if (stations.isEmpty()) {
-                status = "GPS: Searching..."
+                status = str(CoreR.string.status_gps_searching)
                 // No usable watch GPS, lean on the phone if it offered a fix,
                 // else ask it for one (throttled).
                 if (!requestInFlight) {
@@ -613,7 +631,7 @@ class WearViewModel(
             return
         }
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
-            status = "Not in Switzerland"
+            status = str(CoreR.string.status_not_in_switzerland)
             return
         }
         if (appState >= 2) return
@@ -621,13 +639,13 @@ class WearViewModel(
         if (loadedFromCache && (location.gpsQuality == GpsQuality.GOOD || location.gpsQuality == GpsQuality.POOR)) {
             loadedFromCache = false
             if (!requestInFlight) {
-                if (stations.isEmpty()) status = "Updating stations..."
+                if (stations.isEmpty()) status = str(CoreR.string.status_updating_stations)
                 fetchStations(coord.lat, coord.lon)
             }
             return
         }
         if (stations.isEmpty() && !requestInFlight) {
-            status = "Finding stations..."
+            status = str(CoreR.string.status_finding_stations)
             fetchStations(coord.lat, coord.lon)
         }
     }
@@ -815,6 +833,12 @@ class WearViewModel(
         viewModelScope.launch { prefs.setDefaultMode(mode) }
     }
 
+    // Companion to AppCompatDelegate.setApplicationLocales: TrackingService
+    // reads this copy for its notification text.
+    fun updateAppLanguage(tag: String) {
+        viewModelScope.launch { prefs.setAppLanguage(tag) }
+    }
+
     fun toggleFavourite() {
         val focused = focusedTrain ?: return
         toggleFavourite(focused.lineNumber, focused.destination)
@@ -830,7 +854,7 @@ class WearViewModel(
         viewModelScope.launch {
             favouritesStore.toggle(
                 stationId = station.id,
-                stationName = station.name ?: "Station",
+                stationName = station.name ?: str(CoreR.string.station_fallback),
                 lineNumber = lineNumber,
                 destination = destination,
             )
@@ -1031,11 +1055,12 @@ class WearViewModel(
         get() {
             val buf = trackingEffectiveBuffer
             // Cached coordinates prove nothing about where we are now; no verdict.
-            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return "No GPS"
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return str(CoreR.string.no_gps)
             val absBuf = kotlin.math.abs(buf)
-            if (absBuf < 0.5) return "On time"
-            val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
-            return if (buf > 0) "$unit ahead" else "$unit behind"
+            if (absBuf < 0.5) return str(CoreR.string.on_time)
+            val unit = if (absBuf < 1.5) str(CoreR.string.buf_sec_fmt, (absBuf * 60).toInt())
+            else str(CoreR.string.buf_min_fmt, absBuf.toInt())
+            return if (buf > 0) str(CoreR.string.ahead_fmt, unit) else str(CoreR.string.behind_fmt, unit)
         }
 
     val trackingStatus: TrackingStatus
@@ -1101,11 +1126,11 @@ class WearViewModel(
                 lastSearchCoordinate = LatLon(lat, lon)
                 location.saveLastKnownCoordinate()
                 rebuildModesAndSelect(preserveStationId = prevStationId)
-                if (stations.isEmpty()) status = "No stations nearby"
+                if (stations.isEmpty()) status = str(CoreR.string.status_no_stations_nearby)
             } catch (e: Exception) {
                 requestInFlight = false
                 requestStartTime = null
-                handleError(e, "Stations")
+                handleError(e, str(CoreR.string.ctx_stations))
             }
         }
     }
@@ -1151,7 +1176,7 @@ class WearViewModel(
             requestStartTime = null
             departuresRefreshing = false
             pendingFavTrack = null
-            handleError(e, "Departures")
+            handleError(e, str(CoreR.string.ctx_departures))
         }
     }
 
@@ -1172,11 +1197,11 @@ class WearViewModel(
             return
         }
         status = when (error) {
-            is TrainApiException.RateLimited -> "Rate limited"
-            is TrainApiException.Http -> "$context: ${error.code}"
-            is TrainApiException.NoData -> "$context error"
-            is TrainApiException.Network -> "No connection"
-            else -> "$context error"
+            is TrainApiException.RateLimited -> str(CoreR.string.err_rate_limited)
+            is TrainApiException.Http -> str(CoreR.string.err_code_fmt, context, error.code)
+            is TrainApiException.NoData -> str(CoreR.string.err_generic_fmt, context)
+            is TrainApiException.Network -> str(CoreR.string.err_no_connection)
+            else -> str(CoreR.string.err_generic_fmt, context)
         }
         departures = emptyList()
         favouriteDepartures = emptyList()

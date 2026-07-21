@@ -13,7 +13,10 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.LatLon
+import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.domain.LocaleUtil
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -21,7 +24,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -54,13 +59,16 @@ class WidgetRefreshService : Service() {
     }
 
     private fun startInForeground() {
+        // Foreground-service notification renders outside an activity, so resolve
+        // its strings through a context wrapped in the stored language tag.
+        val ctx = LocaleUtil.localised(this, runBlocking { AppPrefs(this@WidgetRefreshService).appLanguage.first() })
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Widget refresh", NotificationManager.IMPORTANCE_LOW),
+            NotificationChannel(CHANNEL_ID, ctx.getString(R.string.widget_refresh_channel), NotificationManager.IMPORTANCE_LOW),
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("Updating departures")
+            .setContentTitle(ctx.getString(R.string.updating_departures))
             .setOngoing(true)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

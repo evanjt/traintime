@@ -20,9 +20,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,10 +34,12 @@ import androidx.wear.compose.material.PositionIndicator
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.domain.GeoUtils
+import com.evanjt.traintime.wear.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -120,7 +124,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
             ) {
                 if (focused != null && focused.platform.isNotEmpty()) {
                     Text(
-                        "Pl. ${focused.platform}",
+                        stringResource(R.string.platform_abbr_fmt, focused.platform),
                         color = if (platChanged) palette.platformChangedOrange else secondary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
@@ -176,7 +180,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 modifier = Modifier.padding(top = 6.dp),
             ) {
                 DirectionArrowWear(vm.directionToStation)
-                Text(GeoUtils.formatWalkInfo(vm.lastWalkDist), color = secondary, fontSize = 12.sp)
+                Text(GeoUtils.formatWalkInfo(LocalContext.current, vm.lastWalkDist), color = secondary, fontSize = 12.sp)
             }
 
             // Onward connection (shared multi-leg route): where you change and
@@ -195,7 +199,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
             }
 
             Text(
-                "Remind on phone",
+                stringResource(R.string.remind_on_phone),
                 color = palette.platform,
                 fontSize = 14.sp,
                 modifier = Modifier
@@ -212,7 +216,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
             }
 
             Text(
-                "Back",
+                stringResource(CoreR.string.back),
                 color = palette.platform,
                 fontSize = 14.sp,
                 modifier = Modifier
@@ -242,7 +246,12 @@ private fun OnwardConnectionCardWear(
             .clickable(onClick = onTap)
             .padding(10.dp),
     ) {
-        Text("Change at ${onward.changeStation}", color = secondary, fontSize = 10.sp, maxLines = 1)
+        Text(
+            stringResource(CoreR.string.change_at_fmt, onward.changeStation),
+            color = secondary,
+            fontSize = 10.sp,
+            maxLines = 1,
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -270,7 +279,11 @@ private fun OnwardConnectionCardWear(
             )
         }
         Text(
-            "${formatDepartureTime(leg.depTs)} · ${onward.changeMinutes} min to change",
+            stringResource(
+                CoreR.string.min_to_change_fmt,
+                formatDepartureTime(leg.depTs),
+                onward.changeMinutes.toInt(),
+            ),
             color = secondary,
             fontSize = 10.sp,
             modifier = Modifier.padding(top = 2.dp),

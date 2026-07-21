@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,6 +37,8 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
+import com.evanjt.traintime.core.R as CoreR
+import com.evanjt.traintime.wear.R
 
 // Flat, dense list (like the Apple watch) rather than a ScalingLazyColumn, so
 // several departures are visible at once. The Vignette fades the round top/bottom
@@ -98,7 +101,7 @@ fun WearStationListScreen(
                     if (vm.stations.size > 1) {
                         Icon(
                             Icons.Filled.KeyboardArrowDown,
-                            contentDescription = "Switch station",
+                            contentDescription = stringResource(R.string.switch_station),
                             tint = MaterialTheme.colors.onSurfaceVariant,
                             modifier = Modifier.size(13.dp),
                         )
@@ -171,7 +174,7 @@ fun WearStationListScreen(
                 ) {
                     Icon(
                         Icons.Filled.Settings,
-                        contentDescription = "Settings",
+                        contentDescription = stringResource(CoreR.string.settings),
                         tint = MaterialTheme.colors.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
                     )
@@ -196,7 +199,11 @@ private fun Divider() {
 private fun WearPendingRouteChip(route: com.evanjt.traintime.data.model.PendingRoute, onTap: () -> Unit) {
     val leg = route.currentLeg ?: return
     val mins = ((leg.depTs - System.currentTimeMillis() / 1000) / 60).coerceAtLeast(0)
-    val countdown = if (mins >= 60) "in ${mins / 60} h ${mins % 60}" else "in $mins min"
+    val countdown = if (mins >= 60) {
+        stringResource(CoreR.string.in_h_min_fmt, (mins / 60).toInt(), (mins % 60).toInt())
+    } else {
+        stringResource(CoreR.string.in_min_fmt, mins.toInt())
+    }
     Box(
         Modifier
             .fillMaxWidth()

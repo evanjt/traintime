@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compose draws everything; the activity just needs a Wear base theme. -->
-    <style name="Theme.TrainTimeWear" parent="@android:style/Theme.DeviceDefault" />
+    <!-- Compose draws everything; AppCompat parent so the per-app language
+         override (setApplicationLocales) applies. -->
+    <style name="Theme.TrainTimeWear" parent="Theme.AppCompat.NoActionBar" />
 </resources>

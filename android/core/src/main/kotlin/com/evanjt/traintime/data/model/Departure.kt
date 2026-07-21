@@ -1,5 +1,8 @@
 package com.evanjt.traintime.data.model
 
+import android.content.Context
+import com.evanjt.traintime.core.R
+
 // Port of apple/TrainTimeWatch/Models/Departure.swift.
 // minutesUntil is computed once at parse time, matching the iOS snapshot
 // behaviour; precise tracking uses departureTimestamp directly.
@@ -26,12 +29,13 @@ data class Departure(
     fun secondsUntil(nowEpochSeconds: Long): Long? =
         departureTimestamp?.let { it - nowEpochSeconds }
 
-    val minutesText: String
-        get() = when {
-            isGone -> "gone"
-            minutesUntil == 0 -> "now"
-            else -> "$minutesUntil'"
-        }
+    // Localised board label; the context decides the language ("gone"/"now"
+    // are words, so they can't live on the pure model).
+    fun minutesLabel(context: Context): String = when {
+        isGone -> context.getString(R.string.row_gone)
+        minutesUntil == 0 -> context.getString(R.string.row_now)
+        else -> "$minutesUntil'"
+    }
 }
 
 // OJP can publish the same physical train twice under different journey numbers

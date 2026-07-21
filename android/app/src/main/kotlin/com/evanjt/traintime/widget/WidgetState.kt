@@ -31,14 +31,8 @@ data class WidgetDeparture(
     fun minutesUntil(nowEpochSeconds: Long): Int =
         ((departureTimestamp - nowEpochSeconds) / 60).toInt()
 
-    fun minutesText(nowEpochSeconds: Long): String {
-        val m = minutesUntil(nowEpochSeconds)
-        return when {
-            m < 0 -> "gone"
-            m == 0 -> "now"
-            else -> "$m'"
-        }
-    }
+    // The gone/now/minutes label is resolved at render time (WidgetUi.minutesLabel)
+    // so a language change applies without recomputing stored state.
 
     fun isGone(nowEpochSeconds: Long): Boolean = minutesUntil(nowEpochSeconds) < 0
 

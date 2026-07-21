@@ -90,6 +90,16 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_APPEARANCE_MODE] = value }
     }
 
+    // In-app language override, a BCP-47 tag ("de") or "" for the system
+    // language. AppCompatDelegate owns the activity side; this copy is for
+    // processes it can't reach on pre-33 devices (widget, notifications).
+    val appLanguage: Flow<String> =
+        dataStore.data.map { it[KEY_APP_LANGUAGE] ?: "" }
+
+    suspend fun setAppLanguage(value: String) {
+        dataStore.edit { it[KEY_APP_LANGUAGE] = value }
+    }
+
     // Review gating: count tracking sessions so a brand-new user isn't prompted,
     // and remember the version we last prompted on so we only ask once per release.
     val reviewTrackCount: Flow<Int> =
@@ -232,6 +242,7 @@ class AppPrefs(context: Context) {
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
         val KEY_SEEN_ONBOARDING_VERSION = intPreferencesKey("seenOnboardingVersion")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
+        val KEY_APP_LANGUAGE = stringPreferencesKey("appLanguage")
         val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")
         val KEY_REVIEW_PROMPTED_VERSION = stringPreferencesKey("reviewPromptedVersion")
         val KEY_FIRST_LAUNCH_TS = longPreferencesKey("firstLaunchTs")

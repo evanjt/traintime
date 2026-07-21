@@ -23,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.R
 
 // Credits for the data and software TrainTime builds on. Two sources require attribution (Open
 // Transport Data Switzerland, the Garmin SDK); the rest is credited as good practice. Peer of
@@ -47,42 +49,39 @@ fun AttributionSheet(onDismiss: () -> Unit) {
                 .padding(bottom = 32.dp),
         ) {
             Text(
-                "Attribution",
+                stringResource(R.string.attribution),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 4.dp).align(Alignment.CenterHorizontally),
             )
             Text(
-                "The data and software TrainTime is built on.",
+                stringResource(R.string.attribution_subtitle),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(bottom = 8.dp).align(Alignment.CenterHorizontally),
             )
 
-            SectionHeader("Departure data")
-            Paragraph(
-                "Live departures from Open Transport Data Switzerland, operated by Swiss " +
-                    "Federal Railways (SBB), via the OJP API.",
-            )
-            LinkEntry("Terms of use", "opentransportdata.swiss") {
+            SectionHeader(stringResource(R.string.departure_data))
+            Paragraph(stringResource(R.string.departure_data_desc))
+            LinkEntry(stringResource(R.string.terms_of_use), "opentransportdata.swiss") {
                 open("https://opentransportdata.swiss/en/terms-of-use/")
             }
 
             Divider()
-            SectionHeader("Map")
-            Paragraph("Swiss border outline from Natural Earth, 1:10m resolution, public domain.")
+            SectionHeader(stringResource(R.string.map_heading))
+            Paragraph(stringResource(R.string.map_desc))
             LinkEntry("Natural Earth", "naturalearthdata.com") {
                 open("https://www.naturalearthdata.com")
             }
 
             Divider()
-            SectionHeader("Open source and third party")
+            SectionHeader(stringResource(R.string.open_source_third_party))
             Entry("Jetpack Compose, AndroidX, Glance, Wear Compose", "Apache License 2.0")
             Entry("OkHttp", "Apache License 2.0")
-            Entry("Kotlin, kotlinx", "Coroutines and serialisation. Apache License 2.0")
-            Entry("Google Play Services", "Location, wearable, in-app review. Google terms")
-            LinkEntry("Garmin Connect IQ Mobile SDK", "© Garmin. Used under its SDK licence.") {
+            Entry("Kotlin, kotlinx", stringResource(R.string.kotlinx_desc))
+            Entry("Google Play Services", stringResource(R.string.play_services_desc))
+            LinkEntry("Garmin Connect IQ Mobile SDK", stringResource(R.string.garmin_sdk_desc)) {
                 open("https://developer.garmin.com/connect-iq/")
             }
         }

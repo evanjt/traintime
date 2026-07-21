@@ -5,8 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,9 +33,11 @@ import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.Text
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.core.sync.WearSync
 
-class MainActivity : ComponentActivity() {
+// AppCompatActivity so the in-app language override applies on every API level.
+class MainActivity : AppCompatActivity() {
     private val viewModel: WearViewModel by viewModels()
 
     private val permissionLauncher = registerForActivityResult(
@@ -173,7 +176,7 @@ private fun InactiveScreen(vm: WearViewModel) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Inactive",
+                stringResource(R.string.inactive),
                 color = MaterialTheme.colors.onSurfaceVariant,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -181,7 +184,7 @@ private fun InactiveScreen(vm: WearViewModel) {
             )
             Chip(
                 onClick = { vm.resumeToStationView() },
-                label = { Text("Resume") },
+                label = { Text(stringResource(CoreR.string.resume)) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.padding(top = 10.dp),
             )

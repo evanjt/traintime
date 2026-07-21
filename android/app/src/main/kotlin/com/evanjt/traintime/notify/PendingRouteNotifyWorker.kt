@@ -9,12 +9,16 @@ import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.evanjt.traintime.MainActivity
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.PendingRouteLogic
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.flow.first
 
 // Fires at the scheduled reminder time. Re-reads the store first: the route
 // may have been dismissed, replaced, or advanced since scheduling, then
@@ -31,10 +35,16 @@ class PendingRouteNotifyWorker(
         val leg = normalized.currentLeg ?: return Result.success()
         if (normalized.cursor != route.cursor) return Result.success() // stale schedule
 
+        val ctx = LocaleUtil.localised(
+            applicationContext,
+            AppPrefs(applicationContext).appLanguage.first(),
+        )
+
         val time = DateTimeFormatter.ofPattern("HH:mm").format(
             Instant.ofEpochSecond(leg.depTs).atZone(ZoneId.of("Europe/Zurich")),
         )
-        val line = "${leg.category ?: ""}${leg.lineNumber ?: ""}".ifEmpty { "Train" }
+        val line = "${leg.category ?: ""}${leg.lineNumber ?: ""}"
+            .ifEmpty { ctx.getString(CoreR.string.mode_train) }
         val tapIntent = PendingIntent.getActivity(
             applicationContext,
             0,
@@ -50,8 +60,8 @@ class PendingRouteNotifyWorker(
         PendingRouteNotifier.ensureChannel(applicationContext)
         val builder = NotificationCompat.Builder(applicationContext, PendingRouteNotifier.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("$line to ${normalized.finalDestination}")
-            .setContentText("Departs $time from ${leg.originName}")
+            .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, line, normalized.finalDestination))
+            .setContentText(ctx.getString(R.string.notif_departs_fmt, time, leg.originName))
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
 
@@ -73,7 +83,7 @@ class PendingRouteNotifyWorker(
                 ),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            builder.addAction(android.R.drawable.ic_menu_send, "Send to Watch", sendPending)
+            builder.addAction(android.R.drawable.ic_menu_send, ctx.getString(R.string.send_to_watch), sendPending)
         }
 
         val notification = builder.build()

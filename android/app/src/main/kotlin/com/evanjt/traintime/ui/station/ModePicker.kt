@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.data.model.TransportMode
@@ -62,8 +63,9 @@ fun ModePicker(
                     .background(if (isSelected) accent.copy(alpha = 0.15f) else Color.Transparent)
                     .clickable(enabled = isAvailable) { onSelect(mode) },
             ) {
-                Icon(mode.icon, contentDescription = mode.label, tint = tint)
-                Text(mode.label, fontSize = 10.sp, color = tint)
+                val label = stringResource(mode.labelRes)
+                Icon(mode.icon, contentDescription = label, tint = tint)
+                Text(label, fontSize = 10.sp, color = tint)
             }
         }
     }

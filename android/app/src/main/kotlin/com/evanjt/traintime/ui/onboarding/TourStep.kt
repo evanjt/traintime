@@ -1,5 +1,8 @@
 package com.evanjt.traintime.ui.onboarding
 
+import androidx.annotation.StringRes
+import com.evanjt.traintime.R
+
 // The interactive walkthrough is a guided coach-mark tour: each step renders a
 // real, mocked app surface and spotlights one feature with an anchored callout.
 // Stages are the surfaces the steps run over; several steps share a surface.
@@ -7,8 +10,8 @@ enum class TourStage { NEARBY, MODE, TRACK, FAVOURITE, PIN, SETTINGS, SHARE, ROU
 
 data class TourStep(
     val stage: TourStage,
-    val title: String,
-    val body: String,
+    @StringRes val titleRes: Int,
+    @StringRes val bodyRes: Int,
     // Tour version this step first appeared in. New installs see every step;
     // an updater sees only steps newer than the version they last finished.
     val introducedIn: Int = 1,
@@ -19,73 +22,29 @@ data class TourStep(
 // v2: Wear OS released — the watch step announces it instead of teasing it.
 const val CURRENT_TOUR_VERSION = 2
 
-// Copy is held inline (not in strings.xml) because each line is tightly bound to
-// the step it explains; the rest of the tour (mock data, surfaces) is Kotlin too.
+// Each step's copy is a string resource, so the tour localises with the rest of
+// the app. The step-to-surface binding stays in Kotlin.
 val tourSteps: List<TourStep> = listOf(
-    TourStep(
-        TourStage.NEARBY,
-        "Departures around you",
-        "The nearest stations and their live departures. Here's Bern Bahnhof.",
-    ),
-    TourStep(
-        TourStage.MODE,
-        "Trains, buses, trams",
-        "Switch what you see with the mode chips. Each mode has its own nearby stops.",
-    ),
-    TourStep(
-        TourStage.TRACK,
-        "Track a departure",
-        "Tap a departure to follow it.",
-    ),
-    TourStep(
-        TourStage.FAVOURITE,
-        "Star your lines",
-        "Swipe a line right, or hold it, to favourite it.",
-    ),
-    TourStep(
-        TourStage.PIN,
-        "Pin a station",
-        "Pinned stations lead the list whenever they're among the five nearest, so your " +
-            "home station stays first.",
-    ),
-    TourStep(
-        TourStage.SETTINGS,
-        "Set your default mode",
-        "Pick the mode you ride most. TrainTime opens on it.",
-    ),
-    TourStep(
-        TourStage.SHARE,
-        "Bring trips from SBB",
-        "Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train.",
-    ),
-    TourStep(
-        TourStage.ROUTE_PLAN,
-        "Saved routes and reminders",
-        "Later trips wait as a saved route. Open it to see every leg, choose which " +
-            "connections to track, and get a reminder before departure, timed to your " +
-            "walk to the station if you turn that on.",
-    ),
-    TourStep(
-        TourStage.WATCH,
-        "Take it to your watch",
-        "Wear OS and Garmin both sync live: track on your phone and send a departure " +
-            "to your wrist. There's an Apple Watch app for iPhone too.",
-        introducedIn = 2,
-    ),
-    TourStep(
-        TourStage.WIDGET,
-        "Add the widget",
-        "Put your next departures on the home screen.",
-    ),
+    TourStep(TourStage.NEARBY, R.string.tour_nearby_title, R.string.tour_nearby_body),
+    TourStep(TourStage.MODE, R.string.tour_modes_title, R.string.tour_modes_body),
+    TourStep(TourStage.TRACK, R.string.tour_track_title, R.string.tour_track_body),
+    TourStep(TourStage.FAVOURITE, R.string.tour_star_title, R.string.tour_star_body),
+    TourStep(TourStage.PIN, R.string.tour_pin_title, R.string.tour_pin_body),
+    TourStep(TourStage.SETTINGS, R.string.tour_mode_title, R.string.tour_mode_body),
+    TourStep(TourStage.SHARE, R.string.tour_sbb_title, R.string.tour_sbb_body),
+    TourStep(TourStage.ROUTE_PLAN, R.string.tour_routes_title, R.string.tour_routes_body),
+    TourStep(TourStage.WATCH, R.string.tour_watch_title, R.string.tour_watch_body, introducedIn = 2),
+    TourStep(TourStage.WIDGET, R.string.tour_widget_title, R.string.tour_widget_body),
 )
 
 // Shown once a departure row has been tapped and the tracking surface is up.
-const val TRACK_DETAIL_BODY =
-    "Your location and the departure time update live to tell you if you'll make it on foot."
+@StringRes
+val TRACK_DETAIL_BODY = R.string.tour_tracking_extra
 
 // Shown once a line has been favourited: it appears in the favourites block above and stays
 // in the list below.
-const val FAVOURITE_DETAIL_BODY = "It now sits above the gold line and still appears in the list below."
+@StringRes
+val FAVOURITE_DETAIL_BODY = R.string.tour_starred_extra
 
 // The version an updater effectively last saw. A stored version wins; otherwise
 // a legacy user who finished the old (pre-versioning) tour counts as v1, and a

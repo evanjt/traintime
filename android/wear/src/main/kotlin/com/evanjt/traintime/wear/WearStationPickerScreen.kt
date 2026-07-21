@@ -15,9 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,8 +33,10 @@ import androidx.wear.compose.material.PositionIndicator
 import androidx.wear.compose.material.Scaffold
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.domain.GeoUtils
+import com.evanjt.traintime.wear.R
 
 @Composable
 fun WearStationPickerScreen(vm: WearViewModel, onClose: () -> Unit) {
@@ -51,7 +55,7 @@ fun WearStationPickerScreen(vm: WearViewModel, onClose: () -> Unit) {
         ) {
             item {
                 Text(
-                    "Nearby stations",
+                    stringResource(R.string.nearby_stations),
                     color = MaterialTheme.colors.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -97,7 +101,7 @@ private fun StationPickerRow(
         }
         Column(Modifier.weight(1f)) {
             Text(
-                station.name ?: "Station",
+                station.name ?: stringResource(CoreR.string.station_fallback),
                 color = MaterialTheme.colors.onSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -105,7 +109,7 @@ private fun StationPickerRow(
                 overflow = TextOverflow.Ellipsis,
             )
             station.dist?.let {
-                Text(GeoUtils.formatWalkInfo(it), color = MaterialTheme.colors.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
+                Text(GeoUtils.formatWalkInfo(LocalContext.current, it), color = MaterialTheme.colors.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
             }
         }
         // Checkmark for the station currently shown, like the Apple watch picker.

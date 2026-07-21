@@ -12,7 +12,10 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.currentState
 import androidx.glance.state.GlanceStateDefinition
 import com.evanjt.traintime.Timing
+import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.FavouritesStore
+import com.evanjt.traintime.domain.LocaleUtil
+import kotlinx.coroutines.flow.first
 
 // Breaker pattern: dormant by default (zero API traffic), tap to activate
 // for a 5 min live window with a per-minute countdown, then back to dormant.
@@ -34,9 +37,16 @@ class TrainTimeWidget : GlanceAppWidget() {
             emptySet()
         }
 
+        // The widget renders outside an activity, so the per-app language override
+        // doesn't reach it on pre-33 devices. Resolve strings through a context
+        // wrapped in the stored language tag, read here (suspend) and captured by
+        // the composition. updateAppLanguage triggers updateAll, so a change
+        // re-runs provideGlance and re-reads the tag.
+        val ctx = LocaleUtil.localised(context, AppPrefs(context).appLanguage.first())
+
         provideContent {
             val state = currentState<WidgetState>()
-            WidgetContent(state, favKeys)
+            WidgetContent(state, favKeys, ctx)
         }
     }
 
@@ -54,7 +64,7 @@ class TrainTimeWidgetReceiver : GlanceAppWidgetReceiver() {
 }
 
 @Composable
-private fun WidgetContent(state: WidgetState, favKeys: Set<String>) {
+private fun WidgetContent(state: WidgetState, favKeys: Set<String>, ctx: android.content.Context) {
     val now = System.currentTimeMillis() / 1000
     val result = state.result
     val fetchAge = if (result != null) now - result.fetchTime else Long.MAX_VALUE
@@ -65,7 +75,7 @@ private fun WidgetContent(state: WidgetState, favKeys: Set<String>) {
     val dormant = result == null || state.dormant || fetchAge > TrainTimeWidget.ACTIVE_WINDOW_SECONDS
 
     if (dormant) {
-        DormantView(result = result, refreshing = refreshing, favKeys = favKeys, nowEpochSeconds = now)
+        DormantView(result = result, refreshing = refreshing, favKeys = favKeys, nowEpochSeconds = now, ctx = ctx)
     } else {
         ActiveView(
             result = result,
@@ -74,6 +84,7 @@ private fun WidgetContent(state: WidgetState, favKeys: Set<String>) {
             hideFavourites = state.hideFavourites,
             refreshing = refreshing,
             outsideSwitzerland = state.outsideSwitzerland,
+            ctx = ctx,
         )
     }
 }

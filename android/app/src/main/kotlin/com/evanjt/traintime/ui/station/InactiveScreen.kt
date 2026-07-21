@@ -17,7 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.evanjt.traintime.core.R as CoreR
 
 // Overlay for the paused state: darkens the frozen board and floats Resume on
 // top. The scrim's no-op clickable swallows taps to the board underneath, so
@@ -36,7 +38,7 @@ fun InactiveScreen(onResume: () -> Unit) {
     ) {
         Button(onClick = onResume) {
             Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Resume", modifier = Modifier.padding(start = 6.dp))
+            Text(stringResource(CoreR.string.resume), modifier = Modifier.padding(start = 6.dp))
         }
     }
 }

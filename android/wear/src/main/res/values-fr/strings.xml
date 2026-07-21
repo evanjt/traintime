@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrainTime</string>
+    <string name="switch_station">Changer d\'arrêt</string>
+    <string name="nearby_stations">Arrêts à proximité</string>
+    <string name="quick_launch">Lancement rapide</string>
+    <string name="phone_label">Téléphone</string>
+    <string name="language">Langue</string>
+    <string name="favourites_n_fmt">Favoris (%1$d)</string>
+    <string name="hold_fav_remove">Maintenez un favori pour le retirer.</string>
+    <string name="rate_traintime">Évaluer TrainTime</string>
+    <string name="data_attribution">Données : opentransportdata.swiss</string>
+    <string name="platform_abbr_fmt">Quai %1$s</string>
+    <string name="remind_on_phone">Rappel sur téléphone</string>
+    <string name="saved_on_phone">Enregistré sur le téléphone</string>
+    <string name="open_phone_hint">Ouvrez TrainTime sur votre téléphone</string>
+    <string name="no_station_location">Position inconnue</string>
+    <string name="no_saved_route">Aucun itinéraire enregistré</string>
+    <string name="wear_route_hint">Chaque correspondance peut rappeler avant le départ. Coupez-en une ou suivez-la maintenant.</string>
+    <string name="before_it_departs">avant le départ</string>
+    <string name="tracking_channel">Suivi</string>
+    <string name="inactive">Inactif</string>
+    <string name="yes_short">Oui</string>
+</resources>

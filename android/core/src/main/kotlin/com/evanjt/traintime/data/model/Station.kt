@@ -11,8 +11,8 @@ data class Station(
     val dist: Double? = null,
     val embeddedDepartures: List<Departure>? = null,
 ) {
-    fun walkInfo(index: Int, total: Int): String {
-        val base = GeoUtils.formatWalkInfo(dist ?: 0.0)
+    fun walkInfo(context: android.content.Context, index: Int, total: Int): String {
+        val base = GeoUtils.formatWalkInfo(context, dist ?: 0.0)
         return if (total > 1) "$base  ${index + 1}/$total" else base
     }
 }

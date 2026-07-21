@@ -1,5 +1,7 @@
 package com.evanjt.traintime.data.model
 
+import androidx.annotation.StringRes
+import com.evanjt.traintime.core.R
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,12 +11,13 @@ enum class TransportMode(val raw: Int) {
     TRAM(2),
     SPECIAL(3);
 
-    val label: String
+    @get:StringRes
+    val labelRes: Int
         get() = when (this) {
-            TRAIN -> "Train"
-            BUS -> "Bus"
-            TRAM -> "Tram"
-            SPECIAL -> "Special"
+            TRAIN -> R.string.mode_train
+            BUS -> R.string.mode_bus
+            TRAM -> R.string.mode_tram
+            SPECIAL -> R.string.mode_special
         }
 
     /// Query param value for /v1/nearby; train is the server default.

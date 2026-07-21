@@ -67,6 +67,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.Station
@@ -238,12 +240,12 @@ fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
             // instead of overlapping the interface up top.
             val targetTop = targetRect?.top
             val bubbleAtBottom = if (infoStage) false else (targetTop == null || targetTop < windowHeightPx * 0.55f)
-            val bodyText = when {
+            val bodyRes = when {
                 step.stage == TourStage.TRACK && trackingActive -> TRACK_DETAIL_BODY
                 step.stage == TourStage.FAVOURITE && favourites.isNotEmpty() -> FAVOURITE_DETAIL_BODY
-                else -> step.body
+                else -> step.bodyRes
             }
-            val nextLabel = if (stepIndex == steps.lastIndex) "Done" else "Next"
+            val nextLabel = if (stepIndex == steps.lastIndex) stringResource(R.string.done) else stringResource(R.string.next)
 
             val (dotIndex, dotTotal) = tourDotPosition(steps, stepIndex, trackingActive, favourites.isNotEmpty())
 
@@ -251,8 +253,8 @@ fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
             // fixed nav bar below it.
             Box(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
                 CalloutBubble(
-                    title = step.title,
-                    body = bodyText,
+                    title = stringResource(step.titleRes),
+                    body = stringResource(bodyRes),
                     caretUp = bubbleAtBottom,
                     modifier = Modifier
                         .align(if (bubbleAtBottom) Alignment.BottomCenter else Alignment.TopCenter)
@@ -315,7 +317,7 @@ private fun TourStationSurface(
             Spacer(Modifier.weight(1f))
             Icon(Icons.Filled.LocationOn, contentDescription = "GPS", tint = palette.ahead)
             IconButton(onClick = {}) {
-                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)
+                Icon(Icons.Filled.Settings, contentDescription = stringResource(CoreR.string.settings), tint = secondary)
             }
         }
 
@@ -335,7 +337,7 @@ private fun TourStationSurface(
             Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = secondary)
         }
         Text(
-            GeoUtils.formatWalkInfo(260.0),
+            GeoUtils.formatWalkInfo(LocalContext.current, 260.0),
             color = secondary,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
@@ -519,7 +521,7 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
             modifier = Modifier.padding(top = 8.dp),
         ) {
             DirectionArrow(45.0)
-            Text(GeoUtils.formatWalkInfo(TOUR_TRACK_DISTANCE_M), color = secondary, fontSize = 14.sp)
+            Text(GeoUtils.formatWalkInfo(LocalContext.current, TOUR_TRACK_DISTANCE_M), color = secondary, fontSize = 14.sp)
         }
 
         FormationDiagram(TourMockData.formation, Modifier.padding(top = 16.dp))
@@ -538,7 +540,7 @@ private fun TourPickerSurface(
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
         Text(
-            "Nearby stations",
+            stringResource(R.string.nearby_stations),
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
@@ -553,13 +555,13 @@ private fun TourPickerSurface(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(station.name ?: "", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-                    Text(station.walkInfo(index, stations.size), color = secondary, fontSize = 12.sp)
+                    Text(station.walkInfo(LocalContext.current, index, stations.size), color = secondary, fontSize = 12.sp)
                 }
                 val pinModifier = if (isBern) Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) } else Modifier
                 IconButton(onClick = { if (isBern) onPin(station) }, modifier = pinModifier) {
                     Icon(
                         if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = "Pin",
+                        contentDescription = stringResource(R.string.pin),
                         tint = if (pinned) palette.platform else secondary,
                     )
                 }
@@ -581,24 +583,24 @@ private fun TourSettingsSurface(
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 20.dp, vertical = 24.dp)) {
         Text(
-            "Settings",
+            stringResource(CoreR.string.settings),
             color = onSurface,
             fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp),
         )
         Column(Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) }) {
-            Text("Default Mode", color = secondary, fontSize = 13.sp)
+            Text(stringResource(CoreR.string.default_mode), color = secondary, fontSize = 13.sp)
             listOf(TransportMode.TRAIN, TransportMode.BUS, TransportMode.TRAM).forEach { m ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().clickable { onSelect(m) }.padding(vertical = 10.dp),
                 ) {
                     Icon(m.icon, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
-                    Text(m.label, color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                    Text(stringResource(m.labelRes), color = onSurface, modifier = Modifier.padding(start = 12.dp))
                     Spacer(Modifier.weight(1f))
                     if (currentMode == m) {
-                        Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
+                        Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.selected), tint = palette.platform)
                     }
                 }
             }
@@ -667,8 +669,7 @@ internal fun TourWatchSurface(topInset: Dp, onReport: (Rect) -> Unit) {
                 )
             }
             Text(
-                "Track on your phone and a departure mirrors to a paired watch, which also reads " +
-                    "the phone's location, handy indoors. The watch icon turns green when it's live.",
+                stringResource(R.string.watch_mirror_hint),
                 color = secondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 12.dp),
@@ -737,8 +738,8 @@ private fun WatchBadge(kind: WatchBadgeKind) {
         WatchBadgeKind.PHONE_APP -> Icons.Filled.PhoneIphone
     }
     val label = when (kind) {
-        WatchBadgeKind.SYNCS_LIVE -> "Syncs live"
-        WatchBadgeKind.PHONE_APP -> "For iPhone"
+        WatchBadgeKind.SYNCS_LIVE -> stringResource(R.string.syncs_live)
+        WatchBadgeKind.PHONE_APP -> stringResource(R.string.for_iphone)
     }
     val tint = if (kind == WatchBadgeKind.SYNCS_LIVE) green else secondary
     Row(
@@ -808,7 +809,7 @@ private fun TourShareSurface(topInset: Dp, onReport: (Rect) -> Unit) {
             .padding(horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("From the SBB Mobile app", color = secondary, fontSize = 13.sp)
+        Text(stringResource(R.string.from_sbb_app), color = secondary, fontSize = 13.sp)
         Spacer(Modifier.height(10.dp))
         Row(
             Modifier
@@ -819,11 +820,11 @@ private fun TourShareSurface(topInset: Dp, onReport: (Rect) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Share to", color = secondary, fontSize = 14.sp)
+            Text(stringResource(R.string.share_to), color = secondary, fontSize = 14.sp)
             Text("TrainTime", style = MaterialTheme.typography.titleMedium)
         }
         Spacer(Modifier.height(16.dp))
-        Text("Your trip opens here, tracked and ready.", color = secondary, fontSize = 13.sp)
+        Text(stringResource(R.string.trip_opens_here), color = secondary, fontSize = 13.sp)
     }
 }
 
@@ -847,12 +848,28 @@ private fun TourRouteSurface(topInset: Dp, onReport: (Rect) -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
                 .padding(12.dp),
         ) {
-            Text("Route to Lausanne", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-            TourRouteLeg("IR90", "Sion to Lausanne", "13:02 to 13:44", tracked = true, isCurrent = true)
-            TourRouteLeg("M2", "Lausanne to Ouchy", "13:52 to 14:01", tracked = false, isCurrent = false)
+            Text(
+                stringResource(CoreR.string.route_to_fmt, "Lausanne"),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            TourRouteLeg(
+                "IR90",
+                stringResource(CoreR.string.leg_places_fmt, "Sion", "Lausanne"),
+                stringResource(CoreR.string.leg_times_fmt, "13:02", "13:44"),
+                tracked = true,
+                isCurrent = true,
+            )
+            TourRouteLeg(
+                "M2",
+                stringResource(CoreR.string.leg_places_fmt, "Lausanne", "Ouchy"),
+                stringResource(CoreR.string.leg_times_fmt, "13:52", "14:01"),
+                tracked = false,
+                isCurrent = false,
+            )
         }
         Spacer(Modifier.height(12.dp))
-        Text("Each connection can send a reminder. Track any now.", color = secondary, fontSize = 13.sp)
+        Text(stringResource(R.string.each_connection_reminder), color = secondary, fontSize = 13.sp)
     }
 }
 
@@ -880,7 +897,7 @@ private fun TourRouteLeg(line: String, path: String, times: String, tracked: Boo
                 Text(times, color = secondary, fontSize = 12.sp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Remind", color = secondary, fontSize = 10.sp)
+                Text(stringResource(CoreR.string.remind), color = secondary, fontSize = 10.sp)
                 Switch(checked = tracked, onCheckedChange = {})
             }
         }
@@ -889,8 +906,8 @@ private fun TourRouteLeg(line: String, path: String, times: String, tracked: Boo
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(if (isCurrent) "Next connection" else "", color = secondary, fontSize = 11.sp)
-            Text("Track now", color = palette.platform, fontSize = 14.sp)
+            Text(if (isCurrent) stringResource(CoreR.string.next_connection) else "", color = secondary, fontSize = 11.sp)
+            Text(stringResource(CoreR.string.track_now), color = palette.platform, fontSize = 14.sp)
         }
     }
 }

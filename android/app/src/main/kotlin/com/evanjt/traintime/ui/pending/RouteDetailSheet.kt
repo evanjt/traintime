@@ -22,10 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.sbb.LegType
@@ -58,12 +61,12 @@ fun RouteDetailSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
             Text(
-                "Route to ${route.finalDestination}",
+                stringResource(CoreR.string.route_to_fmt, route.finalDestination),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             Text(
-                "Tap any connection to track it now. Use its switch to turn the departure reminder off.",
+                stringResource(R.string.route_sheet_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp),
@@ -135,16 +138,20 @@ private fun RideLegRow(
             )
         }
         Column(Modifier.weight(1f).padding(start = 8.dp)) {
-            Text("${leg.originName} to ${leg.destName}", fontWeight = FontWeight.Medium, maxLines = 1)
-            val times = "${hhmm(leg.depTs)} to ${hhmm(leg.arrTs)}"
             Text(
-                if (platform != null) "$times · platform $platform" else times,
+                stringResource(CoreR.string.leg_places_fmt, leg.originName, leg.destName),
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+            )
+            val times = stringResource(CoreR.string.leg_times_fmt, hhmm(leg.depTs), hhmm(leg.arrTs))
+            Text(
+                if (platform != null) stringResource(CoreR.string.times_platform_fmt, times, platform) else times,
                 color = secondary,
                 fontSize = 12.sp,
             )
             if (isCurrent) {
                 Text(
-                    "Next connection",
+                    stringResource(CoreR.string.next_connection),
                     color = MaterialTheme.colorScheme.primary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
@@ -153,7 +160,7 @@ private fun RideLegRow(
         }
         if (leg.isTrackable) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Remind", color = secondary, fontSize = 10.sp)
+                Text(stringResource(CoreR.string.remind), color = secondary, fontSize = 10.sp)
                 Switch(checked = !muted, onCheckedChange = onSetTracked)
             }
             Icon(
@@ -163,7 +170,7 @@ private fun RideLegRow(
                 modifier = Modifier.padding(start = 4.dp),
             )
         } else {
-            Text("Outside Switzerland", color = secondary, fontSize = 11.sp)
+            Text(stringResource(CoreR.string.outside_switzerland), color = secondary, fontSize = 11.sp)
         }
     }
 }

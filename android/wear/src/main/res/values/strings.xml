@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TrainTime</string>
+    <string name="switch_station">Switch station</string>
+    <string name="nearby_stations">Nearby stations</string>
+    <string name="quick_launch">Quick launch</string>
+    <string name="phone_label">Phone</string>
+    <string name="language">Language</string>
+    <string name="favourites_n_fmt">Favourites (%1$d)</string>
+    <string name="hold_fav_remove">Hold a favourite to remove it.</string>
+    <string name="rate_traintime">Rate TrainTime</string>
+    <string name="data_attribution">Data: opentransportdata.swiss</string>
+    <string name="platform_abbr_fmt">Pl. %1$s</string>
+    <string name="remind_on_phone">Remind on phone</string>
+    <string name="saved_on_phone">Saved on phone</string>
+    <string name="open_phone_hint">Open TrainTime on your phone</string>
+    <string name="no_station_location">No station location</string>
+    <string name="no_saved_route">No saved route</string>
+    <string name="wear_route_hint">Each connection can send a reminder before it departs. Turn one off, or track any now.</string>
+    <string name="before_it_departs">before it departs</string>
+    <string name="tracking_channel">Tracking</string>
+    <string name="inactive">Inactive</string>
+    <string name="yes_short">Yes</string>
 </resources>

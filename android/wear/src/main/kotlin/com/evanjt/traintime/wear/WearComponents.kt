@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Tram
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +34,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,7 +77,7 @@ fun ModeIconRow(vm: WearViewModel) {
                     .clickable(enabled = available) { vm.selectMode(mode) },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(mode.icon, contentDescription = mode.label, tint = tint, modifier = Modifier.size(15.dp))
+                Icon(mode.icon, contentDescription = stringResource(mode.labelRes), tint = tint, modifier = Modifier.size(15.dp))
             }
         }
     }
@@ -132,7 +134,7 @@ fun WearDepartureRow(
             .padding(horizontal = 4.dp, vertical = 4.dp),
     ) {
         Text(
-            departure.minutesText,
+            departure.minutesLabel(LocalContext.current),
             color = minutesColor,
             fontSize = if (departure.isGone) 11.sp else 14.sp,
             fontWeight = FontWeight.Bold,

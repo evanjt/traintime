@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,10 +34,12 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.sbb.LegType
 import com.evanjt.traintime.data.sbb.RouteLeg
+import com.evanjt.traintime.wear.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -73,7 +76,7 @@ fun WearRouteScreen(vm: WearViewModel, onDismiss: () -> Unit) {
             if (route == null) {
                 item {
                     Text(
-                        "No saved route",
+                        stringResource(R.string.no_saved_route),
                         color = MaterialTheme.colors.onSurfaceVariant,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
@@ -85,7 +88,7 @@ fun WearRouteScreen(vm: WearViewModel, onDismiss: () -> Unit) {
 
             item {
                 Text(
-                    "Route to ${route.finalDestination}",
+                    stringResource(CoreR.string.route_to_fmt, route.finalDestination),
                     color = MaterialTheme.colors.onBackground,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -95,7 +98,7 @@ fun WearRouteScreen(vm: WearViewModel, onDismiss: () -> Unit) {
             }
             item {
                 Text(
-                    "Each connection can send a reminder before it departs. Turn one off, or track any now.",
+                    stringResource(R.string.wear_route_hint),
                     color = MaterialTheme.colors.onSurfaceVariant,
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
@@ -167,7 +170,11 @@ private fun RideLegRow(
                 )
                 val times = "${hhmm(leg.depTs)} → ${hhmm(leg.arrTs)}"
                 Text(
-                    if (platform != null) "$times · platform $platform" else times,
+                    if (platform != null) {
+                        stringResource(CoreR.string.times_platform_fmt, times, platform)
+                    } else {
+                        times
+                    },
                     color = secondary,
                     fontSize = 10.sp,
                 )
@@ -177,21 +184,21 @@ private fun RideLegRow(
             ToggleChip(
                 checked = !muted,
                 onCheckedChange = { checked -> onSetTracked(checked) },
-                label = { Text("Remind", fontSize = 12.sp) },
-                secondaryLabel = { Text("before it departs", fontSize = 10.sp) },
+                label = { Text(stringResource(CoreR.string.remind), fontSize = 12.sp) },
+                secondaryLabel = { Text(stringResource(R.string.before_it_departs), fontSize = 10.sp) },
                 toggleControl = { Switch(checked = !muted) },
                 colors = ToggleChipDefaults.toggleChipColors(),
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
             Chip(
                 onClick = onTrackNow,
-                label = { Text("Track now", fontSize = 12.sp) },
+                label = { Text(stringResource(CoreR.string.track_now), fontSize = 12.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             )
         } else {
             Text(
-                "Outside Switzerland",
+                stringResource(CoreR.string.outside_switzerland),
                 color = secondary,
                 fontSize = 10.sp,
                 modifier = Modifier.padding(top = 2.dp),

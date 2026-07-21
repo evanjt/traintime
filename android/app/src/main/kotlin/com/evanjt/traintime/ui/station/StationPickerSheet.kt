@@ -19,10 +19,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.ui.MainViewModel
 
@@ -37,7 +40,7 @@ fun StationPickerSheet(viewModel: MainViewModel) {
     ) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(
-                "Stations",
+                stringResource(R.string.stations_title),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
@@ -57,7 +60,7 @@ fun StationPickerSheet(viewModel: MainViewModel) {
                     Column(Modifier.weight(1f)) {
                         Text(station.name ?: "?", color = MaterialTheme.colorScheme.onSurface)
                         Text(
-                            GeoUtils.formatWalkInfo(station.dist ?: 0.0),
+                            GeoUtils.formatWalkInfo(LocalContext.current, station.dist ?: 0.0),
                             color = secondary,
                             fontSize = 12.sp,
                         )
@@ -66,12 +69,12 @@ fun StationPickerSheet(viewModel: MainViewModel) {
                     IconButton(onClick = { viewModel.togglePinnedStation(station) }) {
                         Icon(
                             if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                            contentDescription = if (pinned) "Unpin station" else "Pin station",
+                            contentDescription = if (pinned) stringResource(R.string.unpin_station) else stringResource(R.string.pin_station),
                             tint = if (pinned) palette.platform else secondary,
                         )
                     }
                     if (index == viewModel.stationIndex) {
-                        Icon(Icons.Filled.Check, contentDescription = "Selected", tint = palette.platform)
+                        Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.selected), tint = palette.platform)
                     } else {
                         Spacer(Modifier.padding(12.dp))
                     }

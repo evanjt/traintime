@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mode_train">Zug</string>
+    <string name="mode_bus">Bus</string>
+    <string name="mode_tram">Tram</string>
+    <string name="mode_special">Spezial</string>
+
+    <string name="status_not_in_switzerland">Nicht in der Schweiz</string>
+    <string name="status_finding_stations">Suche Stationen...</string>
+    <string name="status_updating_stations">Aktualisiere...</string>
+    <string name="status_no_stations_nearby">Keine Stationen in der Nähe</string>
+    <string name="status_gps_searching">GPS: Suche...</string>
+    <string name="status_location_permission">Standortberechtigung nötig</string>
+    <string name="station_fallback">Station</string>
+
+    <string name="ctx_stations">Stationen</string>
+    <string name="ctx_departures">Abfahrten</string>
+    <string name="err_rate_limited">Zu viele Anfragen</string>
+    <string name="err_code_fmt">%1$s: %2$d</string>
+    <string name="err_generic_fmt">%1$s: Fehler</string>
+    <string name="err_no_connection">Keine Verbindung</string>
+
+    <string name="no_gps">Kein GPS</string>
+    <string name="on_time">Pünktlich</string>
+    <string name="buf_sec_fmt">%1$ds</string>
+    <string name="buf_min_fmt">%1$d min</string>
+    <string name="ahead_fmt">%1$s voraus</string>
+    <string name="behind_fmt">%1$s zurück</string>
+    <string name="departed">Abgefahren</string>
+
+    <string name="track_now">Jetzt verfolgen</string>
+    <string name="route_to_fmt">Route nach %1$s</string>
+    <string name="remind">Erinnern</string>
+    <string name="next_connection">Nächste Verbindung</string>
+    <string name="outside_switzerland">Ausserhalb der Schweiz</string>
+    <string name="change_at_fmt">Umsteigen in %1$s</string>
+    <string name="min_to_change_fmt">%1$s · %2$d min zum Umsteigen</string>
+    <string name="times_platform_fmt">%1$s · Gleis %2$s</string>
+    <string name="leg_places_fmt">%1$s nach %2$s</string>
+    <string name="leg_times_fmt">%1$s bis %2$s</string>
+    <string name="in_min_fmt">in %1$d min</string>
+    <string name="in_h_min_fmt">in %1$d h %2$d</string>
+
+    <string name="connected">Verbunden</string>
+    <string name="not_connected">Nicht verbunden</string>
+    <string name="settings">Einstellungen</string>
+    <string name="favourites">Favoriten</string>
+    <string name="default_mode">Standardmodus</string>
+
+    <string name="review_title">Gefällt dir TrainTime?</string>
+    <string name="review_yes">Ja, bewerten</string>
+    <string name="review_not_now">Nicht jetzt</string>
+    <string name="review_never">Nicht mehr fragen</string>
+
+    <string name="back">Zurück</string>
+    <string name="resume">Weiter</string>
+    <string name="row_gone">weg</string>
+    <string name="row_now">jetzt</string>
+    <string name="walk_under_min">&lt;1 min</string>
+    <string name="walk_info_fmt">%1$s zu Fuss - %2$dm</string>
+</resources>

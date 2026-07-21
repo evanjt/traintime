@@ -33,10 +33,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.FormationWagon
 
@@ -162,7 +164,7 @@ fun FormationDiagram(formation: Formation, modifier: Modifier = Modifier) {
                     Box(Modifier.width(locoWidth), contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Direction of travel",
+                            contentDescription = stringResource(R.string.direction_of_travel_cd),
                             tint = colors.primary,
                             modifier = Modifier.size(12.dp),
                         )

@@ -50,12 +50,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.ui.MainViewModel
@@ -107,7 +110,7 @@ fun StationScreen(
                     ) {
                         Icon(
                             Icons.Filled.Watch,
-                            contentDescription = "Open TrainTime on the watch",
+                            contentDescription = stringResource(R.string.open_watch_cd),
                             tint = when {
                                 viewModel.watchChecking -> secondary
                                 viewModel.watchAlive -> Color(0xFF34C759)            // open + synced
@@ -127,7 +130,7 @@ fun StationScreen(
                 } else {
                     Icon(
                         Icons.Filled.Watch,
-                        contentDescription = "Watch, open settings",
+                        contentDescription = stringResource(R.string.watch_settings_cd),
                         tint = palette.platform,
                         modifier = Modifier
                             .clickable { onOpenSettings(true) }
@@ -142,11 +145,11 @@ fun StationScreen(
                     GpsQuality.LAST_KNOWN, GpsQuality.UNAVAILABLE -> Icons.Filled.LocationOff
                     else -> Icons.Filled.LocationOn
                 },
-                contentDescription = "GPS quality",
+                contentDescription = stringResource(R.string.gps_quality_cd),
                 tint = viewModel.gpsQuality.tint,
             )
             IconButton(onClick = { onOpenSettings(false) }) {
-                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = secondary)
+                Icon(Icons.Filled.Settings, contentDescription = stringResource(CoreR.string.settings), tint = secondary)
             }
         }
 
@@ -170,7 +173,7 @@ fun StationScreen(
             if (viewModel.stations.size > 1) {
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Pick station",
+                    contentDescription = stringResource(R.string.pick_station_cd),
                     tint = secondary,
                     modifier = Modifier.padding(start = 4.dp),
                 )
@@ -210,7 +213,7 @@ fun StationScreen(
                             tint = Color(0xFF34C759),
                             modifier = Modifier.size(16.dp),
                         )
-                        Text("Tracking on watch · $label", fontSize = 13.sp)
+                        Text(stringResource(R.string.tracking_on_watch_fmt, label), fontSize = 13.sp)
                     }
                 }
             }
@@ -220,7 +223,7 @@ fun StationScreen(
         if (viewModel.departures.isEmpty() && viewModel.favouriteDepartures.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (viewModel.stations.isEmpty()) {
-                    if (viewModel.status == MainViewModel.OUT_OF_BOUNDS_STATUS) {
+                    if (viewModel.isOutOfBounds) {
                         SwissOutlineBackdrop(color = secondary.copy(alpha = 0.3f))
                     }
                     Text(
@@ -365,7 +368,7 @@ private fun DepartureListItem(
                         .padding(horizontal = 20.dp),
                 ) {
                     Text(
-                        "Remind me",
+                        stringResource(R.string.remind_me),
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Medium,
                     )
@@ -393,7 +396,7 @@ private fun DepartureListItem(
                     )
                     Spacer(Modifier.size(8.dp))
                     Text(
-                        if (isFavourite) "Unfavourite" else "Favourite",
+                        if (isFavourite) stringResource(R.string.unfavourite) else stringResource(R.string.favourite),
                         color = Color.White,
                         fontWeight = FontWeight.Medium,
                     )

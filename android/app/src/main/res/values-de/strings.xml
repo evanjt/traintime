@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrainTime</string>
+    <string name="widget_description">Abfahrten in der Nähe auf einen Blick</string>
+
+    <!-- Settings sheet -->
+    <string name="appearance">Darstellung</string>
+    <string name="opt_system">System</string>
+    <string name="opt_light">Hell</string>
+    <string name="opt_dark">Dunkel</string>
+    <string name="language">Sprache</string>
+    <string name="watch_link">Uhr-Verbindung</string>
+    <string name="n_connected_fmt">%1$d verbunden</string>
+    <string name="version">Version</string>
+    <string name="replay_walkthrough">Rundgang wiederholen</string>
+    <string name="rate_this_app">App bewerten</string>
+    <string name="attribution">Quellen</string>
+    <string name="route_reminders">Routen-Erinnerungen</string>
+    <string name="notifications">Benachrichtigungen</string>
+    <string name="allowed">Erlaubt</string>
+    <string name="turn_on">Aktivieren</string>
+    <string name="remind_before_departure">Vor Abfahrt erinnern</string>
+    <string name="before_a_connection">Vor einer Verbindung</string>
+    <string name="n_min_fmt">%1$d min</string>
+    <string name="adjust_distance">An Distanz zur Station anpassen</string>
+    <string name="adjust_distance_desc">Vorlauf wird Gehzeit + die Minuten oben</string>
+    <string name="update_background">Im Hintergrund aktualisieren</string>
+    <string name="update_background_desc">Bleibt genau, während du unterwegs bist, auch bei geschlossener App</string>
+    <string name="notify_walk_plus_fmt">Du wirst Gehzeit + %1$d min vor Abfahrt erinnert</string>
+    <string name="notify_lead_fmt">Du wirst %1$d min vor Abfahrt erinnert</string>
+    <string name="send_test_notification">Testbenachrichtigung senden</string>
+    <string name="test_distance_reminder">Distanz-Erinnerung testen</string>
+    <string name="mirror_to_watch">Auf Uhr spiegeln</string>
+    <string name="mirror_to_watch_desc">Sendet Zug, Modus, Station und Standort an die Uhr</string>
+    <string name="no_favourites_yet">Noch keine Favoriten</string>
+    <string name="remove">Entfernen</string>
+
+    <!-- Attribution sheet -->
+    <string name="attribution_subtitle">Die Daten und Software hinter TrainTime.</string>
+    <string name="departure_data">Abfahrtsdaten</string>
+    <string name="departure_data_desc">Live-Abfahrten von Open Transport Data Switzerland, betrieben von den Schweizerischen Bundesbahnen (SBB), über die OJP-API.</string>
+    <string name="terms_of_use">Nutzungsbedingungen</string>
+    <string name="map_heading">Karte</string>
+    <string name="map_desc">Schweizer Grenzumriss von Natural Earth, Auflösung 1:10m, gemeinfrei.</string>
+    <string name="open_source_third_party">Open Source und Drittanbieter</string>
+    <string name="kotlinx_desc">Coroutinen und Serialisierung. Apache License 2.0</string>
+    <string name="play_services_desc">Standort, Wearable, In-App-Bewertung. Google-Bedingungen</string>
+    <string name="garmin_sdk_desc">© Garmin. Verwendet unter der SDK-Lizenz.</string>
+
+    <!-- Dialogs -->
+    <string name="bg_track_title">Im Hintergrund verfolgen?</string>
+    <string name="bg_track_body">TrainTime erfasst deinen Standort, um deine Routen-Erinnerung zu timen, auch wenn die App geschlossen ist. Du kannst ablehnen, dann verwenden wir deinen letzten bekannten Standort.</string>
+    <string name="continue_label">Weiter</string>
+    <string name="bg_denied_title">Letzter Standort wird verwendet</string>
+    <string name="bg_denied_body">Kein Problem. Deine Erinnerung funktioniert weiter, mit dem letzten bekannten Standort statt Live-Updates. Erlaube den Zugriff jederzeit, um sie live zu machen.</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="keep_as_is">So lassen</string>
+    <string name="review_body">Eine kurze Bewertung hilft anderen Pendlern, die App zu finden.</string>
+    <string name="replace_route_title">Gespeicherte Route ersetzen?</string>
+    <string name="replace_route_body_fmt">Du hast schon eine Route gespeichert. Durch die Reise nach %1$s ersetzen?</string>
+    <string name="replace">Ersetzen</string>
+    <string name="keep_existing">Behalten</string>
+
+    <!-- Onboarding tour -->
+    <string name="tour_step_of_fmt">Schritt %1$d von %2$d</string>
+    <string name="skip">Überspringen</string>
+    <string name="next">Weiter</string>
+    <string name="done">Fertig</string>
+    <string name="tour_nearby_title">Abfahrten um dich herum</string>
+    <string name="tour_nearby_body">Die nächsten Stationen mit ihren Live-Abfahrten. Hier: Bern Bahnhof.</string>
+    <string name="tour_modes_title">Züge, Busse, Trams</string>
+    <string name="tour_modes_body">Wechsle die Ansicht mit den Modus-Chips. Jeder Modus hat eigene Haltestellen.</string>
+    <string name="tour_track_title">Eine Abfahrt verfolgen</string>
+    <string name="tour_track_body">Tippe auf eine Abfahrt, um ihr zu folgen.</string>
+    <string name="tour_tracking_extra">Dein Standort und die Abfahrtszeit aktualisieren sich live und zeigen, ob du es zu Fuss schaffst.</string>
+    <string name="tour_star_title">Deine Linien markieren</string>
+    <string name="tour_star_body">Wische eine Linie nach rechts oder halte sie, um sie zu favorisieren.</string>
+    <string name="tour_starred_extra">Sie steht jetzt über der goldenen Linie und bleibt in der Liste darunter.</string>
+    <string name="tour_pin_title">Eine Station anpinnen</string>
+    <string name="tour_pin_body">Angepinnte Stationen führen die Liste an, sobald sie zu den fünf nächsten gehören. So bleibt deine Heimstation vorne.</string>
+    <string name="tour_mode_title">Standardmodus wählen</string>
+    <string name="tour_mode_body">Wähle den Modus, den du am meisten nutzt. TrainTime startet damit.</string>
+    <string name="tour_sbb_title">Reisen aus der SBB App</string>
+    <string name="tour_sbb_body">Teilst du eine Reise aus SBB Mobile? Sende sie an TrainTime und dein Zug wird übernommen.</string>
+    <string name="tour_routes_title">Gespeicherte Routen und Erinnerungen</string>
+    <string name="tour_routes_body">Spätere Reisen warten als gespeicherte Route. Öffne sie, um jede Etappe zu sehen, Verbindungen zum Verfolgen zu wählen und vor Abfahrt erinnert zu werden, auf Wunsch auf deinen Fussweg abgestimmt.</string>
+    <string name="tour_watch_title">Auf deine Uhr damit</string>
+    <string name="tour_watch_body">Wear OS und Garmin synchronisieren live: verfolge am Handy und sende eine Abfahrt ans Handgelenk. Für iPhone gibt es auch eine Apple Watch App.</string>
+    <string name="tour_widget_title">Widget hinzufügen</string>
+    <string name="tour_widget_body">Deine nächsten Abfahrten auf dem Startbildschirm.</string>
+    <string name="tour_replay_snackbar">Du kannst den Rundgang jederzeit in den Einstellungen wiederholen.</string>
+
+    <!-- Onboarding mock screens -->
+    <string name="platform_full_fmt">Gleis %1$s</string>
+    <string name="nearby_stations">Stationen in der Nähe</string>
+    <string name="pin">Anpinnen</string>
+    <string name="selected">Ausgewählt</string>
+    <string name="works_with_iphone">Auch für iPhone</string>
+    <string name="syncs_live">Synchronisiert live</string>
+    <string name="for_iphone">Für iPhone</string>
+    <string name="watch_mirror_hint">Verfolge am Handy und die Abfahrt spiegelt sich auf eine gekoppelte Uhr, die auch den Handy-Standort nutzt, praktisch drinnen. Das Uhr-Symbol wird grün, wenn es live ist.</string>
+    <string name="from_sbb_app">Aus der SBB Mobile App</string>
+    <string name="share_to">Teilen mit</string>
+    <string name="trip_opens_here">Deine Reise öffnet sich hier, verfolgt und bereit.</string>
+    <string name="each_connection_reminder">Jede Verbindung kann erinnern. Verfolge jede sofort.</string>
+    <string name="add_to_home_screen">Zum Startbildschirm hinzufügen</string>
+    <string name="add_widget_hint">Füge das TrainTime Widget über deinen Startbildschirm hinzu.</string>
+
+    <!-- Station screen -->
+    <string name="open_watch_cd">TrainTime auf der Uhr öffnen</string>
+    <string name="watch_settings_cd">Uhr, Einstellungen öffnen</string>
+    <string name="gps_quality_cd">GPS-Qualität</string>
+    <string name="pick_station_cd">Station wählen</string>
+    <string name="tracking_on_watch_fmt">Verfolgt auf der Uhr · %1$s</string>
+    <string name="remind_me">Erinnere mich</string>
+    <string name="favourite">Favorit</string>
+    <string name="unfavourite">Favorit entfernen</string>
+    <string name="stations_title">Stationen</string>
+    <string name="pin_station">Station anpinnen</string>
+    <string name="unpin_station">Station lösen</string>
+    <string name="my_stations">Meine Stationen</string>
+
+    <!-- Tracking screen -->
+    <string name="open_on_watch">Auf der Uhr öffnen</string>
+    <string name="send_to_watch">An die Uhr senden</string>
+    <string name="toggle_favourite_cd">Favorit umschalten</string>
+    <string name="tracking_route_to_fmt">Route nach %1$s wird verfolgt</string>
+    <string name="show_on_map">Auf Karte zeigen</string>
+    <string name="track_in_background">Im Hintergrund verfolgen</string>
+    <string name="tracking_on_watch">Verfolgt auf der Uhr</string>
+    <string name="track_on_watch">Auf der Uhr verfolgen</string>
+    <string name="direction_to_station_cd">Richtung zur Station</string>
+    <string name="direction_of_travel_cd">Fahrtrichtung</string>
+
+    <!-- Pending route chip + sheet -->
+    <string name="departs_fmt">%1$s fährt um %2$s</string>
+    <string name="notified_in_fmt">Erinnerung in %1$d min</string>
+    <string name="youll_be_notified_in_fmt">Du wirst in %1$d min erinnert</string>
+    <string name="walk_min_fmt">%1$d min zu Fuss</string>
+    <string name="buffer_fmt">%1$d min Reserve</string>
+    <string name="discard_route_cd">Route verwerfen</string>
+    <string name="discard_route_title">Gespeicherte Route verwerfen?</string>
+    <string name="discard_route_body_fmt">Die Route nach %1$s wird verworfen.</string>
+    <string name="discard">Verwerfen</string>
+    <string name="keep">Behalten</string>
+    <string name="route_sheet_hint">Tippe auf eine Verbindung, um sie sofort zu verfolgen. Mit dem Schalter stellst du die Abfahrts-Erinnerung ab.</string>
+
+    <!-- Widget -->
+    <string name="as_of_fmt">Stand %1$s</string>
+    <string name="no_departures">Keine Abfahrten</string>
+    <string name="updating">Aktualisiere</string>
+    <string name="refresh_label">↻ Aktualisieren</string>
+    <string name="platform_short_fmt">Gl. %1$s</string>
+    <string name="widget_refresh_channel">Widget-Aktualisierung</string>
+    <string name="updating_departures">Abfahrten werden aktualisiert</string>
+
+    <!-- Notifications -->
+    <string name="channel_saved_routes">Routen-Erinnerungen</string>
+    <string name="test_reminder_title">Test-Erinnerung</string>
+    <string name="test_reminder_body">Routen-Erinnerungen funktionieren. Dies ist ein Test.</string>
+    <string name="notif_departs_fmt">Abfahrt %1$s ab %2$s</string>
+    <string name="distance_test_title">Distanztest</string>
+    <string name="distance_test_need_loc">Aktiviere den Standort und öffne die App zuerst nahe einer Station.</string>
+    <string name="distance_test_title_fmt">Distanztest: %1$s</string>
+    <string name="distance_test_body_fmt">%1$d m entfernt (~%2$d min zu Fuss). Erinnerung käme %3$d min vor Abfahrt.</string>
+
+    <!-- Snackbars and share intake -->
+    <string name="no_watch_connected">Keine Uhr verbunden</string>
+    <string name="sent_to_watch">An die Uhr gesendet</string>
+    <string name="sent_to_fmt">An %1$s gesendet</string>
+    <string name="failed_to_send">Senden fehlgeschlagen</string>
+    <string name="update_watch_fmt">Aktualisiere TrainTime auf deiner Uhr (%1$s)</string>
+    <string name="watch_not_responding">Uhr-App reagiert nicht, öffne neu...</string>
+    <string name="no_sbb_link">Kein SBB-Reiselink gefunden</string>
+    <string name="sbb_link_unsupported">Dieses SBB-Linkformat wird noch nicht unterstützt</string>
+    <string name="nothing_to_track">Nichts zu verfolgen in dieser Reise</string>
+    <string name="cant_read_link">Reiselink konnte nicht gelesen werden</string>
+    <string name="check_connection">Link liess sich nicht öffnen. Prüfe deine Verbindung</string>
+    <string name="cant_save_departure">Abfahrt konnte nicht gespeichert werden</string>
+    <string name="trip_underway">Diese Reise läuft bereits oder ist vorbei</string>
+    <string name="saved_will_remind">Gespeichert. Wir erinnern dich vor der Abfahrt</string>
+    <string name="route_passed_fmt">Gespeicherte Route nach %1$s ist vorbei</string>
+</resources>

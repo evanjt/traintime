@@ -2,7 +2,11 @@ package com.evanjt.traintime.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
+@RunWith(RobolectricTestRunner::class)
 class GeoUtilsTest {
     @Test
     fun `haversine uses flat-earth factors`() {
@@ -19,9 +23,10 @@ class GeoUtilsTest {
 
     @Test
     fun `walk info formats minutes and metres`() {
-        assertEquals("2 min walk - 200m", GeoUtils.formatWalkInfo(200.0))
-        assertEquals("<1 min walk - 50m", GeoUtils.formatWalkInfo(50.0))
-        assertEquals("5 min walk - 100m", GeoUtils.formatWalkInfo(100.0, walkTimeSeconds = 300.0))
+        val ctx = RuntimeEnvironment.getApplication()
+        assertEquals("2 min walk - 200m", GeoUtils.formatWalkInfo(ctx, 200.0))
+        assertEquals("<1 min walk - 50m", GeoUtils.formatWalkInfo(ctx, 50.0))
+        assertEquals("5 min walk - 100m", GeoUtils.formatWalkInfo(ctx, 100.0, walkTimeSeconds = 300.0))
     }
 
     @Test

@@ -22,9 +22,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.R
+import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.widget.TrainTimeWidgetReceiver
 
 // A pure-Compose replica of the Glance widget's active view (widget/WidgetUi.kt
@@ -115,7 +118,7 @@ fun TourWidgetMock(modifier: Modifier = Modifier) {
     ) {
         // Header
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Train", color = c.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(stringResource(TransportMode.TRAIN.labelRes), color = c.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             Spacer(Modifier.width(6.dp))
             Text(
                 "Bern Bahnhof",
@@ -213,11 +216,11 @@ fun AddWidgetButton(modifier: Modifier = Modifier) {
             },
             modifier = modifier,
         ) {
-            Text("Add to Home Screen")
+            Text(stringResource(R.string.add_to_home_screen))
         }
     } else {
         Text(
-            "Add the TrainTime widget from your home screen.",
+            stringResource(R.string.add_widget_hint),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp,
             modifier = modifier,

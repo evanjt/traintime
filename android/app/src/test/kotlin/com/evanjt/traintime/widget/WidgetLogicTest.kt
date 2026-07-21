@@ -23,10 +23,10 @@ class WidgetLogicTest {
         WidgetStation(id = id, name = id, departures = deps.toList())
 
     @Test
-    fun `minutes text covers gone, now and minutes`() {
-        assertEquals("gone", dep("IC8", "Brig", -90).minutesText(now))
-        assertEquals("now", dep("IC8", "Brig", 30).minutesText(now))
-        assertEquals("10'", dep("IC8", "Brig", 600).minutesText(now))
+    fun `minutes until covers gone, now and future`() {
+        assertTrue(dep("IC8", "Brig", -90).isGone(now))
+        assertEquals(0, dep("IC8", "Brig", 30).minutesUntil(now))
+        assertEquals(10, dep("IC8", "Brig", 600).minutesUntil(now))
     }
 
     @Test

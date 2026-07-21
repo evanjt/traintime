@@ -4,6 +4,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.evanjt.traintime.R
 
 // A new shared trip arrived while another route is queued.
 @Composable
@@ -14,13 +16,13 @@ fun ReplaceRouteDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Replace queued route?") },
-        text = { Text("You already have a route saved. Replace it with the trip to $destination?") },
+        title = { Text(stringResource(R.string.replace_route_title)) },
+        text = { Text(stringResource(R.string.replace_route_body_fmt, destination)) },
         confirmButton = {
-            TextButton(onClick = onReplace) { Text("Replace") }
+            TextButton(onClick = onReplace) { Text(stringResource(R.string.replace)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Keep existing") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.keep_existing)) }
         },
     )
 }

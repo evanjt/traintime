@@ -2,6 +2,7 @@ package com.evanjt.traintime.ui
 
 import android.app.Application
 import android.net.Uri
+import androidx.glance.appwidget.updateAll
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +10,8 @@ import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.evanjt.traintime.BuildConfig
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.GarminConnectIQService
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Thresholds
@@ -77,11 +80,16 @@ data class ConnectedWatch(val id: String, val name: String, val type: PhoneWatch
 data class WatchLink(val name: String, val type: PhoneWatchType, val connected: Boolean)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    companion object {
-        // Shown (and the gate for the faint Swiss-outline backdrop) when located outside
-        // Switzerland with no stations to show.
-        const val OUT_OF_BOUNDS_STATUS = "Not in Switzerland"
-    }
+
+    // Localised string for VM status/snackbar/notification text. Pre-33 the
+    // AppCompat override never reaches the application context, so resolve
+    // against a context wrapped in the stored language tag.
+    private var appLanguageTag = ""
+
+    private fun str(id: Int, vararg args: Any): String =
+        com.evanjt.traintime.domain.LocaleUtil
+            .localised(getApplication(), appLanguageTag)
+            .getString(id, *args)
 
     val prefs = AppPrefs(application)
     val favouritesStore = FavouritesStore(application)
@@ -96,7 +104,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // App state
     var appState by mutableStateOf(0)
         private set
-    var status by mutableStateOf("GPS: Searching...")
+    var status by mutableStateOf(str(CoreR.string.status_gps_searching))
+        private set
+
+    // Gates the faint Swiss-outline backdrop (and marks the out-of-Switzerland
+    // status). Replaces the old string-equality check on the status text, which
+    // broke once status became localised.
+    var isOutOfBounds by mutableStateOf(false)
         private set
 
     // Station data (per mode)
@@ -335,12 +349,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         get() = stations.getOrNull(stationIndex)
 
     val walkInfo: String
-        get() = currentStation?.walkInfo(stationIndex, stations.size) ?: ""
+        get() = currentStation?.walkInfo(
+            com.evanjt.traintime.domain.LocaleUtil.localised(getApplication(), appLanguageTag),
+            stationIndex,
+            stations.size,
+        ) ?: ""
 
     val stationName: String
-        get() = currentStation?.name ?: "Station"
+        get() = currentStation?.name ?: str(CoreR.string.station_fallback)
 
     init {
+        viewModelScope.launch { prefs.appLanguage.collect { appLanguageTag = it } }
         // Garmin watch link (no-op unless the Connect IQ SDK is linked + a watch paired).
         garminService.onMessageReceived = { ctx -> applyReceivedWatchContext(ctx) }
         // Live status: a watch connecting/disconnecting (e.g. Bluetooth toggled) re-checks
@@ -404,7 +423,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             location.authorizationDenied.collect { denied ->
-                if (denied && stations.isEmpty()) status = "Location permission required"
+                if (denied && stations.isEmpty()) {
+                    status = str(CoreR.string.status_location_permission)
+                    isOutOfBounds = false
+                }
             }
         }
     }
@@ -484,7 +506,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (garmin.isEmpty()) {
                 watchChecking = false
                 watchAlive = false
-                showWatchStatus("No watch connected")
+                showWatchStatus(str(R.string.no_watch_connected))
                 return@launch
             }
             // Already open, just push the current view to it, no relaunch needed.
@@ -531,7 +553,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val garmin = withTimeoutOrNull(6_000) { garminService.eligibleDevices() } ?: emptyList()
             garminTargetIds = garmin.map { it.id }
             if (garmin.isEmpty()) {
-                showWatchStatus("No watch connected")
+                showWatchStatus(str(R.string.no_watch_connected))
                 return@launch
             }
 
@@ -549,7 +571,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // watch may still keep the notification view on top (a Garmin OS call).
             delay(500)
             garminTargetIds.forEach { garminService.openApp(it) }
-            showWatchStatus("Sent to watch")
+            showWatchStatus(str(R.string.sent_to_watch))
         }
     }
 
@@ -701,7 +723,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         gpsQuality = location.gpsQuality
 
         if (coord == null) {
-            if (stations.isEmpty()) status = "GPS: Searching..."
+            if (stations.isEmpty()) {
+                status = str(CoreR.string.status_gps_searching)
+                isOutOfBounds = false
+            }
             return
         }
 
@@ -709,7 +734,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         maybePushLocationToWatch(coord)
 
         if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
-            status = OUT_OF_BOUNDS_STATUS
+            status = str(CoreR.string.status_not_in_switzerland)
+            isOutOfBounds = true
             return
         }
 
@@ -719,14 +745,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (loadedFromCache && (location.gpsQuality == GpsQuality.GOOD || location.gpsQuality == GpsQuality.POOR)) {
             loadedFromCache = false
             if (!requestInFlight) {
-                if (stations.isEmpty()) status = "Updating stations..."
+                if (stations.isEmpty()) {
+                    status = str(CoreR.string.status_updating_stations)
+                    isOutOfBounds = false
+                }
                 fetchStations(coord.lat, coord.lon)
             }
             return
         }
 
         if (stations.isEmpty() && !requestInFlight) {
-            status = "Finding stations..."
+            status = str(CoreR.string.status_finding_stations)
+            isOutOfBounds = false
             fetchStations(coord.lat, coord.lon)
         }
     }
@@ -932,6 +962,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { prefs.setAppearanceMode(mode) }
     }
 
+    // Companion to AppCompatDelegate.setApplicationLocales: the widget and
+    // notification processes read this copy, then the widget re-renders.
+    fun updateAppLanguage(tag: String) {
+        viewModelScope.launch {
+            prefs.setAppLanguage(tag)
+            com.evanjt.traintime.widget.TrainTimeWidget().updateAll(getApplication())
+        }
+    }
+
     fun setRouteReminderLead(minutes: Int) {
         viewModelScope.launch { prefs.setRouteReminderLeadMinutes(minutes) }
     }
@@ -1031,8 +1070,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (coord == null || originLat == null || originLon == null || originName == null) {
                 PendingRouteNotifier.notifyNow(
                     ctx,
-                    "Distance test",
-                    "Turn on location and open the app near a station first.",
+                    str(R.string.distance_test_title),
+                    str(R.string.distance_test_need_loc),
                 )
                 return@launch
             }
@@ -1043,8 +1082,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val leadMin = (minOf(walkSec + savedLeadSec, PendingRouteLogic.MAX_LEAD_SEC) / 60).toInt()
             PendingRouteNotifier.notifyNow(
                 ctx,
-                "Distance test: $originName",
-                "${dist.toInt()} m away (~$walkMin min walk). Reminder would fire $leadMin min before departure.",
+                str(R.string.distance_test_title_fmt, originName),
+                str(R.string.distance_test_body_fmt, dist.toInt(), walkMin, leadMin),
             )
         }
     }
@@ -1109,7 +1148,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             favouritesStore.toggle(
                 stationId = station.id,
-                stationName = station.name ?: "Station",
+                stationName = station.name ?: str(CoreR.string.station_fallback),
                 lineNumber = lineNumber,
                 destination = destination,
             )
@@ -1215,7 +1254,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch { wearSync.sendTrack(cmd) }
         } else {
             currentStation?.let { st ->
-                mirrorToWear(WearCommand("station", stId = st.id, name = st.name ?: "Station", lat = st.lat, lon = st.lon))
+                mirrorToWear(WearCommand("station", stId = st.id, name = st.name ?: str(CoreR.string.station_fallback), lat = st.lat, lon = st.lon))
             }
         }
     }
@@ -1290,7 +1329,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             TrackCommand.from(focused, currentStation?.id).toGarminMap()
         } else {
             currentStation?.let { st ->
-                WearSync.garminStationPayload(st.id, st.name ?: "Station", st.lat, st.lon)
+                WearSync.garminStationPayload(st.id, st.name ?: str(CoreR.string.station_fallback), st.lat, st.lon)
             }
         }
         // View payload first: when the user is waiting on a countdown, the track
@@ -1355,7 +1394,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectedWatches = watches
             val watch = target ?: watches.singleOrNull()
             if (watch == null) {
-                showWatchStatus("No watch connected")
+                showWatchStatus(str(R.string.no_watch_connected))
                 return@launch
             }
             // Guard: the sync features require a watch reporting 0.5.x or higher.
@@ -1366,7 +1405,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 PhoneWatchType.GARMIN -> garminWatchVersion
             }
             if (!WearSync.meetsSyncMinimum(version)) {
-                showWatchStatus("Update TrainTime on your watch (${version ?: WearSync.LEGACY_VERSION_NAME})")
+                showWatchStatus(str(R.string.update_watch_fmt, version ?: WearSync.LEGACY_VERSION_NAME))
                 return@launch
             }
             val cmd = TrackCommand.from(focused, stationId)
@@ -1375,7 +1414,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 PhoneWatchType.WEAR -> wearSync.sendTrack(cmd) > 0
                 PhoneWatchType.GARMIN -> garminService.sendTrack(garminDeviceId, cmd.toGarminMap())
             }
-            showWatchStatus(if (ok) "Sent to ${watch.name}" else "Failed to send")
+            showWatchStatus(if (ok) str(R.string.sent_to_fmt, watch.name) else str(R.string.failed_to_send))
 
             // SDK SUCCESS means "delivered to the device", not "the app saw it".
             // On a pv>=3 watch the trackStarted echo is the real ack; no echo
@@ -1386,7 +1425,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (!watchTrackingFocused && appState == 2 && focusedTrain == focused) {
                     pendingWatchTrackSend = true
                     watchChecking = true
-                    showWatchStatus("Watch app not responding, reopening...")
+                    showWatchStatus(str(R.string.watch_not_responding))
                     garminService.openApp(garminDeviceId)
                     delay(8_000)
                     if (watchChecking) {
@@ -1520,7 +1559,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         (ctx["id"] as? String)?.let { ackReminderToGarmin(it) }
         val route = SharedRoute.single(
             originId = stId,
-            originName = ctx["stName"] as? String ?: "Station",
+            originName = ctx["stName"] as? String ?: str(CoreR.string.station_fallback),
             originLat = lat,
             originLon = lon,
             destName = dest,
@@ -1621,8 +1660,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         showStationPicker = false
         adoptEmbeddedOrFetch()
         currentStation?.let { st ->
-            mirrorToGarminDebounced { WearSync.garminStationPayload(st.id, st.name ?: "Station", st.lat, st.lon) }
-            mirrorToWearDebounced { WearCommand("station", stId = st.id, name = st.name ?: "Station", lat = st.lat, lon = st.lon) }
+            mirrorToGarminDebounced { WearSync.garminStationPayload(st.id, st.name ?: str(CoreR.string.station_fallback), st.lat, st.lon) }
+            mirrorToWearDebounced { WearCommand("station", stId = st.id, name = st.name ?: str(CoreR.string.station_fallback), lat = st.lat, lon = st.lon) }
         }
     }
 
@@ -1793,11 +1832,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // A cached coordinate is zero proof of position: computing an
             // ahead/behind verdict from it produced the "800 min behind"
             // failure when the seed was a city away.
-            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return "No GPS"
+            if (gpsQuality == GpsQuality.UNAVAILABLE || gpsQuality == GpsQuality.LAST_KNOWN) return str(CoreR.string.no_gps)
             val absBuf = kotlin.math.abs(buf)
-            if (absBuf < 0.5) return "On time"
-            val unit = if (absBuf < 1.5) "${(absBuf * 60).toInt()}s" else "${absBuf.toInt()} min"
-            return if (buf > 0) "$unit ahead" else "$unit behind"
+            if (absBuf < 0.5) return str(CoreR.string.on_time)
+            val unit = if (absBuf < 1.5) str(CoreR.string.buf_sec_fmt, (absBuf * 60).toInt()) else str(CoreR.string.buf_min_fmt, absBuf.toInt())
+            return if (buf > 0) str(CoreR.string.ahead_fmt, unit) else str(CoreR.string.behind_fmt, unit)
         }
 
     // Resolved to a palette colour in the composable so it follows light/dark.
@@ -1865,11 +1904,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 location.saveLastKnownCoordinate()
                 rebuildModesAndSelect(preserveStationId = prevStationId)
 
-                if (stations.isEmpty()) status = "No stations nearby"
+                if (stations.isEmpty()) {
+                    status = str(CoreR.string.status_no_stations_nearby)
+                    isOutOfBounds = false
+                }
             } catch (e: Exception) {
                 requestInFlight = false
                 requestStartTime = null
-                handleError(e, "Stations")
+                handleError(e, str(CoreR.string.ctx_stations))
             }
         }
     }
@@ -1921,7 +1963,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pendingShareTrack = null
                 saveOfferAsQueued(offer)
             }
-            handleError(e, "Departures")
+            handleError(e, str(CoreR.string.ctx_departures))
         }
     }
 
@@ -1947,12 +1989,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         status = when (error) {
-            is TrainApiException.RateLimited -> "Rate limited"
-            is TrainApiException.Http -> "$context: ${error.code}"
-            is TrainApiException.NoData -> "$context error"
-            is TrainApiException.Network -> "No connection"
-            else -> "$context error"
+            is TrainApiException.RateLimited -> str(CoreR.string.err_rate_limited)
+            is TrainApiException.Http -> str(CoreR.string.err_code_fmt, context, error.code)
+            is TrainApiException.NoData -> str(CoreR.string.err_generic_fmt, context)
+            is TrainApiException.Network -> str(CoreR.string.err_no_connection)
+            else -> str(CoreR.string.err_generic_fmt, context)
         }
+        isOutOfBounds = false
         departures = emptyList()
         favouriteDepartures = emptyList()
     }
@@ -2071,7 +2114,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (appState == 3) resumeFromInactive()
         val link = SbbShareLink.findIn(text)
         if (link == null) {
-            showShareStatus("No SBB trip link found")
+            showShareStatus(str(R.string.no_sbb_link))
             return
         }
         val sourceUrl = (link as? SbbShareLink.Short)?.url
@@ -2083,15 +2126,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 showShareStatus(
                     when (e.reason) {
                         SbbDecodeException.Reason.UNSUPPORTED_VERSION ->
-                            "This SBB link format isn't supported yet"
+                            str(R.string.sbb_link_unsupported)
                         SbbDecodeException.Reason.NO_RIDE_LEGS ->
-                            "Nothing to track in this trip"
+                            str(R.string.nothing_to_track)
                         SbbDecodeException.Reason.MALFORMED ->
-                            "Couldn't read this trip link"
+                            str(R.string.cant_read_link)
                     },
                 )
             } catch (e: IOException) {
-                showShareStatus("Couldn't open the link. Check your connection")
+                showShareStatus(str(R.string.check_connection))
             }
         }
     }
@@ -2130,7 +2173,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         lastInteractionTime = now()
         val station = currentStation
         if (station == null || departure.departureTimestamp == null) {
-            showShareStatus("Couldn't save this departure")
+            showShareStatus(str(R.string.cant_save_departure))
             return
         }
         val offer = SharedRouteOffer(
@@ -2178,13 +2221,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun proceedWithSharedRoute(offer: SharedRouteOffer) {
         val index = offer.route.targetRideLegIndex(nowSeconds())
         if (index == null) {
-            showShareStatus("This trip is already underway or finished")
+            showShareStatus(str(R.string.trip_underway))
             return
         }
         val leg = offer.route.legs[index]
         val stationId = leg.originId
         if (stationId == null) {
-            showShareStatus("Couldn't read this trip link")
+            showShareStatus(str(R.string.cant_read_link))
             return
         }
         pendingShareTrack = offer
@@ -2202,7 +2245,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (appState == 3) resumeFromInactive()
         val station = Station(
             id = stId,
-            name = name ?: "Station",
+            name = name ?: str(CoreR.string.station_fallback),
             lat = lat,
             lon = lon,
             mode = currentMode,
@@ -2303,7 +2346,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         PendingRouteNotifier.schedule(getApplication(), pending, nowSeconds())
         notificationPermissionRequest = true
         syncReminderTracking()
-        showShareStatus("Saved. We'll remind you before departure")
+        showShareStatus(str(R.string.saved_will_remind))
         // Don't strand the user on the remote origin board, the queued route
         // lives in the chip now. Return to their real location.
         returnToNearbyIfLaunched()
@@ -2321,7 +2364,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (normalized == null) {
             pendingRouteStore.clear()
             PendingRouteNotifier.cancel(getApplication())
-            showShareStatus("Saved route to ${current.finalDestination} has passed")
+            showShareStatus(str(R.string.route_passed_fmt, current.finalDestination))
             return
         }
         if (normalized != current) {

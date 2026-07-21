@@ -3,10 +3,10 @@ package com.evanjt.traintime
 import android.Manifest
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,7 +55,9 @@ import com.evanjt.traintime.ui.theme.TrainTimeTheme
 import com.evanjt.traintime.ui.tracking.TrackingScreen
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+// AppCompatActivity (not ComponentActivity) so the in-app language override
+// from AppCompatDelegate.setApplicationLocales applies on every API level.
+class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private val permissionLauncher =
@@ -338,6 +340,7 @@ private fun RootView(
     // First-launch walkthrough sits above everything until completed or skipped.
     // A new install sees the full tour; an updater sees only steps added since
     // they last finished it. A snackbar points to the Settings replay.
+    val replaySnackbarText = androidx.compose.ui.res.stringResource(R.string.tour_replay_snackbar)
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = rememberCoroutineScope()
     val hasSeenOnboarding by viewModel.prefs.hasSeenOnboarding.collectAsState(initial = true)
@@ -353,7 +356,7 @@ private fun RootView(
             onComplete = {
                 viewModel.markOnboardingSeen()
                 snackbarScope.launch {
-                    snackbarHostState.showSnackbar("You can replay the tour anytime in Settings.")
+                    snackbarHostState.showSnackbar(replaySnackbarText)
                 }
             },
         )

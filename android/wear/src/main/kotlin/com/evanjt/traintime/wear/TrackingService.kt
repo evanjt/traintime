@@ -15,6 +15,10 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.wear.ongoing.OngoingActivity
 import androidx.wear.ongoing.Status
+import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.domain.LocaleUtil
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 // Keeps the tracking countdown alive when the wrist drops, the Wear analog of
 // the Apple watch's WKExtendedRuntimeSession. A location-typed foreground
@@ -23,8 +27,15 @@ import androidx.wear.ongoing.Status
 class TrackingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // The notification renders outside any activity, so the in-app language
+    // override reaches it only through LocaleUtil with the AppPrefs tag.
+    private fun trackingLabel(): String {
+        val tag = runBlocking { AppPrefs(this@TrackingService).appLanguage.first() }
+        return LocaleUtil.localised(this, tag).getString(R.string.tracking_channel)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val title = intent?.getStringExtra(EXTRA_TITLE) ?: "Tracking"
+        val title = intent?.getStringExtra(EXTRA_TITLE) ?: trackingLabel()
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
         } else {
@@ -35,7 +46,8 @@ class TrackingService : Service() {
     }
 
     private fun buildNotification(title: String): Notification {
-        ensureChannel()
+        val label = trackingLabel()
+        ensureChannel(label)
         val touchIntent = PendingIntent.getActivity(
             this,
             0,
@@ -45,7 +57,7 @@ class TrackingService : Service() {
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle("Tracking")
+            .setContentTitle(label)
             .setContentText(title)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
@@ -61,12 +73,12 @@ class TrackingService : Service() {
         return builder.build()
     }
 
-    private fun ensureChannel() {
+    private fun ensureChannel(name: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(NotificationManager::class.java)
         if (manager.getNotificationChannel(CHANNEL_ID) == null) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Tracking", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_LOW),
             )
         }
     }

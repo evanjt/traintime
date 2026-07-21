@@ -7,16 +7,19 @@ import androidx.core.app.NotificationCompat
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.evanjt.traintime.data.sbb.SharedRoute
 import com.evanjt.traintime.domain.GeoUtils
+import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.PendingRouteLogic
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 // The scheduled reminder split into its parts, for the in-app readout. walkMin
 // is null outside distance-aware mode (nothing to break out); bufferMin is the
@@ -36,12 +39,20 @@ object PendingRouteNotifier {
     const val NOTIF_ID = 2
     private const val WORK_NAME = "pending-route-notify"
 
+    // Notifications render outside any activity, so the per-app language override
+    // (AppCompatDelegate) may not reach here on pre-33 devices. Resolve strings
+    // through a context wrapped in the stored language tag.
+    private fun localised(context: Context): Context {
+        val tag = runBlocking { AppPrefs(context).appLanguage.first() }
+        return LocaleUtil.localised(context, tag)
+    }
+
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Saved route reminders",
+                localised(context).getString(R.string.channel_saved_routes),
                 NotificationManager.IMPORTANCE_HIGH,
             ),
         )
@@ -123,7 +134,8 @@ object PendingRouteNotifier {
     // Fires immediately so the user can confirm permission + delivery without
     // waiting for a real departure. Same channel as the real reminder.
     fun sendTest(context: Context) {
-        notifyNow(context, "Test reminder", "Route reminders are working. This is a test.")
+        val ctx = localised(context)
+        notifyNow(context, ctx.getString(R.string.test_reminder_title), ctx.getString(R.string.test_reminder_body))
     }
 
     // Posts an immediate notification in the reminder channel. Used by the test

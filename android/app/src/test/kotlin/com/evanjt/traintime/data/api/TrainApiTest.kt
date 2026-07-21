@@ -129,10 +129,8 @@ class TrainApiTest {
         val first = result.departures[0]
         assertEquals(0, first.delay)
         assertEquals(2, first.minutesUntil)
-        assertEquals("2'", first.minutesText)
         val gone = result.departures[1]
         assertTrue(gone.isGone)
-        assertEquals("gone", gone.minutesText)
 
         assertEquals(1, result.favourites.size)
 

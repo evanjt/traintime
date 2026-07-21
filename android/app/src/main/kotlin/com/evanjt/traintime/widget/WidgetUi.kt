@@ -1,5 +1,6 @@
 package com.evanjt.traintime.widget
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
@@ -28,6 +29,8 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.widget.actions.RefreshAction
 import com.evanjt.traintime.widget.actions.StopAction
@@ -55,17 +58,18 @@ internal fun DormantView(
     refreshing: Boolean,
     favKeys: Set<String>,
     nowEpochSeconds: Long,
+    ctx: Context,
 ) {
     val station = result?.currentStation
     if (station == null || station.departures.isEmpty()) {
-        SimpleDormantView(stationName = station?.name, refreshing = refreshing)
+        SimpleDormantView(stationName = station?.name, refreshing = refreshing, ctx = ctx)
     } else {
-        StaleDormantView(result = result, station = station, favKeys = favKeys, nowEpochSeconds = nowEpochSeconds, refreshing = refreshing)
+        StaleDormantView(result = result, station = station, favKeys = favKeys, nowEpochSeconds = nowEpochSeconds, refreshing = refreshing, ctx = ctx)
     }
 }
 
 @Composable
-private fun SimpleDormantView(stationName: String?, refreshing: Boolean) {
+private fun SimpleDormantView(stationName: String?, refreshing: Boolean, ctx: Context) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
@@ -85,7 +89,7 @@ private fun SimpleDormantView(stationName: String?, refreshing: Boolean) {
             )
         }
         Spacer(GlanceModifier.height(8.dp))
-        RefreshChip(refreshing)
+        RefreshChip(refreshing, ctx)
     }
 }
 
@@ -96,6 +100,7 @@ private fun StaleDormantView(
     favKeys: Set<String>,
     nowEpochSeconds: Long,
     refreshing: Boolean,
+    ctx: Context,
 ) {
     val size = LocalSize.current
     // Fewer rows than the active view: the dormant view also carries the "as of"
@@ -116,7 +121,7 @@ private fun StaleDormantView(
                 modifier = GlanceModifier.defaultWeight(),
             )
             Text(
-                "as of ${asOfText(result.fetchTime)}",
+                ctx.getString(R.string.as_of_fmt, asOfText(result.fetchTime)),
                 style = TextStyle(color = WidgetColors.secondary, fontSize = 10.sp),
             )
         }
@@ -125,17 +130,17 @@ private fun StaleDormantView(
         // to the bottom (and fully visible) instead of being pushed off-widget.
         Column(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
             rows.forEach { dep ->
-                StaleRow(dep, favKeys, nowEpochSeconds, isSmall(size.width))
+                StaleRow(dep, favKeys, nowEpochSeconds, isSmall(size.width), ctx)
             }
         }
         Box(modifier = GlanceModifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            RefreshChip(refreshing)
+            RefreshChip(refreshing, ctx)
         }
     }
 }
 
 @Composable
-private fun StaleRow(dep: WidgetDeparture, favKeys: Set<String>, now: Long, small: Boolean) {
+private fun StaleRow(dep: WidgetDeparture, favKeys: Set<String>, now: Long, small: Boolean, ctx: Context) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
@@ -147,7 +152,7 @@ private fun StaleRow(dep: WidgetDeparture, favKeys: Set<String>, now: Long, smal
         )
         if (!small) {
             Text(
-                lineLabel(dep),
+                lineLabel(dep, ctx),
                 style = TextStyle(color = WidgetColors.secondary, fontSize = 12.sp, fontWeight = FontWeight.Medium),
                 maxLines = 1,
                 modifier = GlanceModifier.width(34.dp),
@@ -173,6 +178,7 @@ internal fun ActiveView(
     hideFavourites: Boolean,
     refreshing: Boolean,
     outsideSwitzerland: Boolean = false,
+    ctx: Context,
 ) {
     val size = LocalSize.current
     val small = isSmall(size.width)
@@ -195,10 +201,10 @@ internal fun ActiveView(
         // Header
         Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
             if (!small && result.availableModes.size > 1) {
-                HeaderGlyph(result.selectedMode.label, WidgetColors.accent, actionRunCallback<SwitchModeAction>())
+                HeaderGlyph(ctx.getString(result.selectedMode.labelRes), WidgetColors.accent, actionRunCallback<SwitchModeAction>())
                 Spacer(GlanceModifier.width(4.dp))
             }
-            val stationLabel = station?.name ?: "Station"
+            val stationLabel = station?.name ?: ctx.getString(CoreR.string.station_fallback)
             val label = if (stations.size > 1) {
                 "$stationLabel  ${result.selectedStationIndex.coerceAtMost(stations.size - 1) + 1}/${stations.size}"
             } else {
@@ -236,12 +242,12 @@ internal fun ActiveView(
         Divider()
 
         if (favRows.isEmpty() && regularRows.isEmpty()) {
-            val emptyMessage = if (outsideSwitzerland) "Outside of Switzerland" else "No departures"
+            val emptyMessage = if (outsideSwitzerland) ctx.getString(CoreR.string.outside_switzerland) else ctx.getString(R.string.no_departures)
             Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(emptyMessage, style = TextStyle(color = WidgetColors.secondary, fontSize = 12.sp))
             }
         } else {
-            favRows.forEach { dep -> DepartureRow(dep, isFavourite = true, favKeys, nowEpochSeconds, small, result.selectedMode) }
+            favRows.forEach { dep -> DepartureRow(dep, isFavourite = true, favKeys, nowEpochSeconds, small, result.selectedMode, ctx) }
             if (favRows.isNotEmpty() && regularRows.isNotEmpty()) {
                 Box(
                     GlanceModifier
@@ -252,7 +258,7 @@ internal fun ActiveView(
                 ) {}
             }
             regularRows.forEach { dep ->
-                DepartureRow(dep, isFavourite = dep.favKey in favKeys, favKeys, nowEpochSeconds, small, result.selectedMode)
+                DepartureRow(dep, isFavourite = dep.favKey in favKeys, favKeys, nowEpochSeconds, small, result.selectedMode, ctx)
             }
         }
     }
@@ -266,6 +272,7 @@ private fun DepartureRow(
     now: Long,
     small: Boolean,
     mode: TransportMode,
+    ctx: Context,
 ) {
     val minutesColor = when {
         dep.isGone(now) -> WidgetColors.secondary
@@ -288,7 +295,7 @@ private fun DepartureRow(
             .padding(horizontal = 4.dp, vertical = 3.dp),
     ) {
         Text(
-            dep.minutesText(now),
+            minutesLabel(dep, now, ctx),
             style = TextStyle(color = minutesColor, fontSize = if (small) 15.sp else 18.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
             modifier = GlanceModifier.width(if (small) 30.dp else 38.dp),
@@ -319,7 +326,7 @@ private fun DepartureRow(
             modifier = GlanceModifier.width(if (small) 30.dp else 44.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
-            val label = lineLabel(dep)
+            val label = lineLabel(dep, ctx)
             if (label.isNotEmpty()) {
                 Text(
                     label,
@@ -375,7 +382,7 @@ private fun StarGlyph() {
 }
 
 @Composable
-private fun RefreshChip(refreshing: Boolean) {
+private fun RefreshChip(refreshing: Boolean, ctx: Context) {
     val white = ColorProvider(androidx.compose.ui.graphics.Color.White)
     Box(
         modifier = GlanceModifier
@@ -388,10 +395,10 @@ private fun RefreshChip(refreshing: Boolean) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(color = white, modifier = GlanceModifier.size(14.dp))
                 Spacer(GlanceModifier.width(6.dp))
-                Text("Updating", style = TextStyle(color = white, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+                Text(ctx.getString(R.string.updating), style = TextStyle(color = white, fontSize = 12.sp, fontWeight = FontWeight.Medium))
             }
         } else {
-            Text("↻ Refresh", style = TextStyle(color = white, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+            Text(ctx.getString(R.string.refresh_label), style = TextStyle(color = white, fontSize = 12.sp, fontWeight = FontWeight.Medium))
         }
     }
 }
@@ -409,10 +416,22 @@ private fun displayRows(
     return favs + regular
 }
 
-private fun lineLabel(dep: WidgetDeparture): String = when {
+private fun lineLabel(dep: WidgetDeparture, ctx: Context): String = when {
     dep.lineNumber.isNotEmpty() -> dep.lineNumber
-    dep.platform.isNotEmpty() -> "P${dep.platform}"
+    dep.platform.isNotEmpty() -> ctx.getString(R.string.platform_short_fmt, dep.platform)
     else -> ""
+}
+
+// Render-time localisation of the gone/now/minutes label. Resolved here (not in
+// stored state) through the passed localised context so a language change applies
+// on the next render. The minute maths lives in WidgetDeparture.minutesUntil.
+private fun minutesLabel(dep: WidgetDeparture, now: Long, ctx: Context): String {
+    val m = dep.minutesUntil(now)
+    return when {
+        m < 0 -> ctx.getString(CoreR.string.row_gone)
+        m == 0 -> ctx.getString(CoreR.string.row_now)
+        else -> "$m'"
+    }
 }
 
 private fun asOfText(fetchTimeSeconds: Long): String {

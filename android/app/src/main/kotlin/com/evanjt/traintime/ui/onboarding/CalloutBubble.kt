@@ -23,12 +23,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 
 // A small anchored coach-mark, not a full-screen card. Title and body only: the
 // Back/Skip/Next controls live in a fixed bar (TourNavBar) so they never move.
@@ -101,14 +104,15 @@ fun TourNavBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.width(64.dp)) {
-                if (index > 0) TextButton(onClick = onBack) { Text("Back") }
+                if (index > 0) TextButton(onClick = onBack) { Text(stringResource(CoreR.string.back)) }
             }
+            val stepLabel = stringResource(R.string.tour_step_of_fmt, index + 1, total)
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .weight(1f)
-                    .clearAndSetSemantics { contentDescription = "Step ${index + 1} of $total" },
+                    .clearAndSetSemantics { contentDescription = stepLabel },
             ) {
                 repeat(total) { i ->
                     val active = i == index
@@ -124,7 +128,7 @@ fun TourNavBar(
                 }
             }
             TextButton(onClick = onSkip) {
-                Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.skip), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Button(onClick = onNext) { Text(nextLabel) }
         }

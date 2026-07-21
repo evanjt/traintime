@@ -7,6 +7,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 
 // Timed review ask. Three outcomes, so the buttons stack in the confirm slot
 // (M3 AlertDialog only has two named slots). Dismissing by tapping outside
@@ -19,18 +22,18 @@ fun ReviewPromptDialog(
 ) {
     AlertDialog(
         onDismissRequest = onNotNow,
-        title = { Text("Enjoying TrainTime?") },
-        text = { Text("A quick rating helps other commuters find the app.") },
+        title = { Text(stringResource(CoreR.string.review_title)) },
+        text = { Text(stringResource(R.string.review_body)) },
         confirmButton = {
             Column {
                 TextButton(onClick = onRate, modifier = Modifier.fillMaxWidth()) {
-                    Text("Yes, rate it")
+                    Text(stringResource(CoreR.string.review_yes))
                 }
                 TextButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth()) {
-                    Text("Not now")
+                    Text(stringResource(CoreR.string.review_not_now))
                 }
                 TextButton(onClick = onNever, modifier = Modifier.fillMaxWidth()) {
-                    Text("Don't ask again")
+                    Text(stringResource(CoreR.string.review_never))
                 }
             }
         },

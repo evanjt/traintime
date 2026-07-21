@@ -48,11 +48,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.AppPalette
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.linePill
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
@@ -150,7 +153,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 IconButton(onClick = { viewModel.toggleFavourite() }) {
                     Icon(
                         if (viewModel.isFocusedTrainFavourite) Icons.Filled.Star else Icons.Outlined.StarOutline,
-                        contentDescription = "Toggle favourite",
+                        contentDescription = stringResource(R.string.toggle_favourite_cd),
                         tint = if (viewModel.isFocusedTrainFavourite) palette.favouriteStar else secondary,
                     )
                 }
@@ -160,7 +163,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
             // line carries where the journey actually ends when they differ.
             focused?.routeDestination?.takeIf { it != focused.destination }?.let { routeDest ->
                 Text(
-                    "Tracking route to $routeDest",
+                    stringResource(R.string.tracking_route_to_fmt, routeDest),
                     color = secondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(top = 2.dp),
@@ -175,7 +178,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
             ) {
                 if (focused != null && focused.platform.isNotEmpty()) {
                     Text(
-                        "Platform ${focused.platform}",
+                        stringResource(R.string.platform_full_fmt, focused.platform),
                         color = if (platChanged) palette.platformChangedOrange else secondary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -248,7 +251,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
             ) {
                 DirectionArrow(viewModel.directionToStation)
                 Text(
-                    GeoUtils.formatWalkInfo(viewModel.lastWalkDist),
+                    GeoUtils.formatWalkInfo(LocalContext.current, viewModel.lastWalkDist),
                     color = secondary,
                     fontSize = 14.sp,
                 )
@@ -275,14 +278,14 @@ fun TrackingScreen(viewModel: MainViewModel) {
             if (station?.lat != null && station.lon != null) {
                 OutlinedButton(
                     onClick = {
-                        val name = Uri.encode(station.name ?: "Station")
+                        val name = Uri.encode(station.name ?: context.getString(CoreR.string.station_fallback))
                         val uri = Uri.parse("geo:${station.lat},${station.lon}?q=${station.lat},${station.lon}($name)")
                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
                     },
                     modifier = Modifier.padding(top = 16.dp),
                 ) {
                     Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Show on Map", modifier = Modifier.padding(start = 6.dp))
+                    Text(stringResource(R.string.show_on_map), modifier = Modifier.padding(start = 6.dp))
                 }
             }
 
@@ -294,7 +297,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 modifier = Modifier.padding(top = 12.dp),
             ) {
                 Icon(Icons.Filled.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Track in the background", modifier = Modifier.padding(start = 6.dp))
+                Text(stringResource(R.string.track_in_background), modifier = Modifier.padding(start = 6.dp))
             }
 
             // One watch button, mirroring iOS: a live watch takes an explicit send
@@ -331,7 +334,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
                             )
                         }
                         Text(
-                            if (viewModel.watchTrackingFocused) "Tracking on watch" else "Track on watch",
+                            if (viewModel.watchTrackingFocused) stringResource(R.string.tracking_on_watch) else stringResource(R.string.track_on_watch),
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }
@@ -360,11 +363,11 @@ fun TrackingScreen(viewModel: MainViewModel) {
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = stringResource(CoreR.string.back),
                 tint = palette.platform,
                 modifier = Modifier.size(18.dp),
             )
-            Text("Back", color = palette.platform, modifier = Modifier.padding(start = 4.dp))
+            Text(stringResource(CoreR.string.back), color = palette.platform, modifier = Modifier.padding(start = 4.dp))
         }
     }
 }
@@ -387,7 +390,7 @@ private fun OnwardConnectionCard(
         tonalElevation = 3.dp,
     ) {
         Column(Modifier.padding(12.dp)) {
-            Text("Change at ${onward.changeStation}", color = secondary, fontSize = 12.sp)
+            Text(stringResource(CoreR.string.change_at_fmt, onward.changeStation), color = secondary, fontSize = 12.sp)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -408,7 +411,7 @@ private fun OnwardConnectionCard(
                 Text(leg.destName, fontWeight = FontWeight.Medium, maxLines = 1)
             }
             Text(
-                "${formatDepartureTime(leg.depTs)} · ${onward.changeMinutes} min to change",
+                stringResource(CoreR.string.min_to_change_fmt, formatDepartureTime(leg.depTs), onward.changeMinutes),
                 color = secondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 2.dp),

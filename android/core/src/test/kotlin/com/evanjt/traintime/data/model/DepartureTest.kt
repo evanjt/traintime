@@ -20,10 +20,10 @@ class DepartureTest {
     )
 
     @Test
-    fun `minutes text covers gone, now and minutes`() {
-        assertEquals("gone", dep(-1).minutesText)
-        assertEquals("now", dep(0).minutesText)
-        assertEquals("5'", dep(5).minutesText)
+    fun `minutes boundaries cover gone, now and minutes`() {
+        assertTrue(dep(-1).isGone)
+        assertEquals(0, dep(0).minutesUntil)
+        assertEquals(5, dep(5).minutesUntil)
     }
 
     @Test

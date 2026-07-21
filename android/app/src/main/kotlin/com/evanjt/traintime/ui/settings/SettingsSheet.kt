@@ -36,8 +36,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,8 +47,11 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.core.os.LocaleListCompat
 import com.evanjt.traintime.BuildConfig
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.MainViewModel
@@ -89,7 +94,7 @@ fun SettingsSheet(
                 .padding(bottom = 32.dp),
         ) {
             Text(
-                "Settings",
+                stringResource(CoreR.string.settings),
                 color = onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -97,18 +102,37 @@ fun SettingsSheet(
             )
 
             SegmentedSetting(
-                label = "Default Mode",
-                options = TransportMode.entries.map { it.label },
+                label = stringResource(CoreR.string.default_mode),
+                options = TransportMode.entries.map { stringResource(it.labelRes) },
                 selectedIndex = TransportMode.entries.indexOf(viewModel.defaultMode),
                 onSelect = { viewModel.updateDefaultMode(TransportMode.entries[it]) },
             )
 
             val appearanceMode by viewModel.prefs.appearanceMode.collectAsState(initial = "system")
             SegmentedSetting(
-                label = "Appearance",
-                options = appearanceOptions.map { it.second },
+                label = stringResource(R.string.appearance),
+                options = appearanceOptions.map { stringResource(it.second) },
                 selectedIndex = appearanceOptions.indexOfFirst { it.first == appearanceMode }.coerceAtLeast(0),
                 onSelect = { viewModel.updateAppearanceMode(appearanceOptions[it].first) },
+                modifier = Modifier.padding(top = 16.dp),
+            )
+
+            // In-app language. AppCompatDelegate applies and persists the
+            // choice (recreating the activity); the AppPrefs copy reaches the
+            // widget and notification processes, which appcompat cannot.
+            val currentTag = AppCompatDelegate.getApplicationLocales()
+                .toLanguageTags().substringBefore(",").substringBefore("-")
+            SegmentedSetting(
+                label = stringResource(R.string.language),
+                options = languageOptions.map { it.second },
+                selectedIndex = languageOptions.indexOfFirst { it.first == currentTag }.coerceAtLeast(0),
+                onSelect = {
+                    val tag = languageOptions[it].first
+                    viewModel.updateAppLanguage(tag)
+                    AppCompatDelegate.setApplicationLocales(
+                        LocaleListCompat.forLanguageTags(tag),
+                    )
+                },
                 modifier = Modifier.padding(top = 16.dp),
             )
 
@@ -128,7 +152,7 @@ fun SettingsSheet(
                         tint = palette.favouriteStar,
                         modifier = Modifier.size(20.dp),
                     )
-                    Text("Favourites", color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                    Text(stringResource(CoreR.string.favourites), color = onSurface, modifier = Modifier.padding(start = 12.dp))
                     Spacer(Modifier.weight(1f))
                     Text("${viewModel.favouritesList.size}", color = secondary)
                     Icon(
@@ -151,13 +175,13 @@ fun SettingsSheet(
                         .padding(top = 16.dp),
                 ) {
                     Icon(Icons.Filled.Watch, contentDescription = null, tint = secondary, modifier = Modifier.size(20.dp))
-                    Text("Watch link", color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                    Text(stringResource(R.string.watch_link), color = onSurface, modifier = Modifier.padding(start = 12.dp))
                     Spacer(Modifier.weight(1f))
                     Text(
                         when (connected.size) {
-                            0 -> "Not connected"
+                            0 -> stringResource(CoreR.string.not_connected)
                             1 -> connected.first().name
-                            else -> "${connected.size} connected"
+                            else -> stringResource(R.string.n_connected_fmt, connected.size)
                         },
                         color = if (connected.isEmpty()) secondary else palette.platform,
                         fontSize = 14.sp,
@@ -174,7 +198,7 @@ fun SettingsSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             ) {
-                Text("Version", color = onSurface)
+                Text(stringResource(R.string.version), color = onSurface)
                 Spacer(Modifier.weight(1f))
                 Text(BuildConfig.VERSION_NAME, color = secondary)
             }
@@ -189,7 +213,7 @@ fun SettingsSheet(
                     }
                     .padding(top = 16.dp),
             ) {
-                Text("Replay walkthrough", color = onSurface)
+                Text(stringResource(R.string.replay_walkthrough), color = onSurface)
             }
 
             val activity = LocalContext.current as? android.app.Activity
@@ -200,7 +224,7 @@ fun SettingsSheet(
                     .clickable { activity?.let { ReviewLauncher.openStoreListing(it) } }
                     .padding(top = 16.dp, bottom = 4.dp),
             ) {
-                Text("Rate this app", color = onSurface)
+                Text(stringResource(R.string.rate_this_app), color = onSurface)
             }
 
             Row(
@@ -210,16 +234,26 @@ fun SettingsSheet(
                     .clickable { onOpenAttribution() }
                     .padding(top = 16.dp),
             ) {
-                Text("Attribution", color = onSurface)
+                Text(stringResource(R.string.attribution), color = onSurface)
             }
         }
     }
 }
 
 private val appearanceOptions = listOf(
-    "system" to "System",
-    "light" to "Light",
-    "dark" to "Dark",
+    "system" to R.string.opt_system,
+    "light" to R.string.opt_light,
+    "dark" to R.string.opt_dark,
+)
+
+// "" = follow the system language. "Auto" reads the same in all four
+// languages, so five options still fit one segmented row.
+private val languageOptions = listOf(
+    "" to "Auto",
+    "en" to "EN",
+    "de" to "DE",
+    "fr" to "FR",
+    "it" to "IT",
 )
 
 private val savedLeadOptions = listOf(5, 10, 15, 30)
@@ -252,7 +286,7 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
     }
 
     Column(modifier) {
-        Text("Route reminders", color = secondary, fontSize = 13.sp)
+        Text(stringResource(R.string.route_reminders), color = secondary, fontSize = 13.sp)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -261,26 +295,26 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
                 .let { if (granted) it else it.clickable { openNotificationSettings(context) } }
                 .padding(top = 8.dp),
         ) {
-            Text("Notifications", color = onSurface)
+            Text(stringResource(R.string.notifications), color = onSurface)
             Spacer(Modifier.weight(1f))
             Text(
-                if (granted) "Allowed" else "Turn on",
+                if (granted) stringResource(R.string.allowed) else stringResource(R.string.turn_on),
                 color = if (granted) secondary else palette.platform,
                 fontSize = 14.sp,
             )
         }
 
         SegmentedSetting(
-            label = "Remind me before departure",
-            options = savedLeadOptions.map { "$it min" },
+            label = stringResource(R.string.remind_before_departure),
+            options = savedLeadOptions.map { stringResource(R.string.n_min_fmt, it) },
             selectedIndex = savedLeadOptions.indexOf(routeLead).coerceAtLeast(0),
             onSelect = { viewModel.setRouteReminderLead(savedLeadOptions[it]) },
             modifier = Modifier.padding(top = 12.dp),
         )
 
         SegmentedSetting(
-            label = "Before a connection",
-            options = connectionLeadOptions.map { "$it min" },
+            label = stringResource(R.string.before_a_connection),
+            options = connectionLeadOptions.map { stringResource(R.string.n_min_fmt, it) },
             selectedIndex = connectionLeadOptions.indexOf(connectionLead).coerceAtLeast(0),
             onSelect = { viewModel.setConnectionReminderLead(connectionLeadOptions[it]) },
             modifier = Modifier.padding(top = 12.dp),
@@ -291,8 +325,8 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Adjust for distance to station", color = onSurface)
-                Text("Lead becomes your walk time + the minutes above", color = secondary, fontSize = 12.sp)
+                Text(stringResource(R.string.adjust_distance), color = onSurface)
+                Text(stringResource(R.string.adjust_distance_desc), color = secondary, fontSize = 12.sp)
             }
             Switch(checked = distanceAware, onCheckedChange = { viewModel.setDistanceAwareReminder(it) })
         }
@@ -303,8 +337,8 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Update in the background", color = onSurface)
-                    Text("Keep it accurate as you move, even when the app is closed", color = secondary, fontSize = 12.sp)
+                    Text(stringResource(R.string.update_background), color = onSurface)
+                    Text(stringResource(R.string.update_background_desc), color = secondary, fontSize = 12.sp)
                 }
                 Switch(checked = backgroundTracking, onCheckedChange = { viewModel.setBackgroundReminderTracking(it) })
             }
@@ -312,9 +346,9 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
 
         Text(
             if (distanceAware) {
-                "You'll be notified your walk time + $routeLead min before departure"
+                stringResource(R.string.notify_walk_plus_fmt, routeLead)
             } else {
-                "You'll be notified $routeLead min before departure"
+                stringResource(R.string.notify_lead_fmt, routeLead)
             },
             color = palette.platform,
             fontSize = 13.sp,
@@ -328,7 +362,7 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
                 .clickable { viewModel.sendTestNotification() }
                 .padding(top = 12.dp),
         ) {
-            Text("Send test notification", color = onSurface)
+            Text(stringResource(R.string.send_test_notification), color = onSurface)
         }
 
         if (distanceAware) {
@@ -339,7 +373,7 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
                     .clickable { viewModel.sendDistanceReminderTest() }
                     .padding(top = 12.dp),
             ) {
-                Text("Test distance reminder", color = onSurface)
+                Text(stringResource(R.string.test_distance_reminder), color = onSurface)
             }
         }
     }
@@ -380,10 +414,10 @@ private fun WatchPage(viewModel: MainViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = onSurface)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreR.string.back), tint = onSurface)
             }
             Text(
-                "Watch link",
+                stringResource(R.string.watch_link),
                 color = onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -400,7 +434,7 @@ private fun WatchPage(viewModel: MainViewModel, onBack: () -> Unit) {
                 Text(link.name, color = onSurface, modifier = Modifier.padding(start = 12.dp))
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (link.connected) "Connected" else "Not connected",
+                    if (link.connected) stringResource(CoreR.string.connected) else stringResource(CoreR.string.not_connected),
                     color = if (link.connected) palette.platform else secondary,
                     fontSize = 13.sp,
                 )
@@ -416,8 +450,8 @@ private fun WatchPage(viewModel: MainViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Mirror to watch", color = onSurface)
-                    Text("Send your tracked train, mode, station and location to the watch", color = secondary, fontSize = 12.sp)
+                    Text(stringResource(R.string.mirror_to_watch), color = onSurface)
+                    Text(stringResource(R.string.mirror_to_watch_desc), color = secondary, fontSize = 12.sp)
                 }
                 Switch(checked = mirror, onCheckedChange = { viewModel.setMirrorToWatch(it) })
             }
@@ -470,10 +504,10 @@ private fun FavouritesPage(viewModel: MainViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = onSurface)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreR.string.back), tint = onSurface)
             }
             Text(
-                "Favourites",
+                stringResource(CoreR.string.favourites),
                 color = onSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -481,7 +515,7 @@ private fun FavouritesPage(viewModel: MainViewModel, onBack: () -> Unit) {
         }
         if (viewModel.favouritesList.isEmpty()) {
             Text(
-                "No favourites yet",
+                stringResource(R.string.no_favourites_yet),
                 color = secondary,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(vertical = 8.dp),
@@ -505,7 +539,7 @@ private fun FavouritesPage(viewModel: MainViewModel, onBack: () -> Unit) {
                     modifier = Modifier.padding(start = 10.dp).weight(1f),
                 )
                 IconButton(onClick = { viewModel.removeFavourite(fav) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Remove", tint = secondary)
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.remove), tint = secondary)
                 }
             }
         }

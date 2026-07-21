@@ -2,4 +2,182 @@
 <resources>
     <string name="app_name">TrainTime</string>
     <string name="widget_description">Nearby departures at a glance</string>
+
+    <!-- Settings sheet -->
+    <string name="appearance">Appearance</string>
+    <string name="opt_system">System</string>
+    <string name="opt_light">Light</string>
+    <string name="opt_dark">Dark</string>
+    <string name="language">Language</string>
+    <string name="watch_link">Watch link</string>
+    <string name="n_connected_fmt">%1$d connected</string>
+    <string name="version">Version</string>
+    <string name="replay_walkthrough">Replay walkthrough</string>
+    <string name="rate_this_app">Rate this app</string>
+    <string name="attribution">Attribution</string>
+    <string name="route_reminders">Route reminders</string>
+    <string name="notifications">Notifications</string>
+    <string name="allowed">Allowed</string>
+    <string name="turn_on">Turn on</string>
+    <string name="remind_before_departure">Remind me before departure</string>
+    <string name="before_a_connection">Before a connection</string>
+    <string name="n_min_fmt">%1$d min</string>
+    <string name="adjust_distance">Adjust for distance to station</string>
+    <string name="adjust_distance_desc">Lead becomes your walk time + the minutes above</string>
+    <string name="update_background">Update in the background</string>
+    <string name="update_background_desc">Keep it accurate as you move, even when the app is closed</string>
+    <string name="notify_walk_plus_fmt">You\'ll be notified your walk time + %1$d min before departure</string>
+    <string name="notify_lead_fmt">You\'ll be notified %1$d min before departure</string>
+    <string name="send_test_notification">Send test notification</string>
+    <string name="test_distance_reminder">Test distance reminder</string>
+    <string name="mirror_to_watch">Mirror to watch</string>
+    <string name="mirror_to_watch_desc">Send your tracked train, mode, station and location to the watch</string>
+    <string name="no_favourites_yet">No favourites yet</string>
+    <string name="remove">Remove</string>
+
+    <!-- Attribution sheet -->
+    <string name="attribution_subtitle">The data and software TrainTime is built on.</string>
+    <string name="departure_data">Departure data</string>
+    <string name="departure_data_desc">Live departures from Open Transport Data Switzerland, operated by Swiss Federal Railways (SBB), via the OJP API.</string>
+    <string name="terms_of_use">Terms of use</string>
+    <string name="map_heading">Map</string>
+    <string name="map_desc">Swiss border outline from Natural Earth, 1:10m resolution, public domain.</string>
+    <string name="open_source_third_party">Open source and third party</string>
+    <string name="kotlinx_desc">Coroutines and serialisation. Apache License 2.0</string>
+    <string name="play_services_desc">Location, wearable, in-app review. Google terms</string>
+    <string name="garmin_sdk_desc">© Garmin. Used under its SDK licence.</string>
+
+    <!-- Dialogs -->
+    <string name="bg_track_title">Track in the background?</string>
+    <string name="bg_track_body">TrainTime collects your location to time your route reminder, even when the app is closed or not in use. You can decline, and we\'ll use your last known location instead.</string>
+    <string name="continue_label">Continue</string>
+    <string name="bg_denied_title">Using your last location</string>
+    <string name="bg_denied_body">That\'s fine. Your reminder still works, using your last known location instead of live updates. Allow all-time access any time to make it live.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="keep_as_is">Keep as is</string>
+    <string name="review_body">A quick rating helps other commuters find the app.</string>
+    <string name="replace_route_title">Replace queued route?</string>
+    <string name="replace_route_body_fmt">You already have a route saved. Replace it with the trip to %1$s?</string>
+    <string name="replace">Replace</string>
+    <string name="keep_existing">Keep existing</string>
+
+    <!-- Onboarding tour -->
+    <string name="tour_step_of_fmt">Step %1$d of %2$d</string>
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="done">Done</string>
+    <string name="tour_nearby_title">Departures around you</string>
+    <string name="tour_nearby_body">The nearest stations and their live departures. Here\'s Bern Bahnhof.</string>
+    <string name="tour_modes_title">Trains, buses, trams</string>
+    <string name="tour_modes_body">Switch what you see with the mode chips. Each mode has its own nearby stops.</string>
+    <string name="tour_track_title">Track a departure</string>
+    <string name="tour_track_body">Tap a departure to follow it.</string>
+    <string name="tour_tracking_extra">Your location and the departure time update live to tell you if you\'ll make it on foot.</string>
+    <string name="tour_star_title">Star your lines</string>
+    <string name="tour_star_body">Swipe a line right, or hold it, to favourite it.</string>
+    <string name="tour_starred_extra">It now sits above the gold line and still appears in the list below.</string>
+    <string name="tour_pin_title">Pin a station</string>
+    <string name="tour_pin_body">Pinned stations lead the list whenever they\'re among the five nearest, so your home station stays first.</string>
+    <string name="tour_mode_title">Set your default mode</string>
+    <string name="tour_mode_body">Pick the mode you ride most. TrainTime opens on it.</string>
+    <string name="tour_sbb_title">Bring trips from SBB</string>
+    <string name="tour_sbb_body">Sharing a trip from SBB Mobile? Send it to TrainTime and it picks up your train.</string>
+    <string name="tour_routes_title">Saved routes and reminders</string>
+    <string name="tour_routes_body">Later trips wait as a saved route. Open it to see every leg, choose which connections to track, and get a reminder before departure, timed to your walk to the station if you turn that on.</string>
+    <string name="tour_watch_title">Take it to your watch</string>
+    <string name="tour_watch_body">Wear OS and Garmin both sync live: track on your phone and send a departure to your wrist. There\'s an Apple Watch app for iPhone too.</string>
+    <string name="tour_widget_title">Add the widget</string>
+    <string name="tour_widget_body">Put your next departures on the home screen.</string>
+    <string name="tour_replay_snackbar">You can replay the tour anytime in Settings.</string>
+
+    <!-- Onboarding mock screens -->
+    <string name="platform_full_fmt">Platform %1$s</string>
+    <string name="nearby_stations">Nearby stations</string>
+    <string name="pin">Pin</string>
+    <string name="selected">Selected</string>
+    <string name="works_with_iphone">Works with iPhone</string>
+    <string name="syncs_live">Syncs live</string>
+    <string name="for_iphone">For iPhone</string>
+    <string name="watch_mirror_hint">Track on your phone and a departure mirrors to a paired watch, which also reads the phone\'s location, handy indoors. The watch icon turns green when it\'s live.</string>
+    <string name="from_sbb_app">From the SBB Mobile app</string>
+    <string name="share_to">Share to</string>
+    <string name="trip_opens_here">Your trip opens here, tracked and ready.</string>
+    <string name="each_connection_reminder">Each connection can send a reminder. Track any now.</string>
+    <string name="add_to_home_screen">Add to Home Screen</string>
+    <string name="add_widget_hint">Add the TrainTime widget from your home screen.</string>
+
+    <!-- Station screen -->
+    <string name="open_watch_cd">Open TrainTime on the watch</string>
+    <string name="watch_settings_cd">Watch, open settings</string>
+    <string name="gps_quality_cd">GPS quality</string>
+    <string name="pick_station_cd">Pick station</string>
+    <string name="tracking_on_watch_fmt">Tracking on watch · %1$s</string>
+    <string name="remind_me">Remind me</string>
+    <string name="favourite">Favourite</string>
+    <string name="unfavourite">Unfavourite</string>
+    <string name="stations_title">Stations</string>
+    <string name="pin_station">Pin station</string>
+    <string name="unpin_station">Unpin station</string>
+    <string name="my_stations">My stations</string>
+
+    <!-- Tracking screen -->
+    <string name="open_on_watch">Open on watch</string>
+    <string name="send_to_watch">Send to Watch</string>
+    <string name="toggle_favourite_cd">Toggle favourite</string>
+    <string name="tracking_route_to_fmt">Tracking route to %1$s</string>
+    <string name="show_on_map">Show on Map</string>
+    <string name="track_in_background">Track in the background</string>
+    <string name="tracking_on_watch">Tracking on watch</string>
+    <string name="track_on_watch">Track on watch</string>
+    <string name="direction_to_station_cd">Direction to station</string>
+    <string name="direction_of_travel_cd">Direction of travel</string>
+
+    <!-- Pending route chip + sheet -->
+    <string name="departs_fmt">%1$s departs %2$s</string>
+    <string name="notified_in_fmt">Notified in %1$d min</string>
+    <string name="youll_be_notified_in_fmt">You\'ll be notified in %1$d min</string>
+    <string name="walk_min_fmt">%1$d min walk</string>
+    <string name="buffer_fmt">%1$d min buffer</string>
+    <string name="discard_route_cd">Discard route</string>
+    <string name="discard_route_title">Discard saved route?</string>
+    <string name="discard_route_body_fmt">The route to %1$s will be forgotten.</string>
+    <string name="discard">Discard</string>
+    <string name="keep">Keep</string>
+    <string name="route_sheet_hint">Tap any connection to track it now. Use its switch to turn the departure reminder off.</string>
+
+    <!-- Widget -->
+    <string name="as_of_fmt">as of %1$s</string>
+    <string name="no_departures">No departures</string>
+    <string name="updating">Updating</string>
+    <string name="refresh_label">↻ Refresh</string>
+    <string name="platform_short_fmt">P%1$s</string>
+    <string name="widget_refresh_channel">Widget refresh</string>
+    <string name="updating_departures">Updating departures</string>
+
+    <!-- Notifications -->
+    <string name="channel_saved_routes">Saved route reminders</string>
+    <string name="test_reminder_title">Test reminder</string>
+    <string name="test_reminder_body">Route reminders are working. This is a test.</string>
+    <string name="notif_departs_fmt">Departs %1$s from %2$s</string>
+    <string name="distance_test_title">Distance test</string>
+    <string name="distance_test_need_loc">Turn on location and open the app near a station first.</string>
+    <string name="distance_test_title_fmt">Distance test: %1$s</string>
+    <string name="distance_test_body_fmt">%1$d m away (~%2$d min walk). Reminder would fire %3$d min before departure.</string>
+
+    <!-- Snackbars and share intake -->
+    <string name="no_watch_connected">No watch connected</string>
+    <string name="sent_to_watch">Sent to watch</string>
+    <string name="sent_to_fmt">Sent to %1$s</string>
+    <string name="failed_to_send">Failed to send</string>
+    <string name="update_watch_fmt">Update TrainTime on your watch (%1$s)</string>
+    <string name="watch_not_responding">Watch app not responding, reopening...</string>
+    <string name="no_sbb_link">No SBB trip link found</string>
+    <string name="sbb_link_unsupported">This SBB link format isn\'t supported yet</string>
+    <string name="nothing_to_track">Nothing to track in this trip</string>
+    <string name="cant_read_link">Couldn\'t read this trip link</string>
+    <string name="check_connection">Couldn\'t open the link. Check your connection</string>
+    <string name="cant_save_departure">Couldn\'t save this departure</string>
+    <string name="trip_underway">This trip is already underway or finished</string>
+    <string name="saved_will_remind">Saved. We\'ll remind you before departure</string>
+    <string name="route_passed_fmt">Saved route to %1$s has passed</string>
 </resources>

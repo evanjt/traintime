@@ -26,13 +26,23 @@ object GeoUtils {
 
     fun walkMinutes(distanceMeters: Double): Double = distanceMeters / Thresholds.WALK_SPEED
 
-    fun formatWalkInfo(distanceMeters: Double, walkTimeSeconds: Double? = null): String {
+    fun formatWalkInfo(
+        context: android.content.Context,
+        distanceMeters: Double,
+        walkTimeSeconds: Double? = null,
+    ): String {
         val walkMin = if (walkTimeSeconds != null) {
             (walkTimeSeconds / 60.0).toInt()
         } else {
             walkMinutes(distanceMeters).toInt()
         }
-        val timeStr = if (walkMin < 1) "<1 min" else "$walkMin min"
-        return "$timeStr walk - ${distanceMeters.toInt()}m"
+        val timeStr = if (walkMin < 1) {
+            context.getString(com.evanjt.traintime.core.R.string.walk_under_min)
+        } else {
+            context.getString(com.evanjt.traintime.core.R.string.buf_min_fmt, walkMin)
+        }
+        return context.getString(
+            com.evanjt.traintime.core.R.string.walk_info_fmt, timeStr, distanceMeters.toInt(),
+        )
     }
 }

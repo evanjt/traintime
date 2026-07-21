@@ -21,11 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.R
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.notify.NotifyPlan
 import java.time.Instant
@@ -34,9 +37,14 @@ import java.time.format.DateTimeFormatter
 
 private val TIME = DateTimeFormatter.ofPattern("HH:mm")
 
+@Composable
 private fun countdownText(depTs: Long, now: Long): String {
     val mins = ((depTs - now) / 60).coerceAtLeast(0)
-    return if (mins >= 60) "in ${mins / 60} h ${mins % 60}" else "in $mins min"
+    return if (mins >= 60) {
+        stringResource(CoreR.string.in_h_min_fmt, (mins / 60).toInt(), (mins % 60).toInt())
+    } else {
+        stringResource(CoreR.string.in_min_fmt, mins.toInt())
+    }
 }
 
 // Queued shared route: destination, departure countdown, discard. Tap runs
@@ -65,12 +73,13 @@ fun PendingRouteChip(
         ) {
             Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
                 Text(
-                    "Route to ${route.finalDestination}",
+                    stringResource(CoreR.string.route_to_fmt, route.finalDestination),
                     style = MaterialTheme.typography.titleSmall,
                 )
+                val lineLabel = "${leg.category ?: ""}${leg.lineNumber ?: ""}"
+                val depTime = TIME.format(Instant.ofEpochSecond(leg.depTs).atZone(ZoneId.of("Europe/Zurich")))
                 Text(
-                    "${leg.category ?: ""}${leg.lineNumber ?: ""} departs " +
-                        "${TIME.format(Instant.ofEpochSecond(leg.depTs).atZone(ZoneId.of("Europe/Zurich")))} · " +
+                    stringResource(R.string.departs_fmt, lineLabel, depTime) + " · " +
                         countdownText(leg.depTs, nowEpochSeconds),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -82,17 +91,21 @@ fun PendingRouteChip(
                         // Colour the calculated walk time and the fixed buffer
                         // distinctly, so "in 21 min" isn't mistaken for their sum.
                         if (walk != null) {
+                            val notifiedIn = stringResource(R.string.notified_in_fmt, mins.toInt())
+                            val walkText = stringResource(R.string.walk_min_fmt, walk)
+                            val bufferText = stringResource(R.string.buffer_fmt, plan.bufferMin)
                             buildAnnotatedString {
-                                withStyle(SpanStyle(color = palette.ahead)) { append("Notified in $mins min") }
+                                withStyle(SpanStyle(color = palette.ahead)) { append(notifiedIn) }
                                 append("  (~")
-                                withStyle(SpanStyle(color = palette.platform)) { append("$walk min walk") }
+                                withStyle(SpanStyle(color = palette.platform)) { append(walkText) }
                                 append(" + ")
-                                withStyle(SpanStyle(color = palette.amber)) { append("${plan.bufferMin} min buffer") }
+                                withStyle(SpanStyle(color = palette.amber)) { append(bufferText) }
                                 append(")")
                             }
                         } else {
+                            val notifiedIn = stringResource(R.string.youll_be_notified_in_fmt, mins.toInt())
                             buildAnnotatedString {
-                                withStyle(SpanStyle(color = palette.ahead)) { append("You'll be notified in $mins min") }
+                                withStyle(SpanStyle(color = palette.ahead)) { append(notifiedIn) }
                             }
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -100,7 +113,7 @@ fun PendingRouteChip(
                 }
             }
             IconButton(onClick = { confirmDiscard = true }) {
-                Icon(Icons.Default.Close, contentDescription = "Discard route")
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.discard_route_cd))
             }
         }
     }
@@ -108,13 +121,13 @@ fun PendingRouteChip(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard saved route?") },
-            text = { Text("The route to ${route.finalDestination} will be forgotten.") },
+            title = { Text(stringResource(R.string.discard_route_title)) },
+            text = { Text(stringResource(R.string.discard_route_body_fmt, route.finalDestination)) },
             confirmButton = {
-                TextButton(onClick = { confirmDiscard = false; onDismiss() }) { Text("Discard") }
+                TextButton(onClick = { confirmDiscard = false; onDismiss() }) { Text(stringResource(R.string.discard)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Keep") }
+                TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.keep)) }
             },
         )
     }

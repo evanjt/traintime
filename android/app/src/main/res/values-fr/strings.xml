@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrainTime</string>
+    <string name="widget_description">Les départs à proximité en un coup d\'œil</string>
+
+    <!-- Settings sheet -->
+    <string name="appearance">Apparence</string>
+    <string name="opt_system">Système</string>
+    <string name="opt_light">Clair</string>
+    <string name="opt_dark">Sombre</string>
+    <string name="language">Langue</string>
+    <string name="watch_link">Liaison montre</string>
+    <string name="n_connected_fmt">%1$d connectées</string>
+    <string name="version">Version</string>
+    <string name="replay_walkthrough">Revoir la visite guidée</string>
+    <string name="rate_this_app">Évaluer l\'app</string>
+    <string name="attribution">Sources</string>
+    <string name="route_reminders">Rappels d\'itinéraire</string>
+    <string name="notifications">Notifications</string>
+    <string name="allowed">Activées</string>
+    <string name="turn_on">Activer</string>
+    <string name="remind_before_departure">Me rappeler avant le départ</string>
+    <string name="before_a_connection">Avant une correspondance</string>
+    <string name="n_min_fmt">%1$d min</string>
+    <string name="adjust_distance">Ajuster à la distance de l\'arrêt</string>
+    <string name="adjust_distance_desc">Le délai devient votre temps de marche + les minutes ci-dessus</string>
+    <string name="update_background">Mettre à jour en arrière-plan</string>
+    <string name="update_background_desc">Reste précis pendant vos déplacements, même app fermée</string>
+    <string name="notify_walk_plus_fmt">Vous serez notifié votre temps de marche + %1$d min avant le départ</string>
+    <string name="notify_lead_fmt">Vous serez notifié %1$d min avant le départ</string>
+    <string name="send_test_notification">Envoyer une notification test</string>
+    <string name="test_distance_reminder">Tester le rappel de distance</string>
+    <string name="mirror_to_watch">Miroir sur la montre</string>
+    <string name="mirror_to_watch_desc">Envoie train suivi, mode, gare et position à la montre</string>
+    <string name="no_favourites_yet">Pas encore de favoris</string>
+    <string name="remove">Retirer</string>
+
+    <!-- Attribution sheet -->
+    <string name="attribution_subtitle">Les données et logiciels derrière TrainTime.</string>
+    <string name="departure_data">Données de départ</string>
+    <string name="departure_data_desc">Départs en direct d\'Open Transport Data Switzerland, exploité par les Chemins de fer fédéraux (CFF), via l\'API OJP.</string>
+    <string name="terms_of_use">Conditions d\'utilisation</string>
+    <string name="map_heading">Carte</string>
+    <string name="map_desc">Contour de la Suisse de Natural Earth, résolution 1:10m, domaine public.</string>
+    <string name="open_source_third_party">Open source et tiers</string>
+    <string name="kotlinx_desc">Coroutines et sérialisation. Apache License 2.0</string>
+    <string name="play_services_desc">Position, wearable, évaluation in-app. Conditions Google</string>
+    <string name="garmin_sdk_desc">© Garmin. Utilisé sous sa licence SDK.</string>
+
+    <!-- Dialogs -->
+    <string name="bg_track_title">Suivre en arrière-plan ?</string>
+    <string name="bg_track_body">TrainTime relève votre position pour caler votre rappel d\'itinéraire, même app fermée ou inutilisée. Vous pouvez refuser, nous utiliserons alors votre dernière position connue.</string>
+    <string name="continue_label">Continuer</string>
+    <string name="bg_denied_title">Dernière position utilisée</string>
+    <string name="bg_denied_body">Aucun souci. Votre rappel fonctionne toujours, avec votre dernière position connue au lieu du direct. Autorisez l\'accès permanent à tout moment pour le rendre live.</string>
+    <string name="open_settings">Ouvrir les réglages</string>
+    <string name="keep_as_is">Laisser ainsi</string>
+    <string name="review_body">Une petite évaluation aide d\'autres pendulaires à trouver l\'app.</string>
+    <string name="replace_route_title">Remplacer l\'itinéraire enregistré ?</string>
+    <string name="replace_route_body_fmt">Vous avez déjà un itinéraire enregistré. Le remplacer par le trajet vers %1$s ?</string>
+    <string name="replace">Remplacer</string>
+    <string name="keep_existing">Garder l\'actuel</string>
+
+    <!-- Onboarding tour -->
+    <string name="tour_step_of_fmt">Étape %1$d sur %2$d</string>
+    <string name="skip">Passer</string>
+    <string name="next">Suivant</string>
+    <string name="done">Terminé</string>
+    <string name="tour_nearby_title">Les départs autour de vous</string>
+    <string name="tour_nearby_body">Les arrêts les plus proches et leurs départs en direct. Ici : Bern Bahnhof.</string>
+    <string name="tour_modes_title">Trains, bus, trams</string>
+    <string name="tour_modes_body">Changez de vue avec les puces de mode. Chaque mode a ses propres arrêts.</string>
+    <string name="tour_track_title">Suivre un départ</string>
+    <string name="tour_track_body">Touchez un départ pour le suivre.</string>
+    <string name="tour_tracking_extra">Votre position et l\'heure de départ se mettent à jour en direct et vous disent si vous l\'aurez à pied.</string>
+    <string name="tour_star_title">Vos lignes en favori</string>
+    <string name="tour_star_body">Glissez une ligne vers la droite, ou maintenez-la, pour la mettre en favori.</string>
+    <string name="tour_starred_extra">Elle se place au-dessus de la ligne dorée et reste dans la liste en dessous.</string>
+    <string name="tour_pin_title">Épingler une gare</string>
+    <string name="tour_pin_body">Les gares épinglées mènent la liste dès qu\'elles sont parmi les cinq plus proches. Votre gare reste en tête.</string>
+    <string name="tour_mode_title">Choisir le mode par défaut</string>
+    <string name="tour_mode_body">Choisissez le mode que vous prenez le plus. TrainTime s\'ouvre dessus.</string>
+    <string name="tour_sbb_title">Vos trajets depuis l\'app CFF</string>
+    <string name="tour_sbb_body">Vous partagez un trajet depuis Mobile CFF ? Envoyez-le à TrainTime et il reprend votre train.</string>
+    <string name="tour_routes_title">Itinéraires enregistrés et rappels</string>
+    <string name="tour_routes_body">Les trajets plus tardifs attendent comme itinéraire enregistré. Ouvrez-le pour voir chaque étape, choisir les correspondances à suivre et recevoir un rappel avant le départ, calé sur votre marche si vous l\'activez.</string>
+    <string name="tour_watch_title">Emportez-le au poignet</string>
+    <string name="tour_watch_body">Wear OS et Garmin se synchronisent en direct : suivez sur le téléphone et envoyez un départ à votre poignet. Il y a aussi une app Apple Watch pour iPhone.</string>
+    <string name="tour_widget_title">Ajouter le widget</string>
+    <string name="tour_widget_body">Vos prochains départs sur l\'écran d\'accueil.</string>
+    <string name="tour_replay_snackbar">Vous pouvez revoir la visite à tout moment dans les réglages.</string>
+
+    <!-- Onboarding mock screens -->
+    <string name="platform_full_fmt">Quai %1$s</string>
+    <string name="nearby_stations">Arrêts à proximité</string>
+    <string name="pin">Épingler</string>
+    <string name="selected">Sélectionné</string>
+    <string name="works_with_iphone">Aussi pour iPhone</string>
+    <string name="syncs_live">Synchro en direct</string>
+    <string name="for_iphone">Pour iPhone</string>
+    <string name="watch_mirror_hint">Suivez sur le téléphone et le départ se reflète sur une montre appairée, qui lit aussi la position du téléphone, pratique en intérieur. L\'icône montre devient verte quand c\'est en direct.</string>
+    <string name="from_sbb_app">Depuis l\'app Mobile CFF</string>
+    <string name="share_to">Partager vers</string>
+    <string name="trip_opens_here">Votre trajet s\'ouvre ici, suivi et prêt.</string>
+    <string name="each_connection_reminder">Chaque correspondance peut envoyer un rappel. Suivez-en une maintenant.</string>
+    <string name="add_to_home_screen">Ajouter à l\'écran d\'accueil</string>
+    <string name="add_widget_hint">Ajoutez le widget TrainTime depuis votre écran d\'accueil.</string>
+
+    <!-- Station screen -->
+    <string name="open_watch_cd">Ouvrir TrainTime sur la montre</string>
+    <string name="watch_settings_cd">Montre, ouvrir les réglages</string>
+    <string name="gps_quality_cd">Qualité GPS</string>
+    <string name="pick_station_cd">Choisir une gare</string>
+    <string name="tracking_on_watch_fmt">Suivi sur la montre · %1$s</string>
+    <string name="remind_me">Me rappeler</string>
+    <string name="favourite">Favori</string>
+    <string name="unfavourite">Retirer le favori</string>
+    <string name="stations_title">Arrêts</string>
+    <string name="pin_station">Épingler la gare</string>
+    <string name="unpin_station">Détacher la gare</string>
+    <string name="my_stations">Mes gares</string>
+
+    <!-- Tracking screen -->
+    <string name="open_on_watch">Ouvrir sur la montre</string>
+    <string name="send_to_watch">Envoyer à la montre</string>
+    <string name="toggle_favourite_cd">Basculer le favori</string>
+    <string name="tracking_route_to_fmt">Itinéraire vers %1$s suivi</string>
+    <string name="show_on_map">Voir sur la carte</string>
+    <string name="track_in_background">Suivre en arrière-plan</string>
+    <string name="tracking_on_watch">Suivi sur la montre</string>
+    <string name="track_on_watch">Suivre sur la montre</string>
+    <string name="direction_to_station_cd">Direction de l\'arrêt</string>
+    <string name="direction_of_travel_cd">Sens de marche</string>
+
+    <!-- Pending route chip + sheet -->
+    <string name="departs_fmt">%1$s part à %2$s</string>
+    <string name="notified_in_fmt">Rappel dans %1$d min</string>
+    <string name="youll_be_notified_in_fmt">Vous serez notifié dans %1$d min</string>
+    <string name="walk_min_fmt">%1$d min à pied</string>
+    <string name="buffer_fmt">%1$d min de marge</string>
+    <string name="discard_route_cd">Supprimer l\'itinéraire</string>
+    <string name="discard_route_title">Supprimer l\'itinéraire enregistré ?</string>
+    <string name="discard_route_body_fmt">L\'itinéraire vers %1$s sera oublié.</string>
+    <string name="discard">Supprimer</string>
+    <string name="keep">Garder</string>
+    <string name="route_sheet_hint">Touchez une correspondance pour la suivre maintenant. Son interrupteur coupe le rappel de départ.</string>
+
+    <!-- Widget -->
+    <string name="as_of_fmt">màj %1$s</string>
+    <string name="no_departures">Aucun départ</string>
+    <string name="updating">Mise à jour</string>
+    <string name="refresh_label">↻ Actualiser</string>
+    <string name="platform_short_fmt">Voie %1$s</string>
+    <string name="widget_refresh_channel">Actualisation du widget</string>
+    <string name="updating_departures">Mise à jour des départs</string>
+
+    <!-- Notifications -->
+    <string name="channel_saved_routes">Rappels d\'itinéraire</string>
+    <string name="test_reminder_title">Rappel test</string>
+    <string name="test_reminder_body">Les rappels d\'itinéraire fonctionnent. Ceci est un test.</string>
+    <string name="notif_departs_fmt">Départ à %1$s de %2$s</string>
+    <string name="distance_test_title">Test de distance</string>
+    <string name="distance_test_need_loc">Activez la position et ouvrez d\'abord l\'app près d\'un arrêt.</string>
+    <string name="distance_test_title_fmt">Test de distance : %1$s</string>
+    <string name="distance_test_body_fmt">À %1$d m (~%2$d min à pied). Le rappel partirait %3$d min avant le départ.</string>
+
+    <!-- Snackbars and share intake -->
+    <string name="no_watch_connected">Aucune montre connectée</string>
+    <string name="sent_to_watch">Envoyé à la montre</string>
+    <string name="sent_to_fmt">Envoyé à %1$s</string>
+    <string name="failed_to_send">Échec de l\'envoi</string>
+    <string name="update_watch_fmt">Mettez à jour TrainTime sur votre montre (%1$s)</string>
+    <string name="watch_not_responding">L\'app montre ne répond pas, réouverture...</string>
+    <string name="no_sbb_link">Aucun lien de trajet CFF trouvé</string>
+    <string name="sbb_link_unsupported">Ce format de lien CFF n\'est pas encore pris en charge</string>
+    <string name="nothing_to_track">Rien à suivre dans ce trajet</string>
+    <string name="cant_read_link">Impossible de lire ce lien de trajet</string>
+    <string name="check_connection">Impossible d\'ouvrir le lien. Vérifiez votre connexion</string>
+    <string name="cant_save_departure">Impossible d\'enregistrer ce départ</string>
+    <string name="trip_underway">Ce trajet est déjà en cours ou terminé</string>
+    <string name="saved_will_remind">Enregistré. Nous vous rappellerons avant le départ</string>
+    <string name="route_passed_fmt">L\'itinéraire vers %1$s est passé</string>
+</resources>
