@@ -61,22 +61,33 @@ class TourStepTest {
         assertEquals(1, total)
     }
 
-    private val v2Steps = tourSteps + TourStep(TourStage.WIDGET, "New thing", "Body", introducedIn = 2)
+    // Synthetic future step one version past the real tour, so it is always the
+    // sole newest step regardless of what CURRENT_TOUR_VERSION introduces.
+    private val nextVersion = CURRENT_TOUR_VERSION + 1
+    private val futureStep = TourStep(TourStage.WIDGET, "New thing", "Body", introducedIn = nextVersion)
+    private val futureSteps = tourSteps + futureStep
 
     @Test
     fun newInstallSeesEveryStep() {
-        assertEquals(v2Steps, stepsToShow(v2Steps, effectiveSeen = 0, current = 2))
+        assertEquals(futureSteps, stepsToShow(futureSteps, effectiveSeen = 0, current = nextVersion))
     }
 
     @Test
     fun updaterSeesOnlyNewerSteps() {
-        val shown = stepsToShow(v2Steps, effectiveSeen = 1, current = 2)
-        assertEquals(listOf(v2Steps.last()), shown)
+        val shown = stepsToShow(futureSteps, effectiveSeen = CURRENT_TOUR_VERSION, current = nextVersion)
+        assertEquals(listOf(futureStep), shown)
     }
 
     @Test
     fun upToDateUserSeesNothing() {
-        assertTrue(stepsToShow(v2Steps, effectiveSeen = 2, current = 2).isEmpty())
+        assertTrue(stepsToShow(futureSteps, effectiveSeen = nextVersion, current = nextVersion).isEmpty())
+    }
+
+    // v2 re-introduced the watch step (Wear OS released), so a v1 finisher sees it once.
+    @Test
+    fun v1FinisherSeesTheWatchAnnouncement() {
+        val shown = stepsToShow(tourSteps, effectiveSeen = 1, current = CURRENT_TOUR_VERSION)
+        assertEquals(listOf(TourStage.WATCH), shown.map { it.stage })
     }
 
     @Test
