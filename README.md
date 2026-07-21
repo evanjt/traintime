@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://apps.apple.com/ch/app/traintime/id6760388620"><img src="docs/app-store-badge.svg" alt="Download on the App Store" height="44" /></a>&nbsp;
+  <a href="https://play.google.com/store/apps/details?id=com.evanjt.traintime"><img src="docs/google-play-badge.svg" alt="Get it on Google Play" height="44" /></a>&nbsp;
   <a href="https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb"><img src="docs/connect-iq-badge.svg" alt="Available on Connect IQ" height="44" /></a>
 </p>
 
@@ -21,9 +22,14 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/apple/02-focused-tracking.png" width="180" alt="Watch focused tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/garmin/03-focused-tracking-framed.png" width="160" alt="Garmin focused tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/iphone/02-focused-tracking.png" width="140" alt="iPhone focused tracking" />
+  <img src="docs/screenshots/store/feature/en-AU/featureGraphic.png" width="720" alt="TrainTime - Swiss departures, live on phone and watch" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/apple/02-focused-tracking.png" width="170" alt="Apple Watch tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/wear/02-focused-tracking-framed.png" width="170" alt="Wear OS tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/garmin/03-focused-tracking-framed.png" width="160" alt="Garmin tracking" />&nbsp;&nbsp;
+  <img src="docs/screenshots/iphone/02-focused-tracking.png" width="140" alt="iPhone tracking" />
 </p>
 
 ---
@@ -34,12 +40,15 @@
 - **Live departures** - Platform numbers, destinations, real-time delays
 - **Focused tracking** - Tap a departure to track it with a live countdown
 - **Train, bus, tram & more** - Switch between transport modes including boats, funiculars, and cable cars
+- **Favourites & pinned stations** - Star a connection and it rides above the gold line on every device
+- **Phone to watch handoff** - Send a tracked departure from the phone straight to your wrist
 
 ## Platforms
 
 | Platform | Status |
 |----------|--------|
 | [Apple Watch & iPhone](https://apps.apple.com/ch/app/traintime/id6760388620) | Available |
+| [Wear OS & Android](https://play.google.com/store/apps/details?id=com.evanjt.traintime) | Available |
 | [Garmin](https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb) | Available |
 
 ## Feature parity
@@ -67,14 +76,20 @@ Wear OS with Android, Garmin with either. A departure you track on the phone
 can be sent straight to the watch, and the watch reports its liveness back.
 The phones add saved SBB routes with departure reminders and an in-app
 light/dark theme. The Apple Watch and Wear OS can view and follow a route
-queued on the phone. Android and Wear OS are in testing, not yet on the public
-stores.
+queued on the phone.
 
 ## Build
 
 ### Apple Watch
 
 Open `apple/TrainTimeWatch.xcodeproj` in Xcode.
+
+### Android & Wear OS
+
+```bash
+cd android
+./gradlew assembleDebug
+```
 
 ### Garmin
 
