@@ -309,21 +309,32 @@ WEAR_FRAMED = os.path.join(SCRIPT_DIR, "android", "wear-framed.png")
 
 
 def frame_wear():
-    """Composite the fresh Wear capture into the product frame (case + strap)
-    from screenshots/watch_wear.png, replacing its stale screen content."""
+    """Composite the fresh Wear captures into the product frame (case + strap)
+    from screenshots/watch_wear.png, replacing its stale screen content.
+    Emits the store composite plus the website gallery pair."""
     from PIL import Image, ImageDraw
 
+    wear_list = os.path.join(
+        REPO, "android", "fastlane", "metadata", "android", "en-AU",
+        "images", "wearScreenshots", "01.png",
+    )
+    site = os.path.join(SCRIPT_DIR, "wear")
     frame = Image.open(os.path.join(REPO, "screenshots", "watch_wear.png")).convert("RGBA")
-    shot = Image.open(WEAR_TRACKING).convert("RGBA")
     size, cx, cy = 404, 220, 300
-    shot = shot.resize((size, size), Image.LANCZOS)
     mask = Image.new("L", (size * 4, size * 4), 0)
     ImageDraw.Draw(mask).ellipse([0, 0, size * 4 - 1, size * 4 - 1], fill=255)
     mask = mask.resize((size, size), Image.LANCZOS)
-    out = frame.copy()
-    out.paste(shot, (cx - size // 2, cy - size // 2), mask)
-    out.save(WEAR_FRAMED)
-    print(f"  {os.path.relpath(WEAR_FRAMED, STORE)}")
+    for src, dest in [
+        (WEAR_TRACKING, WEAR_FRAMED),
+        (wear_list, os.path.join(site, "01-station-view-framed.png")),
+        (WEAR_TRACKING, os.path.join(site, "02-focused-tracking-framed.png")),
+    ]:
+        shot = Image.open(src).convert("RGBA").resize((size, size), Image.LANCZOS)
+        out = frame.copy()
+        out.paste(shot, (cx - size // 2, cy - size // 2), mask)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        out.save(dest)
+        print(f"  {os.path.relpath(dest, STORE)}")
 
 
 # Shot list: (output stem, screen capture, caption, subcaption). Captions are
@@ -500,7 +511,7 @@ def build_feature_graphic(locale, strings, palette):
         dev_shadow=p["dev_shadow"],
         tagline=strings["tagline"],
         screen=os.path.join(SCRIPT_DIR, "android", "01-tracking.png"),
-        wear=WEAR_FRAMED,
+        wear=os.path.join(SCRIPT_DIR, "garmin", "03-focused-tracking-framed.png"),
     )
     render(html, 1024, 500, os.path.join(STORE, "feature", locale, "featureGraphic.png"))
 

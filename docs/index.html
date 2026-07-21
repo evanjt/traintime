@@ -746,6 +746,9 @@
         <a href="https://apps.apple.com/ch/app/traintime/id6760388620" target="_blank">
           <img src="app-store-badge.svg" alt="Download on the App Store" height="44" />
         </a>
+        <a href="https://play.google.com/store/apps/details?id=com.evanjt.traintime" target="_blank">
+          <img src="google-play-badge.svg" alt="Get it on Google Play" height="44" />
+        </a>
         <a href="https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb" target="_blank">
           <img src="connect-iq-badge.svg" alt="Available on Connect IQ" height="44" />
         </a>
@@ -756,6 +759,7 @@
       <div class="gallery-switcher">
         <div class="gallery-toggle" id="gallery-toggle">
           <button class="active" data-platform="apple">Apple Watch</button>
+          <button data-platform="wear">Wear OS</button>
           <button data-platform="garmin">Garmin</button>
           <button data-platform="iphone">iPhone</button>
         </div>
@@ -774,6 +778,18 @@
             <div class="watch-device">
               <div class="watch-img-wrap"><img src="screenshots/apple/03-station-picker.png" alt="Station picker showing nearby stations with walk times" /></div>
               <div class="watch-label">Stations</div>
+            </div>
+          </div>
+        </div>
+        <div class="gallery-band hidden" id="band-wear">
+          <div class="gallery-track">
+            <div class="watch-device">
+              <div class="watch-img-wrap"><img src="screenshots/wear/01-station-view-framed.png" alt="Wear OS station departures with a starred favourite from Sion" /></div>
+              <div class="watch-label">Departures</div>
+            </div>
+            <div class="watch-device">
+              <div class="watch-img-wrap"><img src="screenshots/wear/02-focused-tracking-framed.png" alt="Wear OS focused tracking with countdown and walk distance" /></div>
+              <div class="watch-label">Tracking</div>
             </div>
           </div>
         </div>
@@ -883,6 +899,19 @@
           <div class="platform-name">Apple Watch &amp; iPhone</div>
           <div class="platform-status available">Available now</div>
         </a>
+        <a class="platform-card" href="https://play.google.com/store/apps/details?id=com.evanjt.traintime" target="_blank" style="text-decoration: none; color: inherit;">
+          <div class="platform-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="26" r="14" stroke="currentColor" stroke-width="2.5"/>
+              <circle cx="24" cy="26" r="9" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+              <rect x="18" y="2" width="12" height="7" rx="2" fill="currentColor" opacity="0.3"/>
+              <rect x="18" y="39" width="12" height="7" rx="2" fill="currentColor" opacity="0.3"/>
+              <circle cx="24" cy="26" r="2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="platform-name">Wear OS &amp; Android</div>
+          <div class="platform-status available">Available now</div>
+        </a>
         <a class="platform-card" href="https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb" target="_blank" style="text-decoration: none; color: inherit;">
           <div class="platform-icon">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -927,7 +956,7 @@
         });
 
         // Gallery platform switcher
-        var platforms = ['apple', 'garmin', 'iphone'];
+        var platforms = ['apple', 'wear', 'garmin', 'iphone'];
         var current = 0;
         var switching = false;
         var autoTimer = null;
