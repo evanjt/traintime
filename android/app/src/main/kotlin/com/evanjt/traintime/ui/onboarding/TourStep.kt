@@ -14,8 +14,10 @@ data class TourStep(
     val introducedIn: Int = 1,
 )
 
-// Bump whenever steps are added (new steps get introducedIn = this value).
-const val CURRENT_TOUR_VERSION = 1
+// Bump whenever steps are added or materially changed (they get
+// introducedIn = this value, so updaters see them again).
+// v2: Wear OS released — the watch step announces it instead of teasing it.
+const val CURRENT_TOUR_VERSION = 2
 
 // Copy is held inline (not in strings.xml) because each line is tightly bound to
 // the step it explains; the rest of the tour (mock data, surfaces) is Kotlin too.
@@ -66,8 +68,9 @@ val tourSteps: List<TourStep> = listOf(
     TourStep(
         TourStage.WATCH,
         "Take it to your watch",
-        "Have a Garmin? Track on your phone and send a departure to your wrist. " +
-            "Wear OS is coming, and there's an Apple Watch app for iPhone.",
+        "Wear OS and Garmin both sync live: track on your phone and send a departure " +
+            "to your wrist. There's an Apple Watch app for iPhone too.",
+        introducedIn = 2,
     ),
     TourStep(
         TourStage.WIDGET,

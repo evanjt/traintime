@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.FilledTonalButton
@@ -648,8 +647,10 @@ internal fun TourWatchSurface(topInset: Dp, onReport: (Rect) -> Unit) {
                 WatchTile(
                     R.drawable.watch_wear,
                     name = "Wear OS",
-                    badge = WatchBadgeKind.COMING_SOON,
+                    badge = WatchBadgeKind.SYNCS_LIVE,
                     modifier = Modifier.weight(1f),
+                    buttonLabel = "Google Play",
+                    url = PLAY_STORE_URL,
                 )
             }
             Row(
@@ -723,22 +724,20 @@ private fun WatchTile(
     }
 }
 
-internal enum class WatchBadgeKind { SYNCS_LIVE, COMING_SOON, PHONE_APP }
+internal enum class WatchBadgeKind { SYNCS_LIVE, PHONE_APP }
 
-// Graphical capability chip: green tick when the watch syncs with this phone, a clock while Wear
-// support is unreleased, a neutral phone glyph for the iPhone-paired Apple Watch advert.
+// Graphical capability chip: green tick when the watch syncs with this phone,
+// a neutral phone glyph for the iPhone-paired Apple Watch advert.
 @Composable
 private fun WatchBadge(kind: WatchBadgeKind) {
     val green = Color(0xFF34C759)
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val icon = when (kind) {
         WatchBadgeKind.SYNCS_LIVE -> Icons.Filled.Check
-        WatchBadgeKind.COMING_SOON -> Icons.Filled.Schedule
         WatchBadgeKind.PHONE_APP -> Icons.Filled.PhoneIphone
     }
     val label = when (kind) {
         WatchBadgeKind.SYNCS_LIVE -> "Syncs live"
-        WatchBadgeKind.COMING_SOON -> "Coming soon"
         WatchBadgeKind.PHONE_APP -> "For iPhone"
     }
     val tint = if (kind == WatchBadgeKind.SYNCS_LIVE) green else secondary
@@ -769,6 +768,10 @@ private const val CONNECT_IQ_STORE_URL =
     "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
 
 private const val APP_STORE_URL = "https://apps.apple.com/app/id6760388620"
+
+// The Wear OS app ships in the same Play listing; the watch's Play Store
+// offers it once the phone app is installed.
+private const val PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.evanjt.traintime"
 
 // Tracking demo: a short, looping countdown so the bar and status visibly shift.
 private const val TOUR_TRACK_RUNWAY_SEC = 165L
