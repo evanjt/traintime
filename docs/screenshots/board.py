@@ -6,11 +6,15 @@ Outputs Play phone (1080x2160), App Store 6.9" (1320x2868) and the Play
 feature graphic (1024x500). Raw captures come from screenshots/ and
 docs/screenshots/; fonts are bundled in docs/screenshots/fonts/.
 
-Usage: board.py [--palette board|swiss|signal] [locale ...]
-Set TT_STORE_DIR to redirect output (used for palette comparisons).
+Usage: board.py [--palette board|swiss|signal] [--install] [locale ...]
+After rendering, assets are mirrored into the fastlane upload trees (Play
+images/ + apple/fastlane/screenshots/) so tag releases ship them; --install
+mirrors the existing renders without re-rendering. Set TT_STORE_DIR to
+redirect output (palette comparisons); such runs never touch fastlane.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -516,6 +520,55 @@ def build_feature_graphic(locale, strings, palette):
     render(html, 1024, 500, os.path.join(STORE, "feature", locale, "featureGraphic.png"))
 
 
+# App Store Connect uses the bare "it" locale where Play uses "it-IT".
+APPLE_LOCALE = {"it-IT": "it"}
+
+
+def install(locales):
+    """Mirror rendered assets into the fastlane upload trees so a tag release
+    ships exactly what was last rendered. Whole per-locale sets are replaced,
+    never merged: supply and deliver clobber the store set on upload, so the
+    repo is the single source of truth. Garmin has no upload API; its assets
+    stay in store/garmin for manual dashboard upload."""
+    from PIL import Image
+
+    play_meta = os.path.join(REPO, "android", "fastlane", "metadata", "android")
+    apple_shots = os.path.join(REPO, "apple", "fastlane", "screenshots")
+    for locale in locales:
+        images = os.path.join(play_meta, locale, "images")
+        phone = os.path.join(images, "phoneScreenshots")
+        shutil.rmtree(phone, ignore_errors=True)
+        os.makedirs(phone)
+        for i in (1, 2, 3):
+            shutil.copy(os.path.join(STORE, "play", locale, f"{i:02d}.png"), phone)
+        shutil.copy(
+            os.path.join(STORE, "feature", locale, "featureGraphic.png"),
+            os.path.join(images, "featureGraphic.png"),
+        )
+
+        # Wear raws carry alpha from the capture pipeline; Play rejects it.
+        wear = os.path.join(images, "wearScreenshots")
+        shutil.rmtree(wear, ignore_errors=True)
+        os.makedirs(wear)
+        for i in (1, 2, 3):
+            src = os.path.join(STORE, "wear", f"{i:02d}.png")
+            Image.open(src).convert("RGB").save(os.path.join(wear, f"{i:02d}.png"))
+
+        # deliver sorts by filename within a device class and detects the class
+        # from resolution (1320x2868 iPhone 6.9", 416x496 Apple Watch).
+        adir = os.path.join(apple_shots, APPLE_LOCALE.get(locale, locale))
+        shutil.rmtree(adir, ignore_errors=True)
+        os.makedirs(adir)
+        for i in (1, 2, 3):
+            shutil.copy(os.path.join(STORE, "appstore", locale, f"{i:02d}.png"), adir)
+        for i in (1, 2):
+            shutil.copy(
+                os.path.join(STORE, "watchos", f"{i:02d}.png"),
+                os.path.join(adir, f"watch-{i:02d}.png"),
+            )
+        print(f"[{locale}] installed into fastlane trees")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     palette = "swiss"
@@ -523,7 +576,13 @@ if __name__ == "__main__":
         i = args.index("--palette")
         palette = args[i + 1]
         del args[i:i + 2]
+    install_only = "--install" in args
+    if install_only:
+        args.remove("--install")
     locales = args or list(STRINGS)
+    if install_only:
+        install(locales)
+        sys.exit(0)
     frame_wear()
     print(f"[{palette}] Garmin tiles 500x500")
     build_garmin_tiles(palette)
@@ -537,4 +596,7 @@ if __name__ == "__main__":
         build_feature_graphic(locale, strings, palette)
         print(f"[{locale}/{palette}] Garmin hero 1440x720")
         build_garmin_hero(locale, strings, palette)
+    # Palette-comparison runs (TT_STORE_DIR) never touch the release trees.
+    if "TT_STORE_DIR" not in os.environ:
+        install(locales)
     print("Done.")

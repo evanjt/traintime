@@ -53,8 +53,11 @@ platform :android do
       mapping: mapping_path,
       release_status: "completed",
       metadata_path: File.expand_path("metadata/android", __dir__),
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
+      # Feature graphic + phone/wear screenshots ship from metadata/android/
+      # <locale>/images/, mirrored there by docs/screenshots/board.py --install.
+      # Uploads replace the whole per-locale set; the repo is the source of truth.
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
     )
 
     # 2. Stage the same build in open (beta) testing as a draft, for manual review
@@ -107,8 +110,8 @@ platform :android do
       aab_paths: [aab_path, wear_aab_path],
       mapping: mapping_path,
       metadata_path: File.expand_path("metadata/android", __dir__),
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
       release_status: "completed",
     )
   end
