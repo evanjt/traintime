@@ -61,6 +61,7 @@ play-service-account.json
 *.aab
 *.keystore
 *.jks
+android/dist/
 android/.idea/
 android/captures/
 /screenshots/

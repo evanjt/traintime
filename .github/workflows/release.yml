@@ -143,9 +143,14 @@ jobs:
         if: steps.check_creds.outputs.has_creds == 'true'
         run: |
           VN=$(grep 'versionName = ' android/app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-          echo "Tag: ${{ github.ref_name }} | versionName: $VN"
+          VN_WEAR=$(grep 'versionName = ' android/wear/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          echo "Tag: ${{ github.ref_name }} | app versionName: $VN | wear versionName: $VN_WEAR"
           if [ "$VN" != "${{ github.ref_name }}" ]; then
             echo "::error::Tag ${{ github.ref_name }} does not match versionName $VN. Bump versionName (and versionCode) in android/app/build.gradle.kts before tagging."
+            exit 1
+          fi
+          if [ "$VN_WEAR" != "${{ github.ref_name }}" ]; then
+            echo "::error::Tag ${{ github.ref_name }} does not match wear versionName $VN_WEAR. Bump versionName (and versionCode) in android/wear/build.gradle.kts before tagging."
             exit 1
           fi
 
@@ -177,15 +182,18 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          ./gradlew :app:bundleRelease
-          echo "Built app-release.aab ($(stat -c%s app/build/outputs/bundle/release/app-release.aab) bytes)"
+          ./gradlew :app:bundleRelease :wear:bundleRelease
+          mkdir -p dist
+          cp app/build/outputs/bundle/release/app-release.aab dist/
+          cp wear/build/outputs/bundle/release/wear-release.aab dist/
+          echo "Built app-release.aab ($(stat -c%s dist/app-release.aab) bytes), wear-release.aab ($(stat -c%s dist/wear-release.aab) bytes)"
 
       - name: Upload Android artifact
         if: steps.check_creds.outputs.has_creds == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: android-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: android/dist/*.aab
           retention-days: 30
 
   # ============================================
@@ -257,12 +265,20 @@ jobs:
             echo "::notice::No Garmin .iq found"
           fi
 
-          AAB=$(find artifacts -name "*.aab" | head -1)
+          AAB=$(find artifacts -name "app-release.aab" | head -1)
           if [ -n "$AAB" ]; then
             cp "$AAB" "release/traintime-${VERSION}.aab"
             echo "Android: traintime-${VERSION}.aab"
           else
             echo "::notice::No Android .aab found"
+          fi
+
+          WEAR_AAB=$(find artifacts -name "wear-release.aab" | head -1)
+          if [ -n "$WEAR_AAB" ]; then
+            cp "$WEAR_AAB" "release/traintime-wear-${VERSION}.aab"
+            echo "Wear OS: traintime-wear-${VERSION}.aab"
+          else
+            echo "::notice::No Wear OS .aab found"
           fi
 
           echo ""
@@ -280,6 +296,7 @@ jobs:
             - **iOS IPA**: For TestFlight / App Store (includes iOS app, watchOS companion, widget)
             - **Garmin .iq**: Upload to [Connect IQ Store](https://apps.garmin.com/developer/dashboard)
             - **Android .aab**: Signed release bundle for the [Play Console](https://play.google.com/console)
+            - **Wear OS .aab**: Signed watch bundle, uploaded to the same Play release
 
             ---
             Built from commit: ${{ github.sha }}
@@ -478,7 +495,7 @@ jobs:
         working-directory: android
         env:
           SUPPLY_JSON_KEY: ${{ github.workspace }}/android/play-service-account.json
-        run: bundle exec fastlane android ci_release aab:"${{ github.workspace }}/android/release/app-release.aab"
+        run: bundle exec fastlane android ci_release aab:"${{ github.workspace }}/android/release/app-release.aab" wear_aab:"${{ github.workspace }}/android/release/wear-release.aab"
 
       - name: Summary
         if: steps.check_creds.outputs.skip != 'true'
@@ -486,7 +503,7 @@ jobs:
           echo "## Google Play Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Internal testing:** published (live to internal testers)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Internal testing:** published (live to internal testers, phone + Wear OS)" >> $GITHUB_STEP_SUMMARY
           echo "- **Open testing:** staged as a draft (review and roll out in the console)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Build will appear in the [Play Console](https://play.google.com/console) shortly." >> $GITHUB_STEP_SUMMARY
