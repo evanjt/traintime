@@ -1,1 +1,2 @@
+- Das iPhone zeigt jetzt live, was deine Uhr verfolgt.
 - Kleinere Verbesserungen und Wartung.

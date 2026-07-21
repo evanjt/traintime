@@ -1,1 +1,2 @@
+- L'iPhone affiche désormais en direct ce que votre montre suit.
 - Améliorations mineures et maintenance.

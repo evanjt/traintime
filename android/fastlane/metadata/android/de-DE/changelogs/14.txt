@@ -1,2 +1,3 @@
 - Neu: TrainTime für Wear OS. Verfolge Abfahrten direkt am Handgelenk und sende einen Zug vom Handy an die Uhr. Favoriten, angepinnte Stationen und Standardmodus bleiben synchron.
 - Die App-Tour stellt neu die Uhren-Apps vor.
+- Das Handy zeigt jetzt live, was deine Uhr verfolgt.

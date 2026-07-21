@@ -1,1 +1,2 @@
+- The iPhone now shows what your watch is tracking, live.
 - Minor improvements and maintenance.
