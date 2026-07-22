@@ -1,0 +1,3 @@
+Prima versione per Wear OS: partenze nelle vicinanze, monitoraggio in tempo reale con conto alla rovescia, ritardo e binario, preferiti e stazioni fissate sincronizzati con il telefono.
+Ora in italiano, tedesco, francese e inglese.
+L'app ora si avvia con l'icona di TrainTime e tutte le schermate usano uno sfondo nero profondo che fa risparmiare batteria.

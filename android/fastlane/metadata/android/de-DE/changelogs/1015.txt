@@ -1,0 +1,3 @@
+Erste Version für Wear OS: Abfahrten in der Nähe, Live-Tracking mit Countdown, Verspätung und Gleis, Favoriten und angepinnte Stationen synchron mit dem Handy.
+Jetzt auf Deutsch, Englisch, Französisch und Italienisch.
+Die App startet jetzt mit dem TrainTime-Symbol, und alle Bildschirme nutzen ein tiefes Schwarz, das Akku spart.

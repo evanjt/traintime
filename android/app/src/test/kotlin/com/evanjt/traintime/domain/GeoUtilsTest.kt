@@ -5,8 +5,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
+// Pinned like the snapshot tests: Robolectric follows targetSdk by default, and
+// its API 36 sandbox needs Java 21 while the build runs on 17.
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class GeoUtilsTest {
     @Test
     fun `haversine uses flat-earth factors`() {

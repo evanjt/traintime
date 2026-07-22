@@ -35,7 +35,7 @@ platform :android do
     codes.map(&:to_i)
   end
 
-  desc "Tag release: publish to internal testing, stage the same build as a draft in open testing"
+  desc "Tag release: internal testing, live to open testing, staged as a production draft"
   lane :ci_release do |options|
     aab_path = options[:aab] ||
       File.expand_path("../app/build/outputs/bundle/release/app-release.aab", __dir__)
@@ -90,24 +90,29 @@ platform :android do
       skip_upload_screenshots: true,
     )
 
-    # 3. Stage both in open (beta) testing as drafts, for manual review before
-    #    going live to open testers. Release notes travel with the promotion.
+    # 3. Promote both to open (beta) testing, live to open testers immediately.
+    #    Release notes travel with the promotion.
+    # 4. Stage the same build as a production draft. Nothing goes live: the
+    #    draft sits in the Console until reviewed and rolled out there (or via
+    #    promote_to_production, which replaces it).
     {
-      "internal" => ["beta", phone_code],
-      "wear:internal" => ["wear:beta", wear_code],
-    }.each do |from_track, (to_track, code)|
-      supply(
-        track: from_track,
-        track_promote_to: to_track,
-        track_promote_release_status: "draft",
-        version_code: code,
-        skip_upload_aab: true,
-        skip_upload_apk: true,
-        skip_upload_metadata: true,
-        skip_upload_changelogs: true,
-        skip_upload_images: true,
-        skip_upload_screenshots: true,
-      )
+      "internal" => [["beta", "completed"], ["production", "draft"], phone_code],
+      "wear:internal" => [["wear:beta", "completed"], ["wear:production", "draft"], wear_code],
+    }.each do |from_track, (open_testing, production, code)|
+      [open_testing, production].each do |to_track, status|
+        supply(
+          track: from_track,
+          track_promote_to: to_track,
+          track_promote_release_status: status,
+          version_code: code,
+          skip_upload_aab: true,
+          skip_upload_apk: true,
+          skip_upload_metadata: true,
+          skip_upload_changelogs: true,
+          skip_upload_images: true,
+          skip_upload_screenshots: true,
+        )
+      end
     end
   end
 

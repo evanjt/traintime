@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Compose draws everything; AppCompat parent so the per-app language
-         override (setApplicationLocales) applies. -->
-    <style name="Theme.TrainTimeWear" parent="Theme.AppCompat.NoActionBar" />
+         override (setApplicationLocales) applies. Theme.AppCompat's window
+         background is #303030 grey, which the Wear quality guidelines reject
+         (OLED watches must be black), so override it. -->
+    <style name="Theme.TrainTimeWear" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorBackground">@android:color/black</item>
+    </style>
+
+    <!-- Branded launch: Wear requires a 48dp round app icon on black while the
+         activity starts. Swaps to Theme.TrainTimeWear once Compose is up. -->
+    <style name="Theme.TrainTimeWear.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen</item>
+        <item name="postSplashScreenTheme">@style/Theme.TrainTimeWear</item>
+    </style>
 </resources>

@@ -1,0 +1,3 @@
+First Wear OS release: nearby departures, live tracking with countdown, delay and platform, favourites and pinned stations synced with your phone.
+Now in English, German, French and Italian.
+The app now starts with the TrainTime icon and every screen sits on true black, which saves battery on the watch.

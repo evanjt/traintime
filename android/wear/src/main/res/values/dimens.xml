@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Wear branded launch: 48dp for a round icon (36dp is the non-round size,
+         which also needs a white circle behind it). -->
+    <dimen name="splash_screen_icon_size">48dp</dimen>
+</resources>

@@ -21,7 +21,7 @@ val releaseStoreFile: String? = signingValue("storeFile", "KEYSTORE_FILE")
 
 android {
     namespace = "com.evanjt.traintime.wear"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // Same applicationId as :app, required for the Wearable Data Layer to
@@ -29,9 +29,12 @@ android {
         // listing. Distinct versionCode space (1000+) from the phone's.
         applicationId = "com.evanjt.traintime"
         minSdk = 30
+        // Play's target-API rule exempts Wear OS at API 35, so the watch stays
+        // there rather than take Android 16's predictive-back and edge-to-edge
+        // changes on a surface that can't be tested as easily as the phone.
         targetSdk = 35
-        versionCode = 1014
-        versionName = "0.6.0"
+        versionCode = 1015
+        versionName = "0.6.1"
     }
 
     signingConfigs {
@@ -90,6 +93,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // Per-app language backport: AppCompatDelegate.setApplicationLocales.
     implementation(libs.androidx.appcompat)
+    // Branded launch: the icon-on-black startup screen Wear requires.
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 

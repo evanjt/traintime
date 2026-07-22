@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.MaterialTheme
@@ -54,6 +55,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Branded launch (Wear quality guidelines): must run before super so the
+        // splash theme is installed and then swapped for Theme.TrainTimeWear.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         // Stamp the watch's version so its liveness announcements carry it, before
         // the ViewModel sends its first hello.

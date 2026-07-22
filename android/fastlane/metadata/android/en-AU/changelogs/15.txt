@@ -1,0 +1,5 @@
+- New: TrainTime for Wear OS. Track departures on your wrist and send a train from phone to watch. Favourites, pinned stations and your default mode stay in sync.
+- The app tour now introduces the watch apps.
+- The phone now shows what your watch is tracking, live.
+- TrainTime now speaks German, French and Italian, following your language settings.
+- Maintenance: compatibility with the latest Android version.

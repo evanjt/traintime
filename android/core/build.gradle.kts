@@ -23,7 +23,7 @@ val traintimeApiKey: String = run {
 
 android {
     namespace = "com.evanjt.traintime.core"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26

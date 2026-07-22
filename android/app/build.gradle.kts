@@ -25,14 +25,15 @@ val releaseStoreFile: String? = signingValue("storeFile", "KEYSTORE_FILE")
 
 android {
     namespace = "com.evanjt.traintime"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.evanjt.traintime"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 14
-        versionName = "0.6.0"
+        // Play requires API 36 for phone apps from 31 Aug 2026.
+        targetSdk = 36
+        versionCode = 15
+        versionName = "0.6.1"
     }
 
     signingConfigs {

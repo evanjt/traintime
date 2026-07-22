@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher icon is round, so it sits directly on black at 48dp. The
+     mipmap can't be used: on API 26+ it resolves to the adaptive icon, which
+     renders unmasked (a red square) outside the launcher. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="@dimen/splash_screen_icon_size"
+        android:height="@dimen/splash_screen_icon_size"
+        android:drawable="@drawable/ic_splash"
+        android:gravity="center" />
+</layer-list>
