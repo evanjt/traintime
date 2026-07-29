@@ -2172,61 +2172,47 @@ class PhoneViewModel: ObservableObject {
         saveRouteOffer(route)
     }
 
-    /// Tracking-screen "Track in the background" flow. The button asks first so a
-    /// prominent disclosure (peer of Android's dialog) precedes the system prompt.
-    @Published var showBackgroundDisclosure = false
-    /// Set when the user continued but declined "Always"; not a failure, the
-    /// reminder still fires from the last known location.
-    @Published var showBackgroundDenied = false
-    private var awaitingBackgroundAuth = false
+    /// A live session that keeps running in the background (the Live Activity)
+    /// while the board is shown. Non-nil = "Track in the background" is active:
+    /// the board pins it at the top, tapping it re-opens full tracking. Peer of
+    /// MainViewModel.backgroundTracked.
+    @Published var backgroundTracked: FocusedDeparture?
+    @Published var backgroundTrackedStation: String?
 
-    /// Button tap: show the disclosure before requesting location.
-    func requestTrackInBackground() {
-        showBackgroundDisclosure = true
-    }
-
-    /// Disclosure "Continue": save + request, and watch for a declined result.
-    func confirmTrackInBackground() {
-        showBackgroundDisclosure = false
-        awaitingBackgroundAuth = true
-        ReminderTracker.shared.onAuthorizationDecided = { [weak self] isAlways in
-            guard let self, self.awaitingBackgroundAuth else { return }
-            self.awaitingBackgroundAuth = false
-            ReminderTracker.shared.onAuthorizationDecided = nil
-            if !isAlways { self.showBackgroundDenied = true }
-        }
-        trackCurrentInBackground()
-    }
-
-    /// Tracking-screen "Track in the background": save what we're tracking as a
-    /// pending route so it rides the distance-aware reminder with the app closed,
-    /// then enable background distance tracking. syncReminderTracking asks for
-    /// Always location (the system prompt) when needed. Peer of
-    /// MainViewModel.trackCurrentInBackground.
+    /// Tracking-screen "Track in the background": leave the immersive tracking
+    /// screen for the board but keep the Live Activity running. No reminder, no
+    /// disclosure prompt — the Live Activity already covers the closed-app case.
     func trackCurrentInBackground() {
         lastInteractionTime = Date()
         guard let focused = focusedTrain else { return }
-        UserDefaults.standard.set(true, forKey: "distanceAwareReminder")
-        UserDefaults.standard.set(true, forKey: "backgroundReminderTracking")
-        // A board tap isn't saved yet; a shared/saved route already is.
-        guard focused.routeDestination == nil, let station = currentStation else {
-            syncReminderTracking()
-            return
-        }
-        let route = SharedRoute.single(
-            originId: station.id,
-            originName: station.name ?? "",
-            originLat: station.lat,
-            originLon: station.lon,
-            destName: focused.destination,
-            depTs: focused.departureTimestamp,
-            lineNumber: focused.lineNumber,
-            trainNumber: focused.trainNumber
-        )
-        Task {
-            await openSharedRoute(SharedRouteOffer(route: route, sourceUrl: nil, saveOnly: true))
-            syncReminderTracking()
-        }
+        backgroundTracked = focused
+        backgroundTrackedStation = currentStation?.name
+        // Exit to the board WITHOUT ending the Live Activity (unlike exit): it
+        // keeps counting down system-side.
+        appState = 0
+        location.setTrackingAccuracy(false)
+        focusedTrain = nil
+        formation = nil
+        consecutiveErrors = 0
+        startTimer(interval: Timing.normalRefreshInterval)
+        returnToNearbyIfLaunched()
+    }
+
+    /// Board "now tracking" card tapped: re-open the full tracking screen for the
+    /// session running in the background.
+    func resumeBackgroundTracking() {
+        guard let dep = backgroundTracked else { return }
+        backgroundTracked = nil
+        backgroundTrackedStation = nil
+        beginTracking(dep)
+    }
+
+    /// Board "now tracking" card stop: end the background session and its
+    /// Live Activity without re-opening the tracking screen.
+    func stopBackgroundTracking() {
+        backgroundTracked = nil
+        backgroundTrackedStation = nil
+        endLiveActivity(departed: false)
     }
 
     private func saveRouteOffer(_ route: SharedRoute) {
@@ -2369,20 +2355,32 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    /// While tracking a shared-route leg, the next ride leg of the same route is
-    /// the onward connection: shown under the countdown, tappable to jump onto
-    /// it early. Matched by departure time so an unrelated track shows nothing.
-    var onwardConnection: OnwardConnection? {
-        guard let focused = focusedTrain, let route = pendingRouteStore.pending else { return nil }
+    /// While tracking a shared-route leg, every remaining ride leg of the same
+    /// route: the onward journey, each shown as its own card under the countdown
+    /// and tappable to jump onto it early. Change minutes measure from the
+    /// previous ride leg's arrival. Empty for a plain (non-route) track.
+    var onwardLegs: [OnwardConnection] {
+        guard let focused = focusedTrain, let route = pendingRouteStore.pending else { return [] }
         guard let curIdx = route.legs.firstIndex(where: {
             $0.type == .ride && $0.depTs == focused.departureTimestamp
-        }) else { return nil }
-        let curLeg = route.legs[curIdx]
-        guard let nextIdx = route.legs[(curIdx + 1)...].firstIndex(where: { $0.type == .ride }) else { return nil }
-        let next = route.legs[nextIdx]
-        let changeMinutes = max(0, (next.depTs - curLeg.arrTs) / 60)
-        return OnwardConnection(changeStation: curLeg.destName, leg: next, legIndex: nextIdx, changeMinutes: changeMinutes)
+        }) else { return [] }
+        var result: [OnwardConnection] = []
+        var prevRide = route.legs[curIdx]
+        var i = curIdx + 1
+        while i < route.legs.count {
+            let leg = route.legs[i]
+            if leg.type == .ride {
+                let changeMinutes = max(0, (leg.depTs - prevRide.arrTs) / 60)
+                result.append(OnwardConnection(changeStation: prevRide.destName, leg: leg, legIndex: i, changeMinutes: changeMinutes))
+                prevRide = leg
+            }
+            i += 1
+        }
+        return result
     }
+
+    /// The immediate next connection, for surfaces that show only one.
+    var onwardConnection: OnwardConnection? { onwardLegs.first }
 
     func dismissPendingRoute() {
         pendingRouteStore.clear()

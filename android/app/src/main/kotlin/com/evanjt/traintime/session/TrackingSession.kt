@@ -59,6 +59,45 @@ object TrackingLogic {
     // In-app auto-exit threshold: departed more than a minute ago.
     const val DEPARTED_GRACE_SEC = 90L
 
+    // How to run location for a given proximity tier. Accuracy costs battery, and
+    // the walk/bar only matter once you're about to walk, so GPS stays off until
+    // ~30 min out and only reaches high accuracy near the departure.
+    enum class LocationMode { OFF, BALANCED, HIGH }
+
+    // A polling tier chosen by how far the departure is. apiIntervalSec == null
+    // means paused: no board fetch, no GPS, the notification lives on the system
+    // chronometer alone. This is what makes a next-day tracked trip cost nothing.
+    data class PollTier(val apiIntervalSec: Long?, val location: LocationMode)
+
+    // Proximity thresholds (minutes to effective departure), shared with iOS.
+    const val TIER_PAUSE_MIN = 360.0 // > 6 h: paused
+    const val TIER_FAR_MIN = 60.0 // 1–6 h
+    const val TIER_MID_MIN = 30.0 // 30–60 m
+    const val TIER_NEAR_MIN = 10.0 // 10–30 m
+    const val TIER_CLOSE_MIN = 2.0 // 2–10 m
+
+    fun pollTier(minutesUntil: Double): PollTier = when {
+        minutesUntil > TIER_PAUSE_MIN -> PollTier(null, LocationMode.OFF)
+        minutesUntil > TIER_FAR_MIN -> PollTier(900, LocationMode.OFF)
+        minutesUntil > TIER_MID_MIN -> PollTier(450, LocationMode.OFF)
+        minutesUntil > TIER_NEAR_MIN -> PollTier(60, LocationMode.BALANCED)
+        minutesUntil > TIER_CLOSE_MIN -> PollTier(30, LocationMode.HIGH)
+        else -> PollTier(15, LocationMode.HIGH)
+    }
+
+    // The distance-aware "time to leave" moment: due once the effective departure
+    // (schedule + delay) is within walk time plus the buffer lead. Fixed-lead
+    // callers pass walkMinutes = 0. Latching to fire once is the caller's job.
+    fun approachDue(
+        focused: FocusedDeparture,
+        walkMinutes: Double,
+        bufferLeadMinutes: Int,
+        nowEpochSeconds: Long,
+    ): Boolean {
+        val untilEffective = focused.minutesUntil(nowEpochSeconds) + focused.delay
+        return untilEffective <= walkMinutes + bufferLeadMinutes && !departed(focused, nowEpochSeconds)
+    }
+
     // Pick the live board row for the tracked departure. Match by train number
     // when there is one (a protected shared-route leg carries it), so live
     // platform/delay are adopted even though the leg's destName is the alight

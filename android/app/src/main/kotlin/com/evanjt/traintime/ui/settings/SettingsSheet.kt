@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,6 +89,10 @@ fun SettingsSheet(
             WatchPage(viewModel = viewModel, onBack = { page = SettingsPage.MAIN })
             return@ModalBottomSheet
         }
+        if (page == SettingsPage.HELP) {
+            TrackingHelpPage(onBack = { page = SettingsPage.MAIN })
+            return@ModalBottomSheet
+        }
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
@@ -138,6 +143,24 @@ fun SettingsSheet(
             )
 
             ReminderSettings(viewModel = viewModel, modifier = Modifier.padding(top = 16.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { page = SettingsPage.HELP }
+                    .padding(top = 16.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Info,
+                    contentDescription = null,
+                    tint = secondary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(stringResource(R.string.help_title), color = onSurface, modifier = Modifier.padding(start = 12.dp))
+                Spacer(Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = secondary)
+            }
 
             if (viewModel.favouritesList.isNotEmpty()) {
                 Row(
@@ -274,6 +297,7 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
     val connectionLead by viewModel.prefs.connectionReminderLeadMinutes.collectAsState(initial = 3)
     val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = false)
     val backgroundTracking by viewModel.prefs.backgroundReminderTracking.collectAsState(initial = true)
+    val alertBeforeDeparture by viewModel.prefs.alertBeforeDeparture.collectAsState(initial = true)
 
     // Re-check on resume so returning from system settings updates the row.
     var granted by remember { mutableStateOf(notificationsEnabled(context)) }
@@ -356,6 +380,19 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             modifier = Modifier.padding(top = 12.dp),
         )
 
+        // Applies to a live background-tracking session: a one-off leave heads-up
+        // as departure nears, on top of the always-on tracking card.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.alert_before_departure), color = onSurface)
+                Text(stringResource(R.string.alert_before_departure_desc), color = secondary, fontSize = 12.sp)
+            }
+            Switch(checked = alertBeforeDeparture, onCheckedChange = { viewModel.setAlertBeforeDeparture(it) })
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -397,7 +434,49 @@ private fun openNotificationSettings(context: android.content.Context) {
     )
 }
 
-private enum class SettingsPage { MAIN, FAVOURITES, WATCH }
+private enum class SettingsPage { MAIN, FAVOURITES, WATCH, HELP }
+
+// Plain-language explainer for background tracking, so the proximity tiering,
+// the leave alert and the OEM battery caveat aren't a mystery.
+@Composable
+private fun TrackingHelpPage(onBack: () -> Unit) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(
+        Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(CoreR.string.back), tint = onSurface)
+            }
+            Text(
+                stringResource(R.string.help_title),
+                color = onSurface,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        val points = listOf(
+            R.string.help_countdown_h to R.string.help_countdown_b,
+            R.string.help_cadence_h to R.string.help_cadence_b,
+            R.string.help_battery_h to R.string.help_battery_b,
+            R.string.help_leave_h to R.string.help_leave_b,
+            R.string.help_oem_h to R.string.help_oem_b,
+        )
+        points.forEach { (heading, body) ->
+            Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                Text(stringResource(heading), color = onSurface, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(body), color = secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+    }
+}
 
 @Composable
 private fun WatchPage(viewModel: MainViewModel, onBack: () -> Unit) {

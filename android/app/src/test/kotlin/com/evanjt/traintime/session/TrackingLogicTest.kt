@@ -175,4 +175,72 @@ class TrackingLogicTest {
         assertEquals(1000, bar.position)
         assertEquals(1000, bar.runs.sumOf { it.length })
     }
+
+    @Test
+    fun poll_tier_pauses_beyond_six_hours() {
+        val tier = TrackingLogic.pollTier(7 * 60.0)
+        assertNull(tier.apiIntervalSec)
+        assertEquals(TrackingLogic.LocationMode.OFF, tier.location)
+    }
+
+    @Test
+    fun poll_tier_far_polls_slowly_with_no_gps() {
+        val tier = TrackingLogic.pollTier(180.0) // 3 h
+        assertEquals(900L, tier.apiIntervalSec)
+        assertEquals(TrackingLogic.LocationMode.OFF, tier.location)
+    }
+
+    @Test
+    fun poll_tier_turns_gps_on_within_thirty_minutes() {
+        assertEquals(TrackingLogic.LocationMode.OFF, TrackingLogic.pollTier(45.0).location)
+        assertEquals(TrackingLogic.LocationMode.BALANCED, TrackingLogic.pollTier(20.0).location)
+        assertEquals(450L, TrackingLogic.pollTier(45.0).apiIntervalSec)
+        assertEquals(60L, TrackingLogic.pollTier(20.0).apiIntervalSec)
+    }
+
+    @Test
+    fun poll_tier_tightens_near_departure() {
+        val close = TrackingLogic.pollTier(5.0)
+        assertEquals(30L, close.apiIntervalSec)
+        assertEquals(TrackingLogic.LocationMode.HIGH, close.location)
+        val imminent = TrackingLogic.pollTier(1.0)
+        assertEquals(15L, imminent.apiIntervalSec)
+        assertEquals(TrackingLogic.LocationMode.HIGH, imminent.location)
+    }
+
+    @Test
+    fun poll_tier_boundaries_fall_to_the_slower_side() {
+        // Exactly on a threshold is not "greater than", so it takes the calmer tier.
+        assertEquals(900L, TrackingLogic.pollTier(360.0).apiIntervalSec) // 6 h exactly: not paused
+        assertEquals(450L, TrackingLogic.pollTier(60.0).apiIntervalSec) // 1 h exactly
+        assertEquals(TrackingLogic.LocationMode.BALANCED, TrackingLogic.pollTier(30.0).location) // GPS on at 30 m
+        assertEquals(TrackingLogic.LocationMode.OFF, TrackingLogic.pollTier(30.5).location) // just beyond: still off
+        assertEquals(15L, TrackingLogic.pollTier(2.0).apiIntervalSec) // 2 m exactly: closest tier
+    }
+
+    @Test
+    fun approach_due_at_walk_plus_buffer_before_departure() {
+        // 11 min walk + 5 min buffer -> due once the train is 16 min out.
+        val walk = 11.0
+        val buffer = 5
+        assertFalse(TrackingLogic.approachDue(focused(dep = now + 17 * 60), walk, buffer, now))
+        assertTrue(TrackingLogic.approachDue(focused(dep = now + 16 * 60), walk, buffer, now))
+        assertTrue(TrackingLogic.approachDue(focused(dep = now + 10 * 60), walk, buffer, now))
+    }
+
+    @Test
+    fun approach_due_counts_delay_as_extra_time() {
+        // A delay pushes the real departure later, buying time, so it DEFERS the
+        // leave moment: the same 6-min train is due with no delay but not once
+        // it slips 4 min (walk 5 + buffer 3 = 8; 6 <= 8 due, 6+4 > 8 not yet).
+        val walk = 5.0
+        val buffer = 3
+        assertTrue(TrackingLogic.approachDue(focused(dep = now + 6 * 60, delay = 0), walk, buffer, now))
+        assertFalse(TrackingLogic.approachDue(focused(dep = now + 6 * 60, delay = 4), walk, buffer, now))
+    }
+
+    @Test
+    fun approach_not_due_once_departed() {
+        assertFalse(TrackingLogic.approachDue(focused(dep = now - 5 * 60), 5.0, 3, now))
+    }
 }

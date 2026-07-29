@@ -160,3 +160,41 @@ enum Thresholds {
     static let fallbackSearchRadius = 5000.0 // meters
     static let consecutiveErrorLimit = 3
 }
+
+// How to run location for a proximity tier while tracking in the background.
+enum LocationTier { case off, balanced, high }
+
+// A polling tier chosen by how far the departure is. apiInterval == nil means
+// paused: no fetch, coarsest location, the Live Activity lives on its own timer.
+struct PollTier {
+    let apiInterval: TimeInterval?
+    let location: LocationTier
+}
+
+// Mirror of Android TrackingLogic.pollTier so both platforms scale identically:
+// far out costs nothing, tightening to fast polls + precise GPS near departure.
+enum TrackingTiers {
+    static let pauseMin = 360.0 // > 6 h: paused
+    static let farMin = 60.0 // 1–6 h
+    static let midMin = 30.0 // 30–60 m
+    static let nearMin = 10.0 // 10–30 m
+    static let closeMin = 2.0 // 2–10 m
+
+    static func pollTier(minutesUntil: Double) -> PollTier {
+        switch minutesUntil {
+        case let m where m > pauseMin: return PollTier(apiInterval: nil, location: .off)
+        case let m where m > farMin: return PollTier(apiInterval: 900, location: .off)
+        case let m where m > midMin: return PollTier(apiInterval: 450, location: .off)
+        case let m where m > nearMin: return PollTier(apiInterval: 60, location: .balanced)
+        case let m where m > closeMin: return PollTier(apiInterval: 30, location: .high)
+        default: return PollTier(apiInterval: 15, location: .high)
+        }
+    }
+
+    // Distance-aware "time to leave": due once effective departure (schedule +
+    // delay) is within walk + buffer. Mirrors TrackingLogic.approachDue.
+    static func approachDue(minutesUntil: Double, delay: Int, walkMinutes: Double, bufferLeadMinutes: Int) -> Bool {
+        let untilEffective = minutesUntil + Double(delay)
+        return untilEffective <= walkMinutes + Double(bufferLeadMinutes) && untilEffective > -1.5
+    }
+}

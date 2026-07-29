@@ -257,9 +257,9 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 )
             }
 
-            // Onward connection (shared multi-leg route): where you change and
-            // the next train. Tap to jump onto it early.
-            viewModel.onwardConnection?.let { onward ->
+            // Onward journey (shared multi-leg route): every remaining leg, where
+            // you change and the next train. Tap any to jump onto it early.
+            viewModel.onwardLegs.forEach { onward ->
                 OnwardConnectionCard(
                     onward = onward,
                     mode = viewModel.currentMode,

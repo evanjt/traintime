@@ -115,6 +115,14 @@ struct PhoneStationView: View {
                 Spacer()
             } else {
                 List {
+                    // Live session continuing in the background, pinned above
+                    // everything: tap to re-open full tracking, X to stop.
+                    if let tracked = viewModel.backgroundTracked {
+                        Section {
+                            nowTrackingRow(tracked)
+                                .listRowSeparator(.hidden)
+                        }
+                    }
                     if !viewModel.favouriteDepartures.isEmpty {
                         Section {
                             // IDs namespaced so a favourite that also appears in the regular
@@ -174,6 +182,33 @@ struct PhoneStationView: View {
     }
 
     @ViewBuilder
+    // The live background session as a distinct green card at the top of the
+    // board: green dot, line pill, destination, minutes; tap re-opens tracking,
+    // X stops it.
+    private func nowTrackingRow(_ focused: FocusedDeparture) -> some View {
+        let green = Color(red: 0.12, green: 0.56, blue: 0.24)
+        let minutes = max(0, Int(focused.minutesUntil.rounded(.down)))
+        return HStack(spacing: 8) {
+            Circle().fill(green).frame(width: 9, height: 9)
+            Text(focused.lineNumber)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7).padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 6).fill(AppColors.linePill(focused.lineNumber, mode: viewModel.currentMode)))
+            Text(focused.destination).lineLimit(1)
+            Spacer()
+            Text("\(minutes) min").fontWeight(.semibold).monospacedDigit()
+            Button { viewModel.stopBackgroundTracking() } label: {
+                Image(systemName: "xmark").font(.footnote).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture { viewModel.resumeBackgroundTracking() }
+        .listRowBackground(green.opacity(0.12))
+    }
+
     private func departureRow(_ departure: Departure, isFavourite: Bool, onTap: @escaping () -> Void) -> some View {
         PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, mode: viewModel.currentMode, onTap: onTap)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))

@@ -26,6 +26,19 @@
     <string name="adjust_distance_desc">Lead becomes your walk time + the minutes above</string>
     <string name="update_background">Update in the background</string>
     <string name="update_background_desc">Keep it accurate as you move, even when the app is closed</string>
+    <string name="alert_before_departure">Alert me before departure</string>
+    <string name="alert_before_departure_desc">A one-off heads-up when it\'s time to leave while tracking</string>
+    <string name="help_title">How tracking works</string>
+    <string name="help_countdown_h">The countdown keeps running</string>
+    <string name="help_countdown_b">It stays live even with the app closed or your phone asleep.</string>
+    <string name="help_cadence_h">It checks smartly</string>
+    <string name="help_cadence_b">Updates get more frequent as departure nears, and rare when it\'s still far away.</string>
+    <string name="help_battery_h">It saves battery</string>
+    <string name="help_battery_b">Location only switches on near the station, so a trip hours away costs almost nothing.</string>
+    <string name="help_leave_h">It tells you when to leave</string>
+    <string name="help_leave_b">A one-off alert reminds you to go, based on your walk time to the station.</string>
+    <string name="help_oem_h">If it stops in the background</string>
+    <string name="help_oem_b">Some phones pause background apps to save power. Allow unrestricted battery use to keep tracking alive.</string>
     <string name="notify_walk_plus_fmt">You\'ll be notified your walk time + %1$d min before departure</string>
     <string name="notify_lead_fmt">You\'ll be notified %1$d min before departure</string>
     <string name="send_test_notification">Send test notification</string>
@@ -184,6 +197,12 @@
     <string name="tracking_alert_channel">Tracking alerts</string>
     <string name="stop_tracking">Stop tracking</string>
     <string name="stop_short">Stop</string>
+    <string name="battery_notice_title">Background tracking may stop</string>
+    <string name="battery_notice_body">This phone can pause background apps to save battery, which stops live tracking when TrainTime isn\'t open. Allow unrestricted battery use to keep it running.</string>
+    <string name="battery_notice_action">Open settings</string>
+    <string name="tracking_now">Tracking</string>
+    <string name="tracking_far">Not nearby yet</string>
+    <string name="approach_alert_title">Time to leave</string>
     <string name="departed_at_fmt">Departed %1$s</string>
     <string name="platform_change_title">Platform changed</string>
     <string name="delay_plus_fmt" translatable="false">+%1$d</string>

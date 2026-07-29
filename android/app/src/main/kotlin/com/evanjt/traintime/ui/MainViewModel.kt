@@ -1,11 +1,16 @@
 package com.evanjt.traintime.ui
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
 import androidx.glance.appwidget.updateAll
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -82,6 +87,13 @@ data class ConnectedWatch(val id: String, val name: String, val type: PhoneWatch
 
 // A paired watch and whether it's reachable now, for the settings link-status display.
 data class WatchLink(val name: String, val type: PhoneWatchType, val connected: Boolean)
+
+// OEMs whose battery managers kill foreground services in the background
+// unless the app is exempted (the dontkillmyapp.com offenders).
+private val AGGRESSIVE_OEMS = setOf(
+    "oneplus", "oppo", "realme", "xiaomi", "redmi", "poco", "vivo", "iqoo",
+    "huawei", "honor", "samsung", "meizu", "asus", "tecno", "infinix", "blackview",
+)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -393,7 +405,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // The tracking notification's "Stop tracking" action, so a reopened app
         // doesn't resurrect a session the user ended from the shade.
         viewModelScope.launch {
-            TrackingSessionBus.stopRequests.collect { if (appState == 2) exitToStationView() }
+            TrackingSessionBus.stopRequests.collect {
+                if (appState == 2) exitToStationView() else clearBackgroundTracking()
+            }
         }
 
         viewModelScope.launch {
@@ -790,6 +804,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (appState == 2) consecutiveErrors += 1
         }
 
+        // A background-tracked session that has departed: drop the board card
+        // (the service's own loop ends and posts its "departed" card).
+        backgroundTracked?.let {
+            if (it.minutesUntil(nowSeconds()) < -1.0) clearBackgroundTracking()
+        }
+
         val coord = location.coordinate.value ?: return
 
         // Movement detection (station view only): refresh in place
@@ -943,6 +963,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         trackingStartedTs = nowSeconds()
         TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused))
         notificationPermissionRequest = true
+        maybeShowBatteryNotice()
 
         // Mirror the same focused train onto the watch (immediate, a tap is a
         // strong, deliberate action). Keeps the manual "Send to Watch" too.
@@ -1115,6 +1136,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         syncReminderTracking()
     }
 
+    // Battery-optimisation heads-up. Aggressive OEMs (OnePlus, Xiaomi, Samsung
+    // and friends) kill the tracking foreground service once the app is
+    // backgrounded unless it's exempted, so the notification silently vanishes.
+    // Shown once, only on those OEMs and only while not yet exempted; Pixel/
+    // stock and already-exempted users never see it.
+    var batteryNotice by mutableStateOf(false)
+        private set
+
+    private fun maybeShowBatteryNotice() {
+        viewModelScope.launch {
+            if (!prefs.batteryNoticeSeen.first() && batteryKillsBackground()) {
+                batteryNotice = true
+            }
+        }
+    }
+
+    fun dismissBatteryNotice() {
+        batteryNotice = false
+        viewModelScope.launch { prefs.markBatteryNoticeSeen() }
+    }
+
+    private fun batteryKillsBackground(): Boolean {
+        if (Build.MANUFACTURER.lowercase() !in AGGRESSIVE_OEMS) return false
+        val app = getApplication<Application>()
+        // Defer past the first-run notification prompt so two dialogs never
+        // stack; the notice can wait for a later tracking session.
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+        val pm = app.getSystemService(PowerManager::class.java) ?: return false
+        return !pm.isIgnoringBatteryOptimizations(app.packageName)
+    }
+
     fun clearBackgroundLocationDenied() {
         backgroundLocationDenied = false
     }
@@ -1125,6 +1182,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (value && prefs.backgroundReminderTracking.first()) maybeRequestBackgroundLocation()
             syncReminderTracking()
         }
+    }
+
+    fun setAlertBeforeDeparture(value: Boolean) {
+        viewModelScope.launch { prefs.setAlertBeforeDeparture(value) }
     }
 
     fun setBackgroundReminderTracking(value: Boolean) {
@@ -1964,24 +2025,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return Math.toDegrees(bearing - heading)
         }
 
-    // While tracking a shared-route leg, the next ride leg of the same route is
-    // the onward connection: shown under the countdown, tappable to jump onto
-    // it early. Matched by departure time so an unrelated track shows nothing.
-    val onwardConnection: OnwardConnection?
+    // While tracking a shared-route leg, every remaining ride leg of the same
+    // route: the onward journey, each shown as its own row under the countdown
+    // and tappable to jump onto it early. Change minutes are measured from the
+    // previous ride leg's arrival. Empty for a plain (non-route) track.
+    val onwardLegs: List<OnwardConnection>
         get() {
-            val focused = focusedTrain ?: return null
-            val route = pendingRoute ?: return null
+            val focused = focusedTrain ?: return emptyList()
+            val route = pendingRoute ?: return emptyList()
             val curIdx = route.legs.indexOfFirst {
                 it.type == LegType.RIDE && it.depTs == focused.departureTimestamp
             }
-            if (curIdx < 0) return null
-            val curLeg = route.legs[curIdx]
-            val nextIdx = (curIdx + 1 until route.legs.size)
-                .firstOrNull { route.legs[it].type == LegType.RIDE } ?: return null
-            val next = route.legs[nextIdx]
-            val changeMinutes = ((next.depTs - curLeg.arrTs) / 60).coerceAtLeast(0)
-            return OnwardConnection(curLeg.destName, next, nextIdx, changeMinutes)
+            if (curIdx < 0) return emptyList()
+            val result = mutableListOf<OnwardConnection>()
+            var prevRide = route.legs[curIdx]
+            for (i in curIdx + 1 until route.legs.size) {
+                val leg = route.legs[i]
+                if (leg.type != LegType.RIDE) continue
+                val changeMinutes = ((leg.depTs - prevRide.arrTs) / 60).coerceAtLeast(0)
+                result += OnwardConnection(prevRide.destName, leg, i, changeMinutes)
+                prevRide = leg
+            }
+            return result
         }
+
+    // The immediate next connection, for surfaces that show only one.
+    val onwardConnection: OnwardConnection?
+        get() = onwardLegs.firstOrNull()
 
     // API calls
 
@@ -2286,36 +2356,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { openSharedRoute(offer) }
     }
 
-    // Tracking-screen "Track in the background": save what we're tracking as a
-    // pending route so it rides the distance-aware reminder with the app closed,
-    // then enable background distance tracking. The pref change asks for
-    // background location through the prominent-disclosure dialog when needed.
+    // A live session that keeps running in the background (the foreground-service
+    // notification) while the board is shown. Non-null = "Track in the
+    // background" is active: the board pins it at the top and tapping it re-opens
+    // full tracking. The service's own loop drives the notification meanwhile.
+    var backgroundTracked by mutableStateOf<FocusedDeparture?>(null)
+        private set
+    var backgroundTrackedStation by mutableStateOf<String?>(null)
+        private set
+
+    // Tracking-screen "Track in the background": leave the immersive tracking
+    // screen for the board but keep the notification tracking. No reminder, no
+    // background-location prompt — the foreground service covers it.
     fun trackCurrentInBackground() {
         lastInteractionTime = now()
         val focused = focusedTrain ?: return
-        val station = currentStation
-        // A board tap isn't saved yet; a shared/saved route already is.
-        if (focused.routeDestination == null && station != null) {
-            val route = SharedRoute.single(
-                originId = station.id,
-                originName = station.name ?: "",
-                originLat = station.lat,
-                originLon = station.lon,
-                destName = focused.destination,
-                depTs = focused.departureTimestamp,
-                lineNumber = focused.lineNumber,
-                trainNumber = focused.trainNumber,
-            )
-            viewModelScope.launch {
-                openSharedRoute(SharedRouteOffer(route = route, sourceUrl = null, saveOnly = true))
-            }
-        }
-        viewModelScope.launch {
-            prefs.setDistanceAwareReminder(true)
-            prefs.setBackgroundReminderTracking(true)
-            maybeRequestBackgroundLocation()
-            syncReminderTracking()
-        }
+        backgroundTracked = focused
+        backgroundTrackedStation = currentStation?.name
+        // Hand the notification to the service's own loop (the VM is no longer
+        // on the tracking screen to push it).
+        TrackingSessionBus.appForeground.value = false
+        // Exit to the board WITHOUT stopping the service (unlike exitToStationView).
+        appState = 0
+        focusedTrain = null
+        formation = null
+        location.setTrackingAccuracy(false)
+        consecutiveErrors = 0
+        startTimer(Timing.NORMAL_REFRESH_INTERVAL)
+        returnToNearbyIfLaunched()
+    }
+
+    // Board "now tracking" card tapped: re-open the full tracking screen for the
+    // session that's been running in the background.
+    fun resumeBackgroundTracking() {
+        val dep = backgroundTracked ?: return
+        backgroundTracked = null
+        backgroundTrackedStation = null
+        TrackingSessionBus.appForeground.value = true
+        beginTracking(dep)
+    }
+
+    private fun clearBackgroundTracking() {
+        backgroundTracked = null
+        backgroundTrackedStation = null
+    }
+
+    // Board "now tracking" card stop: end the background session and its
+    // notification without re-opening the tracking screen.
+    fun stopBackgroundTracking() {
+        clearBackgroundTracking()
+        TrackingNotificationService.stop(getApplication())
     }
 
     // Bypass the nearby flow: show the leg's origin as the sole station and

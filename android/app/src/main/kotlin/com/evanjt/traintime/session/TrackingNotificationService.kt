@@ -28,6 +28,7 @@ import com.evanjt.traintime.core.sync.TrackCommand
 import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.ui.TrackingStatus
@@ -82,7 +83,15 @@ class TrackingNotificationService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
-                parsed?.let { snapshot = it }
+                // A different departure is a fresh session: re-arm the one-shot
+                // leave alert. A redelivered identical intent (process death)
+                // keeps the latch so it doesn't fire twice.
+                parsed?.let {
+                    if (it.focused.departureTimestamp != snapshot?.focused?.departureTimestamp) {
+                        approachAlerted = false
+                    }
+                    snapshot = it
+                }
                 val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
                 } else {
@@ -96,6 +105,7 @@ class TrackingNotificationService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
+                updateCompanion(snapshot!!)
                 ensureRunning()
             }
         }
@@ -103,6 +113,11 @@ class TrackingNotificationService : Service() {
         // (and its fixed progress axis) is rebuilt without the ViewModel.
         return START_REDELIVER_INTENT
     }
+
+    // Minutes to the effective departure (schedule + delay): the axis the poll
+    // tier is chosen on, so a delayed train relaxes the cadence accordingly.
+    private fun effectiveMinutes(snap: TrackingSnapshot, nowEpochSeconds: Long): Double =
+        snap.focused.minutesUntil(nowEpochSeconds) + snap.focused.delay
 
     // Loop, location updates and the VM push collector, started once.
     private fun ensureRunning() {
@@ -112,24 +127,46 @@ class TrackingNotificationService : Service() {
         scope.launch {
             TrackingSessionBus.vmPush.collect { fresh ->
                 snapshot = fresh
-                notifySilently(render(fresh))
+                // Foreground: the VM's own location feeds the walk, so the
+                // service holds no fix of its own.
+                applyLocationMode(TrackingLogic.LocationMode.OFF)
+                pushNotification(fresh)
             }
         }
 
-        startLocationUpdates()
+        // React the moment the app leaves the foreground: bring the tiered
+        // location up straight away rather than waiting a full poll interval.
+        scope.launch {
+            TrackingSessionBus.appForeground.collect { foreground ->
+                if (!foreground) snapshot?.let { snap ->
+                    val now = System.currentTimeMillis() / 1000
+                    applyLocationMode(TrackingLogic.pollTier(effectiveMinutes(snap, now)).location)
+                }
+            }
+        }
 
         scope.launch {
             while (isActive) {
-                delay(LOOP_INTERVAL_MS)
-                val snap = snapshot ?: continue
+                val snap = snapshot
                 val now = System.currentTimeMillis() / 1000
-                if (TrackingLogic.departed(snap.focused, now)) {
-                    finishDeparted(snap)
-                    break
+                val tier = snap?.let { TrackingLogic.pollTier(effectiveMinutes(it, now)) }
+                if (snap != null) {
+                    if (TrackingLogic.departed(snap.focused, now)) {
+                        finishDeparted(snap)
+                        break
+                    }
+                    // Foreground: the VM owns fetching and pushes over the bus.
+                    if (!TrackingSessionBus.appForeground.value) {
+                        applyLocationMode(tier!!.location)
+                        // Paused (very far): no fetch, no GPS — the chronometer
+                        // carries the countdown for free until it's worth waking.
+                        if (tier.apiIntervalSec != null) {
+                            refresh(snap, now)
+                            maybeApproachAlert(snapshot ?: snap, now)
+                        }
+                    }
                 }
-                // Foreground: the VM owns fetching and pushes over the bus.
-                if (TrackingSessionBus.appForeground.value) continue
-                refresh(snap, now)
+                delay((tier?.apiIntervalSec ?: PAUSED_WAKE_SEC) * 1000)
             }
         }
     }
@@ -160,13 +197,28 @@ class TrackingNotificationService : Service() {
         if (focused.platform != previousPlatform && focused.platformChanged) {
             alertPlatformChange(updated)
         }
-        notifySilently(render(updated))
+        pushNotification(updated)
     }
 
-    private fun startLocationUpdates() {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L)
-            .setMinUpdateDistanceMeters(10f)
-            .build()
+    // Match the running location request to the proximity tier. High accuracy
+    // near the station where the walk/bar matter, balanced (coarse, larger
+    // displacement) at the mid tier, and fully off when far or foreground — the
+    // biggest battery lever, since GPS is the dominant drain.
+    private fun applyLocationMode(mode: TrackingLogic.LocationMode) {
+        if (mode == currentLocationMode) return
+        currentLocationMode = mode
+        val client = LocationServices.getFusedLocationProviderClient(this)
+        locationCallback?.let { client.removeLocationUpdates(it) }
+        locationCallback = null
+        if (mode == TrackingLogic.LocationMode.OFF) return
+        val request = when (mode) {
+            TrackingLogic.LocationMode.HIGH ->
+                LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L)
+                    .setMinUpdateDistanceMeters(10f).build()
+            else ->
+                LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 30_000L)
+                    .setMinUpdateDistanceMeters(50f).build()
+        }
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val loc = result.lastLocation ?: return
@@ -177,14 +229,59 @@ class TrackingNotificationService : Service() {
         }
         locationCallback = callback
         try {
-            LocationServices.getFusedLocationProviderClient(this)
-                .requestLocationUpdates(request, callback, Looper.getMainLooper())
+            client.requestLocationUpdates(request, callback, Looper.getMainLooper())
         } catch (_: SecurityException) {
             // No permission: the bar shows the no-GPS state instead.
         }
     }
 
     private var locationCallback: LocationCallback? = null
+    private var currentLocationMode: TrackingLogic.LocationMode? = null
+
+    // Fired at most once per session: the distance-aware "time to leave" heads-up.
+    private var approachAlerted = false
+
+    // The one-shot leave alert. Distance-aware by default: due once the effective
+    // departure is within walk time plus the reminder-lead buffer. Fixed-lead
+    // (walk = 0) when distance-aware is off. Uses the freshest walk the tiered
+    // location has produced; if none yet (long walk, GPS not on), falls back to
+    // the fixed buffer so it still fires.
+    private suspend fun maybeApproachAlert(snap: TrackingSnapshot, nowEpochSeconds: Long) {
+        if (approachAlerted) return
+        // A queued shared route already owns the "leave soon" heads-up through its
+        // own reminder (which also survives reboot), so don't double up.
+        if (PendingRouteStore(this).current() != null) return
+        val prefs = AppPrefs(this)
+        if (!prefs.alertBeforeDeparture.first()) return
+        val bufferLead = prefs.routeReminderLeadMinutes.first()
+        val distanceAware = prefs.distanceAwareReminder.first()
+        val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it) }
+        val walkArg = if (distanceAware) (walkMin ?: 0.0) else 0.0
+        if (TrackingLogic.approachDue(snap.focused, walkArg, bufferLead, nowEpochSeconds)) {
+            approachAlerted = true
+            alertApproach(snap)
+        }
+    }
+
+    private fun alertApproach(snap: TrackingSnapshot) {
+        val ctx = localised()
+        ensureChannels(ctx)
+        val time = HHMM.format(
+            Instant.ofEpochSecond(snap.focused.departureTimestamp + snap.focused.delay * 60L)
+                .atZone(ZoneId.systemDefault()),
+        )
+        val body = ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination) +
+            " · " + time
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(ctx.getString(R.string.approach_alert_title))
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+            .setContentIntent(tapIntent(snap))
+            .build()
+        getSystemService(NotificationManager::class.java).notify(APPROACH_NOTIF_ID, notification)
+    }
 
     // ---- Notification rendering ----
 
@@ -208,7 +305,16 @@ class TrackingNotificationService : Service() {
         val schedBuf = TrackingLogic.scheduledBuffer(focused, walkMin ?: 0.0, now)
         val effectBuf = TrackingLogic.effectiveBuffer(focused, walkMin ?: 0.0, now)
         val status = TrackingLogic.status(effectBuf, gpsOk)
-        val bar = TrackingLogic.barModel(schedBuf, effectBuf, gpsOk)
+        // Far out we deliberately keep GPS off, so there is no walk verdict yet:
+        // show a calm "not near yet" bar and skip the ahead/behind line rather
+        // than the no-signal error state. It wakes up as departure approaches.
+        val tier = TrackingLogic.pollTier(focused.minutesUntil(now) + focused.delay)
+        val awaitingProximity = tier.location == TrackingLogic.LocationMode.OFF && walkMin == null
+        val bar = if (awaitingProximity) {
+            BarModel(listOf(BarRun(TrackingLogic.BAR_UNITS, BarZone.TRACK)), TrackingLogic.BAR_UNITS / 2)
+        } else {
+            TrackingLogic.barModel(schedBuf, effectBuf, gpsOk)
+        }
 
         val parts = mutableListOf<String>()
         if (focused.platform.isNotEmpty()) parts += ctx.getString(R.string.platform_full_fmt, focused.platform)
@@ -216,7 +322,11 @@ class TrackingNotificationService : Service() {
         // chronometer. Same field and zone as the in-app tracking screen.
         parts += HHMM.format(Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()))
         if (focused.delay > 0) parts += ctx.getString(R.string.delay_plus_fmt, focused.delay)
-        parts += statusText(ctx, status, effectBuf)
+        if (awaitingProximity) {
+            parts += ctx.getString(R.string.tracking_far)
+        } else {
+            parts += statusText(ctx, status, effectBuf)
+        }
         // Sub-minute walks read as "0 min" — at the station, the walk line is noise.
         walkMin?.roundToInt()?.takeIf { it >= 1 }?.let { parts += ctx.getString(R.string.walk_min_fmt, it) }
 
@@ -272,6 +382,7 @@ class TrackingNotificationService : Service() {
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setShowWhen(false)
             .setContentIntent(tapIntent(snap))
+            .setGroup(GROUP_KEY)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, stopLabel, stopIntent())
             .build()
     }
@@ -364,6 +475,64 @@ class TrackingNotificationService : Service() {
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
     }
 
+    // Render the main gradient-bar card and, on Android 16+, the companion chip.
+    private fun pushNotification(snap: TrackingSnapshot) {
+        notifySilently(render(snap))
+        updateCompanion(snap)
+    }
+
+    // The status-bar / OEM-island chip. The gradient-bar card is a custom
+    // RemoteView, which can never be promoted (containsCustomViews disqualifies
+    // it), so the chip is a second, minimal, standard-template notification:
+    // NOT colorized (colorize also disqualifies promotion), a small icon tinted
+    // green/amber/red by the ahead/behind verdict, and the countdown as short
+    // critical text. Grouped with the card to keep the shade tidy. API 36+ only;
+    // older versions have no chip, so there is nothing to duplicate.
+    private fun updateCompanion(snap: TrackingSnapshot) {
+        if (Build.VERSION.SDK_INT < 36) return
+        val ctx = localised()
+        ensureChannels(ctx)
+        val now = System.currentTimeMillis() / 1000
+        val focused = snap.focused
+        val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it) }
+        val gpsOk = snap.gpsOk && walkMin != null
+        val effectBuf = TrackingLogic.effectiveBuffer(focused, walkMin ?: 0.0, now)
+        val tint = when (TrackingLogic.status(effectBuf, gpsOk)) {
+            TrackingStatus.AHEAD -> zoneColor(BarZone.DARK_GREEN)
+            TrackingStatus.BEHIND -> zoneColor(BarZone.DARK_RED)
+            TrackingStatus.ON_TIME -> zoneColor(BarZone.AMBER)
+            else -> zoneColor(BarZone.GREY)
+        }
+        val effMins = (focused.minutesUntil(now) + focused.delay).roundToInt()
+        val short = if (effMins in 0..90) {
+            ctx.getString(R.string.n_min_fmt, effMins)
+        } else {
+            HHMM.format(
+                Instant.ofEpochSecond(focused.departureTimestamp + focused.delay * 60L)
+                    .atZone(ZoneId.systemDefault()),
+            )
+        }
+        val chip = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, focused.lineNumber, focused.destination))
+            .setContentText(ctx.getString(R.string.tracking_now))
+            .setColor(tint)
+            .setColorized(false)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShortCriticalText(short)
+            .setRequestPromotedOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+            .setContentIntent(tapIntent(snap))
+            .setGroup(GROUP_KEY)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(PROMOTED_NOTIF_ID, chip)
+    }
+
+    private fun cancelCompanion() {
+        getSystemService(NotificationManager::class.java).cancel(PROMOTED_NOTIF_ID)
+    }
+
     // One-shot heads-up on the alert channel, mirroring the in-app double
     // pulse when the platform changes mid-session.
     private fun alertPlatformChange(snap: TrackingSnapshot) {
@@ -397,12 +566,14 @@ class TrackingNotificationService : Service() {
             .setAutoCancel(true)
             .setTimeoutAfter(DEPARTED_TIMEOUT_MS)
             .build()
+        cancelCompanion()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
         stopSelf()
     }
 
     private fun stopSession() {
+        cancelCompanion()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -468,7 +639,12 @@ class TrackingNotificationService : Service() {
         private const val ALERT_CHANNEL_ID = "tracking_alerts"
         private const val NOTIF_ID = 3
         private const val ALERT_NOTIF_ID = 4
-        private const val LOOP_INTERVAL_MS = 30_000L
+        private const val APPROACH_NOTIF_ID = 5
+        private const val PROMOTED_NOTIF_ID = 6
+        private const val GROUP_KEY = "traintime_tracking"
+        // How long to sleep between wakes on the paused (> 6 h) tier: no fetch,
+        // no GPS, just a periodic clock check to notice the departure nearing.
+        private const val PAUSED_WAKE_SEC = 300L
         private const val FIX_MAX_AGE_MS = 3 * 60 * 1000L
         private const val DEPARTED_TIMEOUT_MS = 60_000L
 

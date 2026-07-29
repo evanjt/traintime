@@ -121,9 +121,9 @@ struct PhoneFocusedTrackingView: View {
                         viewModel.toggleRoutedDistance()
                     }
 
-                    // Onward connection (shared multi-leg route): where you change
-                    // and the next train. Tap to jump onto it early.
-                    if let onward = viewModel.onwardConnection {
+                    // Onward journey (shared multi-leg route): every remaining leg,
+                    // where you change and the next train. Tap any to jump on early.
+                    ForEach(viewModel.onwardLegs, id: \.legIndex) { onward in
                         OnwardConnectionCard(onward: onward, mode: viewModel.currentMode) {
                             viewModel.trackLeg(onward.legIndex)
                         }
@@ -147,13 +147,12 @@ struct PhoneFocusedTrackingView: View {
                     .buttonStyle(.bordered)
                     .padding(.top, 4)
 
-                    // Save this as a route and keep it going with the app closed
-                    // via the distance-aware reminder. Requests Always location
-                    // (the system prompt) the first time it's used.
+                    // Leave the tracking screen for the board while the Live
+                    // Activity keeps the session going. No reminder, no prompt.
                     Button {
-                        viewModel.requestTrackInBackground()
+                        viewModel.trackCurrentInBackground()
                     } label: {
-                        Label("Track in the background", systemImage: "bell")
+                        Label("Track in the background", systemImage: "rectangle.on.rectangle")
                             .font(.subheadline)
                             .frame(maxWidth: 200)
                     }
@@ -229,23 +228,6 @@ struct PhoneFocusedTrackingView: View {
             PhoneMapView(viewModel: viewModel)
         }
         // Prominent disclosure before the system Always-location prompt.
-        .alert("Track in the background?", isPresented: $viewModel.showBackgroundDisclosure) {
-            Button("Continue") { viewModel.confirmTrackInBackground() }
-            Button("Not now", role: .cancel) {}
-        } message: {
-            Text("TrainTime collects your location to time your route reminder, even when the app is closed or not in use. You can decline, and we'll use your last known location instead.")
-        }
-        // Declined "Always": reassure it still works, offer a one-tap retry.
-        .alert("Using your last location", isPresented: $viewModel.showBackgroundDenied) {
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-            Button("Keep as is", role: .cancel) {}
-        } message: {
-            Text("That's fine. Your reminder still works, using your last known location instead of live updates. Allow all-time access any time to make it live.")
-        }
     }
 
     private static func formatDepartureTime(_ timestamp: Int) -> String {

@@ -37,6 +37,7 @@ import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.BackgroundLocationDeniedDialog
 import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
 import com.evanjt.traintime.ui.BackgroundLocationIntroDialog
+import com.evanjt.traintime.ui.BatteryNoticeDialog
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
@@ -366,6 +367,17 @@ private fun RootView(
                 onRequestBackgroundLocation()
             },
             onDismiss = { viewModel.dismissBgLocationIntro() },
+        )
+    }
+    // Why background tracking can stop on battery-aggressive OEMs. Once, only
+    // on those devices while not yet exempted.
+    if (viewModel.batteryNotice) {
+        BatteryNoticeDialog(
+            onOpenSettings = {
+                viewModel.dismissBatteryNotice()
+                onOpenAppSettings()
+            },
+            onDismiss = { viewModel.dismissBatteryNotice() },
         )
     }
     if (tourSlice.isNotEmpty()) {

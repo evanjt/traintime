@@ -270,6 +270,20 @@ fun StationScreen(
                     LazyColumn(
                         modifier = Modifier.alpha(if (viewModel.departuresRefreshing) 0.5f else 1f),
                     ) {
+                        // Live session continuing in the background, pinned above
+                        // everything: tap to re-open full tracking, X to stop.
+                        val nowTracking = viewModel.backgroundTracked
+                        if (nowTracking != null) {
+                            item(key = "now-tracking") {
+                                NowTrackingCard(
+                                    focused = nowTracking,
+                                    mode = viewModel.currentMode,
+                                    nowEpochSeconds = System.currentTimeMillis() / 1000,
+                                    onResume = { viewModel.resumeBackgroundTracking() },
+                                    onStop = { viewModel.stopBackgroundTracking() },
+                                )
+                            }
+                        }
                         // Favourite departures at top
                         items(
                             viewModel.favouriteDepartures,

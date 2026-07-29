@@ -68,6 +68,15 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_BG_LOCATION_INTRO_SEEN] = true }
     }
 
+    // Shown once, only on battery-aggressive OEMs that aren't yet exempted, to
+    // explain why background tracking can stop. Never shown again once seen.
+    val batteryNoticeSeen: Flow<Boolean> =
+        dataStore.data.map { it[KEY_BATTERY_NOTICE_SEEN] ?: false }
+
+    suspend fun markBatteryNoticeSeen() {
+        dataStore.edit { it[KEY_BATTERY_NOTICE_SEEN] = true }
+    }
+
     // Re-arms the FULL walkthrough for the "Replay walkthrough" Settings row:
     // both the legacy flag and the version reset so every step shows again.
     suspend fun markOnboardingUnseen() {
@@ -198,6 +207,16 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_BACKGROUND_REMINDER_TRACKING] = value }
     }
 
+    // While tracking in the background, fire a one-off "time to leave" heads-up
+    // as departure nears (distance-aware: walk time + the reminder lead buffer).
+    // Separate from the silent ongoing card. On by default.
+    val alertBeforeDeparture: Flow<Boolean> =
+        dataStore.data.map { it[KEY_ALERT_BEFORE_DEPARTURE] ?: true }
+
+    suspend fun setAlertBeforeDeparture(value: Boolean) {
+        dataStore.edit { it[KEY_ALERT_BEFORE_DEPARTURE] = value }
+    }
+
     // Garmin liveness bookkeeping across launches. Drives the foreground ping
     // gate: only a watch believed still open (alive after bye, recent) is pinged,
     // because a phone message can wake a closed Garmin watch-app.
@@ -251,6 +270,7 @@ class AppPrefs(context: Context) {
         val KEY_MIRROR_TO_WATCH = booleanPreferencesKey("mirrorToWatch")
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
         val KEY_BG_LOCATION_INTRO_SEEN = booleanPreferencesKey("bgLocationIntroSeen")
+        val KEY_BATTERY_NOTICE_SEEN = booleanPreferencesKey("batteryNoticeSeen")
         val KEY_SEEN_ONBOARDING_VERSION = intPreferencesKey("seenOnboardingVersion")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_APP_LANGUAGE = stringPreferencesKey("appLanguage")
@@ -264,6 +284,7 @@ class AppPrefs(context: Context) {
         val KEY_CONNECTION_REMINDER_LEAD = intPreferencesKey("connectionReminderLeadMinutes")
         val KEY_DISTANCE_AWARE_REMINDER = booleanPreferencesKey("distanceAwareReminder")
         val KEY_BACKGROUND_REMINDER_TRACKING = booleanPreferencesKey("backgroundReminderTracking")
+        val KEY_ALERT_BEFORE_DEPARTURE = booleanPreferencesKey("alertBeforeDeparture")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_GARMIN_LAST_ALIVE = longPreferencesKey("garminLastAliveTs")
