@@ -196,4 +196,43 @@ enum PendingRouteNotifier {
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
         center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
+
+    // MARK: - Approach alert (background-card sessions with no saved route)
+
+    // A board-tap "track in the background" session has no scheduled route
+    // reminder, so it schedules its own one-shot "time to leave" here. Own
+    // identifier so it never collides with the route reminder above. Mirrors the
+    // Android FGS maybeApproachAlert (a saved route keeps using its reminder).
+    private static let approachIdentifier = "approachAlert"
+
+    /// Schedule the distance-aware "time to leave" alert: fires walk + buffer
+    /// before the effective departure. No-op (and clears any prior one) when the
+    /// window has already passed at schedule time.
+    static func scheduleApproachAlert(_ focused: FocusedDeparture, walkSeconds: Int, now: Int) {
+        cancelApproachAlert()
+        requestAuthorizationIfNeeded()
+        let lead = walkSeconds + savedLeadSec
+        let fireIn = focused.departureTimestamp - lead - now
+        guard fireIn > 0 else { return }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
+        let time = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(focused.departureTimestamp + focused.delay * 60)))
+        let line = focused.lineNumber.isEmpty ? String(localized: "Train") : focused.lineNumber
+
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Time to leave")
+        content.body = "\(line) \(focused.destination) · \(time)"
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(fireIn), repeats: false)
+        let request = UNNotificationRequest(identifier: approachIdentifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    static func cancelApproachAlert() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [approachIdentifier])
+        center.removeDeliveredNotifications(withIdentifiers: [approachIdentifier])
+    }
 }

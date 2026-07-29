@@ -14,6 +14,7 @@ struct PhoneSettingsView: View {
     @AppStorage("connectionReminderLeadMinutes") private var connectionLeadMinutes = 3
     @AppStorage("distanceAwareReminder") private var distanceAwareReminder = false
     @AppStorage("backgroundReminderTracking") private var backgroundReminderTracking = true
+    @AppStorage("alertBeforeDeparture") private var alertBeforeDeparture = true
     @State private var notificationsAuthorized: Bool?
 
     private var reminderSummary: String {
@@ -114,6 +115,15 @@ struct PhoneSettingsView: View {
                     if distanceAwareReminder {
                         Toggle("Update in the background", isOn: $backgroundReminderTracking)
                             .onChange(of: backgroundReminderTracking) { _, _ in viewModel.syncReminderTracking() }
+                    }
+
+                    Toggle(isOn: $alertBeforeDeparture) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Alert me before departure")
+                            Text("A one-off heads-up when it's time to leave while tracking")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Text(reminderSummary)
@@ -261,6 +271,17 @@ struct PhoneSettingsView: View {
                     .buttonStyle(.plain)
 
                     NavigationLink {
+                        TrackingHelpView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "info.circle")
+                            Text("How tracking works")
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+
+                    NavigationLink {
                         PhoneAttributionView()
                     } label: {
                         HStack {
@@ -323,5 +344,46 @@ private struct FavouritesManagementView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+// Brief explainer for background tracking, reached from Settings. Mirrors the
+// Android TrackingHelpPage. Lives in this file so no new Swift file has to be
+// hand-wired into project.pbxproj.
+private struct TrackingHelpView: View {
+    private struct Point: Identifiable {
+        let id = UUID()
+        let icon: String
+        let title: LocalizedStringKey
+        let body: LocalizedStringKey
+    }
+
+    private let points: [Point] = [
+        Point(icon: "clock", title: "The countdown keeps running",
+              body: "It stays live on the Lock Screen and Dynamic Island, even with the app closed."),
+        Point(icon: "arrow.triangle.2.circlepath", title: "It checks smartly",
+              body: "Updates get more frequent as departure nears, and rare when it's still far away."),
+        Point(icon: "battery.75", title: "It saves battery",
+              body: "Location only switches on near the station, so a trip hours away costs almost nothing."),
+        Point(icon: "figure.walk", title: "It tells you when to leave",
+              body: "A one-off alert reminds you to go, based on your walk time to the station."),
+    ]
+
+    var body: some View {
+        List(points) { point in
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: point.icon)
+                    .font(.title3)
+                    .foregroundStyle(AppColors.platform)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(point.title).font(.headline)
+                    Text(point.body).font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .navigationTitle("How tracking works")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

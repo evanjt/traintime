@@ -4224,6 +4224,270 @@
           }
         }
       }
+    },
+    "Alert me before departure": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vor Abfahrt benachrichtigen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M'avertir avant le départ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami prima della partenza"
+          }
+        }
+      }
+    },
+    "A one-off heads-up when it's time to leave while tracking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Hinweis, wenn es Zeit zu gehen ist, während der Verfolgung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel unique quand il est temps de partir pendant le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avviso una tantum quando è ora di partire durante il monitoraggio"
+          }
+        }
+      }
+    },
+    "Time to leave": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit zu gehen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il est temps de partir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È ora di partire"
+          }
+        }
+      }
+    },
+    "How tracking works": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So funktioniert die Verfolgung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment fonctionne le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come funziona il monitoraggio"
+          }
+        }
+      }
+    },
+    "The countdown keeps running": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Countdown läuft weiter"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le compte à rebours continue"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il conto alla rovescia continua"
+          }
+        }
+      }
+    },
+    "It stays live on the Lock Screen and Dynamic Island, even with the app closed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie bleibt aktiv auf dem Sperrbildschirm und in der Dynamic Island, auch bei geschlossener App."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il reste actif sur l'écran verrouillé et la Dynamic Island, même app fermée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resta attivo sulla schermata di blocco e nella Dynamic Island, anche ad app chiusa."
+          }
+        }
+      }
+    },
+    "It checks smartly": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie prüft clever"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vérifie intelligemment"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla in modo intelligente"
+          }
+        }
+      }
+    },
+    "Updates get more frequent as departure nears, and rare when it's still far away.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisierungen werden häufiger, je näher die Abfahrt rückt, und selten, solange sie fern ist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les mises à jour s'accélèrent à l'approche du départ, et se raréfient quand il est encore loin."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli aggiornamenti si infittiscono all'avvicinarsi della partenza e diradano quando è ancora lontana."
+          }
+        }
+      }
+    },
+    "It saves battery": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie spart Akku"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il économise la batterie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risparmia batteria"
+          }
+        }
+      }
+    },
+    "Location only switches on near the station, so a trip hours away costs almost nothing.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Standort schaltet sich erst nahe der Station ein, sodass eine Fahrt in Stunden fast nichts kostet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La localisation ne s'active qu'à proximité de la gare, donc un trajet dans plusieurs heures ne coûte presque rien."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La posizione si attiva solo vicino alla stazione, così un viaggio tra ore non costa quasi nulla."
+          }
+        }
+      }
+    },
+    "It tells you when to leave": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie sagt dir, wann du gehen musst"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vous dit quand partir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti dice quando partire"
+          }
+        }
+      }
+    },
+    "A one-off alert reminds you to go, based on your walk time to the station.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Hinweis erinnert dich, basierend auf deiner Gehzeit zur Station."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel unique vous invite à partir, selon votre temps de marche jusqu'à la gare."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avviso una tantum ti ricorda di andare, in base al tempo a piedi fino alla stazione."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

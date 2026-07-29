@@ -73,8 +73,28 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
     /// keep updates flowing in the background so the session (and its Live
     /// Activity) survives the app leaving the foreground — with the location
     /// indicator visible, and everything reverted on exit.
-    func setTrackingAccuracy(_ tracking: Bool) {
-        manager.desiredAccuracy = tracking ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyHundredMeters
+    ///
+    /// `tier` scales the fix by how far the departure is (mirrors the Android
+    /// FGS): coarse + a big displacement filter when far (cheap, GPS effectively
+    /// idle), precise with no filter near the station. The Live Activity carries
+    /// the countdown regardless, so a coarse far-out fix costs almost nothing.
+    func setTrackingAccuracy(_ tracking: Bool, tier: LocationTier = .high) {
+        if tracking {
+            switch tier {
+            case .off:
+                manager.desiredAccuracy = kCLLocationAccuracyKilometer
+                manager.distanceFilter = 2000
+            case .balanced:
+                manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+                manager.distanceFilter = 100
+            case .high:
+                manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+                manager.distanceFilter = kCLDistanceFilterNone
+            }
+        } else {
+            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            manager.distanceFilter = kCLDistanceFilterNone
+        }
         guard Self.hasLocationBackgroundMode else { return }
         backgroundTrackingActive = tracking
         manager.allowsBackgroundLocationUpdates = tracking
