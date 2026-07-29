@@ -42,6 +42,10 @@ import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearLivenessBus
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.review.ReviewGate
+import com.evanjt.traintime.session.TrackingLogic
+import com.evanjt.traintime.session.TrackingNotificationService
+import com.evanjt.traintime.session.TrackingSessionBus
+import com.evanjt.traintime.session.TrackingSnapshot
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
@@ -198,7 +202,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Queued shared route (store-mirrored) + the resume prompt when its leg
     // is on the live board. notificationPermissionRequest is a one-shot UI
-    // event: the first saved route asks contextually (API 33+).
+    // event: tracking starts and saved routes ask contextually (API 33+).
     var pendingRoute by mutableStateOf<PendingRoute?>(null)
         private set
     var notificationPermissionRequest by mutableStateOf(false)
@@ -386,6 +390,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // the Data Layer peer of the Garmin path through applyReceivedWatchContext.
         viewModelScope.launch { WearLivenessBus.events.collect { handleWearLiveness(it) } }
 
+        // The tracking notification's "Stop tracking" action, so a reopened app
+        // doesn't resurrect a session the user ended from the shade.
+        viewModelScope.launch {
+            TrackingSessionBus.stopRequests.collect { if (appState == 2) exitToStationView() }
+        }
+
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
             currentMode = defaultMode
@@ -435,6 +445,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onAppear() {
         lastInteractionTime = now()
+        // The tracking service's own loop idles while we own the fetching.
+        TrackingSessionBus.appForeground.value = true
         viewModelScope.launch {
             location.start()
             if (location.loadedFromCache) loadedFromCache = true
@@ -443,6 +455,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshWatchLinksOnAppear()
         viewModelScope.launch { refreshPendingRoute() }
         syncReminderTracking()
+        maybeShowBgLocationIntro()
     }
 
     // On foreground: find eligible watches (connected + TrainTime installed) for the header
@@ -682,6 +695,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onDisappear() {
+        // Hand the tracking session to the service's loop: it fetches, walks and
+        // renders the notification until onAppear takes it back.
+        TrackingSessionBus.appForeground.value = false
         // The widget is only visible once we background; seed its cache with what
         // was on screen so it shows live data without its own refresh tap.
         seedWidgetCache()
@@ -815,6 +831,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         lastVibeTick = nowS
                     }
                 }
+                pushTrackingNotification()
             }
         }
 
@@ -920,6 +937,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
 
+        // Foreground service + ongoing notification: the session survives (and
+        // stays visible) when the app backgrounds. Without POST_NOTIFICATIONS
+        // (API 33+) the system drops the notification silently, so ask now.
+        trackingStartedTs = nowSeconds()
+        TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused))
+        notificationPermissionRequest = true
+
         // Mirror the same focused train onto the watch (immediate, a tap is a
         // strong, deliberate action). Keeps the manual "Send to Watch" too.
         if (mirror) {
@@ -929,8 +953,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ---- Tracking notification feed ----
+
+    private var trackingStartedTs = 0L
+    private var lastNotifKey: List<Any?> = emptyList()
+    private var lastNotifPush = 0L
+
+    private fun buildTrackingSnapshot(focused: FocusedDeparture): TrackingSnapshot {
+        val gpsOk = gpsQuality != GpsQuality.UNAVAILABLE && gpsQuality != GpsQuality.LAST_KNOWN
+        return TrackingSnapshot(
+            focused = focused,
+            stationId = currentStation?.id,
+            stationName = currentStation?.name,
+            stationLat = currentStation?.lat,
+            stationLon = currentStation?.lon,
+            walkDistMeters = if (gpsOk) lastWalkDist else null,
+            gpsOk = gpsOk,
+            startedEpochSeconds = trackingStartedTs,
+        )
+    }
+
+    // Feed the notification from the in-app state. Called every tracking tick,
+    // so it dedupes: only a material change (or 30 s of silence, keeping the
+    // Live Update chip's countdown honest) re-renders.
+    private fun pushTrackingNotification() {
+        if (appState != 2) return
+        val focused = focusedTrain ?: return
+        val snap = buildTrackingSnapshot(focused)
+        val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it).toInt() }
+        val key = listOf(
+            focused.delay, focused.platform, focused.destination, walkMin,
+            TrackingLogic.status(
+                TrackingLogic.effectiveBuffer(focused, walkMin?.toDouble() ?: 0.0, nowSeconds()),
+                snap.gpsOk,
+            ),
+        )
+        if (key == lastNotifKey && now() - lastNotifPush < 30_000) return
+        lastNotifKey = key
+        lastNotifPush = now()
+        TrackingSessionBus.vmPush.tryEmit(snap)
+    }
+
+    // The service's first startForeground ran before the grant, so its
+    // notification was dropped; re-post it the moment permission arrives.
+    fun onNotificationPermissionResult(granted: Boolean) {
+        if (granted && appState == 2) {
+            lastNotifKey = emptyList()
+            lastNotifPush = 0
+            pushTrackingNotification()
+        }
+    }
+
     fun enterInactiveState() {
         onTrackingEnded(if (appState == 2) focusedTrain?.departureTimestamp else null)
+        if (appState == 2) TrackingNotificationService.stop(getApplication())
         appState = 3
         location.setTrackingAccuracy(false)
         focusedTrain = null
@@ -988,14 +1064,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         backgroundLocationRequest = false
     }
 
+    // One-shot introduction of the optional background-location feature, shown
+    // once per install after the tour, only while the grant is missing. Declining
+    // changes nothing: reminders keep using the last known location.
+    var bgLocationIntro by mutableStateOf(false)
+        private set
+    private var bgLocationIntroAsk = false
+
+    private fun maybeShowBgLocationIntro() {
+        viewModelScope.launch {
+            if (!prefs.bgLocationIntroSeen.first() &&
+                !RouteDistanceTracker.hasBackgroundLocation(getApplication())
+            ) {
+                bgLocationIntro = true
+            }
+        }
+    }
+
+    fun acceptBgLocationIntro() {
+        bgLocationIntro = false
+        bgLocationIntroAsk = true
+        viewModelScope.launch { prefs.markBgLocationIntroSeen() }
+    }
+
+    fun dismissBgLocationIntro() {
+        bgLocationIntro = false
+        viewModelScope.launch { prefs.markBgLocationIntroSeen() }
+    }
+
+    // The route sheet's "Enable background location" link: rerun the normal
+    // disclosure + system flow (on Android 11+ the system opens the app's
+    // location settings screen, where "Allow all the time" lives).
+    fun enableBackgroundLocation() {
+        backgroundLocationRequest = true
+    }
+
+    fun hasBackgroundLocation(): Boolean =
+        RouteDistanceTracker.hasBackgroundLocation(getApplication())
+
     // Set when the user continued past the disclosure but declined "all the time".
     // Not a failure: the route is saved and the reminder still fires from the last
-    // known location. Drives a reassuring dialog with a retry path.
+    // known location. Drives a reassuring dialog with a retry path. The upfront
+    // intro skips it: declining an optional offer needs no follow-up.
     var backgroundLocationDenied by mutableStateOf(false)
         private set
 
     fun onBackgroundLocationResult(granted: Boolean) {
-        backgroundLocationDenied = !granted
+        backgroundLocationDenied = !granted && !bgLocationIntroAsk
+        bgLocationIntroAsk = false
+        syncReminderTracking()
     }
 
     fun clearBackgroundLocationDenied() {
@@ -1623,6 +1740,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun exitToStationView() {
         val wasTracking = appState == 2
         onTrackingEnded(if (wasTracking) focusedTrain?.departureTimestamp else null)
+        if (wasTracking) TrackingNotificationService.stop(getApplication())
         // A queued "track on watch" intent dies with the tracking session.
         pendingWatchTrackSend = false
         lastInteractionTime = now()
@@ -1775,18 +1893,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val focused = focusedTrain ?: return
         val nowS = nowSeconds()
 
-        // Match by train number when we have one (a protected shared-route leg
-        // carries it), so live platform/delay are adopted even though the leg's
-        // destName is the alight stop, not the board's terminus. Fall back to
-        // destination for board taps that lack a train number (buses/trams).
-        val matches = departures.filter {
-            (it.destination == focused.destination ||
-                (focused.trainNumber != null && it.trainNumber == focused.trainNumber)) &&
-                it.minutesUntil >= -1
-        }
-        val best = matches.minByOrNull {
-            kotlin.math.abs(it.minutesUntil.toDouble() - focused.minutesUntil(nowS))
-        }
+        // Matching + adoption live in TrackingLogic, shared with the background
+        // service's loop so both paths track the same train the same way.
+        val best = TrackingLogic.matchFocused(departures, focused, nowS)
         if (best == null) {
             // A still-future train just isn't on the board yet (a shared route
             // opened early, before it reaches the 20-row horizon). Keep the
@@ -1797,18 +1906,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        var updated = focused
-        if (best.platform != focused.platform && best.platform.isNotEmpty()) {
-            if (best.platformChanged) haptics.doublePulse()
-            updated = updated.copy(platform = best.platform, platformChanged = best.platformChanged)
+        if (best.platform != focused.platform && best.platform.isNotEmpty() && best.platformChanged) {
+            haptics.doublePulse()
         }
-        // A protected route leg starts with the leg's alight stop; the live board
-        // row carries the train's real terminus, so adopt it. Board taps already
-        // match on destination, so this is a no-op for them.
-        if (best.destination.isNotEmpty() && best.destination != updated.destination) {
-            updated = updated.copy(destination = best.destination)
-        }
-        focusedTrain = updated.copy(delay = best.delay)
+        focusedTrain = TrackingLogic.adopt(focused, best)
+        pushTrackingNotification()
     }
 
     // Tracking calculations

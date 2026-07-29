@@ -529,6 +529,28 @@
         }
       }
     },
+    "Background location is off. This reminder is timed from where you were when it was saved.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hintergrund-Standort ist aus. Diese Erinnerung richtet sich nach deinem Standort beim Speichern."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La localisation en arrière-plan est désactivée. Ce rappel se base sur votre position au moment de l'enregistrement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La posizione in background è disattivata. Questo promemoria si basa sulla tua posizione al momento del salvataggio."
+          }
+        }
+      }
+    },
     "Before a connection": {
       "localizations": {
         "de": {
@@ -991,6 +1013,28 @@
         }
       }
     },
+    "Enable background location": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hintergrund-Standort aktivieren"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer la localisation en arrière-plan"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva la posizione in background"
+          }
+        }
+      }
+    },
     "Enjoying TrainTime?": {
       "localizations": {
         "de": {
@@ -1449,6 +1493,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fermate vicine"
+          }
+        }
+      }
+    },
+    "New in this version: a saved route's reminder can time itself to your live distance from the station, even with the app closed. This is optional. TrainTime collects background location only for this. Without it, reminders use your last known location.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu in dieser Version: Die Erinnerung an eine gespeicherte Route kann sich nach deiner Live-Distanz zum Bahnhof richten, auch bei geschlossener App. Das ist optional. TrainTime erfasst den Standort im Hintergrund nur dafür. Ohne diese Freigabe nutzen Erinnerungen deinen zuletzt bekannten Standort."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau dans cette version : le rappel d'un itinéraire enregistré peut se caler sur votre distance en direct jusqu'à la gare, même app fermée. C'est optionnel. TrainTime ne collecte la position en arrière-plan que pour cela. Sans cela, les rappels utilisent votre dernière position connue."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novità di questa versione: il promemoria di un percorso salvato può basarsi sulla tua distanza in tempo reale dalla stazione, anche con l'app chiusa. È facoltativo. TrainTime rileva la posizione in background solo per questo. Senza, i promemoria usano la tua ultima posizione nota."
           }
         }
       }
@@ -2131,6 +2197,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Binario %@"
+          }
+        }
+      }
+    },
+    "Platform changed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gleiswechsel"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changement de quai"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambio di binario"
           }
         }
       }
@@ -2835,6 +2923,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salta"
+          }
+        }
+      }
+    },
+    "Smarter route reminders": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlauere Routen-Erinnerungen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappels d'itinéraire plus précis"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Promemoria di percorso più precisi"
           }
         }
       }

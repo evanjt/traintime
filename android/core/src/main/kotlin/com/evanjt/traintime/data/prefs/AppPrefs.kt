@@ -58,6 +58,16 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_HAS_SEEN_ONBOARDING] = true }
     }
 
+    // One-shot background-location introduction (phone only). Shown once when a
+    // version with distance-aware reminders first runs, then never again,
+    // whatever the user chose.
+    val bgLocationIntroSeen: Flow<Boolean> =
+        dataStore.data.map { it[KEY_BG_LOCATION_INTRO_SEEN] ?: false }
+
+    suspend fun markBgLocationIntroSeen() {
+        dataStore.edit { it[KEY_BG_LOCATION_INTRO_SEEN] = true }
+    }
+
     // Re-arms the FULL walkthrough for the "Replay walkthrough" Settings row:
     // both the legacy flag and the version reset so every step shows again.
     suspend fun markOnboardingUnseen() {
@@ -240,6 +250,7 @@ class AppPrefs(context: Context) {
         val KEY_USE_ROUTED_DISTANCE = booleanPreferencesKey("useRoutedDistance")
         val KEY_MIRROR_TO_WATCH = booleanPreferencesKey("mirrorToWatch")
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
+        val KEY_BG_LOCATION_INTRO_SEEN = booleanPreferencesKey("bgLocationIntroSeen")
         val KEY_SEEN_ONBOARDING_VERSION = intPreferencesKey("seenOnboardingVersion")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_APP_LANGUAGE = stringPreferencesKey("appLanguage")

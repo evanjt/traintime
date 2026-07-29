@@ -1,7 +1,8 @@
 [versions]
 agp = "8.11.1"
 kotlin = "2.2.0"
-coreKtx = "1.16.0"
+# 1.17 brings NotificationCompat.ProgressStyle + Live Update promotion (API 36).
+coreKtx = "1.17.0"
 appcompat = "1.7.1"
 coreSplashscreen = "1.0.1"
 composeBom = "2025.06.01"

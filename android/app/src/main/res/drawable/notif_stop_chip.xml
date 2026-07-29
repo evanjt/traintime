@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rounded translucent pill behind the Stop button so it reads as a tappable
+     chip (like the old notification action) on both light and dark shades. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#22888888" />
+    <stroke
+        android:width="1dp"
+        android:color="#59888888" />
+    <corners android:radius="20dp" />
+</shape>

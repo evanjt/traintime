@@ -42,12 +42,24 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
         manager.startMonitoringSignificantLocationChanges()
     }
 
+    /// The "all the time" grant is in place, so distance-aware reminders can
+    /// follow the user with the app closed.
+    var hasAlwaysPermission: Bool { manager.authorizationStatus == .authorizedAlways }
+
+    /// The one state where iOS will still show the Always upgrade prompt.
+    var canPromptForAlways: Bool { manager.authorizationStatus == .authorizedWhenInUse }
+
+    func requestAlwaysPermission() {
+        manager.requestAlwaysAuthorization()
+    }
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
         UserDefaults.standard.set(loc.coordinate.latitude, forKey: "lastLat")
         UserDefaults.standard.set(loc.coordinate.longitude, forKey: "lastLon")
         if let route = PendingRouteStore.shared.pending {
-            PendingRouteNotifier.schedule(route, now: Int(Date().timeIntervalSince1970))
+            PendingRouteNotifier.schedule(
+                route, now: Int(Date().timeIntervalSince1970), fromLocationUpdate: true)
         } else {
             manager.stopMonitoringSignificantLocationChanges()
         }

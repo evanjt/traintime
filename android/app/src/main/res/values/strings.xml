@@ -180,4 +180,15 @@
     <string name="trip_underway">This trip is already underway or finished</string>
     <string name="saved_will_remind">Saved. We\'ll remind you before departure</string>
     <string name="route_passed_fmt">Saved route to %1$s has passed</string>
+    <string name="live_tracking_channel">Live tracking</string>
+    <string name="tracking_alert_channel">Tracking alerts</string>
+    <string name="stop_tracking">Stop tracking</string>
+    <string name="stop_short">Stop</string>
+    <string name="departed_at_fmt">Departed %1$s</string>
+    <string name="platform_change_title">Platform changed</string>
+    <string name="delay_plus_fmt" translatable="false">+%1$d</string>
+    <string name="bg_intro_title">Smarter route reminders</string>
+    <string name="bg_intro_body">New in this version: a saved route\'s reminder can time itself to your live distance from the station, even with the app closed. This is optional. TrainTime collects background location only for this. Without it, reminders use your last known location.</string>
+    <string name="reminder_bg_off_note">Background location is off. This reminder is timed from where you were when it was saved.</string>
+    <string name="enable_bg_location">Enable background location</string>
 </resources>

@@ -60,10 +60,26 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
         manager.stopUpdatingLocation()
     }
 
+    /// True while a tracking session holds continuous background location. Gated
+    /// on the Info.plist actually declaring the mode: setting
+    /// `allowsBackgroundLocationUpdates` without it throws at runtime, and the
+    /// gate keeps a build without the key (0.6.1) behaving exactly as before.
+    private(set) var backgroundTrackingActive = false
+    private static let hasLocationBackgroundMode: Bool =
+        (Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String])?.contains("location") ?? false
+
     /// Coarse accuracy while finding stations; finer accuracy while actively tracking
-    /// a departure (more precise walk distance/direction).
+    /// a departure (more precise walk distance/direction). While tracking, also
+    /// keep updates flowing in the background so the session (and its Live
+    /// Activity) survives the app leaving the foreground — with the location
+    /// indicator visible, and everything reverted on exit.
     func setTrackingAccuracy(_ tracking: Bool) {
         manager.desiredAccuracy = tracking ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyHundredMeters
+        guard Self.hasLocationBackgroundMode else { return }
+        backgroundTrackingActive = tracking
+        manager.allowsBackgroundLocationUpdates = tracking
+        manager.pausesLocationUpdatesAutomatically = !tracking
+        manager.showsBackgroundLocationIndicator = tracking
     }
 
     func hasMovedSignificantly(from coord: CLLocationCoordinate2D) -> Bool {

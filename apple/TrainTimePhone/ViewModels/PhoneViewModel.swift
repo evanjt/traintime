@@ -1,3 +1,4 @@
+import ActivityKit
 import SwiftUI
 import CoreLocation
 import Combine
@@ -175,6 +176,9 @@ class PhoneViewModel: ObservableObject {
 
     init() {
         reviewStore.ensureFirstLaunchTimestamp()
+        // A process death mid-tracking strands the Live Activity; no session can
+        // exist yet, so anything found is an orphan.
+        reapOrphanLiveActivities()
 
         if location.coordinate != nil && location.horizontalAccuracy == -1 {
             loadedFromCache = true
@@ -577,6 +581,49 @@ class PhoneViewModel: ObservableObject {
         refreshReminderPlan()
     }
 
+    // MARK: - Background-location introduction
+
+    /// One-shot introduction of the optional background-location upgrade for
+    /// saved-route reminders, shown once when a version carrying the feature
+    /// first runs. Only offered from When-In-Use, the sole state where iOS can
+    /// still show the Always upgrade prompt. Declining changes nothing:
+    /// reminders keep using the last known location. Mirrors the Android intro.
+    @Published var showBgLocationIntro = false
+
+    private func maybeShowBgLocationIntro() {
+        guard !UserDefaults.standard.bool(forKey: "bgLocationIntroSeen"),
+              ReminderTracker.shared.canPromptForAlways else { return }
+        showBgLocationIntro = true
+    }
+
+    func acceptBgLocationIntro() {
+        showBgLocationIntro = false
+        UserDefaults.standard.set(true, forKey: "bgLocationIntroSeen")
+        ReminderTracker.shared.requestAlwaysPermission()
+    }
+
+    func dismissBgLocationIntro() {
+        showBgLocationIntro = false
+        UserDefaults.standard.set(true, forKey: "bgLocationIntroSeen")
+    }
+
+    /// The route sheet's note: distance-aware timing is on but the grant is
+    /// missing, so the lead is pinned to the save-time location.
+    var reminderNeedsBgLocation: Bool {
+        UserDefaults.standard.bool(forKey: "distanceAwareReminder") &&
+            !ReminderTracker.shared.hasAlwaysPermission
+    }
+
+    /// The route sheet's "Enable background location" link. When-In-Use can
+    /// still trigger the real prompt; any other state only resolves in Settings.
+    func enableBackgroundLocation() {
+        if ReminderTracker.shared.canPromptForAlways {
+            ReminderTracker.shared.requestAlwaysPermission()
+        } else if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+    }
+
     /// Recompute the chip's notify plan (no SLC toggling). Called on every live
     /// fix so the walk readout tracks the routed measurement as the user moves.
     private func refreshReminderPlan() {
@@ -665,6 +712,7 @@ class PhoneViewModel: ObservableObject {
         watchService.initialize()
         startLivenessTicker()
         syncReminderTracking()
+        maybeShowBgLocationIntro()
         // Feed an already-open watch the current location once device status has settled.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             self?.refreshConnectedWatches()
@@ -676,10 +724,17 @@ class PhoneViewModel: ObservableObject {
     func onDisappear() {
         updateWidgetCache() // the widget is only visible once we background; seed it with what was on screen
         persistGarminLinkState() // the ping gate must survive a kill while backgrounded
-        location.stop()
-        stopTimer()
         livenessTimer?.cancel()
         livenessTimer = nil
+        // An active tracking session keeps running in the background: continuous
+        // location (UIBackgroundModes location) holds the process alive and the
+        // fetch timer keeps the Live Activity honest. Requires the background
+        // mode to actually be engaged, otherwise tear down exactly as before.
+        if appState == 2 && location.backgroundTrackingActive {
+            return
+        }
+        location.stop()
+        stopTimer()
         watchService.shutdown()
     }
 
@@ -815,6 +870,7 @@ class PhoneViewModel: ObservableObject {
                         lastVibeTick = now
                     }
                 }
+                updateLiveActivity()
             }
         }
 
@@ -905,6 +961,10 @@ class PhoneViewModel: ObservableObject {
         lastFetchTime = .distantPast
         formation = nil
 
+        // Lock Screen / Dynamic Island session; survives the app backgrounding.
+        trackingStartedAt = Date()
+        startLiveActivity(focused)
+
         // Fetch formation for rail departures
         if let tn = focused.trainNumber, Formation.isRailCategory(focused.category),
            let stationId = currentStation?.id {
@@ -927,6 +987,11 @@ class PhoneViewModel: ObservableObject {
 
     func enterInactiveState() {
         onTrackingEnded(appState == 2 ? focusedTrain?.departureTimestamp : nil)
+        if appState == 2 {
+            // Departed auto-exit keeps a final "Departed" card up briefly;
+            // a plain timeout dismisses straight away.
+            endLiveActivity(departed: focusedTrain.map { $0.minutesUntil < -1 } ?? false)
+        }
         appState = 3
         location.setTrackingAccuracy(false)
         focusedTrain = nil
@@ -1010,6 +1075,7 @@ class PhoneViewModel: ObservableObject {
     func exitToStationView() {
         let wasTracking = appState == 2
         onTrackingEnded(wasTracking ? focusedTrain?.departureTimestamp : nil)
+        if wasTracking { endLiveActivity(departed: false) }
         // A queued "track on watch" intent dies with the tracking session.
         pendingWatchTrackSend = false
         lastInteractionTime = Date()
@@ -1229,9 +1295,11 @@ class PhoneViewModel: ObservableObject {
         }
 
         let oldPlatform = focused.platform
+        var platformSwitched = false
         if best.platform != oldPlatform && !best.platform.isEmpty {
             if best.platformChanged {
                 PhoneHapticService.doublePulse()
+                platformSwitched = true
             }
             focused.platform = best.platform
             focused.platformChanged = best.platformChanged
@@ -1246,6 +1314,9 @@ class PhoneViewModel: ObservableObject {
 
         focused.delay = best.delay
         focusedTrain = focused
+        // A platform switch banners the Live Activity, the double pulse's
+        // lock-screen analog.
+        updateLiveActivity(alertPlatformChange: platformSwitched)
     }
 
     // MARK: - Tracking Calculations
@@ -1279,6 +1350,95 @@ class PhoneViewModel: ObservableObject {
         if buf > 0.5 { return AppColors.ahead }
         if buf < -0.5 { return AppColors.behind }
         return AppColors.onTime
+    }
+
+    // MARK: - Live Activity
+
+    private var liveActivity: Activity<TrackingActivityAttributes>?
+    private var lastActivityState: TrackingActivityAttributes.ContentState?
+    var trackingStartedAt = Date()
+
+    private func currentVerdict() -> (TrackingVerdict, Int) {
+        if gpsQuality == .unavailable || gpsQuality == .lastKnown { return (.noGps, 0) }
+        let buf = trackingEffectiveBuffer
+        if buf > 0.5 { return (.ahead, max(1, Int(abs(buf).rounded()))) }
+        if buf < -0.5 { return (.behind, max(1, Int(abs(buf).rounded()))) }
+        return (.onTime, 0)
+    }
+
+    private func activityContentState(_ focused: FocusedDeparture) -> TrackingActivityAttributes.ContentState {
+        let (verdict, bufMin) = currentVerdict()
+        let walkMin = Int((lastWalkTime.map { $0 / 60.0 } ?? GeoUtils.walkMinutes(distanceMeters: lastWalkDist)).rounded())
+        return TrackingActivityAttributes.ContentState(
+            effectiveDeparture: Date(timeIntervalSince1970: TimeInterval(focused.departureTimestamp + focused.delay * 60)),
+            destination: focused.destination,
+            delay: focused.delay,
+            platform: focused.platform,
+            platformChanged: focused.platformChanged,
+            verdict: verdict.rawValue,
+            bufferMinutes: bufMin,
+            walkMinutes: verdict == .noGps ? nil : walkMin,
+            departed: focused.minutesUntil < -1,
+            schedBuf: trackingScheduledBuffer,
+            effectBuf: trackingEffectiveBuffer
+        )
+    }
+
+    private func startLiveActivity(_ focused: FocusedDeparture) {
+        endLiveActivity(departed: false) // selecting a new departure replaces the card
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let attributes = TrackingActivityAttributes(
+            line: focused.lineNumber,
+            stationName: currentStation?.name ?? "",
+            startedAt: trackingStartedAt)
+        let state = activityContentState(focused)
+        lastActivityState = state
+        liveActivity = try? Activity.request(
+            attributes: attributes,
+            content: ActivityContent(state: state, staleDate: Date().addingTimeInterval(900)))
+    }
+
+    private func updateLiveActivity(alertPlatformChange: Bool = false) {
+        guard appState == 2, let focused = focusedTrain, let activity = liveActivity else { return }
+        let state = activityContentState(focused)
+        // The countdown and bar tick system-side, so only material changes
+        // (or a platform alert) are worth a payload.
+        guard state != lastActivityState || alertPlatformChange else { return }
+        lastActivityState = state
+        let content = ActivityContent(state: state, staleDate: Date().addingTimeInterval(900))
+        let alert: AlertConfiguration? = alertPlatformChange
+            ? AlertConfiguration(
+                title: "Platform changed",
+                body: "\(focused.lineNumber) \(String(localized: "Platform \(focused.platform)"))",
+                sound: .default)
+            : nil
+        Task { await activity.update(content, alertConfiguration: alert) }
+    }
+
+    private func endLiveActivity(departed: Bool) {
+        guard let activity = liveActivity else { return }
+        liveActivity = nil
+        var finalState = lastActivityState
+        if departed, var state = finalState {
+            state.departed = true
+            finalState = state
+        }
+        lastActivityState = nil
+        Task {
+            await activity.end(
+                finalState.map { ActivityContent(state: $0, staleDate: nil) },
+                dismissalPolicy: departed ? .after(Date().addingTimeInterval(60)) : .immediate)
+        }
+    }
+
+    /// End activities orphaned by a process death mid-tracking. Called at init,
+    /// when no session can legitimately exist yet.
+    private func reapOrphanLiveActivities() {
+        Task {
+            for activity in Activity<TrackingActivityAttributes>.activities {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
     }
 
     var directionToStation: Double? {

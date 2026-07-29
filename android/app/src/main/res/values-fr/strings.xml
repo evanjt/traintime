@@ -180,4 +180,14 @@
     <string name="trip_underway">Ce trajet est déjà en cours ou terminé</string>
     <string name="saved_will_remind">Enregistré. Nous vous rappellerons avant le départ</string>
     <string name="route_passed_fmt">L\'itinéraire vers %1$s est passé</string>
+    <string name="live_tracking_channel">Suivi en direct</string>
+    <string name="tracking_alert_channel">Alertes de suivi</string>
+    <string name="stop_tracking">Arrêter le suivi</string>
+    <string name="stop_short">Arrêter</string>
+    <string name="departed_at_fmt">Parti à %1$s</string>
+    <string name="platform_change_title">Changement de quai</string>
+    <string name="bg_intro_title">Rappels d\'itinéraire plus précis</string>
+    <string name="bg_intro_body">Nouveau dans cette version : le rappel d\'un itinéraire enregistré peut se caler sur votre distance en direct jusqu\'à la gare, même app fermée. C\'est optionnel. TrainTime ne collecte la position en arrière-plan que pour cela. Sans cela, les rappels utilisent votre dernière position connue.</string>
+    <string name="reminder_bg_off_note">La localisation en arrière-plan est désactivée. Ce rappel se base sur votre position au moment de l\'enregistrement.</string>
+    <string name="enable_bg_location">Activer la localisation en arrière-plan</string>
 </resources>

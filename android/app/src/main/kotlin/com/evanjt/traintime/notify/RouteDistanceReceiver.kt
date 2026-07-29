@@ -29,7 +29,12 @@ class RouteDistanceReceiver : BroadcastReceiver() {
                     prefs.distanceAwareReminder.first() &&
                     prefs.backgroundReminderTracking.first()
                 if (active) {
-                    PendingRouteNotifier.schedule(appContext, route!!, System.currentTimeMillis() / 1000)
+                    PendingRouteNotifier.schedule(
+                        appContext,
+                        route!!,
+                        System.currentTimeMillis() / 1000,
+                        fromLocationUpdate = true,
+                    )
                 } else {
                     RouteDistanceTracker.stop(appContext)
                 }

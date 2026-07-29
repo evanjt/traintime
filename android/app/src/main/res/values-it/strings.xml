@@ -180,4 +180,14 @@
     <string name="trip_underway">Questo viaggio è già in corso o concluso</string>
     <string name="saved_will_remind">Salvato. Ti avviseremo prima della partenza</string>
     <string name="route_passed_fmt">Il percorso salvato per %1$s è passato</string>
+    <string name="live_tracking_channel">Monitoraggio live</string>
+    <string name="tracking_alert_channel">Avvisi di monitoraggio</string>
+    <string name="stop_tracking">Interrompi il monitoraggio</string>
+    <string name="stop_short">Interrompi</string>
+    <string name="departed_at_fmt">Partito alle %1$s</string>
+    <string name="platform_change_title">Cambio di binario</string>
+    <string name="bg_intro_title">Promemoria di percorso più precisi</string>
+    <string name="bg_intro_body">Novità di questa versione: il promemoria di un percorso salvato può basarsi sulla tua distanza in tempo reale dalla stazione, anche con l\'app chiusa. È facoltativo. TrainTime rileva la posizione in background solo per questo. Senza, i promemoria usano la tua ultima posizione nota.</string>
+    <string name="reminder_bg_off_note">La posizione in background è disattivata. Questo promemoria si basa sulla tua posizione al momento del salvataggio.</string>
+    <string name="enable_bg_location">Attiva la posizione in background</string>
 </resources>

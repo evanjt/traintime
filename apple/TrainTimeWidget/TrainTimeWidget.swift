@@ -5,6 +5,7 @@ import SwiftUI
 struct TrainTimeWidgetBundle: WidgetBundle {
     var body: some Widget {
         TrainTimeWidget()
+        TrackingLiveActivity()
     }
 }
 

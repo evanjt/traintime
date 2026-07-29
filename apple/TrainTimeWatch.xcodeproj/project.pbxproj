@@ -124,6 +124,9 @@
 		P0A100000000000000000102 /* Departure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C41E3FB709401C9161EB46 /* Departure.swift */; };
 		P0A100000000000000000103 /* TransportMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */; };
 		P0A100000000000000000104 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		LA0A00000000000000000001 /* TrackingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000001 /* TrackingActivityAttributes.swift */; };
+		LA0A00000000000000000002 /* TrackingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000001 /* TrackingActivityAttributes.swift */; };
+		LA0A00000000000000000003 /* TrackingLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000002 /* TrackingLiveActivity.swift */; };
 		P0A100000000000000000105 /* GPSQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */; };
 		P0A100000000000000000106 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
 		P0A100000000000000000107 /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
@@ -249,6 +252,8 @@
 		1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		225E12DB99F8E0FF6C52DDE3 /* WidgetStorageTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStorageTests.swift; sourceTree = "<group>"; };
 		228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedDeparture.swift; sourceTree = "<group>"; };
+		LA0F00000000000000000001 /* TrackingActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingActivityAttributes.swift; sourceTree = "<group>"; };
+		LA0F00000000000000000002 /* TrackingLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingLiveActivity.swift; sourceTree = "<group>"; };
 		240B53D6B2B59672FF00E4EF /* TrainTimePhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainTimePhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D9FC67E77924B2C8818045F /* TrainTimeWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimeWatchApp.swift; sourceTree = "<group>"; };
 		333CF7681920314253647580 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
@@ -511,6 +516,7 @@
 				DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */,
 				FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */,
 				228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */,
+				LA0F00000000000000000001 /* TrackingActivityAttributes.swift */,
 				F0F100000000000000000001 /* Formation.swift */,
 				FA0F00000000000000000001 /* Favourite.swift */,
 				RG0F00000000000000000001 /* ReviewGate.swift */,
@@ -629,6 +635,7 @@
 				W0F100000000000000000002 /* WidgetEntry.swift */,
 				W0F100000000000000000003 /* WidgetViews.swift */,
 				W0F100000000000000000004 /* RefreshIntent.swift */,
+				LA0F00000000000000000002 /* TrackingLiveActivity.swift */,
 				W0F100000000000000000007 /* SwitchModeIntent.swift */,
 				W0F100000000000000000008 /* SwitchStationIntent.swift */,
 				W0F100000000000000000009 /* WidgetAccessoryViews.swift */,
@@ -992,6 +999,7 @@
 				P0A100000000000000000102 /* Departure.swift in Sources */,
 				P0A100000000000000000103 /* TransportMode.swift in Sources */,
 				P0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
+				LA0A00000000000000000001 /* TrackingActivityAttributes.swift in Sources */,
 				P0A100000000000000000105 /* GPSQuality.swift in Sources */,
 				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
 				P0A100000000000000000201 /* Favourite.swift in Sources */,
@@ -1029,6 +1037,8 @@
 				W0A100000000000000000102 /* Departure.swift in Sources */,
 				W0A100000000000000000103 /* TransportMode.swift in Sources */,
 				W0A100000000000000000104 /* FocusedDeparture.swift in Sources */,
+				LA0A00000000000000000002 /* TrackingActivityAttributes.swift in Sources */,
+				LA0A00000000000000000003 /* TrackingLiveActivity.swift in Sources */,
 				W0A100000000000000000105 /* GPSQuality.swift in Sources */,
 				W0A100000000000000000106 /* TrainAPIService.swift in Sources */,
 				W0A100000000000000000201 /* Favourite.swift in Sources */,
@@ -1078,7 +1088,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1107,7 +1117,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1162,7 +1172,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1279,7 +1289,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1309,7 +1319,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1340,7 +1350,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1369,7 +1379,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
@@ -1399,7 +1409,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;

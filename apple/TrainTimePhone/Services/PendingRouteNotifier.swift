@@ -124,14 +124,22 @@ enum PendingRouteNotifier {
         }
     }
 
-    static func schedule(_ route: PendingRoute, now: Int) {
+    static func schedule(_ route: PendingRoute, now: Int, fromLocationUpdate: Bool = false) {
         requestAuthorizationIfNeeded()
         let dist = userDistanceMeters(for: route)
         guard let notifyTs = PendingRouteLogic.notifyTs(
             route, savedLeadSec: savedLeadSec, connectionLeadSec: connectionLeadSec,
             userDistanceMeters: dist,
             walkSecondsOverride: dist != nil ? routedWalkSec(for: route) : nil
-        ), notifyTs > now, let leg = route.currentLeg else { return cancel() }
+        ), let leg = route.currentLeg else { return cancel() }
+        if notifyTs <= now {
+            // Inside the window. On a (re)save that means the user just saw the
+            // route, so clear any stale reminder. An SLC wake landing here must
+            // not clobber anything: the previously scheduled request still
+            // fires, and a reminder already delivered stays on the lock screen.
+            if !fromLocationUpdate { cancel() }
+            return
+        }
 
         let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
         let formatter = DateFormatter()

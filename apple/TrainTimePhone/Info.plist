@@ -8,10 +8,6 @@
 	<string>TrainTime needs your location to find nearby Swiss train stations and show departure times.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>TrainTime uses your location in the background only for saved-route reminders, to time the alert to your distance from the station. This is optional and off by default.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>TrainTime uses Bluetooth to reach a paired Garmin watch through the Garmin Connect app, so tracked departures can be sent to your wrist.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -32,5 +28,11 @@
 	<array>
 		<string>gcm-ciq</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 </dict>
 </plist>

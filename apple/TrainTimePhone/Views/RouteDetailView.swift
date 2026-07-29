@@ -49,6 +49,17 @@ struct RouteDetailView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 8)
+                // Distance-aware timing without the background grant: be upfront
+                // that the lead is pinned to the save-time location, with a
+                // one-tap fix. Mirrors the Android route sheet.
+                if viewModel.reminderNeedsBgLocation {
+                    Text("Background location is off. This reminder is timed from where you were when it was saved.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button("Enable background location") { viewModel.enableBackgroundLocation() }
+                        .font(.footnote)
+                        .padding(.bottom, 8)
+                }
                 ForEach(Array(route.legs.enumerated()), id: \.offset) { index, leg in
                     if leg.type == .ride {
                         rideRow(route, leg, index: index)

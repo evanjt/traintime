@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -53,6 +55,8 @@ fun RouteDetailSheet(
     route: PendingRoute,
     mode: TransportMode,
     platforms: Map<Int, String>,
+    bgLocationNote: Boolean,
+    onEnableBgLocation: () -> Unit,
     onSetMuted: (Int, Boolean) -> Unit,
     onTrackLeg: (Int) -> Unit,
     onDismiss: () -> Unit,
@@ -71,6 +75,22 @@ fun RouteDetailSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
+            // Distance-aware timing without the background grant: be upfront that
+            // the lead is pinned to the save-time location, with a one-tap fix.
+            if (bgLocationNote) {
+                Text(
+                    stringResource(R.string.reminder_bg_off_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(
+                    onClick = onEnableBgLocation,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                ) {
+                    Text(stringResource(R.string.enable_bg_location), style = MaterialTheme.typography.bodySmall)
+                }
+            }
             route.legs.forEachIndexed { index, leg ->
                 if (leg.type == LegType.RIDE) {
                     RideLegRow(

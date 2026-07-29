@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -216,7 +217,7 @@ fun SettingsSheet(
                 Text(stringResource(R.string.replay_walkthrough), color = onSurface)
             }
 
-            val activity = LocalContext.current as? android.app.Activity
+            val activity = LocalActivity.current
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier

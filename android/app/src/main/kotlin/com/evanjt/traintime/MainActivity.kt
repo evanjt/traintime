@@ -28,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
@@ -36,6 +36,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.evanjt.traintime.review.ReviewLauncher
 import com.evanjt.traintime.ui.BackgroundLocationDeniedDialog
 import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
+import com.evanjt.traintime.ui.BackgroundLocationIntroDialog
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
@@ -65,10 +66,12 @@ class MainActivity : AppCompatActivity() {
             viewModel.onPermissionResult(grants.values.any { it })
         }
 
-    // Contextual ask when the first pending route is saved; denial is fine,
-    // the chip and resume prompt work without the reminder.
+    // Contextual ask when a tracking session starts or the first pending route
+    // is saved; denial is fine, tracking and the route chip work without it.
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            viewModel.onNotificationPermissionResult(it)
+        }
 
     private fun requestNotificationPermission() {
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -193,7 +196,7 @@ private fun RootView(
 
     // Timed review ask. The VM counts real board taps and flips
     // showReviewPrompt at most once per version; this only renders it.
-    val activity = LocalContext.current as? android.app.Activity
+    val activity = LocalActivity.current
     if (viewModel.showReviewPrompt) {
         ReviewPromptDialog(
             onRate = {
@@ -270,17 +273,20 @@ private fun RootView(
     val routeForSheet = viewModel.pendingRoute
     if (showRoute && routeForSheet != null) {
         LaunchedEffect(routeForSheet.id) { viewModel.loadRoutePlatforms(routeForSheet) }
+        val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = false)
         RouteDetailSheet(
             route = routeForSheet,
             mode = viewModel.currentMode,
             platforms = viewModel.routeLegPlatforms,
+            bgLocationNote = distanceAware && !viewModel.hasBackgroundLocation(),
+            onEnableBgLocation = { viewModel.enableBackgroundLocation() },
             onSetMuted = { index, muted -> viewModel.setLegMuted(index, muted) },
             onTrackLeg = { index -> viewModel.trackLeg(index) },
             onDismiss = { showRoute = false },
         )
     }
 
-    // Contextual notification-permission ask for the first saved route.
+    // Contextual notification-permission ask (tracking start / first saved route).
     LaunchedEffect(viewModel.notificationPermissionRequest) {
         if (viewModel.notificationPermissionRequest) {
             onRequestNotificationPermission()
@@ -350,6 +356,18 @@ private fun RootView(
         effectiveSeenVersion(hasSeenOnboarding, seenVersion),
         CURRENT_TOUR_VERSION,
     )
+    // One-shot optional background-location offer, after the tour so dialogs
+    // never stack. Continue launches the normal disclosure-free system flow
+    // (this dialog is itself the prominent disclosure); Not now ends it for good.
+    if (tourSlice.isEmpty() && viewModel.bgLocationIntro) {
+        BackgroundLocationIntroDialog(
+            onContinue = {
+                viewModel.acceptBgLocationIntro()
+                onRequestBackgroundLocation()
+            },
+            onDismiss = { viewModel.dismissBgLocationIntro() },
+        )
+    }
     if (tourSlice.isNotEmpty()) {
         OnboardingTour(
             steps = tourSlice,

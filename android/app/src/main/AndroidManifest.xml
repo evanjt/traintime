@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16 Live Updates: lets the tracking notification promote to the
+         status-bar chip. No-op below API 36. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!-- Connect IQ Mobile SDK binds to the Garmin Connect app; Android 11+ needs it
          declared for package visibility. -->
@@ -68,6 +71,13 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/traintime_widget_info" />
         </receiver>
+
+        <!-- Live tracking session: countdown notification + precise background
+             location while a departure is tracked and the app is backgrounded. -->
+        <service
+            android:name=".session.TrackingNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <service
             android:name=".widget.work.WidgetRefreshService"

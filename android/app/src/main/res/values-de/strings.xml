@@ -180,4 +180,14 @@
     <string name="trip_underway">Diese Reise läuft bereits oder ist vorbei</string>
     <string name="saved_will_remind">Gespeichert. Wir erinnern dich vor der Abfahrt</string>
     <string name="route_passed_fmt">Gespeicherte Route nach %1$s ist vorbei</string>
+    <string name="live_tracking_channel">Live-Verfolgung</string>
+    <string name="tracking_alert_channel">Verfolgungs-Hinweise</string>
+    <string name="stop_tracking">Verfolgung beenden</string>
+    <string name="stop_short">Beenden</string>
+    <string name="departed_at_fmt">Abgefahren um %1$s</string>
+    <string name="platform_change_title">Gleiswechsel</string>
+    <string name="bg_intro_title">Schlauere Routen-Erinnerungen</string>
+    <string name="bg_intro_body">Neu in dieser Version: Die Erinnerung an eine gespeicherte Route kann sich nach deiner Live-Distanz zum Bahnhof richten, auch bei geschlossener App. Das ist optional. TrainTime erfasst den Standort im Hintergrund nur dafür. Ohne diese Freigabe nutzen Erinnerungen deinen zuletzt bekannten Standort.</string>
+    <string name="reminder_bg_off_note">Hintergrund-Standort ist aus. Diese Erinnerung richtet sich nach deinem Standort beim Speichern.</string>
+    <string name="enable_bg_location">Hintergrund-Standort aktivieren</string>
 </resources>

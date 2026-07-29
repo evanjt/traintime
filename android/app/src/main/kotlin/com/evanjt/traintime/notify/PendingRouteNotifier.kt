@@ -76,7 +76,12 @@ object PendingRouteNotifier {
         return true
     }
 
-    suspend fun schedule(context: Context, route: PendingRoute, nowEpochSeconds: Long) {
+    suspend fun schedule(
+        context: Context,
+        route: PendingRoute,
+        nowEpochSeconds: Long,
+        fromLocationUpdate: Boolean = false,
+    ) {
         val prefs = AppPrefs(context)
         val savedLead = prefs.routeReminderLeadMinutes.first() * 60L
         val connectionLead = prefs.connectionReminderLeadMinutes.first() * 60L
@@ -84,7 +89,14 @@ object PendingRouteNotifier {
         val notifyTs = PendingRouteLogic.notifyTs(route, savedLead, connectionLead, distance)
             ?: return cancel(context)
         val delay = notifyTs - nowEpochSeconds
-        if (delay <= 0) return cancel(context) // already inside the window
+        if (delay <= 0) {
+            // Inside the window. On a (re)save that means the user just saw the
+            // route, so clear any stale reminder. A background fix landing here
+            // must not clobber anything: the previously scheduled work still
+            // fires, and a reminder already in the shade stays there.
+            if (!fromLocationUpdate) cancel(context)
+            return
+        }
         WorkManager.getInstance(context).enqueueUniqueWork(
             WORK_NAME,
             ExistingWorkPolicy.REPLACE,
