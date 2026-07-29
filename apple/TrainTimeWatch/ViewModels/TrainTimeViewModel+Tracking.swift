@@ -40,6 +40,13 @@ extension TrainTimeViewModel {
             focused.platformChanged = best.platformChanged
         }
 
+        // A protected route leg starts with the leg's alight stop; the live board
+        // row carries the train's real terminus, so adopt it. Always show the
+        // train exactly as it reads at the station, never the route destination.
+        if !best.destination.isEmpty && best.destination != focused.destination {
+            focused.destination = best.destination
+        }
+
         focused.delay = best.delay
         focusedTrain = focused
     }

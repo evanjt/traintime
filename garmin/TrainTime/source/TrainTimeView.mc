@@ -832,7 +832,10 @@ class TrainTimeView extends WatchUi.View {
             "line" => data.hasKey("line") ? data["line"] : "",
             "cat" => data.hasKey("cat") ? data["cat"] : null,
             "trainNum" => data.hasKey("trainNum") ? data["trainNum"] : null,
-            "opRef" => data.hasKey("opRef") ? data["opRef"] : null
+            "opRef" => data.hasKey("opRef") ? data["opRef"] : null,
+            // The route's final destination, kept apart from the train terminus
+            // so the board match can correct dest while we still show the journey.
+            "routeDest" => data.hasKey("routeDest") ? data["routeDest"] : null
         };
 
         mAppState = 2;
@@ -852,12 +855,22 @@ class TrainTimeView extends WatchUi.View {
     function updateFocusedTrain() {
         if (mAppState != 2 || mFocusedTrain == null || mTrainData == null) { return; }
         var targetDest = mFocusedTrain["dest"];
+        var targetTrainNum = mFocusedTrain["trainNum"];
         var lastMin = mFocusedTrain["min"];
         var bestMatch = null;
         var bestDiff = 999;
         for (var i = 0; i < mTrainData.size(); i++) {
             var t = mTrainData[i];
-            if (t["dest"] != null && t["dest"].equals(targetDest) && t["min"] >= -1) {
+            // Prefer a train-number match: a routed leg starts with its alight
+            // stop (or the route's final destination) as dest, which won't equal
+            // the board row's real terminus, so a dest-only match would miss it.
+            var matches = false;
+            if (targetTrainNum != null && t["trainNum"] != null && t["trainNum"].equals(targetTrainNum)) {
+                matches = true;
+            } else if (t["dest"] != null && targetDest != null && t["dest"].equals(targetDest)) {
+                matches = true;
+            }
+            if (matches && t["min"] >= -1) {
                 var diff = t["min"] - lastMin;
                 if (diff < 0) { diff = -diff; }
                 if (diff < bestDiff) {
@@ -874,6 +887,11 @@ class TrainTimeView extends WatchUi.View {
             mFocusedTrain["plat"] = bestMatch["plat"];
             mFocusedTrain["platChg"] = bestMatch["platChg"];
             mFocusedTrain["line"] = bestMatch["line"];
+            // Adopt the board's real terminus: always show the train exactly as it
+            // reads at the station, never the route's final destination.
+            if (bestMatch["dest"] != null && !bestMatch["dest"].equals("")) {
+                mFocusedTrain["dest"] = bestMatch["dest"];
+            }
             if (bestMatch["platChg"] && (oldPlat == null || !oldPlat.equals(bestMatch["plat"]))) {
                 Haptics.vibrateDouble();
             }

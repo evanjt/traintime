@@ -21,6 +21,7 @@
     <string id="NowFull">départ</string>
     <string id="Departed">Parti</string>
     <string id="PlatformFmt">Quai $1$</string>
+    <string id="RouteDestFmt">(vers $1$)</string>
     <string id="MinutesFmt">$1$ min</string>
     <string id="NoGps">Pas de GPS</string>
     <string id="SecAheadFmt">$1$s d'avance</string>

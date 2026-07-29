@@ -661,8 +661,23 @@ module Renderer {
             DrawUtils.truncateToFit(dc, dest, destFont, destMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
+        // Following a saved route: the journey's final stop, dim and in brackets
+        // under the train's real terminus (which we always show verbatim from the
+        // board). Space-permitting; drops out for a plain track.
+        var rowTopY = destY + dc.getFontHeight(destFont) + 1;
+        var routeDest = view.mFocusedTrain.hasKey("routeDest") ? view.mFocusedTrain["routeDest"] : null;
+        if (routeDest != null && !routeDest.equals("") && !routeDest.equals(dest)) {
+            var routeStr = Lang.format(Txt.t(Rez.Strings.RouteDestFmt), [routeDest]);
+            var routeMaxW = DrawUtils.getUsableWidth(rowTopY, width, height) - 10;
+            dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, rowTopY, Graphics.FONT_XTINY,
+                DrawUtils.truncateToFit(dc, routeStr, Graphics.FONT_XTINY, routeMaxW),
+                Graphics.TEXT_JUSTIFY_CENTER);
+            rowTopY = rowTopY + dc.getFontHeight(Graphics.FONT_XTINY);
+        }
+
         // Line ID (blue) + platform + departure time on one row, centred as drawn
-        var platY = destY + dc.getFontHeight(destFont) + 1;
+        var platY = rowTopY;
         var line = view.mFocusedTrain["line"];
         var plat = view.mFocusedTrain["plat"];
         var platChg = view.mFocusedTrain["platChg"];

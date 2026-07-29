@@ -21,6 +21,7 @@
     <string id="NowFull">jetzt</string>
     <string id="Departed">Abgefahren</string>
     <string id="PlatformFmt">Gl. $1$</string>
+    <string id="RouteDestFmt">(nach $1$)</string>
     <string id="MinutesFmt">$1$ min</string>
     <string id="NoGps">Kein GPS</string>
     <string id="SecAheadFmt">$1$s voraus</string>

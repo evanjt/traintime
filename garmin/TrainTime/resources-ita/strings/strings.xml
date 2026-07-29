@@ -21,6 +21,7 @@
     <string id="NowFull">ora</string>
     <string id="Departed">Partito</string>
     <string id="PlatformFmt">Bin. $1$</string>
+    <string id="RouteDestFmt">(verso $1$)</string>
     <string id="MinutesFmt">$1$ min</string>
     <string id="NoGps">No GPS</string>
     <string id="SecAheadFmt">$1$s in anticipo</string>

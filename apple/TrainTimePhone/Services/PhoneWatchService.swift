@@ -104,6 +104,7 @@ class PhoneWatchService: ObservableObject {
             ]
             if let tn = departure.trainNumber { data["trainNum"] = tn }
             if let op = departure.operatorRef { data["opRef"] = op }
+            if let rd = departure.routeDestination { data["routeDest"] = rd }
             // Station identity and coordinate so the watch can poll the board
             // and compute walk distance. Garmin ignores the extra keys.
             if let station, let stId = station.id {
@@ -117,12 +118,15 @@ class PhoneWatchService: ObservableObject {
 
         /// Track payload sourced from a saved-route leg (Send to Watch from the
         /// reminder), rather than a live board row. Same contract as
-        /// track(_:station:); `dest` is the route's final destination, the leg
-        /// origin drives the watch's board poll + walk distance.
+        /// track(_:station:). `dest` is the leg's alight stop as a best-effort
+        /// start; the watch upgrades it to the train's real board terminus via
+        /// the train-number match. The route's final destination rides in
+        /// `routeDest` so it's shown apart from the terminus, never as it.
         static func track(leg: RouteLeg, finalDestination: String) -> [String: Any] {
             var data: [String: Any] = [
                 "action": "track",
-                "dest": finalDestination,
+                "dest": leg.destName,
+                "routeDest": finalDestination,
                 "depTs": leg.depTs,
                 "delay": 0,
                 "plat": "",

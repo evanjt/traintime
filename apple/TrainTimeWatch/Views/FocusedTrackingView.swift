@@ -37,6 +37,16 @@ struct FocusedTrackingView: View {
                 .buttonStyle(.plain)
             }
 
+            // Following a saved route: the header keeps the train's real terminus;
+            // this dim line carries where the journey actually ends.
+            if let routeDest = focused?.routeDestination, routeDest != focused?.destination {
+                Text("→ \(routeDest)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
             // Platform + departure time
             HStack(spacing: 3) {
                 if let plat = focused?.platform, !plat.isEmpty {

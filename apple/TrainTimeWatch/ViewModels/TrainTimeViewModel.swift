@@ -254,7 +254,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             operatorRef: operatorRef,
             delay: delay,
             platform: plat,
-            platformChanged: platChg
+            platformChanged: platChg,
+            routeDestination: data["routeDest"] as? String
         )
         appState = 2
         location.setTrackingAccuracy(true)
@@ -643,7 +644,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     /// countdown is fully local (derived from depTs), so it runs without a board
     /// match. updateFocusedTrain keeps it until the train departs, then a live
     /// board match upgrades it with delay/platform.
-    private func enterProtectedTrack(_ leg: RouteLeg) {
+    private func enterProtectedTrack(_ leg: RouteLeg, routeDestination: String? = nil) {
         beginTracking(FocusedDeparture(
             destination: leg.destName,
             departureTimestamp: leg.depTs,
@@ -653,7 +654,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             operatorRef: nil,
             delay: 0,
             platform: "",
-            platformChanged: false
+            platformChanged: false,
+            routeDestination: routeDestination
         ))
     }
 
@@ -946,7 +948,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         let leg = route.legs[index]
         guard leg.isTrackable, let stationId = leg.originId else { return }
         setLaunchedStation(id: stationId, name: leg.originName, lat: leg.originLat, lon: leg.originLon)
-        enterProtectedTrack(leg)
+        enterProtectedTrack(leg, routeDestination: route.finalDestination)
     }
 
     private func tryEnterPendingRouteTrack() {
@@ -958,7 +960,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         } else if leg.isTrackable {
             // Not on the board yet, but the user explicitly opened it (resume /
             // Track now): open a local countdown that survives until departure.
-            enterProtectedTrack(leg)
+            enterProtectedTrack(leg, routeDestination: PendingRouteStore.shared.pending?.finalDestination)
         }
     }
 

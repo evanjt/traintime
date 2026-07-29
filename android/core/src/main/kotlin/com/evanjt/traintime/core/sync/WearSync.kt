@@ -266,6 +266,7 @@ data class TrackCommand(
     val platform: String = "",
     val platformChanged: Boolean = false,
     val stationId: String? = null,
+    val routeDestination: String? = null,
 ) {
     fun toFocusedDeparture() = FocusedDeparture(
         destination = destination,
@@ -277,11 +278,12 @@ data class TrackCommand(
         delay = delay,
         platform = platform,
         platformChanged = platformChanged,
+        routeDestination = routeDestination,
     )
 
     // The Connect IQ phone-app message contract the Garmin watch reads in
     // enterTrackingFromPhone (keys: action/dest/depTs/delay/plat/platChg/line, plus
-    // optional cat/trainNum/opRef/stId). Matches PhoneWatchService.sendTrackCommand on iOS.
+    // optional cat/trainNum/opRef/stId/routeDest). Matches PhoneWatchService.sendTrackCommand on iOS.
     fun toGarminMap(): Map<String, Any?> = buildMap {
         put("action", "track")
         put("dest", destination)
@@ -294,17 +296,17 @@ data class TrackCommand(
         trainNumber?.let { put("trainNum", it) }
         operatorRef?.let { put("opRef", it) }
         stationId?.let { put("stId", it) }
+        routeDestination?.let { put("routeDest", it) }
     }
 
     companion object {
         // Build a track command from a saved-route leg, for the reminder's
-        // "Send to Watch" action. dest uses the route's finalDestination (not
-        // leg.destName): the reminder the user tapped reads "$line to
-        // $finalDestination", so the watch shows the same headsign. platform is
-        // blank and delay 0 because the leg carries no live board data yet; the
-        // watch's own board fetch upgrades them once the train appears.
+        // "Send to Watch" action. dest is the leg's alight stop as a best-effort
+        // start; the watch's board fetch upgrades it to the train's real terminus
+        // via the train-number match. The route's final destination rides in
+        // routeDestination so it's shown apart from the terminus, never as it.
         fun fromLeg(leg: RouteLeg, finalDestination: String) = TrackCommand(
-            destination = finalDestination,
+            destination = leg.destName,
             departureTimestamp = leg.depTs,
             lineNumber = leg.lineNumber ?: "",
             category = leg.category ?: "",
@@ -314,6 +316,7 @@ data class TrackCommand(
             platform = "",
             platformChanged = false,
             stationId = leg.originId,
+            routeDestination = finalDestination,
         )
 
         fun from(focused: FocusedDeparture, stationId: String?) = TrackCommand(
@@ -327,6 +330,7 @@ data class TrackCommand(
             platform = focused.platform,
             platformChanged = focused.platformChanged,
             stationId = stationId,
+            routeDestination = focused.routeDestination,
         )
     }
 }

@@ -26,9 +26,11 @@ class TrackCommandTest {
         val map = TrackCommand.fromLeg(leg, finalDestination = "Genève").toGarminMap()
 
         assertEquals("track", map["action"])
-        // dest is the route's final destination, matching the reminder headsign,
-        // not the leg's alighting stop (Lausanne).
-        assertEquals("Genève", map["dest"])
+        // dest is the leg's alighting stop as a best-effort start; the watch's
+        // board match upgrades it to the train's real terminus. The route's final
+        // destination rides separately in routeDest, never shown as the terminus.
+        assertEquals("Lausanne", map["dest"])
+        assertEquals("Genève", map["routeDest"])
         assertEquals(1_800_000_540L, map["depTs"])
         assertEquals("1", map["line"])
         assertEquals("IC", map["cat"])
