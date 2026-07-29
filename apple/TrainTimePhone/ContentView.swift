@@ -56,10 +56,14 @@ struct ContentView: View {
                 PhoneStationView(viewModel: viewModel)
             }
         }
-        // Queued shared route rides above the station/inactive screens and
-        // hides during tracking.
+        // Queued shared route rides above the station/inactive screens and hides
+        // during tracking. Also hidden once a live background session backs the
+        // route: the now-tracking card is then the single top-of-board surface
+        // (the chip returns only as the relaunch fallback, when the live session
+        // was lost but the reminder-backed route persists).
         .safeAreaInset(edge: .top) {
-            if let route = pendingRouteStore.pending, viewModel.appState != 2 {
+            if let route = pendingRouteStore.pending, viewModel.appState != 2,
+               viewModel.backgroundTracked == nil {
                 PendingRouteChip(
                     route: route,
                     plan: viewModel.reminderPlan,

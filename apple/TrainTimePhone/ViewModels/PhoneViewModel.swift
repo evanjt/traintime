@@ -134,6 +134,9 @@ class PhoneViewModel: ObservableObject {
     private var tickCount: Int = 0
     private var loadedFromCache = false
     private var lastInteractionTime: Date = Date()
+    // Last GPS tier handed to CoreLocation while tracking, so the tier is only
+    // re-applied when it actually changes (not every 1 s tick). Nil = not tracking.
+    private var lastLocationTier: LocationTier?
 
     // MARK: - Deep link pending
     private var pendingDeepLink: URL?
@@ -885,9 +888,21 @@ class PhoneViewModel: ObservableObject {
 
         if appState == 3 { return }
 
-        // Fetch departures if cooldown elapsed
-        if !requestInFlight,
-           Date().timeIntervalSince(lastFetchTime) >= (appState == 2 ? Timing.fetchCooldownTracking : Timing.fetchCooldownNormal) {
+        // Fetch cadence + GPS scale with proximity while immersive-tracking (§A):
+        // far out polls rarely (or not at all when paused, letting the Live
+        // Activity carry the countdown) with GPS idle; both tighten to 15–30 s and
+        // precise GPS near departure. Board browsing keeps the normal 30 s cadence
+        // regardless of any background-card session (that one is Live-Activity-only).
+        let cooldown: TimeInterval
+        if appState == 2, let focused = focusedTrain {
+            let tier = TrackingTiers.pollTier(minutesUntil: focused.minutesUntil + Double(focused.delay))
+            applyLocationTier(tier.location)
+            cooldown = tier.apiInterval ?? .greatestFiniteMagnitude
+        } else {
+            cooldown = Timing.fetchCooldownNormal
+        }
+
+        if !requestInFlight, Date().timeIntervalSince(lastFetchTime) >= cooldown {
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             } else if stations.isEmpty,
@@ -895,6 +910,14 @@ class PhoneViewModel: ObservableObject {
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
         }
+    }
+
+    /// Re-point CoreLocation only when the proximity tier actually changes, so a
+    /// tracked session doesn't reconfigure the manager every tick.
+    private func applyLocationTier(_ tier: LocationTier) {
+        guard lastLocationTier != tier else { return }
+        lastLocationTier = tier
+        location.setTrackingAccuracy(true, tier: tier)
     }
 
     // MARK: - Departure Selection & Tracking
@@ -956,6 +979,7 @@ class PhoneViewModel: ObservableObject {
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
+        lastLocationTier = .high
         consecutiveErrors = 0
         lastVibeTick = 0
         lastFetchTime = .distantPast
@@ -994,6 +1018,7 @@ class PhoneViewModel: ObservableObject {
         }
         appState = 3
         location.setTrackingAccuracy(false)
+        lastLocationTier = nil
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -1081,6 +1106,7 @@ class PhoneViewModel: ObservableObject {
         lastInteractionTime = Date()
         appState = 0
         location.setTrackingAccuracy(false)
+        lastLocationTier = nil
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
@@ -2149,9 +2175,15 @@ class PhoneViewModel: ObservableObject {
         PendingRouteNotifier.schedule(pending, now: now)
         syncReminderTracking()
         shareStatus = String(localized: "Saved. We'll remind you before departure")
-        // Don't strand the user on the remote origin board. The queued route
-        // lives in the chip now. Return to their real location.
+        // Don't strand the user on the remote origin board. Return to their real
+        // location, then start a live background session for the queued leg so the
+        // countdown card + Live Activity appear (paused while far, ramping near
+        // departure). The reminder above stays as the reboot backstop.
         returnToNearbyIfLaunched()
+        if index >= 0, index < pending.legs.count {
+            let leg = pending.legs[index]
+            enterBackgroundTrack(leg, station: leg.originName, routeDestination: pending.finalDestination)
+        }
     }
 
     /// Save a single board departure as a pending route, so it rides the same
@@ -2191,11 +2223,26 @@ class PhoneViewModel: ObservableObject {
         // keeps counting down system-side.
         appState = 0
         location.setTrackingAccuracy(false)
+        lastLocationTier = nil
         focusedTrain = nil
         formation = nil
         consecutiveErrors = 0
+        scheduleApproachAlertIfEnabled(for: focused)
         startTimer(interval: Timing.normalRefreshInterval)
         returnToNearbyIfLaunched()
+    }
+
+    /// The board-card session's one-shot "time to leave" alert. Skipped when a
+    /// saved route already owns the reminder (it survives reboot too) or the user
+    /// turned it off. Distance-aware lead comes from the live walk we last had.
+    private func scheduleApproachAlertIfEnabled(for focused: FocusedDeparture) {
+        guard UserDefaults.standard.object(forKey: "alertBeforeDeparture") as? Bool ?? true,
+              pendingRouteStore.pending == nil else { return }
+        let distanceAware = UserDefaults.standard.bool(forKey: "distanceAwareReminder")
+        let walkSec = distanceAware
+            ? (lastWalkTime.map { Int($0) } ?? Int(GeoUtils.walkMinutes(distanceMeters: lastWalkDist) * 60))
+            : 0
+        PendingRouteNotifier.scheduleApproachAlert(focused, walkSeconds: walkSec, now: Int(Date().timeIntervalSince1970))
     }
 
     /// Board "now tracking" card tapped: re-open the full tracking screen for the
@@ -2204,15 +2251,46 @@ class PhoneViewModel: ObservableObject {
         guard let dep = backgroundTracked else { return }
         backgroundTracked = nil
         backgroundTrackedStation = nil
+        PendingRouteNotifier.cancelApproachAlert()
         beginTracking(dep)
     }
 
     /// Board "now tracking" card stop: end the background session and its
-    /// Live Activity without re-opening the tracking screen.
+    /// Live Activity without re-opening the tracking screen. When a shared route
+    /// backs the session, X clears the whole journey (route + reminder), matching
+    /// the old chip's discard — the card is now the single surface for it.
     func stopBackgroundTracking() {
+        let wasRoute = pendingRouteStore.pending != nil
         backgroundTracked = nil
         backgroundTrackedStation = nil
+        PendingRouteNotifier.cancelApproachAlert()
         endLiveActivity(departed: false)
+        if wasRoute { dismissPendingRoute() }
+    }
+
+    /// Start a live background session for a leg the user hasn't opened
+    /// immersively — a shared route queued far out. The Live Activity carries the
+    /// countdown (paused tier: no polling, no GPS while far), the board shows the
+    /// now-tracking card, and the pending route + reminder stay as the reboot
+    /// backstop. No-op if a session is already running.
+    private func enterBackgroundTrack(_ leg: RouteLeg, station: String?, routeDestination: String?) {
+        guard backgroundTracked == nil, appState != 2, leg.isTrackable else { return }
+        let focused = FocusedDeparture(
+            destination: leg.destName,
+            departureTimestamp: leg.depTs,
+            lineNumber: leg.lineNumber ?? "",
+            category: leg.category ?? "",
+            trainNumber: leg.trainNumber,
+            operatorRef: nil,
+            delay: 0,
+            platform: "",
+            platformChanged: false,
+            routeDestination: routeDestination
+        )
+        backgroundTracked = focused
+        backgroundTrackedStation = station
+        trackingStartedAt = Date()
+        startLiveActivity(focused)
     }
 
     private func saveRouteOffer(_ route: SharedRoute) {

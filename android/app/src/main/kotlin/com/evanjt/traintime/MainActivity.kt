@@ -225,9 +225,12 @@ private fun RootView(
     Box(Modifier.fillMaxSize().systemBarsPadding()) {
         Column(Modifier.fillMaxSize()) {
             // Queued shared route rides above the station/inactive screens and
-            // hides during tracking.
+            // hides during tracking. Also hidden once a live background session
+            // backs the route: the now-tracking card is then the single top
+            // surface (the chip returns only as the relaunch fallback, when the
+            // live session was lost but the reminder-backed route persists).
             val pendingRoute = viewModel.pendingRoute
-            if (pendingRoute != null && viewModel.appState != 2) {
+            if (pendingRoute != null && viewModel.appState != 2 && viewModel.backgroundTracked == null) {
                 var chipNow by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
                 LaunchedEffect(pendingRoute) {
                     while (true) {

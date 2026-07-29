@@ -2402,10 +2402,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Board "now tracking" card stop: end the background session and its
-    // notification without re-opening the tracking screen.
+    // notification without re-opening the tracking screen. When a shared route
+    // backs the session, X clears the whole journey (route + reminder), matching
+    // the old chip's discard — the card is now the single surface for it.
     fun stopBackgroundTracking() {
         clearBackgroundTracking()
         TrackingNotificationService.stop(getApplication())
+        viewModelScope.launch {
+            if (pendingRouteStore.current() != null) dismissPendingRoute()
+        }
+    }
+
+    // Start a live background session for a leg the user hasn't opened
+    // immersively — a shared route queued far out. The foreground-service
+    // notification carries the countdown (paused tier while far: no polling, no
+    // GPS), the board shows the now-tracking card, and the pending route +
+    // reminder stay as the reboot backstop. No-op if a session already runs.
+    private fun enterBackgroundTrack(leg: RouteLeg, station: String?, routeDestination: String?) {
+        if (backgroundTracked != null || appState == 2 || !leg.isTrackable) return
+        val focused = FocusedDeparture(
+            destination = leg.destName,
+            departureTimestamp = leg.depTs,
+            lineNumber = leg.lineNumber ?: "",
+            category = leg.category ?: "",
+            trainNumber = leg.trainNumber,
+            operatorRef = null,
+            delay = 0,
+            platform = "",
+            platformChanged = false,
+            routeDestination = routeDestination,
+        )
+        backgroundTracked = focused
+        backgroundTrackedStation = station
+        trackingStartedTs = nowSeconds()
+        // Drive the notification from the service's own loop; the VM isn't on the
+        // immersive tracking screen.
+        TrackingSessionBus.appForeground.value = false
+        val snapshot = TrackingSnapshot(
+            focused = focused,
+            stationId = leg.originId,
+            stationName = leg.originName,
+            stationLat = leg.originLat,
+            stationLon = leg.originLon,
+            walkDistMeters = null,
+            gpsOk = false,
+            startedEpochSeconds = trackingStartedTs,
+        )
+        TrackingNotificationService.start(getApplication(), snapshot)
+        notificationPermissionRequest = true
     }
 
     // Bypass the nearby flow: show the leg's origin as the sole station and
@@ -2539,9 +2583,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         notificationPermissionRequest = true
         syncReminderTracking()
         showShareStatus(str(R.string.saved_will_remind))
-        // Don't strand the user on the remote origin board, the queued route
-        // lives in the chip now. Return to their real location.
+        // Don't strand the user on the remote origin board. Return to their real
+        // location, then start a live background session for the queued leg so the
+        // countdown card + notification appear (paused while far, ramping near
+        // departure). The reminder above stays as the reboot backstop.
         returnToNearbyIfLaunched()
+        if (pending.legs.isNotEmpty()) {
+            val leg = pending.legs[index.coerceIn(0, pending.legs.size - 1)]
+            enterBackgroundTrack(leg, leg.originName, pending.finalDestination)
+        }
     }
 
     // Pending-route lifecycle: normalize against the clock, expire, prompt.
