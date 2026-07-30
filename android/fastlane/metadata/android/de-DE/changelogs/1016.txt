@@ -1,0 +1,4 @@
+- Die Verfolgung überlebt jetzt das Verlassen der App. Eine laufende Aktivität hält den Countdown live und zählt bis zum Losgehen herunter.
+- Dafür nutzt sie den Standort im Hintergrund, solange eine Verfolgung läuft, und schaltet ab, sobald du sie beendest.
+- Bei einer geteilten Route zeigt der verfolgte Zug seinen eigenen Endbahnhof, dein Reiseziel darunter.
+- Verspätete Züge bleiben sichtbar, bis sie wirklich abfahren.

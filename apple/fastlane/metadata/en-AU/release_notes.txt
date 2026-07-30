@@ -1,3 +1,8 @@
-- The iPhone now shows what your watch is tracking, live.
-- TrainTime now speaks German, French and Italian, following your iPhone's language settings.
-- Minor improvements and maintenance.
+- Tracking now keeps running with the app closed. A Live Activity on the Lock Screen and Dynamic Island counts down to your train, with platform, delay, your walk margin and a Stop button.
+- To do that, TrainTime uses your location in the background, but only while a tracking session is running. That is what keeps your walk margin and your "Leave now" time correct once the app is closed. The location indicator stays visible the whole time, and background location switches off the moment you stop tracking.
+- The countdown counts to when you have to leave, using your walk time to the station, then switches to "Leave now".
+- New: a one-off alert when it is time to go. Turn it off in Settings.
+- Easier on the battery. Updates and location accuracy scale with how close departure is, so a trip hours away costs almost nothing and GPS stays idle until you are near the station.
+- A shared SBB trip now starts tracking itself, and the legs still to come show while you ride.
+- New "How tracking works" section in Settings.
+- Apple Watch: while you follow a route the tracked train shows its own terminus, with your final destination below. Delayed trains no longer disappear early.

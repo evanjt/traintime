@@ -1,0 +1,4 @@
+- Il tracciamento sopravvive all'uscita dall'app. Un'attività in corso mantiene vivo il conto alla rovescia fino al momento di uscire.
+- Usa la posizione in background mentre un tracciamento è in corso, così il margine a piedi resta giusto, e si spegne quando lo interrompi.
+- Su un percorso condiviso, il treno tracciato mostra il proprio capolinea, con la tua destinazione finale sotto.
+- I treni in ritardo restano visibili fino alla partenza effettiva.

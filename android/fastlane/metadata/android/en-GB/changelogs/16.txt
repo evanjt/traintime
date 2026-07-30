@@ -1,0 +1,4 @@
+- Tracking keeps running with the app closed. A live notification counts down to your train with platform, delay and walk margin. On Android 16 it rides in the status bar.
+- It counts down to when you must leave, then says Leave now.
+- Tracking uses background location to keep that margin right, only while a session runs. GPS stays off until you are near.
+- A shared SBB trip now tracks itself. New help: How tracking works, in Settings.

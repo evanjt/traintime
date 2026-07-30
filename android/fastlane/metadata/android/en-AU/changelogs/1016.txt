@@ -1,0 +1,4 @@
+- Tracking now survives leaving the app. An ongoing activity keeps the countdown live and counts down to when you have to leave.
+- It uses location in the background while a session runs, so the walk margin stays right, and stops when you stop tracking.
+- While following a shared route, the tracked train shows its own terminus, with your final destination below.
+- Delayed trains stay on screen until they actually go.

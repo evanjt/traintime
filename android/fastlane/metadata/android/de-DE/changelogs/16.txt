@@ -1,0 +1,4 @@
+- Die Verfolgung läuft auch bei geschlossener App weiter. Eine Live-Mitteilung zählt zum Zug herunter, mit Gleis, Verspätung und Gehzeit-Reserve. Unter Android 16 in der Statusleiste.
+- Sie zählt bis zum Losgehen und sagt dann "Jetzt los".
+- Dafür nutzt sie den Standort im Hintergrund, nur während eine Verfolgung läuft. GPS bleibt aus, bis du nah bist.
+- Eine geteilte SBB-Reise verfolgt sich selbst. Neu: "So funktioniert die Verfolgung".

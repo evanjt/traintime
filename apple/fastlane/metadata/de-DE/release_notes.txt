@@ -1,3 +1,8 @@
-- Das iPhone zeigt jetzt live, was deine Uhr verfolgt.
-- TrainTime spricht jetzt Deutsch, Französisch und Italienisch und folgt den Spracheinstellungen deines iPhone.
-- Kleinere Verbesserungen und Wartung.
+- Die Verfolgung läuft jetzt auch bei geschlossener App weiter. Eine Live-Aktivität auf dem Sperrbildschirm und in der Dynamic Island zählt zum Zug herunter, mit Gleis, Verspätung, Gehzeit-Reserve und Stopp-Taste.
+- Dafür nutzt TrainTime deinen Standort im Hintergrund, aber nur während eine Verfolgung läuft. Nur so bleiben Gehzeit-Reserve und "Jetzt los" bei geschlossener App korrekt. Die Standortanzeige bleibt die ganze Zeit sichtbar, und der Hintergrund-Standort schaltet sich ab, sobald du die Verfolgung beendest.
+- Der Countdown zählt bis zum Losgehen, berechnet aus deiner Gehzeit zum Bahnhof, und sagt dann "Jetzt los".
+- Neu: ein einmaliger Hinweis, wenn es Zeit ist zu gehen. In den Einstellungen abschaltbar.
+- Akkuschonend. Updates und Standortgenauigkeit richten sich danach, wie nah die Abfahrt ist, eine Reise in ein paar Stunden kostet fast nichts und GPS bleibt aus, bis du in der Nähe bist.
+- Eine geteilte SBB-Reise verfolgt sich jetzt selbst, und die noch kommenden Teilstrecken siehst du unterwegs.
+- Neu: "So funktioniert die Verfolgung" in den Einstellungen.
+- Apple Watch: Auf einer Route zeigt der verfolgte Zug seinen eigenen Endbahnhof, dein Reiseziel darunter. Verspätete Züge verschwinden nicht mehr zu früh.

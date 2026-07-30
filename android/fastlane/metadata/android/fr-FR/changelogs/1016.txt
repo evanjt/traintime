@@ -1,0 +1,4 @@
+- Le suivi survit désormais à la fermeture de l'app. Une activité en cours garde le décompte en direct et décompte jusqu'au moment de partir.
+- Il utilise la position en arrière-plan pendant un suivi, pour garder la marge de marche juste, et s'arrête quand vous arrêtez.
+- Sur un itinéraire partagé, le train suivi affiche son propre terminus, avec votre destination finale en dessous.
+- Les trains en retard restent affichés jusqu'à leur départ réel.

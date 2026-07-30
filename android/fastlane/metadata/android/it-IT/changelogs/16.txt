@@ -1,0 +1,4 @@
+- Il tracciamento continua anche ad app chiusa. Una notifica in tempo reale conta alla rovescia fino al treno, con binario, ritardo e margine a piedi. Su Android 16 nella barra di stato.
+- Conta fino al momento di uscire, poi mostra "Vai ora".
+- Per farlo usa la posizione in background, solo durante un tracciamento. Il GPS resta spento finché sei lontano.
+- Un viaggio FFS condiviso si traccia da solo. Nuova guida: "Come funziona il tracciamento".

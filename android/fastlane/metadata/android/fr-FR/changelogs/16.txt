@@ -1,0 +1,4 @@
+- Le suivi continue même app fermée. Une notification en direct décompte jusqu'à votre train, avec quai, retard et marge de marche. Sous Android 16, dans la barre d'état.
+- Il décompte jusqu'au moment de partir, puis affiche « Partez ».
+- Pour cela il utilise la position en arrière-plan, uniquement pendant un suivi. Le GPS reste éteint tant que vous êtes loin.
+- Un trajet CFF partagé se suit tout seul. Nouvelle aide : « Comment fonctionne le suivi ».

@@ -1,3 +1,8 @@
-- L'iPhone ora mostra in tempo reale cosa sta seguendo il tuo orologio.
-- TrainTime ora parla tedesco, francese e italiano, seguendo le impostazioni della lingua del tuo iPhone.
-- Piccoli miglioramenti e manutenzione.
+- Il tracciamento ora continua anche ad app chiusa. Un'attività in tempo reale sulla schermata di blocco e nella Dynamic Island conta alla rovescia fino al treno, con binario, ritardo, margine a piedi e un pulsante di stop.
+- Per farlo, TrainTime usa la tua posizione in background, ma solo mentre un tracciamento è in corso. È così che il margine a piedi e l'ora di uscire restano corretti ad app chiusa. L'indicatore di posizione resta visibile per tutto il tempo, e la posizione in background si spegne appena interrompi il tracciamento.
+- Il conto alla rovescia arriva al momento di uscire, calcolato sul tempo a piedi fino alla stazione, poi mostra "Vai ora".
+- Novità: un avviso singolo quando è ora di andare. Si disattiva nelle impostazioni.
+- Consuma meno batteria. Aggiornamenti e precisione della posizione seguono quanto è vicina la partenza, quindi un viaggio fra qualche ora costa quasi nulla e il GPS resta spento finché sei lontano.
+- Un viaggio FFS condiviso ora si traccia da solo, e le tratte successive restano visibili durante il viaggio.
+- Novità: "Come funziona il tracciamento" nelle impostazioni.
+- Apple Watch: su un percorso il treno tracciato mostra il proprio capolinea, con la tua destinazione finale sotto. I treni in ritardo non spariscono più troppo presto.
