@@ -224,3 +224,33 @@ final class PendingRouteLogicTests: XCTestCase {
         XCTAssertEqual(PendingRouteLogic.advancedAfterTracking(saved, endedDepTs: now + 3600, now: now), saved)
     }
 }
+
+// The tier table has to stay identical to Android's TrackingLogic.pollTier, so
+// a session costs the same battery on both platforms.
+final class TrackingTiersTests: XCTestCase {
+    func testPausedBeyondSixHours() {
+        let tier = TrackingTiers.pollTier(minutesUntil: 361)
+        XCTAssertNil(tier.apiInterval)
+        XCTAssertEqual(tier.location, .off)
+    }
+
+    func testBoundariesFallIntoTheTighterTier() {
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 360).apiInterval, 900)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 60).apiInterval, 450)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 30).apiInterval, 60)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 10).apiInterval, 30)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 2).apiInterval, 15)
+    }
+
+    func testGpsOnlyWakesInsideThirtyMinutes() {
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 45).location, .off)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 20).location, .balanced)
+        XCTAssertEqual(TrackingTiers.pollTier(minutesUntil: 5).location, .high)
+    }
+
+    func testDepartedStillMapsToTheImminentTier() {
+        let tier = TrackingTiers.pollTier(minutesUntil: -1)
+        XCTAssertEqual(tier.apiInterval, 15)
+        XCTAssertEqual(tier.location, .high)
+    }
+}

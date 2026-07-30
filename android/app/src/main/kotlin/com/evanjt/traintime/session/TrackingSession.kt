@@ -3,6 +3,7 @@ package com.evanjt.traintime.session
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.FocusedDeparture
+import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.ui.TrackingStatus
 import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -56,8 +57,9 @@ object TrackingSessionBus {
 // TrackingNotificationService (background). All functions take `now`
 // explicitly for testability.
 object TrackingLogic {
-    // In-app auto-exit threshold: departed more than a minute ago.
-    const val DEPARTED_GRACE_SEC = 90L
+    // One grace for the whole app: the in-app auto-exit, the background session
+    // and a saved route's missed-leg rule all measure from the same number.
+    const val DEPARTED_GRACE_SEC = PendingRouteLogic.GRACE_SEC
 
     // How to run location for a given proximity tier. Accuracy costs battery, and
     // the walk/bar only matter once you're about to walk, so GPS stays off until

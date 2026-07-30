@@ -119,6 +119,17 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_APP_LANGUAGE] = value }
     }
 
+    // The route leg whose live session the user ended by hand ("<routeId>:<cursor>",
+    // "" for none). Survives a process kill so reopening the app doesn't
+    // re-establish a session the user deliberately stopped. The route itself,
+    // and its reminder, are untouched.
+    val stoppedSessionLeg: Flow<String> =
+        dataStore.data.map { it[KEY_STOPPED_SESSION_LEG] ?: "" }
+
+    suspend fun setStoppedSessionLeg(value: String) {
+        dataStore.edit { it[KEY_STOPPED_SESSION_LEG] = value }
+    }
+
     // Review gating: count tracking sessions so a brand-new user isn't prompted,
     // and remember the version we last prompted on so we only ask once per release.
     val reviewTrackCount: Flow<Int> =
@@ -285,6 +296,7 @@ class AppPrefs(context: Context) {
         val KEY_DISTANCE_AWARE_REMINDER = booleanPreferencesKey("distanceAwareReminder")
         val KEY_BACKGROUND_REMINDER_TRACKING = booleanPreferencesKey("backgroundReminderTracking")
         val KEY_ALERT_BEFORE_DEPARTURE = booleanPreferencesKey("alertBeforeDeparture")
+        val KEY_STOPPED_SESSION_LEG = stringPreferencesKey("stoppedSessionLeg")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")
         val KEY_GARMIN_LAST_ALIVE = longPreferencesKey("garminLastAliveTs")

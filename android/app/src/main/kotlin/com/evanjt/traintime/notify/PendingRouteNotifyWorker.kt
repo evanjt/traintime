@@ -67,7 +67,7 @@ class PendingRouteNotifyWorker(
             // Expire at departure. A "leaves at 04:46" reminder is noise once the
             // train has gone, and with the app closed nothing else clears it.
             .setTimeoutAfter(
-                ((leg.depTs + DEPARTED_GRACE_SEC) * 1000 - System.currentTimeMillis())
+                ((leg.depTs + PendingRouteLogic.GRACE_SEC) * 1000 - System.currentTimeMillis())
                     .coerceAtLeast(MIN_TIMEOUT_MS),
             )
 
@@ -99,8 +99,6 @@ class PendingRouteNotifyWorker(
     }
 
     private companion object {
-        // Same grace the tracking session uses before it calls a train departed.
-        const val DEPARTED_GRACE_SEC = 90L
         const val MIN_TIMEOUT_MS = 60_000L
     }
 }

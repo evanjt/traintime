@@ -11,10 +11,13 @@ extension TrainTimeViewModel {
         // carries it), so live platform/delay are adopted even though the leg's
         // destName is the alight stop, not the board's terminus. Fall back to
         // destination for board taps that lack a train number (buses/trams).
+        // minutesUntil is scheduled, so the delay has to be added or a late
+        // train drops off the board a minute after its scheduled time and the
+        // effective-departure grace below never gets a chance to run.
         let matches = departures.filter {
             ($0.destination == focused.destination ||
                 (focused.trainNumber != nil && $0.trainNumber == focused.trainNumber)) &&
-                $0.minutesUntil >= -1
+                Double($0.minutesUntil) + Double($0.delay) >= -1
         }
         guard let best = matches.min(by: {
             abs(Double($0.minutesUntil) - focused.minutesUntil) <
@@ -24,7 +27,8 @@ extension TrainTimeViewModel {
             // opened early, before it reaches the 20-row horizon). Keep the
             // local countdown; only give up once it has actually departed.
             let nowS = Int(Date().timeIntervalSince1970)
-            if nowS < focused.departureTimestamp + PendingRouteLogic.graceSec { return }
+            let effectiveDep = focused.departureTimestamp + focused.delay * 60
+            if nowS < effectiveDep + PendingRouteLogic.graceSec { return }
             HapticService.shortPulse()
             exitToStationView()
             return

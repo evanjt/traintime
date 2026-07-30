@@ -30,8 +30,10 @@ import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.evanjt.traintime.domain.Fix
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.LocaleUtil
+import com.evanjt.traintime.domain.WalkEstimator
 import com.evanjt.traintime.ui.TrackingStatus
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -63,11 +65,17 @@ import kotlinx.serialization.encodeToString
 // fetches the board and recomputes the walk from its own location updates.
 class TrackingNotificationService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private var snapshot: TrackingSnapshot? = null
-    private var lastFixLat: Double? = null
-    private var lastFixLon: Double? = null
-    private var lastFixElapsed: Long = 0
+
+    // Written from the main thread (onStartCommand, the location callback) and
+    // read from the loop on Dispatchers.Default, so every shared field is
+    // volatile and the fix is one immutable value: reading lat and lon
+    // separately could otherwise tear.
+    @Volatile private var snapshot: TrackingSnapshot? = null
+    @Volatile private var lastFix: TimedFix? = null
     private var loopStarted = false
+
+    // Captured on the monotonic clock; age is derived when the walk is computed.
+    private data class TimedFix(val lat: Double, val lon: Double, val elapsedMs: Long)
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -215,15 +223,22 @@ class TrackingNotificationService : Service() {
             }
         }
 
-        val fixFresh = lastFixLat != null &&
-            android.os.SystemClock.elapsedRealtime() - lastFixElapsed < FIX_MAX_AGE_MS
-        val walk = if (fixFresh && snap.stationLat != null && snap.stationLon != null) {
-            GeoUtils.haversineDistance(lastFixLat!!, lastFixLon!!, snap.stationLat, snap.stationLon)
-        } else {
-            snap.walkDistMeters.takeIf { snap.gpsOk }
-        }
+        // A stale fix still beats no margin: without background location every
+        // fix goes stale within minutes, and discarding it would blank the walk
+        // rather than fall back to where the user last was.
+        val elapsedNow = android.os.SystemClock.elapsedRealtime()
+        val estimate = WalkEstimator.estimate(
+            fix = lastFix?.let { Fix(it.lat, it.lon, elapsedNow - it.elapsedMs) },
+            stationLat = snap.stationLat,
+            stationLon = snap.stationLon,
+            fallbackMeters = snap.walkDistMeters.takeIf { snap.gpsOk },
+        )
 
-        val updated = snap.copy(focused = focused, walkDistMeters = walk, gpsOk = fixFresh || (snap.gpsOk && walk != null))
+        val updated = snap.copy(
+            focused = focused,
+            walkDistMeters = estimate.distanceMeters,
+            gpsOk = estimate.known,
+        )
         snapshot = updated
 
         if (focused.platform != previousPlatform && focused.platformChanged) {
@@ -236,6 +251,10 @@ class TrackingNotificationService : Service() {
     // near the station where the walk/bar matter, balanced (coarse, larger
     // displacement) at the mid tier, and fully off when far or foreground — the
     // biggest battery lever, since GPS is the dominant drain.
+    // Synchronized: the loop and the foreground collector both call this, and two
+    // concurrent calls could otherwise each register a callback while only the
+    // last one is ever removed, leaking location updates for the process's life.
+    @Synchronized
     private fun applyLocationMode(mode: TrackingLogic.LocationMode) {
         if (mode == currentLocationMode) return
         currentLocationMode = mode
@@ -254,9 +273,11 @@ class TrackingNotificationService : Service() {
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val loc = result.lastLocation ?: return
-                lastFixLat = loc.latitude
-                lastFixLon = loc.longitude
-                lastFixElapsed = android.os.SystemClock.elapsedRealtime()
+                lastFix = TimedFix(
+                    loc.latitude,
+                    loc.longitude,
+                    android.os.SystemClock.elapsedRealtime(),
+                )
             }
         }
         locationCallback = callback
@@ -267,14 +288,14 @@ class TrackingNotificationService : Service() {
         }
     }
 
-    private var locationCallback: LocationCallback? = null
-    private var currentLocationMode: TrackingLogic.LocationMode? = null
+    @Volatile private var locationCallback: LocationCallback? = null
+    @Volatile private var currentLocationMode: TrackingLogic.LocationMode? = null
 
     // Fired at most once per session: the distance-aware "time to leave" heads-up.
     // `approachAlerted` also carries the immersive-start suppression, which is lifted
     // on backgrounding; `approachFired` records an actual fire so it isn't re-shown.
-    private var approachAlerted = false
-    private var approachFired = false
+    @Volatile private var approachAlerted = false
+    @Volatile private var approachFired = false
 
     // The one-shot leave alert. Distance-aware by default: due once the effective
     // departure is within walk time plus the reminder-lead buffer. Fixed-lead
@@ -462,14 +483,15 @@ class TrackingNotificationService : Service() {
             // walk you are, the same margin the bar and ahead/behind line show.
             val leaveByDelta = leaveBySec - now
             fun ms(s: Long) = String.format("%d:%02d", s / 60, s % 60)
-            val critical = when {
-                departing -> clock
-                leaveByDelta < 0 -> "-" + ms(-leaveByDelta)
-                leaveByDelta < 120 -> ms(leaveByDelta)
-                leaveByDelta < 3600 -> "${leaveByDelta / 60}m"
-                else -> "${leaveByDelta / 3600}h"
+            // Only where the chronometer has nothing useful to show: after
+            // departure, and once the leave-by moment has passed (a countdown
+            // past zero is not reliably rendered as negative). Setting it while
+            // there is still margin freezes the chip at our render rate, and on
+            // the paused tier we don't render at all.
+            when {
+                departing -> b.setShortCriticalText(clock)
+                leaveByDelta < 0 -> b.setShortCriticalText("-" + ms(-leaveByDelta))
             }
-            b.setShortCriticalText(critical)
             if (departing) {
                 // Past the departure: freeze rather than counting into the
                 // negatives. A delayed train keeps its card until it really goes.
@@ -791,7 +813,6 @@ class TrackingNotificationService : Service() {
         // How long to sleep between wakes on the paused (> 6 h) tier: no fetch,
         // no GPS, just a periodic clock check to notice the departure nearing.
         private const val PAUSED_WAKE_SEC = 300L
-        private const val FIX_MAX_AGE_MS = 3 * 60 * 1000L
 
         // Floor for a one-shot alert's self-expiry, so an alert fired right on
         // top of the departure is still readable before it clears.

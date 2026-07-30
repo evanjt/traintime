@@ -9,8 +9,9 @@ import com.evanjt.traintime.data.sbb.RouteLeg
 // tracking ends, event plumbing only makes advancement prompt, never
 // correct. All functions take `now` explicitly for testability.
 object PendingRouteLogic {
-    // Matches the departed auto-exit (minutesUntil < -1) so a leg isn't
-    // declared missed while its tracking session could still be running.
+    // Matches the tracking session's departed rule so a leg isn't declared
+    // missed while its session could still be running. Measured from the
+    // effective departure, so a delayed train keeps its grace.
     const val GRACE_SEC = 90L
 
     // Notification lead for the first leg of a saved route: at least 15 min

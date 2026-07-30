@@ -407,6 +407,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             TrackingSessionBus.stopRequests.collect {
                 if (appState == 2) exitToStationView() else clearBackgroundTracking()
+                markSessionStopped()
             }
         }
 
@@ -811,7 +812,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // A background-tracked session that has departed: drop the board card
         // (the service's own loop ends and posts its "departed" card).
         backgroundTracked?.let {
-            if (it.minutesUntil(nowSeconds()) < -1.0) clearBackgroundTracking()
+            if (TrackingLogic.departed(it, nowSeconds())) clearBackgroundTracking()
         }
 
         val coord = location.coordinate.value ?: return
@@ -837,9 +838,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val focused = focusedTrain
             if (focused != null) {
                 val minutesLeft = focused.minutesUntil(nowSeconds())
-                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
-                // station view, so polling stops right away. The watch expires on its own depTs.
-                if (minutesLeft < -1.0) {
+                // Departed: drop to the inactive tap-to-refresh state, not the station
+                // view, so polling stops right away. The watch expires on its own depTs.
+                // Measured from the effective departure, so a delayed train isn't
+                // abandoned while the user is still waiting for it.
+                if (TrackingLogic.departed(focused, nowSeconds())) {
                     haptics.shortPulse()
                     enterInactiveState()
                     return
@@ -940,6 +943,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun beginTracking(focused: FocusedDeparture, mirror: Boolean = true) {
         focusedTrain = focused
         appState = 2
+        // The immersive screen owns the session from here. Without this the
+        // service's loop still believes it is backgrounded: it duplicates every
+        // fetch, thrashes the location tier, and clears the approach-alert
+        // suppression this call is about to ask for.
+        TrackingSessionBus.appForeground.value = true
         location.setTrackingAccuracy(true)
         consecutiveErrors = 0
         lastVibeTick = 0
@@ -1033,6 +1041,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onTrackingEnded(if (appState == 2) focusedTrain?.departureTimestamp else null)
         if (appState == 2) TrackingNotificationService.stop(getApplication())
         appState = 3
+        // Hand ownership back to the service's loop, which a surviving
+        // background session still needs.
+        TrackingSessionBus.appForeground.value = false
         location.setTrackingAccuracy(false)
         focusedTrain = null
         formation = null
@@ -1810,6 +1821,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         pendingWatchTrackSend = false
         lastInteractionTime = now()
         appState = 0
+        TrackingSessionBus.appForeground.value = false
         location.setTrackingAccuracy(false)
         focusedTrain = null
         formation = null
@@ -2405,6 +2417,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         backgroundTrackedStation = null
     }
 
+    // Remember which route leg the user stopped by hand, so refreshPendingRoute
+    // doesn't re-establish it on the next foreground. Cleared whenever a session
+    // starts for that leg again.
+    private fun markSessionStopped() {
+        viewModelScope.launch {
+            val route = pendingRouteStore.current() ?: return@launch
+            prefs.setStoppedSessionLeg(stoppedLegKey(route.id, route.cursor))
+        }
+    }
+
+    private fun stoppedLegKey(routeId: String, cursor: Int) = "$routeId:$cursor"
+
     // Board "now tracking" card stop: end the background session and its
     // notification without re-opening the tracking screen. When a shared route
     // backs the session, X clears the whole journey (route + reminder), matching
@@ -2579,6 +2603,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = offer.forceLegIndex ?: offer.route.targetRideLegIndex(nowSeconds()) ?: return
         val pending = pendingFor(offer, index).copy(status = PendingRoute.STATUS_SAVED)
         pendingRouteStore.save(pending)
+        prefs.setStoppedSessionLeg("")
         // Pin the reminder's walk time to where the user actually is now, not the
         // last nearby-search coordinate (only refreshed on a ~500 m move), so the
         // distance-aware lead matches the live walk shown on the board.
@@ -2623,6 +2648,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // the green now-tracking card is the single top surface; the tiered
         // engine keeps a far session paused and free. No-op if a session already
         // runs, we're mid immersive-tracking, or the current leg isn't trackable.
+        // A leg the user stopped by hand stays stopped: the route and its
+        // reminder survive, only the live session doesn't come back.
+        val stopped = prefs.stoppedSessionLeg.first()
+        if (stopped == stoppedLegKey(normalized.id, normalized.cursor)) return
         normalized.legs.getOrNull(normalized.cursor)?.let { leg ->
             enterBackgroundTrack(leg, leg.originName, normalized.finalDestination)
         }
@@ -2667,6 +2696,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val pending = route.copy(cursor = index, status = PendingRoute.STATUS_TRACKING)
         viewModelScope.launch {
             pendingRouteStore.save(pending)
+            prefs.setStoppedSessionLeg("")
             PendingRouteNotifier.schedule(getApplication(), pending, nowSeconds())
         }
         setLaunchedStation(stationId, leg.originName, leg.originLat, leg.originLon)

@@ -859,6 +859,17 @@ class PhoneViewModel: ObservableObject {
             }
         }
 
+        // A parked background session has no tracking screen driving it, so this
+        // tick is the only thing that can retire its card and Live Activity once
+        // the train has gone. Without it the card sits at "0 min" and the Live
+        // Activity survives to ActivityKit's own cap.
+        if appState != 2, let parked = backgroundTracked, hasDeparted(parked) {
+            backgroundTracked = nil
+            backgroundTrackedStation = nil
+            PendingRouteNotifier.cancelApproachAlert()
+            endLiveActivity(departed: true)
+        }
+
         // State 2: auto-exit check and heartbeat
         if appState == 2 {
             if let focused = focusedTrain {
@@ -989,6 +1000,15 @@ class PhoneViewModel: ObservableObject {
     /// a track the watch already owns — re-sending it would make the watch
     /// re-enter (and re-buzz) its own tracking.
     private func beginTracking(_ focused: FocusedDeparture, mirror mirrorToWatches: Bool = true) {
+        // Only one session exists at a time. Tracking something new retires any
+        // parked background session, otherwise the board keeps a card for a
+        // train whose Live Activity startLiveActivity is about to replace, and
+        // its leave alert would still fire.
+        if backgroundTracked != nil {
+            backgroundTracked = nil
+            backgroundTrackedStation = nil
+            PendingRouteNotifier.cancelApproachAlert()
+        }
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
@@ -1324,10 +1344,13 @@ class PhoneViewModel: ObservableObject {
         // carries it), so live platform/delay are adopted even though the leg's
         // destName is the alight stop, not the board's terminus. Fall back to
         // destination for board taps that lack a train number (buses/trams).
+        // minutesUntil is scheduled, so the delay has to be added or a late
+        // train drops off the board a minute after its scheduled time and the
+        // effective-departure grace below never gets a chance to run.
         let matches = departures.filter {
             ($0.destination == focused.destination ||
                 (focused.trainNumber != nil && $0.trainNumber == focused.trainNumber)) &&
-                $0.minutesUntil >= -1
+                Double($0.minutesUntil) + Double($0.delay) >= -1
         }
         guard let best = matches.min(by: {
             abs(Double($0.minutesUntil) - focused.minutesUntil) <
@@ -1337,7 +1360,8 @@ class PhoneViewModel: ObservableObject {
             // opened early, before it reaches the 20-row horizon). Keep the
             // local countdown; only give up once it has actually departed.
             let nowS = Int(Date().timeIntervalSince1970)
-            if nowS < focused.departureTimestamp + PendingRouteLogic.graceSec { return }
+            let effectiveDep = focused.departureTimestamp + focused.delay * 60
+            if nowS < effectiveDep + PendingRouteLogic.graceSec { return }
             PhoneHapticService.shortPulse()
             exitToStationView()
             return

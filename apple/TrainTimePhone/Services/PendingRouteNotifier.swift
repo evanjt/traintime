@@ -211,14 +211,18 @@ enum PendingRouteNotifier {
     static func scheduleApproachAlert(_ focused: FocusedDeparture, walkSeconds: Int, now: Int) {
         cancelApproachAlert()
         requestAuthorizationIfNeeded()
+        // Measured from the effective departure, matching the Android tier
+        // engine. Scheduling off the timetable would alert a +10 train ten
+        // minutes early, while the body below already prints the delayed time.
+        let effectiveDep = focused.departureTimestamp + focused.delay * 60
         let lead = walkSeconds + savedLeadSec
-        let fireIn = focused.departureTimestamp - lead - now
+        let fireIn = effectiveDep - lead - now
         guard fireIn > 0 else { return }
 
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
-        let time = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(focused.departureTimestamp + focused.delay * 60)))
+        let time = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(effectiveDep)))
         let line = focused.lineNumber.isEmpty ? String(localized: "Train") : focused.lineNumber
 
         let content = UNMutableNotificationContent()
