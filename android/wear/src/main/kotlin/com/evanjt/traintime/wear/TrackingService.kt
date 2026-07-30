@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -36,16 +37,22 @@ class TrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val title = intent?.getStringExtra(EXTRA_TITLE) ?: trackingLabel()
+        val leaveByMs = intent?.getLongExtra(EXTRA_LEAVE_BY, 0L) ?: 0L
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
         } else {
             0
         }
-        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(title), type)
+        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(title, leaveByMs), type)
         return START_STICKY
     }
 
-    private fun buildNotification(title: String): Notification {
+    // `leaveByMs` is the wall-clock moment to leave (effective departure − walk); 0
+    // while the walk is unknown. When known, both the notification chronometer and
+    // the watch-face OngoingActivity count down to it, mirroring the Android phone
+    // notification's leave-by countdown. The OngoingActivity timer is elapsedRealtime-
+    // based, so the wall-clock target is converted at build time.
+    private fun buildNotification(title: String, leaveByMs: Long): Notification {
         val label = trackingLabel()
         ensureChannel(label)
         val touchIntent = PendingIntent.getActivity(
@@ -63,10 +70,29 @@ class TrackingService : Service() {
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setContentIntent(touchIntent)
 
+        val useTimer = leaveByMs > 0
+        if (useTimer) {
+            builder.setWhen(leaveByMs).setShowWhen(true)
+                .setUsesChronometer(true).setChronometerCountDown(true)
+        } else {
+            builder.setShowWhen(false)
+        }
+
+        val status = if (useTimer) {
+            val timeZeroElapsed = SystemClock.elapsedRealtime() + (leaveByMs - System.currentTimeMillis())
+            Status.Builder()
+                .addTemplate("#dest# · #timer#")
+                .addPart("dest", Status.TextPart(title))
+                .addPart("timer", Status.TimerPart(timeZeroElapsed))
+                .build()
+        } else {
+            Status.Builder().addTemplate(title).build()
+        }
+
         val ongoing = OngoingActivity.Builder(applicationContext, NOTIF_ID, builder)
             .setStaticIcon(android.R.drawable.ic_menu_mylocation)
             .setTouchIntent(touchIntent)
-            .setStatus(Status.Builder().addTemplate(title).build())
+            .setStatus(status)
             .build()
         ongoing.apply(applicationContext)
 
@@ -87,8 +113,10 @@ class TrackingService : Service() {
         private const val CHANNEL_ID = "tracking"
         private const val NOTIF_ID = 1
 
-        fun start(context: Context, title: String) {
-            val intent = Intent(context, TrackingService::class.java).putExtra(EXTRA_TITLE, title)
+        fun start(context: Context, title: String, leaveByMs: Long = 0L) {
+            val intent = Intent(context, TrackingService::class.java)
+                .putExtra(EXTRA_TITLE, title)
+                .putExtra(EXTRA_LEAVE_BY, leaveByMs)
             runCatching { ContextCompat.startForegroundService(context, intent) }
         }
 
@@ -97,5 +125,6 @@ class TrackingService : Service() {
         }
 
         private const val EXTRA_TITLE = "title"
+        private const val EXTRA_LEAVE_BY = "leaveBy"
     }
 }

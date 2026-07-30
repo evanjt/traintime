@@ -90,6 +90,7 @@ class TrackingNotificationService : Service() {
                 parsed?.let {
                     if (it.focused.departureTimestamp != snapshot?.focused?.departureTimestamp) {
                         approachAlerted = intent?.getBooleanExtra(EXTRA_SUPPRESS_ALERT, false) == true
+                        approachFired = false
                     }
                     snapshot = it
                 }
@@ -139,6 +140,10 @@ class TrackingNotificationService : Service() {
         scope.launch {
             TrackingSessionBus.appForeground.collect { foreground ->
                 if (!foreground) snapshot?.let { snap ->
+                    // Leaving the immersive screen: lift the start-time suppression so a
+                    // backgrounded session still gets its one "time to leave" heads-up,
+                    // unless it already fired this session.
+                    if (!approachFired) approachAlerted = false
                     val now = System.currentTimeMillis() / 1000
                     applyLocationMode(TrackingLogic.pollTier(effectiveMinutes(snap, now)).location)
                 }
@@ -266,7 +271,10 @@ class TrackingNotificationService : Service() {
     private var currentLocationMode: TrackingLogic.LocationMode? = null
 
     // Fired at most once per session: the distance-aware "time to leave" heads-up.
+    // `approachAlerted` also carries the immersive-start suppression, which is lifted
+    // on backgrounding; `approachFired` records an actual fire so it isn't re-shown.
     private var approachAlerted = false
+    private var approachFired = false
 
     // The one-shot leave alert. Distance-aware by default: due once the effective
     // departure is within walk time plus the reminder-lead buffer. Fixed-lead
@@ -286,6 +294,7 @@ class TrackingNotificationService : Service() {
         val walkArg = if (distanceAware) (walkMin ?: 0.0) else 0.0
         if (TrackingLogic.approachDue(snap.focused, walkArg, bufferLead, nowEpochSeconds)) {
             approachAlerted = true
+            approachFired = true
             alertApproach(snap)
         }
     }

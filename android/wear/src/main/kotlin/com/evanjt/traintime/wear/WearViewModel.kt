@@ -501,7 +501,7 @@ class WearViewModel(
         val leg = route.legs.getOrNull(index)?.takeIf { it.isTrackable } ?: return
         val stationId = leg.originId ?: return
         setLaunchedStation(stationId, leg.originName, leg.originLat, leg.originLon)
-        enterProtectedTrack(leg)
+        enterProtectedTrack(leg, route.finalDestination)
     }
 
     // Track command from the phone (MessageClient): enter tracking directly.
@@ -513,7 +513,7 @@ class WearViewModel(
     // countdown is fully local (derived from depTs); updateFocusedTrain keeps
     // it until the train departs, then a live board match upgrades it with
     // real delay/platform.
-    private fun enterProtectedTrack(leg: RouteLeg) {
+    private fun enterProtectedTrack(leg: RouteLeg, routeDestination: String?) {
         beginTracking(
             FocusedDeparture(
                 destination = leg.destName,
@@ -525,6 +525,7 @@ class WearViewModel(
                 delay = 0,
                 platform = "",
                 platformChanged = false,
+                routeDestination = routeDestination,
             ),
             leg.originId,
         )
@@ -559,9 +560,27 @@ class WearViewModel(
                 }.getOrNull()
             }
         }
-        TrackingService.start(getApplication(), focused.destination)
+        lastPushedLeaveByMs = 0L
+        refreshTrackingService()
         startTimer(Timing.TRACKING_REFRESH_INTERVAL)
         haptics.shortPulse()
+    }
+
+    private var lastPushedLeaveByMs = 0L
+
+    // Push the leave-by moment (effective departure − walk) to the foreground service
+    // so the watch-face OngoingActivity counts down to it, mirroring the Android phone
+    // notification. Re-pushes only when it shifts >30 s (walk refines, delay updates),
+    // so a settled session doesn't restart the service every tick.
+    private fun refreshTrackingService() {
+        val focused = focusedTrain ?: return
+        if (appState != 2) return
+        val hasGps = gpsQuality != GpsQuality.UNAVAILABLE && gpsQuality != GpsQuality.LAST_KNOWN
+        val walkSec = if (hasGps) (GeoUtils.walkMinutes(lastWalkDist) * 60).toLong() else 0L
+        val leaveByMs = (focused.departureTimestamp + focused.delay * 60 - walkSec) * 1000L
+        if (kotlin.math.abs(leaveByMs - lastPushedLeaveByMs) < 30_000L) return
+        lastPushedLeaveByMs = leaveByMs
+        TrackingService.start(getApplication(), focused.destination, leaveByMs)
     }
 
     // Ask the phone to save the focused departure as a reminder. Needs the origin
@@ -689,7 +708,9 @@ class WearViewModel(
             val focused = focusedTrain
             if (focused != null) {
                 val minutesLeft = focused.minutesUntil(nowSeconds())
-                if (minutesLeft < -1.0) {
+                // Departed past the grace, counting the live delay (matches the other
+                // platforms): a late train isn't dropped at its scheduled time.
+                if (minutesLeft + focused.delay < -1.5) {
                     // Train long gone: go inactive like the Apple watch, so the
                     // next glance shows fresh data instead of a stale list.
                     haptics.shortPulse()
@@ -706,6 +727,7 @@ class WearViewModel(
                         lastVibeTick = nowS
                     }
                 }
+                refreshTrackingService()
             }
         }
 

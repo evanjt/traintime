@@ -117,6 +117,18 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 )
             }
 
+            // The train's own terminus stays the headline; the journey's end shows
+            // apart, matching the phone, Apple Watch and Garmin (routed-track fix).
+            val routeDest = focused?.routeDestination
+            if (routeDest != null && routeDest != focused.destination) {
+                Text(
+                    "→ $routeDest",
+                    color = secondary,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                )
+            }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),

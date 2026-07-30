@@ -1,11 +1,12 @@
 import ActivityKit
+import AppIntents
 import Foundation
 
 /// Live Activity contract for a tracking session (Lock Screen + Dynamic
 /// Island). Target membership: TrainTimePhone (starts/updates it) and
-/// TrainTimeWidgetExtension (renders it). The countdown and the progress bar
-/// render from `effectiveDeparture` system-side, so they keep ticking with the
-/// app suspended or dead; everything else refreshes on each update.
+/// TrainTimeWidgetExtension (renders it). The countdown ticks to the leave-by
+/// moment (departure − walk) system-side, so it stays correct with the app
+/// suspended or dead; the bar and everything else refresh on each update.
 struct TrackingActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         /// Scheduled departure with the live delay applied.
@@ -41,4 +42,22 @@ enum TrackingVerdict: String {
     case onTime
     case behind
     case noGps
+}
+
+/// Stop button on the Live Activity. `LiveActivityIntent` runs in the app
+/// process, so it only signals the running view model — the analog of Android's
+/// notification Stop action feeding `TrackingSessionBus.stopRequests`. If the app
+/// was terminated, its launch re-runs `reapOrphanLiveActivities`, which ends the
+/// stray card anyway, so a missed signal still tears the card down.
+struct StopTrackingIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "Stop tracking"
+
+    func perform() async throws -> some IntentResult {
+        NotificationCenter.default.post(name: .stopTrackingRequested, object: nil)
+        return .result()
+    }
+}
+
+extension Notification.Name {
+    static let stopTrackingRequested = Notification.Name("com.evanjt.traintime.stopTrackingRequested")
 }

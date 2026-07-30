@@ -177,11 +177,20 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - Init
 
+    private var stopObserver: NSObjectProtocol?
+
     init() {
         reviewStore.ensureFirstLaunchTimestamp()
         // A process death mid-tracking strands the Live Activity; no session can
         // exist yet, so anything found is an orphan.
         reapOrphanLiveActivities()
+
+        // The Live Activity's Stop button (a LiveActivityIntent running in-process)
+        // posts here — the analog of Android's notification Stop → stopRequests.
+        stopObserver = NotificationCenter.default.addObserver(
+            forName: .stopTrackingRequested, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.handleStopFromLiveActivity() }
+        }
 
         if location.coordinate != nil && location.horizontalAccuracy == -1 {
             loadedFromCache = true
@@ -854,9 +863,10 @@ class PhoneViewModel: ObservableObject {
         if appState == 2 {
             if let focused = focusedTrain {
                 let minutesLeft = focused.minutesUntil
-                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
-                // station view, so polling stops right away. The watch expires on its own depTs.
-                if minutesLeft < -1.0 {
+                // Departed past the grace, counting the live delay: drop to the inactive
+                // tap-to-refresh state, not the station view, so polling stops right away.
+                // The watch expires on its own depTs.
+                if hasDeparted(focused) {
                     PhoneHapticService.shortPulse()
                     enterInactiveState()
                     return
@@ -897,7 +907,10 @@ class PhoneViewModel: ObservableObject {
         if appState == 2, let focused = focusedTrain {
             let tier = TrackingTiers.pollTier(minutesUntil: focused.minutesUntil + Double(focused.delay))
             applyLocationTier(tier.location)
-            cooldown = tier.apiInterval ?? .greatestFiniteMagnitude
+            // A held immersive screen must never freeze. The paused tier (>6h out)
+            // has a nil interval; floor it to the far-tier cadence so a distant train
+            // still refreshes while the user watches, instead of stalling forever.
+            cooldown = tier.apiInterval ?? 900
         } else {
             cooldown = Timing.fetchCooldownNormal
         }
@@ -1014,7 +1027,7 @@ class PhoneViewModel: ObservableObject {
         if appState == 2 {
             // Departed auto-exit keeps a final "Departed" card up briefly;
             // a plain timeout dismisses straight away.
-            endLiveActivity(departed: focusedTrain.map { $0.minutesUntil < -1 } ?? false)
+            endLiveActivity(departed: focusedTrain.map(hasDeparted) ?? false)
         }
         appState = 3
         location.setTrackingAccuracy(false)
@@ -1095,6 +1108,16 @@ class PhoneViewModel: ObservableObject {
     func isDepartureFavourite(_ departure: Departure) -> Bool {
         guard let stationId = currentStation?.id else { return false }
         return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
+    /// Stop requested from the Live Activity button (see `StopTrackingIntent`).
+    /// An immersive session drops to the board; a background-card session tears down.
+    func handleStopFromLiveActivity() {
+        if appState == 2 {
+            exitToStationView()
+        } else if backgroundTracked != nil {
+            stopBackgroundTracking()
+        }
     }
 
     func exitToStationView() {
@@ -1392,6 +1415,13 @@ class PhoneViewModel: ObservableObject {
         return (.onTime, 0)
     }
 
+    /// Departed once the train is `graceSec` past its EFFECTIVE (delayed)
+    /// departure, matching Android's teardown. Counting the delay keeps a late
+    /// train tracked instead of dropping it at the scheduled time.
+    private func hasDeparted(_ focused: FocusedDeparture) -> Bool {
+        focused.minutesUntil + Double(focused.delay) < -Double(PendingRouteLogic.graceSec) / 60.0
+    }
+
     private func activityContentState(_ focused: FocusedDeparture) -> TrackingActivityAttributes.ContentState {
         let (verdict, bufMin) = currentVerdict()
         let walkMin = Int((lastWalkTime.map { $0 / 60.0 } ?? GeoUtils.walkMinutes(distanceMeters: lastWalkDist)).rounded())
@@ -1404,13 +1434,18 @@ class PhoneViewModel: ObservableObject {
             verdict: verdict.rawValue,
             bufferMinutes: bufMin,
             walkMinutes: verdict == .noGps ? nil : walkMin,
-            departed: focused.minutesUntil < -1,
+            departed: hasDeparted(focused),
             schedBuf: trackingScheduledBuffer,
             effectBuf: trackingEffectiveBuffer
         )
     }
 
-    private func startLiveActivity(_ focused: FocusedDeparture) {
+    /// `staleDate` marks when the card should dim. An immersive session refreshes
+    /// every tick, so a rolling 15 min is right; a background-card session (a queued
+    /// share) is never updated, so it must stay fresh until the train actually leaves
+    /// — pass its effective departure. ActivityKit still enforces its own ~8 h cap,
+    /// beyond which the scheduled reminder is the backstop.
+    private func startLiveActivity(_ focused: FocusedDeparture, staleDate: Date? = nil) {
         endLiveActivity(departed: false) // selecting a new departure replaces the card
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = TrackingActivityAttributes(
@@ -1421,7 +1456,7 @@ class PhoneViewModel: ObservableObject {
         lastActivityState = state
         liveActivity = try? Activity.request(
             attributes: attributes,
-            content: ActivityContent(state: state, staleDate: Date().addingTimeInterval(900)))
+            content: ActivityContent(state: state, staleDate: staleDate ?? Date().addingTimeInterval(900)))
     }
 
     private func updateLiveActivity(alertPlatformChange: Bool = false) {
@@ -2290,7 +2325,11 @@ class PhoneViewModel: ObservableObject {
         backgroundTracked = focused
         backgroundTrackedStation = station
         trackingStartedAt = Date()
-        startLiveActivity(focused)
+        // A queued share is never updated (updateLiveActivity is immersive-only), so
+        // keep the card fresh until the train's effective departure rather than the
+        // default 15 min — a share hours out must not dim minutes after it appears.
+        let effectiveDep = Date(timeIntervalSince1970: TimeInterval(focused.departureTimestamp + focused.delay * 60))
+        startLiveActivity(focused, staleDate: effectiveDep)
     }
 
     private func saveRouteOffer(_ route: SharedRoute) {

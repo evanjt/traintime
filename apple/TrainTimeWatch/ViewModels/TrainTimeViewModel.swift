@@ -558,9 +558,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         if appState == 2 {
             if let focused = focusedTrain {
                 let minutesLeft = focused.minutesUntil
-                // Departed >1 min ago: drop to the inactive tap-to-refresh state, not the
-                // station view, so polling (and the extended session) stops right away.
-                if minutesLeft < -1.0 {
+                // Departed past the grace, counting the live delay: drop to the inactive
+                // tap-to-refresh state, not the station view, so polling (and the extended
+                // session) stops right away. A late train isn't dropped at its scheduled time.
+                if minutesLeft + Double(focused.delay) < -Double(PendingRouteLogic.graceSec) / 60.0 {
                     HapticService.shortPulse()
                     enterInactiveState()
                     return

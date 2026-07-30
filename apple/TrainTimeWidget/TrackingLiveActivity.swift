@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -29,7 +30,10 @@ struct TrackingLiveActivity: Widget {
                         CountdownText(state: context.state)
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                         TrackingProgressBar(context: context)
-                        StatusLine(state: context.state)
+                        HStack {
+                            StatusLine(state: context.state)
+                            StopButton()
+                        }
                     }
                 }
             } compactLeading: {
@@ -60,6 +64,7 @@ private struct TrackingActivityLockView: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 PlatformLabel(state: context.state)
+                StopButton()
             }
             HStack(alignment: .firstTextBaseline) {
                 CountdownText(state: context.state)
@@ -90,6 +95,22 @@ private struct LinePill: View {
     }
 }
 
+/// Stop the tracking session from the Live Activity. Shows expanded (Lock Screen
+/// + expanded island) only, mirroring the Android notification whose Stop action
+/// also renders only expanded. Icon-only, so no per-locale label to clip.
+private struct StopButton: View {
+    var body: some View {
+        Button(intent: StopTrackingIntent()) {
+            Image(systemName: "xmark")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(Color.secondary.opacity(0.18)))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct PlatformLabel: View {
     let state: TrackingActivityAttributes.ContentState
 
@@ -103,16 +124,36 @@ private struct PlatformLabel: View {
     }
 }
 
-/// The live countdown. `timerInterval` needs a forward range, so the departed
-/// state (and any lagging update after departure) swaps to a static label.
+/// The live countdown targets the leave-by moment (departure − walk), so the
+/// number IS the ahead margin: at 0:00 it is time to leave. This mirrors the
+/// Android notification's chronometer. Without a walk estimate (no GPS) it falls
+/// back to the departure time. Once past leave-by but before departure it shows
+/// "Leave now" rather than a negative timer, since `timerInterval` needs a
+/// forward range; the verdict line already reads "N min behind".
+private enum LeaveByPhase {
+    case departed
+    case leaveNow
+    case counting(Date)
+}
+
+private func leaveByPhase(_ state: TrackingActivityAttributes.ContentState) -> LeaveByPhase {
+    if state.departed || state.effectiveDeparture <= Date.now { return .departed }
+    guard let walk = state.walkMinutes, walk > 0 else { return .counting(state.effectiveDeparture) }
+    let leaveBy = state.effectiveDeparture.addingTimeInterval(-Double(walk) * 60)
+    return leaveBy <= Date.now ? .leaveNow : .counting(leaveBy)
+}
+
 private struct CountdownText: View {
     let state: TrackingActivityAttributes.ContentState
 
     var body: some View {
-        if state.departed || state.effectiveDeparture <= Date.now {
+        switch leaveByPhase(state) {
+        case .departed:
             Text("Departed")
-        } else {
-            Text(timerInterval: Date.now...state.effectiveDeparture, countsDown: true)
+        case .leaveNow:
+            Text("Leave now")
+        case .counting(let target):
+            Text(timerInterval: Date.now...target, countsDown: true)
                 .monospacedDigit()
         }
     }
@@ -122,10 +163,13 @@ private struct CompactCountdown: View {
     let state: TrackingActivityAttributes.ContentState
 
     var body: some View {
-        if state.departed || state.effectiveDeparture <= Date.now {
+        switch leaveByPhase(state) {
+        case .departed:
             Image(systemName: "checkmark")
-        } else {
-            Text(timerInterval: Date.now...state.effectiveDeparture, countsDown: true)
+        case .leaveNow:
+            Image(systemName: "figure.walk")
+        case .counting(let target):
+            Text(timerInterval: Date.now...target, countsDown: true)
                 .monospacedDigit()
                 .font(.caption2.bold())
                 .frame(maxWidth: 44)

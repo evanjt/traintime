@@ -900,7 +900,11 @@ class TrainTimeView extends WatchUi.View {
             // its train reaches the board. Keep the local countdown until the
             // train has actually departed, then give up.
             var depTs = mFocusedTrain["depTs"];
-            if (depTs != null && Time.now().value() < depTs + 90) {
+            var pushedDelay = mFocusedTrain["delay"];
+            if (pushedDelay == null) { pushedDelay = 0; }
+            // Keep the local countdown until the effective (delayed) departure plus grace,
+            // so a late train pushed before it reaches the board isn't abandoned early.
+            if (depTs != null && Time.now().value() < depTs + pushedDelay * 60 + 90) {
                 return;
             }
             Haptics.vibrateShort();
@@ -1295,16 +1299,17 @@ class TrainTimeView extends WatchUi.View {
         // Heartbeat vibration when behind schedule in tracking mode
         if (mAppState == 2 && mFocusedTrain != null) {
             var focusedMin = getFocusedMinutesUntil();
-            // Departed >1 min ago: drop straight to the inactive tap-to-refresh state, not the
-            // station view, so API polling stops instead of continuing every 30s.
-            if (focusedMin < -1.0) {
+            var delay = mFocusedTrain["delay"];
+            if (delay == null) { delay = 0; }
+            // Departed past the grace, counting the live delay: drop straight to the inactive
+            // tap-to-refresh state, not the station view, so API polling stops instead of
+            // continuing every 30s. A late train isn't dropped at its scheduled time.
+            if (focusedMin + delay < -1.5) {
                 Haptics.vibrateShort();
                 enterInactiveState();
             } else {
                 var walkMin = getWalkMinutes();
                 if (walkMin != null) {
-                    var delay = mFocusedTrain["delay"];
-                    if (delay == null) { delay = 0; }
                     var effectBuf = focusedMin - walkMin + delay;
                     var vibeNow = Time.now().value();
                     if (effectBuf < -0.5) {
