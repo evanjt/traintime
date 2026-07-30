@@ -1,0 +1,4 @@
+- Un treno in ritardo non viene più tolto dal tracciamento un minuto dopo l'orario previsto.
+- Le impostazioni ora dicono cosa fanno: un anticipo chiaro e un interruttore che spegne davvero il tracciamento in background.
+- Se lo fermi dalla notifica resta fermo anche riaprendo l'app.
+- Senza posizione in background il tracciamento continua e usa l'ultima posizione nota.

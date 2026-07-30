@@ -1,0 +1,4 @@
+- Un train retardé n'est plus retiré du suivi une minute après son horaire.
+- Les réglages disent enfin ce qu'ils font : un seul délai clair et un interrupteur qui coupe vraiment le suivi en arrière-plan.
+- Arrêté depuis la notification, le suivi reste arrêté à la réouverture de l'app.
+- Sans position en arrière-plan, le suivi continue et utilise votre dernière position connue.

@@ -1,8 +1,12 @@
 package com.evanjt.traintime.session
 
+import com.evanjt.traintime.domain.BarRun
+import com.evanjt.traintime.domain.BarZone
+import com.evanjt.traintime.domain.TrackingLogic
+import com.evanjt.traintime.domain.TrackingStatus
+
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.FocusedDeparture
-import com.evanjt.traintime.ui.TrackingStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

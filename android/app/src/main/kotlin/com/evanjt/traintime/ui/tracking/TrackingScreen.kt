@@ -1,5 +1,7 @@
 package com.evanjt.traintime.ui.tracking
 
+import com.evanjt.traintime.domain.TrackingStatus
+
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -64,7 +66,6 @@ import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.OnwardConnection
 import com.evanjt.traintime.ui.PhoneWatchType
-import com.evanjt.traintime.ui.TrackingStatus
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

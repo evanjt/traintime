@@ -1,5 +1,8 @@
 package com.evanjt.traintime.ui
 
+import com.evanjt.traintime.domain.TrackingLogic
+import com.evanjt.traintime.domain.TrackingStatus
+
 import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
@@ -47,7 +50,6 @@ import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearLivenessBus
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.review.ReviewGate
-import com.evanjt.traintime.session.TrackingLogic
 import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
 import com.evanjt.traintime.session.TrackingSnapshot
@@ -75,7 +77,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 
 // Port of apple/TrainTimePhone/ViewModels/PhoneViewModel.swift.
 // appState: 0 = station view, 2 = focused tracking, 3 = inactive.

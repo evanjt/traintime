@@ -1,0 +1,4 @@
+- A delayed train is no longer dropped from tracking a minute after its timetable slot.
+- Settings now say what they do: one clear lead time, and a background-tracking switch that really turns tracking off.
+- Stopping from the notification stays stopped when you reopen the app.
+- Without background location, tracking still runs and falls back to your last known position.

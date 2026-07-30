@@ -18,6 +18,11 @@ data class WalkEstimate(val distanceMeters: Double?, val fresh: Boolean) {
 object WalkEstimator {
     const val FRESH_MAX_AGE_MS = 3 * 60 * 1000L
 
+    // Past this the number is not a walk and the ahead/behind verdict derived
+    // from it is meaningless: a wrong or wildly outdated fix would otherwise
+    // render as "119542 min behind" rather than simply no walk estimate.
+    const val MAX_PLAUSIBLE_METERS = 20_000.0
+
     // Ladder: a fix plus station coordinates gives a real distance (fresh or
     // not), otherwise fall back to whatever distance was last carried on the
     // session, otherwise nothing.
@@ -29,8 +34,11 @@ object WalkEstimator {
     ): WalkEstimate {
         if (fix != null && stationLat != null && stationLon != null) {
             val distance = GeoUtils.haversineDistance(fix.lat, fix.lon, stationLat, stationLon)
-            return WalkEstimate(distance, fix.ageMs < FRESH_MAX_AGE_MS)
+            if (distance <= MAX_PLAUSIBLE_METERS) {
+                return WalkEstimate(distance, fix.ageMs < FRESH_MAX_AGE_MS)
+            }
+            return WalkEstimate(null, false)
         }
-        return WalkEstimate(fallbackMeters, false)
+        return WalkEstimate(fallbackMeters?.takeIf { it <= MAX_PLAUSIBLE_METERS }, false)
     }
 }

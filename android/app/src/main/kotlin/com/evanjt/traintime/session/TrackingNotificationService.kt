@@ -1,5 +1,11 @@
 package com.evanjt.traintime.session
 
+import com.evanjt.traintime.domain.BarModel
+import com.evanjt.traintime.domain.BarRun
+import com.evanjt.traintime.domain.BarZone
+import com.evanjt.traintime.domain.TrackingLogic
+import com.evanjt.traintime.domain.TrackingStatus
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -34,7 +40,6 @@ import com.evanjt.traintime.domain.Fix
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.WalkEstimator
-import com.evanjt.traintime.ui.TrackingStatus
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -176,8 +181,9 @@ class TrackingNotificationService : Service() {
                         applyLocationMode(tier.location)
                         // Paused (very far): no fetch, no GPS — the chronometer
                         // carries the countdown for free until it's worth waking.
-                        if (tier.apiIntervalSec != null) {
-                            if (now - lastPollAt >= tier.apiIntervalSec) {
+                        val interval = tier.apiIntervalSec
+                        if (interval != null) {
+                            if (now - lastPollAt >= interval) {
                                 lastPollAt = now
                                 refresh(snap, now)
                                 maybeApproachAlert(snapshot ?: snap, now)

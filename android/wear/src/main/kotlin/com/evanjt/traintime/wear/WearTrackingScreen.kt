@@ -1,5 +1,7 @@
 package com.evanjt.traintime.wear
 
+import com.evanjt.traintime.domain.TrackingStatus
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

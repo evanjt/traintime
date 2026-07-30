@@ -1,8 +1,4 @@
-- Le suivi continue désormais même app fermée. Une activité en direct sur l'écran verrouillé et la Dynamic Island décompte jusqu'à votre train, avec quai, retard, marge de marche et un bouton d'arrêt.
-- Pour cela, TrainTime utilise votre position en arrière-plan, mais uniquement pendant un suivi en cours. C'est ce qui garde votre marge de marche et votre heure de départ justes une fois l'app fermée. L'indicateur de position reste visible tout du long, et la position en arrière-plan s'arrête dès que vous arrêtez le suivi.
-- Le décompte va jusqu'au moment de partir, calculé sur votre temps de marche jusqu'à la gare, puis affiche « Partez ».
-- Nouveau : une alerte unique quand il est temps d'y aller. Désactivable dans les réglages.
-- Plus économe en batterie. La fréquence et la précision de la position suivent la proximité du départ, donc un trajet dans plusieurs heures ne coûte presque rien et le GPS reste au repos tant que vous êtes loin.
-- Un trajet CFF partagé se suit désormais tout seul, et les tronçons restants s'affichent en route.
-- Nouveau : « Comment fonctionne le suivi » dans les réglages.
-- Apple Watch : sur un itinéraire, le train suivi affiche son propre terminus, avec votre destination finale en dessous. Les trains en retard ne disparaissent plus trop tôt.
+- Un train retardé n'est plus retiré du suivi une minute après son horaire, sur iPhone et Apple Watch.
+- L'alerte de départ suit désormais le retard en direct et non l'horaire : elle ne se déclenche plus trop tôt.
+- Les réglages disent enfin ce qu'ils font : un seul délai clair et un interrupteur qui coupe vraiment le suivi en arrière-plan.
+- Un suivi mis de côté se termine correctement une fois le train parti.

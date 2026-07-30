@@ -1,5 +1,7 @@
 package com.evanjt.traintime.wear
 
+import com.evanjt.traintime.domain.TrackingStatus
+
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,7 @@ import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.LocationService
 import com.evanjt.traintime.domain.PendingRouteLogic
+import com.evanjt.traintime.domain.TrackingLogic
 import com.evanjt.traintime.review.ReviewGate
 import java.time.LocalDate
 import java.time.ZoneId
@@ -50,7 +53,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-enum class TrackingStatus { NO_GPS, AHEAD, ON_TIME, BEHIND }
 
 // Wear port of PhoneViewModel.swift / MainViewModel, the watch fetches
 // independently (not a thin client) and keeps the same orchestration. Drops the
@@ -737,7 +739,23 @@ class WearViewModel(
         }
         if (appState == 3) return
 
-        val cooldown = if (appState == 2) Timing.FETCH_COOLDOWN_TRACKING else Timing.FETCH_COOLDOWN_NORMAL
+        // Tracking cadence follows the same proximity tiers as the phone, so a
+        // watch battery isn't spent polling for a train hours away. The tier is
+        // a floor on the tracking cooldown, never faster than it.
+        val cooldown = if (appState == 2) {
+            val focused = focusedTrain
+            val tierInterval = focused?.let {
+                TrackingLogic.pollTier(it.minutesUntil(nowSeconds()) + it.delay).apiIntervalSec
+            }
+            when {
+                focused == null -> Timing.FETCH_COOLDOWN_TRACKING
+                // Paused: nothing to poll for until the departure comes closer.
+                tierInterval == null -> return
+                else -> maxOf(Timing.FETCH_COOLDOWN_TRACKING, tierInterval.toDouble())
+            }
+        } else {
+            Timing.FETCH_COOLDOWN_NORMAL
+        }
         if (!requestInFlight && now() - lastFetchTime >= cooldown * 1000) {
             val current = currentStation
             if (current != null) {

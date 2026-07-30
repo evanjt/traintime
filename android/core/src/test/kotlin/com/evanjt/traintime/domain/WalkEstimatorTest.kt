@@ -79,6 +79,32 @@ class WalkEstimatorTest {
         assertFalse(estimate.fresh)
     }
 
+    // A fix on the wrong continent (a bad provider, or the emulator's default
+    // Mountain View location) must not become an ahead/behind verdict.
+    @Test
+    fun implausiblyDistantFixYieldsNoEstimate() {
+        val estimate = WalkEstimator.estimate(
+            Fix(37.4220, -122.0841, ageMs = 0),
+            stationLat,
+            stationLon,
+            fallbackMeters = null,
+        )
+        assertNull(estimate.distanceMeters)
+        assertFalse(estimate.known)
+    }
+
+    @Test
+    fun implausibleCarriedDistanceIsAlsoDropped() {
+        val estimate = WalkEstimator.estimate(null, stationLat, stationLon, fallbackMeters = 9_900_000.0)
+        assertNull(estimate.distanceMeters)
+    }
+
+    @Test
+    fun aLongButPlausibleWalkIsKept() {
+        val estimate = WalkEstimator.estimate(null, stationLat, stationLon, fallbackMeters = 4000.0)
+        assertEquals(4000.0, estimate.distanceMeters!!, 0.001)
+    }
+
     // Nothing at all: the walk drops out, and the caller renders the no-GPS
     // state rather than failing.
     @Test
