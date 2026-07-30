@@ -44,6 +44,10 @@ xcuserdata/
 *.md
 *.tmp
 
+# Garmin store copy is release metadata, not notes. No API to upload it, so the
+# repo is the only record of what was pasted into the Connect IQ dashboard.
+!docs/screenshots/store/garmin/*.md
+
 # Fastlane
 apple/fastlane/vendor/
 apple/fastlane/.bundle/
