@@ -62,8 +62,8 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
 
     /// True while a tracking session holds continuous background location. Gated
     /// on the Info.plist actually declaring the mode: setting
-    /// `allowsBackgroundLocationUpdates` without it throws at runtime, and the
-    /// gate keeps a build without the key (0.6.1) behaving exactly as before.
+    /// `allowsBackgroundLocationUpdates` without it throws at runtime, so the
+    /// gate keeps a build that ever drops the key from crashing.
     private(set) var backgroundTrackingActive = false
     private static let hasLocationBackgroundMode: Bool =
         (Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String])?.contains("location") ?? false

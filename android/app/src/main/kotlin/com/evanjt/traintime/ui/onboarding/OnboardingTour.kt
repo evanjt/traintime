@@ -215,6 +215,9 @@ fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
                                     report, onTrack = { goNext() }, onToggleFav = {},
                                 )
                             }
+                        // Same surface as the tracking detail page: the point is
+                        // that this screen keeps running once you leave the app.
+                        TourStage.BACKGROUND -> TourTrackingSurface(base, mode, report)
                         TourStage.FAVOURITE -> TourStationSurface(
                             mode, favourites, departures, StationHighlight.FAV_ROW,
                             report, onTrack = {}, onToggleFav = ::toggleFavourite,

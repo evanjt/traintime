@@ -109,6 +109,10 @@ struct OnboardingTour: View {
             stationSurface(.modeChips)
         case .track:
             if trackingActive { trackingSurface } else { stationSurface(.trackRow) }
+        // Same surface as the tracking detail page: the point is that this screen
+        // keeps running once you leave the app.
+        case .background:
+            trackingSurface
         case .favourite:
             stationSurface(.favRow)
         case .pin:

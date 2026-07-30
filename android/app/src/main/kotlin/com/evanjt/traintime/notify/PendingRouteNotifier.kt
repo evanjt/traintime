@@ -145,11 +145,6 @@ object PendingRouteNotifier {
 
     // Fires immediately so the user can confirm permission + delivery without
     // waiting for a real departure. Same channel as the real reminder.
-    fun sendTest(context: Context) {
-        val ctx = localised(context)
-        notifyNow(context, ctx.getString(R.string.test_reminder_title), ctx.getString(R.string.test_reminder_body))
-    }
-
     // Posts an immediate notification in the reminder channel. Used by the test
     // buttons (plain + distance readout).
     fun notifyNow(context: Context, title: String, body: String) {

@@ -787,14 +787,12 @@ class TrackingNotificationService : Service() {
             stationLon = lon.takeIf { !it.isNaN() },
             walkDistMeters = walk.takeIf { !it.isNaN() },
             gpsOk = intent.getBooleanExtra(EXTRA_GPS_OK, false),
-            startedEpochSeconds = intent.getLongExtra(EXTRA_STARTED, System.currentTimeMillis() / 1000),
         )
     }
 
     companion object {
         // Centre-of-axis hairline: a faint grey just above the empty-track
         // colour, the notification's version of the in-app bar's centre marker.
-        private val BAR_CENTRE = 0xFF565A61.toInt()
 
         // Bar bitmap source size. fitXY stretches it to the row, so this is only
         // the drawing resolution; kept small to stay well under the RemoteViews
@@ -807,6 +805,9 @@ class TrackingNotificationService : Service() {
         private const val CHANNEL_ID = "live_tracking"
         private const val CHIP_CHANNEL_ID = "live_tracking_chip"
         private const val ALERT_CHANNEL_ID = "tracking_alerts"
+
+        // Settings reports a per-channel mute, which the app-level grant hides.
+        val CHANNEL_IDS = listOf(CHANNEL_ID, CHIP_CHANNEL_ID, ALERT_CHANNEL_ID)
         private const val NOTIF_ID = 3
         private const val ALERT_NOTIF_ID = 4
         private const val APPROACH_NOTIF_ID = 5
@@ -825,14 +826,12 @@ class TrackingNotificationService : Service() {
         private const val EXTRA_STATION_LON = "stationLon"
         private const val EXTRA_WALK_DIST = "walkDist"
         private const val EXTRA_GPS_OK = "gpsOk"
-        private const val EXTRA_STARTED = "started"
         private const val EXTRA_SUPPRESS_ALERT = "suppress_alert"
 
         fun start(context: Context, snapshot: TrackingSnapshot, suppressApproachAlert: Boolean = false) {
             val intent = Intent(context, TrackingNotificationService::class.java)
                 .putExtra(EXTRA_CMD, WearSync.json.encodeToString(TrackCommand.from(snapshot.focused, snapshot.stationId)))
                 .putExtra(EXTRA_STATION_NAME, snapshot.stationName)
-                .putExtra(EXTRA_STARTED, snapshot.startedEpochSeconds)
                 .putExtra(EXTRA_GPS_OK, snapshot.gpsOk)
                 .putExtra(EXTRA_SUPPRESS_ALERT, suppressApproachAlert)
             snapshot.stationLat?.let { intent.putExtra(EXTRA_STATION_LAT, it) }

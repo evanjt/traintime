@@ -32,13 +32,6 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_DEFAULT_MODE] = mode.raw }
     }
 
-    val useRoutedDistance: Flow<Boolean> =
-        dataStore.data.map { it[KEY_USE_ROUTED_DISTANCE] ?: false }
-
-    suspend fun setUseRoutedDistance(value: Boolean) {
-        dataStore.edit { it[KEY_USE_ROUTED_DISTANCE] = value }
-    }
-
     // When on, the phone mirrors its state (tracked train, mode, station) and its
     // location to a connected watch. Optional overlay, off means the watch runs
     // entirely on its own. Default on.
@@ -199,18 +192,22 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_CONNECTION_REMINDER_LEAD] = value }
     }
 
-    // When on, the saved-route reminder lead becomes the walk time to the origin
-    // station plus the lead minutes as a buffer, instead of a static lead.
+    // When on (default), the reminder and the tracking leave alert are timed to
+    // the walk to the origin station plus the lead minutes as a buffer, instead
+    // of a static lead. On by default, or the leave alert would contradict the
+    // help page's promise to time itself to your walk.
     val distanceAwareReminder: Flow<Boolean> =
-        dataStore.data.map { it[KEY_DISTANCE_AWARE_REMINDER] ?: false }
+        dataStore.data.map { it[KEY_DISTANCE_AWARE_REMINDER] ?: true }
 
     suspend fun setDistanceAwareReminder(value: Boolean) {
         dataStore.edit { it[KEY_DISTANCE_AWARE_REMINDER] = value }
     }
 
-    // When on (default), the distance-aware lead keeps refreshing while the app
-    // is closed. Off = only the last-known location is used (no background
-    // location permission needed).
+    // When on (default), a tracking session survives the app backgrounding: the
+    // foreground service keeps the countdown, the card and the leave alert
+    // alive, and a saved route's distance-aware lead keeps refreshing. Off means
+    // tracking only runs while the app is open, which the UI warns about before
+    // applying.
     val backgroundReminderTracking: Flow<Boolean> =
         dataStore.data.map { it[KEY_BACKGROUND_REMINDER_TRACKING] ?: true }
 
@@ -277,7 +274,6 @@ class AppPrefs(context: Context) {
 
     companion object {
         val KEY_DEFAULT_MODE = intPreferencesKey("defaultMode")
-        val KEY_USE_ROUTED_DISTANCE = booleanPreferencesKey("useRoutedDistance")
         val KEY_MIRROR_TO_WATCH = booleanPreferencesKey("mirrorToWatch")
         val KEY_HAS_SEEN_ONBOARDING = booleanPreferencesKey("hasSeenOnboarding")
         val KEY_BG_LOCATION_INTRO_SEEN = booleanPreferencesKey("bgLocationIntroSeen")

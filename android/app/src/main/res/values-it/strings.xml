@@ -15,17 +15,17 @@
     <string name="replay_walkthrough">Rivedi la guida</string>
     <string name="rate_this_app">Valuta l\'app</string>
     <string name="attribution">Fonti</string>
-    <string name="route_reminders">Promemoria percorso</string>
+    <string name="route_reminders">Notifiche</string>
     <string name="notifications">Notifiche</string>
     <string name="allowed">Attive</string>
     <string name="turn_on">Attiva</string>
-    <string name="remind_before_departure">Ricordamelo prima della partenza</string>
+    <string name="remind_before_departure">Anticipo prima della partenza</string>
     <string name="before_a_connection">Prima di una coincidenza</string>
     <string name="n_min_fmt">%1$d min</string>
     <string name="adjust_distance">Adatta alla distanza dalla fermata</string>
     <string name="adjust_distance_desc">L\'anticipo diventa il tuo tempo a piedi + i minuti sopra</string>
-    <string name="update_background">Aggiorna in background</string>
-    <string name="update_background_desc">Resta preciso mentre ti muovi, anche ad app chiusa</string>
+    <string name="update_background">Continua a seguire in background</string>
+    <string name="update_background_desc">Il tracciamento continua quando esci dall\'app</string>
     <string name="alert_before_departure">Avvisami prima della partenza</string>
     <string name="alert_before_departure_desc">Un avviso una tantum quando è ora di partire durante il monitoraggio</string>
     <string name="help_title">Come funziona il monitoraggio</string>
@@ -41,7 +41,6 @@
     <string name="help_oem_b">Alcuni telefoni sospendono le app in background per risparmiare energia. Consenti un uso illimitato della batteria per mantenere attivo il monitoraggio.</string>
     <string name="notify_walk_plus_fmt">Sarai avvisato il tuo tempo a piedi + %1$d min prima della partenza</string>
     <string name="notify_lead_fmt">Sarai avvisato %1$d min prima della partenza</string>
-    <string name="send_test_notification">Invia notifica di prova</string>
     <string name="test_distance_reminder">Prova promemoria distanza</string>
     <string name="mirror_to_watch">Duplica sull\'orologio</string>
     <string name="mirror_to_watch_desc">Invia treno seguito, modo, stazione e posizione all\'orologio</string>
@@ -62,7 +61,7 @@
 
     <!-- Dialogs -->
     <string name="bg_track_title">Seguire in background?</string>
-    <string name="bg_track_body">TrainTime rileva la tua posizione per calibrare il promemoria del percorso, anche ad app chiusa o inutilizzata. Puoi rifiutare: useremo l\'ultima posizione nota.</string>
+    <string name="bg_track_body">TrainTime rileva la tua posizione in background per mantenere corretto il tempo a piedi di una partenza seguita e per calibrare il promemoria di un percorso salvato, anche ad app chiusa o inutilizzata. Puoi rifiutare: useremo l\'ultima posizione nota.</string>
     <string name="continue_label">Continua</string>
     <string name="bg_denied_title">Uso l\'ultima posizione</string>
     <string name="bg_denied_body">Va benissimo. Il promemoria funziona comunque, con l\'ultima posizione nota invece degli aggiornamenti live. Concedi l\'accesso continuo quando vuoi per renderlo live.</string>
@@ -204,8 +203,15 @@
     <string name="tracking_far">Non ancora vicino</string>
     <string name="approach_alert_title">È ora di partire</string>
     <string name="platform_change_title">Cambio di binario</string>
-    <string name="bg_intro_title">Promemoria di percorso più precisi</string>
-    <string name="bg_intro_body">Novità di questa versione: il promemoria di un percorso salvato può basarsi sulla tua distanza in tempo reale dalla stazione, anche con l\'app chiusa. È facoltativo. TrainTime rileva la posizione in background solo per questo. Senza, i promemoria usano la tua ultima posizione nota.</string>
+    <string name="bg_intro_title">TrainTime usa la posizione in background</string>
+    <string name="bg_intro_body">Mentre segui una partenza, TrainTime usa la tua posizione in background per mantenere corretti il tempo a piedi e l\'ora in cui uscire, e per calibrare il promemoria di un percorso salvato. Si ferma quando smetti di seguire. Puoi disattivarlo nelle impostazioni: TrainTime userà l\'ultima posizione nota.</string>
     <string name="reminder_bg_off_note">La posizione in background è disattivata. Questo promemoria si basa sulla tua posizione al momento del salvataggio.</string>
     <string name="enable_bg_location">Attiva la posizione in background</string>
+    <string name="remind_before_departure_desc">Vale per i promemoria dei percorsi e per l\'avviso di partenza mentre segui</string>
+    <string name="bg_off_warning_title">Il tracciamento si fermerà quando esci dall\'app</string>
+    <string name="bg_off_warning_body">Senza il tracciamento in background non ci sono conto alla rovescia, avviso di partenza né scheda live quando TrainTime è chiusa. Il tracciamento va solo ad app aperta. Puoi riattivarlo quando vuoi.</string>
+    <string name="bg_off_warning_confirm">Disattiva</string>
+    <string name="notifications_blocked">Parz. bloccate</string>
+    <string name="tour_background_title">Il tracciamento continua</string>
+    <string name="tour_background_body">Esci dall\'app e il tuo treno continua il conto alla rovescia sulla schermata di blocco, con un avviso quando è ora di uscire. TrainTime usa la posizione in background solo mentre segui. Disattivabile in qualsiasi momento nelle impostazioni.</string>
 </resources>

@@ -191,10 +191,4 @@ enum TrackingTiers {
         }
     }
 
-    // Distance-aware "time to leave": due once effective departure (schedule +
-    // delay) is within walk + buffer. Mirrors TrackingLogic.approachDue.
-    static func approachDue(minutesUntil: Double, delay: Int, walkMinutes: Double, bufferLeadMinutes: Int) -> Bool {
-        let untilEffective = minutesUntil + Double(delay)
-        return untilEffective <= walkMinutes + Double(bufferLeadMinutes) && untilEffective > -1.5
-    }
 }

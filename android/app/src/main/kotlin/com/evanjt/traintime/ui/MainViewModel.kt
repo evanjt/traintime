@@ -411,6 +411,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        viewModelScope.launch { backgroundTrackingEnabled = prefs.backgroundReminderTracking.first() }
+
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
             currentMode = defaultMode
@@ -972,10 +974,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Foreground service + ongoing notification: the session survives (and
         // stays visible) when the app backgrounds. Without POST_NOTIFICATIONS
         // (API 33+) the system drops the notification silently, so ask now.
-        trackingStartedTs = nowSeconds()
-        TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused), suppressApproachAlert = true)
-        notificationPermissionRequest = true
-        maybeShowBatteryNotice()
+        // With background tracking off the session lives only as long as this
+        // screen does, so there is no service and nothing to notify about.
+        if (backgroundTrackingEnabled) {
+            TrackingNotificationService.start(
+                getApplication(),
+                buildTrackingSnapshot(focused),
+                suppressApproachAlert = true,
+            )
+            notificationPermissionRequest = true
+            maybeShowBatteryNotice()
+        }
 
         // Mirror the same focused train onto the watch (immediate, a tap is a
         // strong, deliberate action). Keeps the manual "Send to Watch" too.
@@ -988,7 +997,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---- Tracking notification feed ----
 
-    private var trackingStartedTs = 0L
     private var lastNotifKey: List<Any?> = emptyList()
     private var lastNotifPush = 0L
 
@@ -1002,7 +1010,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stationLon = currentStation?.lon,
             walkDistMeters = if (gpsOk) lastWalkDist else null,
             gpsOk = gpsOk,
-            startedEpochSeconds = trackingStartedTs,
         )
     }
 
@@ -1206,10 +1213,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setBackgroundReminderTracking(value: Boolean) {
         viewModelScope.launch {
             prefs.setBackgroundReminderTracking(value)
-            if (value) maybeRequestBackgroundLocation()
+            backgroundTrackingEnabled = value
+            if (value) {
+                maybeRequestBackgroundLocation()
+            } else {
+                // Turning it off is immediate and total: the running session's
+                // service goes away, and a parked background session with no
+                // screen behind it goes with it.
+                TrackingNotificationService.stop(getApplication())
+                clearBackgroundTracking()
+            }
             syncReminderTracking()
         }
     }
+
+    // Cached so the tracking entry points don't have to suspend on DataStore.
+    private var backgroundTrackingEnabled = true
 
     private fun maybeRequestBackgroundLocation() {
         if (!RouteDistanceTracker.hasBackgroundLocation(getApplication())) {
@@ -1242,11 +1261,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 RouteDistanceTracker.hasBackgroundLocation(ctx)
             if (active) RouteDistanceTracker.start(ctx) else RouteDistanceTracker.stop(ctx)
         }
-    }
-
-    // Fires an immediate reminder so the user can confirm permission + delivery.
-    fun sendTestNotification() {
-        PendingRouteNotifier.sendTest(getApplication())
     }
 
     // Distance-aware test: computes the real distance from the current location
@@ -2065,10 +2079,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return result
         }
 
-    // The immediate next connection, for surfaces that show only one.
-    val onwardConnection: OnwardConnection?
-        get() = onwardLegs.firstOrNull()
-
     // API calls
 
     private fun fetchStations(lat: Double, lon: Double) {
@@ -2387,6 +2397,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun trackCurrentInBackground() {
         lastInteractionTime = now()
         val focused = focusedTrain ?: return
+        if (!backgroundTrackingEnabled) return
         backgroundTracked = focused
         backgroundTrackedStation = currentStation?.name
         // Hand the notification to the service's own loop (the VM is no longer
@@ -2448,6 +2459,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // reminder stay as the reboot backstop. No-op if a session already runs.
     private fun enterBackgroundTrack(leg: RouteLeg, station: String?, routeDestination: String?) {
         if (backgroundTracked != null || appState == 2 || !leg.isTrackable) return
+        if (!backgroundTrackingEnabled) return
         val focused = FocusedDeparture(
             destination = leg.destName,
             departureTimestamp = leg.depTs,
@@ -2462,7 +2474,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
         backgroundTracked = focused
         backgroundTrackedStation = station
-        trackingStartedTs = nowSeconds()
         // Drive the notification from the service's own loop; the VM isn't on the
         // immersive tracking screen.
         TrackingSessionBus.appForeground.value = false
@@ -2474,11 +2485,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stationLon = leg.originLon,
             walkDistMeters = null,
             gpsOk = false,
-            startedEpochSeconds = trackingStartedTs,
         )
         TrackingNotificationService.start(getApplication(), snapshot)
         notificationPermissionRequest = true
     }
+
+    // Board "track in the background" is only offered when the setting allows it.
+    val canTrackInBackground: Boolean get() = backgroundTrackingEnabled
 
     // Bypass the nearby flow: show the leg's origin as the sole station and
     // fetch its board; the fetch completion decides track-now vs save-for-later.

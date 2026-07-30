@@ -4,8 +4,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Distance-aware route reminders keep the lead accurate while the app is
-         closed. Opt-in via Settings; not required for any other feature. -->
+    <!-- Refreshes the walk margin for a saved route's reminder while the app is
+         closed, with no foreground service running. A tracking session does NOT
+         need it: the location-typed foreground service carries its own access.
+         Declining costs only live accuracy, tracking falls back to the last
+         known position. Disclosed before the request, off switch in Settings. -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

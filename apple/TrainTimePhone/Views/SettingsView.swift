@@ -12,10 +12,11 @@ struct PhoneSettingsView: View {
     @AppStorage("seenOnboardingVersion") private var seenOnboardingVersion = 0
     @AppStorage("routeReminderLeadMinutes") private var routeLeadMinutes = 15
     @AppStorage("connectionReminderLeadMinutes") private var connectionLeadMinutes = 3
-    @AppStorage("distanceAwareReminder") private var distanceAwareReminder = false
+    @AppStorage("distanceAwareReminder") private var distanceAwareReminder = true
     @AppStorage("backgroundReminderTracking") private var backgroundReminderTracking = true
     @AppStorage("alertBeforeDeparture") private var alertBeforeDeparture = true
     @State private var notificationsAuthorized: Bool?
+    @State private var confirmBackgroundOff = false
 
     private var reminderSummary: String {
         distanceAwareReminder
@@ -101,8 +102,13 @@ struct PhoneSettingsView: View {
                         }
                     }
 
-                    Picker("Remind me before departure", selection: $routeLeadMinutes) {
-                        ForEach(savedLeadOptions, id: \.self) { Text("\($0) min").tag($0) }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Picker("Lead time before departure", selection: $routeLeadMinutes) {
+                            ForEach(savedLeadOptions, id: \.self) { Text("\($0) min").tag($0) }
+                        }
+                        Text("Applies to saved-route reminders and the leave alert while tracking")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
 
                     Picker("Before a connection", selection: $connectionLeadMinutes) {
@@ -112,9 +118,24 @@ struct PhoneSettingsView: View {
                     Toggle("Adjust for distance to station", isOn: $distanceAwareReminder)
                         .onChange(of: distanceAwareReminder) { _, _ in viewModel.syncReminderTracking() }
 
-                    if distanceAwareReminder {
-                        Toggle("Update in the background", isOn: $backgroundReminderTracking)
-                            .onChange(of: backgroundReminderTracking) { _, _ in viewModel.syncReminderTracking() }
+                    // Governs the whole live session, not just a saved route's
+                    // reminder, so it stands on its own. Switching it off takes
+                    // tracking away once the app closes, so it is confirmed.
+                    Toggle(isOn: $backgroundReminderTracking) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Keep tracking in the background")
+                            Text("Tracking keeps running when you leave the app")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: backgroundReminderTracking) { _, isOn in
+                        if isOn {
+                            viewModel.syncReminderTracking()
+                        } else {
+                            backgroundReminderTracking = true
+                            confirmBackgroundOff = true
+                        }
                     }
 
                     Toggle(isOn: $alertBeforeDeparture) {
@@ -130,24 +151,17 @@ struct PhoneSettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(AppColors.platform)
 
-                    Button("Send test notification") {
-                        PendingRouteNotifier.sendTest()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            refreshNotificationStatus()
-                        }
-                    }
-
                     if distanceAwareReminder {
                         Button("Test distance reminder") {
                             viewModel.sendDistanceReminderTest()
                         }
                     }
                 } header: {
-                    Text("Route reminders")
+                    Text("Notifications")
                 } footer: {
                     Text(distanceAwareReminder
-                        ? String(localized: "The lead becomes your walk time to the station plus the minutes above. Background updates keep it accurate as you move.")
-                        : String(localized: "Reminders for a saved route. The connection lead is used once you're already on the way."))
+                        ? String(localized: "The lead becomes your walk time to the station plus the minutes above. Background tracking keeps it accurate as you move.")
+                        : String(localized: "The connection lead is used once you're already on the way."))
                 }
 
                 if !favouritesStore.favourites.isEmpty {
@@ -311,6 +325,18 @@ struct PhoneSettingsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .alert(
+                String(localized: "Tracking will stop when you leave the app"),
+                isPresented: $confirmBackgroundOff,
+            ) {
+                Button(String(localized: "Turn off"), role: .destructive) {
+                    backgroundReminderTracking = false
+                    viewModel.disableBackgroundTracking()
+                }
+                Button(String(localized: "Not now"), role: .cancel) {}
+            } message: {
+                Text("Without background tracking there is no countdown, no leave alert and no Live Activity once TrainTime is closed. Tracking only runs while the app is open. You can turn this back on any time.")
             }
         }
     }

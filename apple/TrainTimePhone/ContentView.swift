@@ -103,13 +103,13 @@ struct ContentView: View {
             viewModel.handleDeepLink(url)
         }
         .preferredColorScheme(AppAppearance(rawValue: appAppearance)?.colorScheme)
-        // One-shot optional background-location offer for saved-route reminders,
-        // mirroring the Android intro dialog. Declining changes nothing.
-        .alert("Smarter route reminders", isPresented: $viewModel.showBgLocationIntro) {
+        // The disclosure that precedes the system Always-location prompt, mirroring
+        // the Android intro dialog. Declining costs only live accuracy.
+        .alert("TrainTime uses background location", isPresented: $viewModel.showBgLocationIntro) {
             Button("Continue") { viewModel.acceptBgLocationIntro() }
             Button("Not now") { viewModel.dismissBgLocationIntro() }
         } message: {
-            Text("New in this version: a saved route's reminder can time itself to your live distance from the station, even with the app closed. This is optional. TrainTime collects background location only for this. Without it, reminders use your last known location.")
+            Text("While you track a departure, TrainTime uses your location in the background to keep your walk margin and your leave-by time correct, and to time a saved route's reminder. It stops when you stop tracking. You can turn background tracking off in Settings, and without it TrainTime uses your last known location.")
         }
         .alert("Enjoying TrainTime?", isPresented: $viewModel.showReviewPrompt) {
             // Deliberately the write-review page, not requestReview(): after an

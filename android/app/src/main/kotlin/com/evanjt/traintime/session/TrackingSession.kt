@@ -20,9 +20,6 @@ data class TrackingSnapshot(
     val stationLon: Double?,
     val walkDistMeters: Double?,
     val gpsOk: Boolean,
-    // When tracking began. Survives service restarts via the redelivered
-    // start intent.
-    val startedEpochSeconds: Long,
 )
 
 // The notification's rendition of the in-app TrackingBar, resolution-free:

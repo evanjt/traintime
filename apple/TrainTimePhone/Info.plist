@@ -5,9 +5,9 @@
 	<key>CFBundleDisplayName</key>
 	<string>TrainTime</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TrainTime needs your location to find nearby Swiss train stations and show departure times.</string>
+	<string>TrainTime needs your location to find nearby Swiss train stations, show departure times, and work out how long it takes you to walk to the platform.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>TrainTime uses your location in the background only for saved-route reminders, to time the alert to your distance from the station. This is optional and off by default.</string>
+	<string>While you are tracking a departure, TrainTime uses your location in the background to keep your walk margin and your leave-by countdown correct on the Lock Screen, and to time a saved route's reminder to your distance from the station. It stops when you stop tracking, and you can turn background tracking off in Settings.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>TrainTime uses Bluetooth to reach a paired Garmin watch through the Garmin Connect app, so tracked departures can be sent to your wrist.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

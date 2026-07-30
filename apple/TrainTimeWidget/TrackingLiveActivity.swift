@@ -180,35 +180,6 @@ private struct CompactCountdown: View {
 
 /// One half of the camera-wrapping compact bar. The edge next to the camera
 /// notch is the zero-margin centre; the fill grows outward from it — green to
-/// the right when ahead, red to the left when behind — so the two halves plus
-/// the notch read as a single diverging bar.
-private struct CompactHalfBar: View {
-    let state: TrackingActivityAttributes.ContentState
-    let ahead: Bool
-    private let scale = 3.0
-
-    var body: some View {
-        let hasGPS = TrackingVerdict(rawValue: state.verdict) != .noGps
-        let effect = state.effectBuf
-        let magnitude = min(abs(effect), scale) / scale
-        let active = hasGPS && ((ahead && effect > 0) || (!ahead && effect < 0))
-        GeometryReader { geo in
-            ZStack(alignment: ahead ? .leading : .trailing) {
-                Capsule().fill(Color.secondary.opacity(0.25))
-                if !hasGPS {
-                    Capsule().fill(Color.gray)
-                } else if active {
-                    Capsule()
-                        .fill(ahead ? barLightGreen : barDarkRed)
-                        .frame(width: geo.size.width * magnitude)
-                }
-            }
-        }
-        .frame(width: 42, height: 7)
-        .clipShape(Capsule())
-    }
-}
-
 /// The in-app diverging tracking bar (`TrackingBarView`), redrawn here: centre
 /// is zero margin, coloured runs grow outward (dark/light green = margin to
 /// spare, amber/red = behind), gapless. It redraws on each activity update
@@ -217,9 +188,6 @@ private struct TrackingProgressBar: View {
     let context: ActivityViewContext<TrackingActivityAttributes>
 
     var barHeight: CGFloat = 10
-    // The centre hairline is dropped in the tiny compact-island version where
-    // it only adds noise.
-    var showCentre: Bool = true
     private let scale = 3.0 // ±3 minutes maps to half the bar
 
     private var hasGPS: Bool { TrackingVerdict(rawValue: context.state.verdict) != .noGps }
@@ -237,12 +205,10 @@ private struct TrackingProgressBar: View {
                 } else {
                     bar(sched: sched, effect: effect, width: width, midX: midX)
                 }
-                if showCentre {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.8))
-                        .frame(width: 2)
-                        .offset(x: midX - 1)
-                }
+                Rectangle()
+                    .fill(Color.gray.opacity(0.8))
+                    .frame(width: 2)
+                    .offset(x: midX - 1)
             }
         }
         .frame(height: barHeight)

@@ -15,17 +15,17 @@
     <string name="replay_walkthrough">Rundgang wiederholen</string>
     <string name="rate_this_app">App bewerten</string>
     <string name="attribution">Quellen</string>
-    <string name="route_reminders">Routen-Erinnerungen</string>
+    <string name="route_reminders">Benachrichtigungen</string>
     <string name="notifications">Benachrichtigungen</string>
     <string name="allowed">Erlaubt</string>
     <string name="turn_on">Aktivieren</string>
-    <string name="remind_before_departure">Vor Abfahrt erinnern</string>
+    <string name="remind_before_departure">Vorlauf vor Abfahrt</string>
     <string name="before_a_connection">Vor einer Verbindung</string>
     <string name="n_min_fmt">%1$d min</string>
     <string name="adjust_distance">An Distanz zur Station anpassen</string>
     <string name="adjust_distance_desc">Vorlauf wird Gehzeit + die Minuten oben</string>
-    <string name="update_background">Im Hintergrund aktualisieren</string>
-    <string name="update_background_desc">Bleibt genau, während du unterwegs bist, auch bei geschlossener App</string>
+    <string name="update_background">Im Hintergrund weiterverfolgen</string>
+    <string name="update_background_desc">Die Verfolgung läuft weiter, wenn du die App verlässt</string>
     <string name="alert_before_departure">Vor Abfahrt benachrichtigen</string>
     <string name="alert_before_departure_desc">Ein einmaliger Hinweis, wenn es Zeit zu gehen ist, während der Verfolgung</string>
     <string name="help_title">So funktioniert die Verfolgung</string>
@@ -41,7 +41,6 @@
     <string name="help_oem_b">Manche Telefone pausieren Hintergrund-Apps, um Strom zu sparen. Erlaube uneingeschränkte Akkunutzung, damit die Verfolgung weiterläuft.</string>
     <string name="notify_walk_plus_fmt">Du wirst Gehzeit + %1$d min vor Abfahrt erinnert</string>
     <string name="notify_lead_fmt">Du wirst %1$d min vor Abfahrt erinnert</string>
-    <string name="send_test_notification">Testbenachrichtigung senden</string>
     <string name="test_distance_reminder">Distanz-Erinnerung testen</string>
     <string name="mirror_to_watch">Auf Uhr spiegeln</string>
     <string name="mirror_to_watch_desc">Sendet Zug, Modus, Station und Standort an die Uhr</string>
@@ -62,7 +61,7 @@
 
     <!-- Dialogs -->
     <string name="bg_track_title">Im Hintergrund verfolgen?</string>
-    <string name="bg_track_body">TrainTime erfasst deinen Standort, um deine Routen-Erinnerung zu timen, auch wenn die App geschlossen ist. Du kannst ablehnen, dann verwenden wir deinen letzten bekannten Standort.</string>
+    <string name="bg_track_body">TrainTime erfasst deinen Standort im Hintergrund, damit die Gehzeit einer verfolgten Abfahrt stimmt und die Erinnerung einer gespeicherten Route richtig getimt wird, auch bei geschlossener oder ungenutzter App. Du kannst ablehnen, dann verwenden wir deinen letzten bekannten Standort.</string>
     <string name="continue_label">Weiter</string>
     <string name="bg_denied_title">Letzter Standort wird verwendet</string>
     <string name="bg_denied_body">Kein Problem. Deine Erinnerung funktioniert weiter, mit dem letzten bekannten Standort statt Live-Updates. Erlaube den Zugriff jederzeit, um sie live zu machen.</string>
@@ -204,8 +203,15 @@
     <string name="tracking_far">Noch nicht in der Nähe</string>
     <string name="approach_alert_title">Zeit zu gehen</string>
     <string name="platform_change_title">Gleiswechsel</string>
-    <string name="bg_intro_title">Schlauere Routen-Erinnerungen</string>
-    <string name="bg_intro_body">Neu in dieser Version: Die Erinnerung an eine gespeicherte Route kann sich nach deiner Live-Distanz zum Bahnhof richten, auch bei geschlossener App. Das ist optional. TrainTime erfasst den Standort im Hintergrund nur dafür. Ohne diese Freigabe nutzen Erinnerungen deinen zuletzt bekannten Standort.</string>
+    <string name="bg_intro_title">TrainTime nutzt den Standort im Hintergrund</string>
+    <string name="bg_intro_body">Während du eine Abfahrt verfolgst, nutzt TrainTime deinen Standort im Hintergrund, damit Gehzeit und Aufbruchszeit stimmen, und um die Erinnerung einer gespeicherten Route zu timen. Es endet, sobald du die Verfolgung beendest. Du kannst das in den Einstellungen abschalten, dann nutzt TrainTime deinen zuletzt bekannten Standort.</string>
     <string name="reminder_bg_off_note">Hintergrund-Standort ist aus. Diese Erinnerung richtet sich nach deinem Standort beim Speichern.</string>
     <string name="enable_bg_location">Hintergrund-Standort aktivieren</string>
+    <string name="remind_before_departure_desc">Gilt für Routen-Erinnerungen und den Aufbruch-Hinweis beim Verfolgen</string>
+    <string name="bg_off_warning_title">Die Verfolgung stoppt, wenn du die App verlässt</string>
+    <string name="bg_off_warning_body">Ohne Hintergrund-Verfolgung gibt es keinen Countdown, keinen Aufbruch-Hinweis und keine Live-Karte, sobald TrainTime geschlossen ist. Die Verfolgung läuft nur bei offener App. Du kannst das jederzeit wieder einschalten.</string>
+    <string name="bg_off_warning_confirm">Ausschalten</string>
+    <string name="notifications_blocked">Teils blockiert</string>
+    <string name="tour_background_title">Die Verfolgung läuft weiter</string>
+    <string name="tour_background_body">Verlasse die App und dein Zug zählt auf dem Sperrbildschirm weiter herunter, mit Hinweis, wann du losmusst. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Jederzeit in den Einstellungen abschaltbar.</string>
 </resources>

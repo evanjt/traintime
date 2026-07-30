@@ -83,11 +83,20 @@ class TourStepTest {
         assertTrue(stepsToShow(futureSteps, effectiveSeen = nextVersion, current = nextVersion).isEmpty())
     }
 
-    // v2 re-introduced the watch step (Wear OS released), so a v1 finisher sees it once.
+    // v2 re-introduced the watch step (Wear OS released) and v3 added the
+    // background-tracking disclosure, so a v1 finisher catches up on both.
     @Test
-    fun v1FinisherSeesTheWatchAnnouncement() {
+    fun v1FinisherSeesTheWatchAndBackgroundSteps() {
         val shown = stepsToShow(tourSteps, effectiveSeen = 1, current = CURRENT_TOUR_VERSION)
-        assertEquals(listOf(TourStage.WATCH), shown.map { it.stage })
+        assertEquals(listOf(TourStage.BACKGROUND, TourStage.WATCH), shown.map { it.stage })
+    }
+
+    // The background disclosure has to reach existing users on first open after
+    // the update, which is what makes it the release's disclosure surface.
+    @Test
+    fun v2FinisherSeesOnlyTheBackgroundStep() {
+        val shown = stepsToShow(tourSteps, effectiveSeen = 2, current = CURRENT_TOUR_VERSION)
+        assertEquals(listOf(TourStage.BACKGROUND), shown.map { it.stage })
     }
 
     @Test

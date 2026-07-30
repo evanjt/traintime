@@ -4,7 +4,7 @@ import Foundation
 // feature with an anchored callout. Stages are the surfaces; several steps share a surface.
 // Peer of the Android ui/onboarding/TourStep.kt.
 enum TourStage {
-    case nearby, mode, track, favourite, pin, settings, share, route, watch, widget
+    case nearby, mode, track, background, favourite, pin, settings, share, route, watch, widget
 }
 
 struct TourStep: Identifiable {
@@ -18,7 +18,9 @@ struct TourStep: Identifiable {
 }
 
 // Bump whenever steps are added (new steps get introducedIn = this value).
-let currentTourVersion = 1
+// v2: tracking survives backgrounding, so the background-location disclosure
+// reaches existing users as a one-step delta tour on first open after updating.
+let currentTourVersion = 2
 
 // The version an updater effectively last saw. A stored version wins; otherwise a
 // legacy user who finished the old (pre-versioning) tour counts as v1, and a user
@@ -44,6 +46,11 @@ let tourSteps: [TourStep] = [
              body: String(localized: "Switch what you see with the mode chips. Each mode has its own nearby stops.")),
     TourStep(stage: .track, title: String(localized: "Track a departure"),
              body: String(localized: "Tap a departure to follow it.")),
+    // Straight after .track: the user has just learned what tracking is, which is
+    // the only place the background disclosure makes sense.
+    TourStep(stage: .background, title: String(localized: "Tracking keeps going"),
+             body: String(localized: "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings."),
+             introducedIn: 2),
     TourStep(stage: .favourite, title: String(localized: "Star your lines"),
              body: String(localized: "Swipe a line right, or hold it, to favourite it.")),
     TourStep(stage: .pin, title: String(localized: "Pin a station"),

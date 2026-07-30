@@ -1,0 +1,58 @@
+BACKGROUND LOCATION (UIBackgroundModes: location)
+
+What it is for
+TrainTime tracks one departure at a time. While a tracking session is running,
+the app shows a Live Activity on the Lock Screen and Dynamic Island with a
+countdown to the train, the platform, the live delay, and the time the user has
+to leave to make the walk to the platform. That leave-by time is derived from
+the user's distance to the station, so it is only correct if location keeps
+updating once the app is backgrounded. That is the sole use of the background
+mode.
+
+When it runs
+Only while the user is actively tracking a departure. It starts when a departure
+is tapped and stops the moment tracking stops, the train departs, or the user
+taps Stop on the Live Activity. It is never on at idle, and the app has no
+always-on or periodic background location behaviour.
+
+Power use
+Location accuracy is tiered by how far away the departure is. Beyond 30 minutes
+location is off entirely (kCLLocationAccuracyKilometer, 2 km distance filter);
+it moves to balanced inside 30 minutes and to high accuracy inside 10. A trip
+several hours away costs effectively nothing.
+
+Disclosure and user control
+- On first open after updating, a one-step onboarding page explains that
+  tracking continues in the background, that location is used to do it, and that
+  it can be turned off. New installs see the same page in sequence, immediately
+  after the step that introduces tracking.
+- A disclosure alert ("TrainTime uses background location") always precedes the
+  system Always-location prompt. The app never requests Always authorisation
+  without it, including on a background relaunch.
+- Settings > Notifications > "Keep tracking in the background" turns the whole
+  behaviour off. Turning it off is confirmed with an alert explaining that
+  tracking will then only run while the app is open.
+- The location indicator stays visible for the whole session.
+
+Degraded behaviour when refused
+Refusing background or Always location does not disable any feature. Tracking,
+the countdown, the delay, the platform and the leave alert all keep working; the
+walk margin falls back to the last known position. This path is covered by unit
+tests.
+
+How to reproduce
+1. Open the app and allow location. The nearby board loads (Swiss stations only,
+   so a Swiss location is needed; see the demo location below).
+2. Tap any departure to start tracking.
+3. Background the app. The Live Activity appears on the Lock Screen with the
+   countdown and the leave-by time.
+4. Tap Stop on the Live Activity, or reopen and leave the tracking screen. The
+   session and background location both end.
+
+Demo location (the app only covers Switzerland)
+Bern Bahnhof: 46.9480, 7.4474. In the simulator, Features > Location > Custom.
+
+Data handling
+Coordinates are sent to api.traintime.ch only to find nearby stations, processed
+in memory, and discarded. Nothing is stored server-side or shared with third
+parties. No account, no analytics. Policy: https://traintime.ch/privacy

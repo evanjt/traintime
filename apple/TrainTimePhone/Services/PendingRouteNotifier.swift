@@ -172,10 +172,6 @@ enum PendingRouteNotifier {
     /// Fires in a few seconds so the user can confirm permission + delivery
     /// without waiting for a real departure. Own identifier so it never
     /// disturbs a scheduled reminder.
-    static func sendTest() {
-        notify(title: String(localized: "Test reminder"), body: String(localized: "Route reminders are working. This is a test."))
-    }
-
     /// Posts a short-delay notification in the reminder channel. Used by the test
     /// buttons (plain + distance readout). Own identifier so it never disturbs a
     /// scheduled reminder.

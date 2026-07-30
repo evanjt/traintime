@@ -11,10 +11,6 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
     static let shared = ReminderTracker()
     private let manager = CLLocationManager()
 
-    /// Fired after the user resolves an authorization prompt (true = "Always"),
-    /// so the view model can reassure the user when they decline all-time access.
-    var onAuthorizationDecided: ((Bool) -> Void)?
-
     private override init() {
         super.init()
         manager.delegate = self
@@ -33,12 +29,10 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
             manager.stopMonitoringSignificantLocationChanges()
             return
         }
-        switch manager.authorizationStatus {
-        case .notDetermined, .authorizedWhenInUse:
-            manager.requestAlwaysAuthorization()
-        default:
-            break
-        }
+        // Never prompt from here. This runs from didFinishLaunching, including a
+        // background relaunch, where a system Always prompt would appear with no
+        // explanation in front of it. The disclosure alert owns the request, via
+        // requestAlwaysPermission().
         manager.startMonitoringSignificantLocationChanges()
     }
 
@@ -67,7 +61,6 @@ final class ReminderTracker: NSObject, CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         syncFromSettings()
-        onAuthorizationDecided?(manager.authorizationStatus == .authorizedAlways)
     }
 }
 

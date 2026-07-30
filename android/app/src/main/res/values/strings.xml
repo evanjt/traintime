@@ -15,17 +15,17 @@
     <string name="replay_walkthrough">Replay walkthrough</string>
     <string name="rate_this_app">Rate this app</string>
     <string name="attribution">Attribution</string>
-    <string name="route_reminders">Route reminders</string>
+    <string name="route_reminders">Notifications</string>
     <string name="notifications">Notifications</string>
     <string name="allowed">Allowed</string>
     <string name="turn_on">Turn on</string>
-    <string name="remind_before_departure">Remind me before departure</string>
+    <string name="remind_before_departure">Lead time before departure</string>
     <string name="before_a_connection">Before a connection</string>
     <string name="n_min_fmt">%1$d min</string>
     <string name="adjust_distance">Adjust for distance to station</string>
     <string name="adjust_distance_desc">Lead becomes your walk time + the minutes above</string>
-    <string name="update_background">Update in the background</string>
-    <string name="update_background_desc">Keep it accurate as you move, even when the app is closed</string>
+    <string name="update_background">Keep tracking in the background</string>
+    <string name="update_background_desc">Tracking keeps running when you leave the app</string>
     <string name="alert_before_departure">Alert me before departure</string>
     <string name="alert_before_departure_desc">A one-off heads-up when it\'s time to leave while tracking</string>
     <string name="help_title">How tracking works</string>
@@ -41,7 +41,6 @@
     <string name="help_oem_b">Some phones pause background apps to save power. Allow unrestricted battery use to keep tracking alive.</string>
     <string name="notify_walk_plus_fmt">You\'ll be notified your walk time + %1$d min before departure</string>
     <string name="notify_lead_fmt">You\'ll be notified %1$d min before departure</string>
-    <string name="send_test_notification">Send test notification</string>
     <string name="test_distance_reminder">Test distance reminder</string>
     <string name="mirror_to_watch">Mirror to watch</string>
     <string name="mirror_to_watch_desc">Send your tracked train, mode, station and location to the watch</string>
@@ -62,7 +61,7 @@
 
     <!-- Dialogs -->
     <string name="bg_track_title">Track in the background?</string>
-    <string name="bg_track_body">TrainTime collects your location to time your route reminder, even when the app is closed or not in use. You can decline, and we\'ll use your last known location instead.</string>
+    <string name="bg_track_body">TrainTime collects your location in the background to keep a tracked departure\'s walk margin correct and to time a saved route\'s reminder, even when the app is closed or not in use. You can decline, and we\'ll use your last known location instead.</string>
     <string name="continue_label">Continue</string>
     <string name="bg_denied_title">Using your last location</string>
     <string name="bg_denied_body">That\'s fine. Your reminder still works, using your last known location instead of live updates. Allow all-time access any time to make it live.</string>
@@ -205,8 +204,15 @@
     <string name="approach_alert_title">Time to leave</string>
     <string name="platform_change_title">Platform changed</string>
     <string name="delay_plus_fmt" translatable="false">+%1$d</string>
-    <string name="bg_intro_title">Smarter route reminders</string>
-    <string name="bg_intro_body">New in this version: a saved route\'s reminder can time itself to your live distance from the station, even with the app closed. This is optional. TrainTime collects background location only for this. Without it, reminders use your last known location.</string>
+    <string name="bg_intro_title">TrainTime uses background location</string>
+    <string name="bg_intro_body">While you track a departure, TrainTime uses your location in the background to keep your walk margin and your leave-by time correct, and to time a saved route\'s reminder. It stops when you stop tracking. You can turn background tracking off in Settings, and without it TrainTime uses your last known location.</string>
     <string name="reminder_bg_off_note">Background location is off. This reminder is timed from where you were when it was saved.</string>
     <string name="enable_bg_location">Enable background location</string>
+    <string name="remind_before_departure_desc">Applies to saved-route reminders and the leave alert while tracking</string>
+    <string name="bg_off_warning_title">Tracking will stop when you leave the app</string>
+    <string name="bg_off_warning_body">Without background tracking there is no countdown, no leave alert and no live card once TrainTime is closed. Tracking only runs while the app is open. You can turn this back on any time.</string>
+    <string name="bg_off_warning_confirm">Turn off</string>
+    <string name="notifications_blocked">Partly blocked</string>
+    <string name="tour_background_title">Tracking keeps going</string>
+    <string name="tour_background_body">Leave the app and your train keeps counting down on the Lock Screen, with an alert when it\'s time to leave. TrainTime uses your location in the background to do it, only while you\'re tracking. Turn it off any time in Settings.</string>
 </resources>

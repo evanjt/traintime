@@ -593,6 +593,23 @@ class PhoneViewModel: ObservableObject {
         refreshReminderPlan()
     }
 
+    /// The user's background-tracking switch. Defaults on, matching Android.
+    var backgroundTrackingEnabled: Bool {
+        UserDefaults.standard.object(forKey: "backgroundReminderTracking") as? Bool ?? true
+    }
+
+    /// Turning background tracking off is immediate and total: the Live Activity
+    /// goes, a parked background session goes with it, and background location
+    /// stops. Tracking then only runs while the app is open.
+    func disableBackgroundTracking() {
+        backgroundTracked = nil
+        backgroundTrackedStation = nil
+        PendingRouteNotifier.cancelApproachAlert()
+        endLiveActivity(departed: false)
+        if appState != 2 { location.setTrackingAccuracy(false) }
+        syncReminderTracking()
+    }
+
     // MARK: - Background-location introduction
 
     /// One-shot introduction of the optional background-location upgrade for
@@ -742,7 +759,9 @@ class PhoneViewModel: ObservableObject {
         // location (UIBackgroundModes location) holds the process alive and the
         // fetch timer keeps the Live Activity honest. Requires the background
         // mode to actually be engaged, otherwise tear down exactly as before.
-        if appState == 2 && location.backgroundTrackingActive {
+        // The user's switch is the outermost gate: off means the session ends
+        // with the foreground, so nothing is held.
+        if backgroundTrackingEnabled && appState == 2 && location.backgroundTrackingActive {
             return
         }
         location.stop()
@@ -1019,7 +1038,6 @@ class PhoneViewModel: ObservableObject {
         formation = nil
 
         // Lock Screen / Dynamic Island session; survives the app backgrounding.
-        trackingStartedAt = Date()
         startLiveActivity(focused)
 
         // Fetch formation for rail departures
@@ -1429,7 +1447,6 @@ class PhoneViewModel: ObservableObject {
 
     private var liveActivity: Activity<TrackingActivityAttributes>?
     private var lastActivityState: TrackingActivityAttributes.ContentState?
-    var trackingStartedAt = Date()
 
     private func currentVerdict() -> (TrackingVerdict, Int) {
         if gpsQuality == .unavailable || gpsQuality == .lastKnown { return (.noGps, 0) }
@@ -1471,11 +1488,16 @@ class PhoneViewModel: ObservableObject {
     /// beyond which the scheduled reminder is the backstop.
     private func startLiveActivity(_ focused: FocusedDeparture, staleDate: Date? = nil) {
         endLiveActivity(departed: false) // selecting a new departure replaces the card
+        // With background tracking off the session lives only as long as the
+        // tracking screen, so there is nothing for a Lock Screen card to outlive.
+        guard backgroundTrackingEnabled else { return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = TrackingActivityAttributes(
             line: focused.lineNumber,
-            stationName: currentStation?.name ?? "",
-            startedAt: trackingStartedAt)
+            // A queued share returns to the nearby list before starting its
+            // session, so currentStation is nil here and only the background
+            // session's own origin name is left.
+            stationName: currentStation?.name ?? backgroundTrackedStation ?? "")
         let state = activityContentState(focused)
         lastActivityState = state
         liveActivity = try? Activity.request(
@@ -2275,6 +2297,7 @@ class PhoneViewModel: ObservableObject {
     /// disclosure prompt — the Live Activity already covers the closed-app case.
     func trackCurrentInBackground() {
         lastInteractionTime = Date()
+        guard backgroundTrackingEnabled else { return }
         guard let focused = focusedTrain else { return }
         backgroundTracked = focused
         backgroundTrackedStation = currentStation?.name
@@ -2333,6 +2356,7 @@ class PhoneViewModel: ObservableObject {
     /// now-tracking card, and the pending route + reminder stay as the reboot
     /// backstop. No-op if a session is already running.
     private func enterBackgroundTrack(_ leg: RouteLeg, station: String?, routeDestination: String?) {
+        guard backgroundTrackingEnabled else { return }
         guard backgroundTracked == nil, appState != 2, leg.isTrackable else { return }
         let focused = FocusedDeparture(
             destination: leg.destName,
@@ -2348,7 +2372,6 @@ class PhoneViewModel: ObservableObject {
         )
         backgroundTracked = focused
         backgroundTrackedStation = station
-        trackingStartedAt = Date()
         // A queued share is never updated (updateLiveActivity is immersive-only), so
         // keep the card fresh until the train's effective departure rather than the
         // default 15 min — a share hours out must not dim minutes after it appears.

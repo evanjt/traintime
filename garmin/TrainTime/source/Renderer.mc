@@ -666,7 +666,17 @@ module Renderer {
         // board). Space-permitting; drops out for a plain track.
         var rowTopY = destY + dc.getFontHeight(destFont) + 1;
         var routeDest = view.mFocusedTrain.hasKey("routeDest") ? view.mFocusedTrain["routeDest"] : null;
-        if (routeDest != null && !routeDest.equals("") && !routeDest.equals(dest)) {
+        // The row pushes the whole lower block (platform, countdown, bar, status)
+        // down by its own height, which runs off the bottom of a small screen.
+        // Measure that block against the space the formation needs and drop the
+        // row rather than clipping anything below it.
+        var lowerBlockH = xtinyH + 2
+            + dc.getFontHeight(Graphics.FONT_MEDIUM) + DrawUtils.px(2, width)
+            + DrawUtils.px(14, width) + DrawUtils.px(4, width)
+            + dc.getFontHeight(Graphics.FONT_TINY);
+        var bottomReserve = xtinyH + (xtinyH + 3) + DrawUtils.px(4, width);
+        var routeFits = rowTopY + xtinyH + lowerBlockH <= height - bottomReserve;
+        if (routeFits && routeDest != null && !routeDest.equals("") && !routeDest.equals(dest)) {
             var routeStr = Lang.format(Txt.t(Rez.Strings.RouteDestFmt), [routeDest]);
             var routeMaxW = DrawUtils.getUsableWidth(rowTopY, width, height) - 10;
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);

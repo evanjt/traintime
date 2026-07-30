@@ -32,8 +32,6 @@ struct TrackingActivityAttributes: ActivityAttributes {
 
     var line: String
     var stationName: String
-    /// Left edge of the progress axis: when tracking began.
-    var startedAt: Date
 }
 
 /// The walk-vs-departure verdict, mirroring the in-app tracking bar states.

@@ -167,22 +167,33 @@ final class ParsingTests: XCTestCase {
         XCTAssertTrue(Set(trainLines).isDisjoint(with: tramLines))
     }
 
-    private var tourWithV2Step: [TourStep] {
-        tourSteps + [TourStep(stage: .widget, title: "New thing", body: "Body", introducedIn: 2)]
+    // Synthetic step one version past the real tour, so it is always the sole
+    // newest step regardless of what currentTourVersion introduces.
+    private var nextVersion: Int { currentTourVersion + 1 }
+    private var tourWithFutureStep: [TourStep] {
+        tourSteps + [TourStep(stage: .widget, title: "New thing", body: "Body", introducedIn: nextVersion)]
     }
 
     func testNewInstallSeesEveryStep() {
-        XCTAssertEqual(stepsToShow(tourWithV2Step, effectiveSeen: 0, current: 2).count, tourWithV2Step.count)
+        let shown = stepsToShow(tourWithFutureStep, effectiveSeen: 0, current: nextVersion)
+        XCTAssertEqual(shown.count, tourWithFutureStep.count)
     }
 
     func testUpdaterSeesOnlyNewerSteps() {
-        let shown = stepsToShow(tourWithV2Step, effectiveSeen: 1, current: 2)
+        let shown = stepsToShow(tourWithFutureStep, effectiveSeen: currentTourVersion, current: nextVersion)
         XCTAssertEqual(shown.map(\.stage), [.widget])
-        XCTAssertEqual(shown.first?.introducedIn, 2)
+        XCTAssertEqual(shown.first?.introducedIn, nextVersion)
     }
 
     func testUpToDateUserSeesNothing() {
-        XCTAssertTrue(stepsToShow(tourWithV2Step, effectiveSeen: 2, current: 2).isEmpty)
+        XCTAssertTrue(stepsToShow(tourWithFutureStep, effectiveSeen: nextVersion, current: nextVersion).isEmpty)
+    }
+
+    // The background disclosure has to reach existing users on first open after
+    // the update, which is what makes it the release's disclosure surface.
+    func testV1FinisherSeesOnlyTheBackgroundStep() {
+        let shown = stepsToShow(tourSteps, effectiveSeen: 1, current: currentTourVersion)
+        XCTAssertEqual(shown.map(\.stage), [.background])
     }
 
     func testEffectiveSeenVersionMigratesLegacyFinisher() {

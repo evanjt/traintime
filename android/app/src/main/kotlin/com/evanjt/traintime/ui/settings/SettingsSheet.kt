@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Watch
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +28,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +58,7 @@ import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.review.ReviewLauncher
+import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
 
@@ -295,16 +298,22 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
 
     val routeLead by viewModel.prefs.routeReminderLeadMinutes.collectAsState(initial = 15)
     val connectionLead by viewModel.prefs.connectionReminderLeadMinutes.collectAsState(initial = 3)
-    val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = false)
+    val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = true)
     val backgroundTracking by viewModel.prefs.backgroundReminderTracking.collectAsState(initial = true)
     val alertBeforeDeparture by viewModel.prefs.alertBeforeDeparture.collectAsState(initial = true)
 
+    var confirmBgOff by remember { mutableStateOf(false) }
+
     // Re-check on resume so returning from system settings updates the row.
     var granted by remember { mutableStateOf(notificationsEnabled(context)) }
+    var channelsOn by remember { mutableStateOf(trackingChannelsEnabled(context)) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) granted = notificationsEnabled(context)
+            if (event == Lifecycle.Event.ON_RESUME) {
+                granted = notificationsEnabled(context)
+                channelsOn = trackingChannelsEnabled(context)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -317,14 +326,22 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .let { if (granted) it else it.clickable { openNotificationSettings(context) } }
+                .let {
+                    if (granted && channelsOn) it else it.clickable { openNotificationSettings(context) }
+                }
                 .padding(top = 8.dp),
         ) {
             Text(stringResource(R.string.notifications), color = onSurface)
             Spacer(Modifier.weight(1f))
+            // A muted tracking channel is invisible to the app-level grant, so
+            // report it rather than claiming everything is allowed.
             Text(
-                if (granted) stringResource(R.string.allowed) else stringResource(R.string.turn_on),
-                color = if (granted) secondary else palette.platform,
+                when {
+                    !granted -> stringResource(R.string.turn_on)
+                    !channelsOn -> stringResource(R.string.notifications_blocked)
+                    else -> stringResource(R.string.allowed)
+                },
+                color = if (granted && channelsOn) secondary else palette.platform,
                 fontSize = 14.sp,
             )
         }
@@ -335,6 +352,11 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             selectedIndex = savedLeadOptions.indexOf(routeLead).coerceAtLeast(0),
             onSelect = { viewModel.setRouteReminderLead(savedLeadOptions[it]) },
             modifier = Modifier.padding(top = 12.dp),
+        )
+        Text(
+            stringResource(R.string.remind_before_departure_desc),
+            color = secondary,
+            fontSize = 12.sp,
         )
 
         SegmentedSetting(
@@ -356,17 +378,43 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             Switch(checked = distanceAware, onCheckedChange = { viewModel.setDistanceAwareReminder(it) })
         }
 
-        if (distanceAware) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.update_background), color = onSurface)
-                    Text(stringResource(R.string.update_background_desc), color = secondary, fontSize = 12.sp)
-                }
-                Switch(checked = backgroundTracking, onCheckedChange = { viewModel.setBackgroundReminderTracking(it) })
+        // Governs the whole live session, not just a saved route's reminder, so
+        // it stands on its own rather than hiding behind the distance toggle.
+        // Switching it off takes tracking away entirely once the app closes, so
+        // it is confirmed rather than silently applied.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.update_background), color = onSurface)
+                Text(stringResource(R.string.update_background_desc), color = secondary, fontSize = 12.sp)
             }
+            Switch(
+                checked = backgroundTracking,
+                onCheckedChange = {
+                    if (it) viewModel.setBackgroundReminderTracking(true) else confirmBgOff = true
+                },
+            )
+        }
+
+        if (confirmBgOff) {
+            AlertDialog(
+                onDismissRequest = { confirmBgOff = false },
+                title = { Text(stringResource(R.string.bg_off_warning_title)) },
+                text = { Text(stringResource(R.string.bg_off_warning_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmBgOff = false
+                        viewModel.setBackgroundReminderTracking(false)
+                    }) { Text(stringResource(R.string.bg_off_warning_confirm)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmBgOff = false }) {
+                        Text(stringResource(CoreR.string.review_not_now))
+                    }
+                },
+            )
         }
 
         Text(
@@ -393,16 +441,6 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             Switch(checked = alertBeforeDeparture, onCheckedChange = { viewModel.setAlertBeforeDeparture(it) })
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { viewModel.sendTestNotification() }
-                .padding(top = 12.dp),
-        ) {
-            Text(stringResource(R.string.send_test_notification), color = onSurface)
-        }
-
         if (distanceAware) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -426,6 +464,17 @@ private fun notificationsEnabled(context: android.content.Context): Boolean =
     } else {
         NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
+
+// The app-level grant says nothing about a channel the user muted by hand, and
+// the tracking card and the leave alert each live on their own channel.
+private fun trackingChannelsEnabled(context: android.content.Context): Boolean {
+    if (android.os.Build.VERSION.SDK_INT < 26) return true
+    val manager = context.getSystemService(android.app.NotificationManager::class.java) ?: return true
+    return TrackingNotificationService.CHANNEL_IDS.all { id ->
+        val channel = manager.getNotificationChannel(id)
+        channel == null || channel.importance != android.app.NotificationManager.IMPORTANCE_NONE
+    }
+}
 
 private fun openNotificationSettings(context: android.content.Context) {
     context.startActivity(

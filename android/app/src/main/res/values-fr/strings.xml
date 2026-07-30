@@ -15,17 +15,17 @@
     <string name="replay_walkthrough">Revoir la visite guidée</string>
     <string name="rate_this_app">Évaluer l\'app</string>
     <string name="attribution">Sources</string>
-    <string name="route_reminders">Rappels d\'itinéraire</string>
+    <string name="route_reminders">Notifications</string>
     <string name="notifications">Notifications</string>
     <string name="allowed">Activées</string>
     <string name="turn_on">Activer</string>
-    <string name="remind_before_departure">Me rappeler avant le départ</string>
+    <string name="remind_before_departure">Délai avant le départ</string>
     <string name="before_a_connection">Avant une correspondance</string>
     <string name="n_min_fmt">%1$d min</string>
     <string name="adjust_distance">Ajuster à la distance de l\'arrêt</string>
     <string name="adjust_distance_desc">Le délai devient votre temps de marche + les minutes ci-dessus</string>
-    <string name="update_background">Mettre à jour en arrière-plan</string>
-    <string name="update_background_desc">Reste précis pendant vos déplacements, même app fermée</string>
+    <string name="update_background">Continuer le suivi en arrière-plan</string>
+    <string name="update_background_desc">Le suivi continue quand vous quittez l\'app</string>
     <string name="alert_before_departure">M\'avertir avant le départ</string>
     <string name="alert_before_departure_desc">Un rappel unique quand il est temps de partir pendant le suivi</string>
     <string name="help_title">Comment fonctionne le suivi</string>
@@ -41,7 +41,6 @@
     <string name="help_oem_b">Certains téléphones suspendent les apps en arrière-plan pour économiser l\'énergie. Autorisez une utilisation illimitée de la batterie pour garder le suivi actif.</string>
     <string name="notify_walk_plus_fmt">Vous serez notifié votre temps de marche + %1$d min avant le départ</string>
     <string name="notify_lead_fmt">Vous serez notifié %1$d min avant le départ</string>
-    <string name="send_test_notification">Envoyer une notification test</string>
     <string name="test_distance_reminder">Tester le rappel de distance</string>
     <string name="mirror_to_watch">Miroir sur la montre</string>
     <string name="mirror_to_watch_desc">Envoie train suivi, mode, gare et position à la montre</string>
@@ -62,7 +61,7 @@
 
     <!-- Dialogs -->
     <string name="bg_track_title">Suivre en arrière-plan ?</string>
-    <string name="bg_track_body">TrainTime relève votre position pour caler votre rappel d\'itinéraire, même app fermée ou inutilisée. Vous pouvez refuser, nous utiliserons alors votre dernière position connue.</string>
+    <string name="bg_track_body">TrainTime relève votre position en arrière-plan pour garder juste le temps de marche d\'un départ suivi et pour caler le rappel d\'un itinéraire enregistré, même app fermée ou inutilisée. Vous pouvez refuser, nous utiliserons alors votre dernière position connue.</string>
     <string name="continue_label">Continuer</string>
     <string name="bg_denied_title">Dernière position utilisée</string>
     <string name="bg_denied_body">Aucun souci. Votre rappel fonctionne toujours, avec votre dernière position connue au lieu du direct. Autorisez l\'accès permanent à tout moment pour le rendre live.</string>
@@ -204,8 +203,15 @@
     <string name="tracking_far">Pas encore à proximité</string>
     <string name="approach_alert_title">Il est temps de partir</string>
     <string name="platform_change_title">Changement de quai</string>
-    <string name="bg_intro_title">Rappels d\'itinéraire plus précis</string>
-    <string name="bg_intro_body">Nouveau dans cette version : le rappel d\'un itinéraire enregistré peut se caler sur votre distance en direct jusqu\'à la gare, même app fermée. C\'est optionnel. TrainTime ne collecte la position en arrière-plan que pour cela. Sans cela, les rappels utilisent votre dernière position connue.</string>
+    <string name="bg_intro_title">TrainTime utilise la position en arrière-plan</string>
+    <string name="bg_intro_body">Pendant que vous suivez un départ, TrainTime utilise votre position en arrière-plan pour garder votre temps de marche et votre heure de départ justes, et pour caler le rappel d\'un itinéraire enregistré. Cela s\'arrête quand vous arrêtez le suivi. Vous pouvez le désactiver dans les réglages : TrainTime utilisera alors votre dernière position connue.</string>
     <string name="reminder_bg_off_note">La localisation en arrière-plan est désactivée. Ce rappel se base sur votre position au moment de l\'enregistrement.</string>
     <string name="enable_bg_location">Activer la localisation en arrière-plan</string>
+    <string name="remind_before_departure_desc">S\'applique aux rappels d\'itinéraire et à l\'alerte de départ pendant le suivi</string>
+    <string name="bg_off_warning_title">Le suivi s\'arrêtera quand vous quitterez l\'app</string>
+    <string name="bg_off_warning_body">Sans suivi en arrière-plan, il n\'y a plus de compte à rebours, plus d\'alerte de départ et plus de carte en direct une fois TrainTime fermée. Le suivi ne tourne que app ouverte. Vous pouvez le réactiver à tout moment.</string>
+    <string name="bg_off_warning_confirm">Désactiver</string>
+    <string name="notifications_blocked">Partiellement bloqué</string>
+    <string name="tour_background_title">Le suivi continue</string>
+    <string name="tour_background_body">Quittez l\'app : votre train continue son compte à rebours sur l\'écran verrouillé, avec une alerte au moment de partir. TrainTime utilise pour cela votre position en arrière-plan, uniquement pendant le suivi. Désactivable à tout moment dans les réglages.</string>
 </resources>

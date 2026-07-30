@@ -1,28 +1,6 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Stop tracking": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verfolgung beenden"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Arrêter le suivi"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Termina il tracciamento"
-          }
-        }
-      }
-    },
     "%@ ahead": {
       "localizations": {
         "de": {
@@ -331,6 +309,50 @@
         }
       }
     },
+    "A one-off alert reminds you to go, based on your walk time to the station.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Hinweis erinnert dich, basierend auf deiner Gehzeit zur Station."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel unique vous invite à partir, selon votre temps de marche jusqu'à la gare."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avviso una tantum ti ricorda di andare, in base al tempo a piedi fino alla stazione."
+          }
+        }
+      }
+    },
+    "A one-off heads-up when it's time to leave while tracking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Hinweis, wenn es Zeit zu gehen ist, während der Verfolgung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un rappel unique quand il est temps de partir pendant le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avviso una tantum quando è ora di partire durante il monitoraggio"
+          }
+        }
+      }
+    },
     "A quick rating helps other commuters find the app.": {
       "localizations": {
         "de": {
@@ -441,6 +463,28 @@
         }
       }
     },
+    "Alert me before departure": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vor Abfahrt benachrichtigen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M'avertir avant le départ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami prima della partenza"
+          }
+        }
+      }
+    },
     "Allowed": {
       "localizations": {
         "de": {
@@ -503,6 +547,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aspetto"
+          }
+        }
+      }
+    },
+    "Applies to saved-route reminders and the leave alert while tracking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to saved-route reminders and the leave alert while tracking"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gilt für Routen-Erinnerungen und den Aufbruch-Hinweis beim Verfolgen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "S'applique aux rappels d'itinéraire et à l'alerte de départ pendant le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vale per i promemoria dei percorsi e per l'avviso di partenza mentre segui"
           }
         }
       }
@@ -1255,6 +1327,50 @@
         }
       }
     },
+    "How tracking works": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So funktioniert die Verfolgung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment fonctionne le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come funziona il monitoraggio"
+          }
+        }
+      }
+    },
+    "It checks smartly": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie prüft clever"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vérifie intelligemment"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla in modo intelligente"
+          }
+        }
+      }
+    },
     "It now sits above the gold line and still appears in the list below.": {
       "localizations": {
         "de": {
@@ -1273,6 +1389,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ora sta sopra la linea dorata e resta anche nell'elenco sotto."
+          }
+        }
+      }
+    },
+    "It saves battery": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie spart Akku"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il économise la batterie"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risparmia batteria"
+          }
+        }
+      }
+    },
+    "It stays live on the Lock Screen and Dynamic Island, even with the app closed.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie bleibt aktiv auf dem Sperrbildschirm und in der Dynamic Island, auch bei geschlossener App."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il reste actif sur l'écran verrouillé et la Dynamic Island, même app fermée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resta attivo sulla schermata di blocco e nella Dynamic Island, anche ad app chiusa."
+          }
+        }
+      }
+    },
+    "It tells you when to leave": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie sagt dir, wann du gehen musst"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vous dit quand partir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ti dice quando partire"
           }
         }
       }
@@ -1343,6 +1525,34 @@
         }
       }
     },
+    "Keep tracking in the background": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep tracking in the background"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Hintergrund weiterverfolgen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer le suivi en arrière-plan"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua a seguire in background"
+          }
+        }
+      }
+    },
     "Language": {
       "localizations": {
         "de": {
@@ -1387,6 +1597,62 @@
         }
       }
     },
+    "Lead time before departure": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lead time before departure"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorlauf vor Abfahrt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Délai avant le départ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anticipo prima della partenza"
+          }
+        }
+      }
+    },
+    "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verlasse die App und dein Zug zählt auf dem Sperrbildschirm weiter herunter, mit Hinweis, wann du losmusst. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Jederzeit in den Einstellungen abschaltbar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quittez l'app : votre train continue son compte à rebours sur l'écran verrouillé, avec une alerte au moment de partir. TrainTime utilise pour cela votre position en arrière-plan, uniquement pendant le suivi. Désactivable à tout moment dans les réglages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci dall'app e il tuo treno continua il conto alla rovescia sulla schermata di blocco, con un avviso quando è ora di uscire. TrainTime usa la posizione in background solo mentre segui. Disattivabile in qualsiasi momento nelle impostazioni."
+          }
+        }
+      }
+    },
     "Light": {
       "localizations": {
         "de": {
@@ -1427,6 +1693,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Partenze in tempo reale da Open Transport Data Switzerland, gestito dalle Ferrovie federali svizzere (FFS), tramite l'API OJP."
+          }
+        }
+      }
+    },
+    "Location only switches on near the station, so a trip hours away costs almost nothing.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Standort schaltet sich erst nahe der Station ein, sodass eine Fahrt in Stunden fast nichts kostet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La localisation ne s'active qu'à proximité de la gare, donc un trajet dans plusieurs heures ne coûte presque rien."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La posizione si attiva solo vicino alla stazione, così un viaggio tra ore non costa quasi nulla."
           }
         }
       }
@@ -1515,28 +1803,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fermate vicine"
-          }
-        }
-      }
-    },
-    "New in this version: a saved route's reminder can time itself to your live distance from the station, even with the app closed. This is optional. TrainTime collects background location only for this. Without it, reminders use your last known location.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neu in dieser Version: Die Erinnerung an eine gespeicherte Route kann sich nach deiner Live-Distanz zum Bahnhof richten, auch bei geschlossener App. Das ist optional. TrainTime erfasst den Standort im Hintergrund nur dafür. Ohne diese Freigabe nutzen Erinnerungen deinen zuletzt bekannten Standort."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nouveau dans cette version : le rappel d'un itinéraire enregistré peut se caler sur votre distance en direct jusqu'à la gare, même app fermée. C'est optionnel. TrainTime ne collecte la position en arrière-plan que pour cela. Sans cela, les rappels utilisent votre dernière position connue."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Novità di questa versione: il promemoria di un percorso salvato può basarsi sulla tua distanza in tempo reale dalla stazione, anche con l'app chiusa. È facoltativo. TrainTime rileva la posizione in background solo per questo. Senza, i promemoria usano la tua ultima posizione nota."
           }
         }
       }
@@ -2379,6 +2645,12 @@
     },
     "Remind me before departure": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remind me before departure"
+          }
+        },
         "de": {
           "stringUnit": {
             "state": "translated",
@@ -2395,28 +2667,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ricordamelo prima della partenza"
-          }
-        }
-      }
-    },
-    "Reminders for a saved route. The connection lead is used once you're already on the way.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erinnerungen für eine gespeicherte Route. Der Verbindungs-Vorlauf gilt, sobald du unterwegs bist."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rappels pour un itinéraire enregistré. Le délai de correspondance s'applique une fois en route."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Promemoria per un percorso salvato. L'anticipo di coincidenza vale quando sei già in viaggio."
           }
         }
       }
@@ -2553,50 +2803,6 @@
         }
       }
     },
-    "Route reminders": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Routen-Erinnerungen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rappels d'itinéraire"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Promemoria percorso"
-          }
-        }
-      }
-    },
-    "Route reminders are working. This is a test.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Routen-Erinnerungen funktionieren. Dies ist ein Test."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les rappels d'itinéraire fonctionnent. Ceci est un test."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I promemoria funzionano. Questo è un test."
-          }
-        }
-      }
-    },
     "Route to %@": {
       "localizations": {
         "de": {
@@ -2681,28 +2887,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salvato. Ti avviseremo prima della partenza"
-          }
-        }
-      }
-    },
-    "Send test notification": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testbenachrichtigung senden"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Envoyer une notification test"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invia notifica di prova"
           }
         }
       }
@@ -2949,28 +3133,6 @@
         }
       }
     },
-    "Smarter route reminders": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schlauere Routen-Erinnerungen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rappels d'itinéraire plus précis"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Promemoria di percorso più precisi"
-          }
-        }
-      }
-    },
     "Special": {
       "localizations": {
         "de": {
@@ -3077,6 +3239,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Passo %lld di %lld"
+          }
+        }
+      }
+    },
+    "Stop tracking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolgung beenden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Termina il tracciamento"
           }
         }
       }
@@ -3301,28 +3485,6 @@
         }
       }
     },
-    "Test reminder": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Test-Erinnerung"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rappel test"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Promemoria di prova"
-          }
-        }
-      }
-    },
     "That's fine. Your reminder still works, using your last known location instead of live updates. Allow all-time access any time to make it live.": {
       "localizations": {
         "de": {
@@ -3367,24 +3529,80 @@
         }
       }
     },
-    "The lead becomes your walk time to the station plus the minutes above. Background updates keep it accurate as you move.": {
+    "The connection lead is used once you're already on the way.": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The connection lead is used once you're already on the way."
+          }
+        },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Vorlauf wird deine Gehzeit zur Station plus die Minuten oben. Hintergrund-Updates halten ihn genau, während du unterwegs bist."
+            "value": "Der Anschluss-Vorlauf gilt, sobald du schon unterwegs bist."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le délai devient votre temps de marche jusqu'à l'arrêt plus les minutes ci-dessus. Les mises à jour en arrière-plan le gardent précis en déplacement."
+            "value": "Le délai de correspondance s'applique une fois que vous êtes en route."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "L'anticipo diventa il tuo tempo a piedi fino alla fermata più i minuti sopra. Gli aggiornamenti in background lo tengono preciso mentre ti muovi."
+            "value": "L'anticipo per la coincidenza vale quando sei già in viaggio."
+          }
+        }
+      }
+    },
+    "The countdown keeps running": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Countdown läuft weiter"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le compte à rebours continue"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il conto alla rovescia continua"
+          }
+        }
+      }
+    },
+    "The lead becomes your walk time to the station plus the minutes above. Background tracking keeps it accurate as you move.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The lead becomes your walk time to the station plus the minutes above. Background tracking keeps it accurate as you move."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Vorlauf wird deine Gehzeit zum Bahnhof plus die Minuten oben. Die Hintergrund-Verfolgung hält ihn genau, während du unterwegs bist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le délai devient votre temps de marche jusqu'à la gare plus les minutes ci-dessus. Le suivi en arrière-plan le garde juste pendant vos déplacements."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'anticipo diventa il tuo tempo a piedi fino alla stazione più i minuti sopra. Il tracciamento in background lo mantiene preciso mentre ti muovi."
           }
         }
       }
@@ -3473,6 +3691,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Questo viaggio è già in corso o concluso"
+          }
+        }
+      }
+    },
+    "Time to leave": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit zu gehen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il est temps de partir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "È ora di partire"
           }
         }
       }
@@ -3609,6 +3849,62 @@
         }
       }
     },
+    "Tracking keeps going": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracking keeps going"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Verfolgung läuft weiter"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suivi continue"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tracciamento continua"
+          }
+        }
+      }
+    },
+    "Tracking keeps running when you leave the app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracking keeps running when you leave the app"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Verfolgung läuft weiter, wenn du die App verlässt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suivi continue quand vous quittez l'app"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tracciamento continua quando esci dall'app"
+          }
+        }
+      }
+    },
     "Tracking on watch": {
       "localizations": {
         "de": {
@@ -3675,6 +3971,34 @@
         }
       }
     },
+    "Tracking will stop when you leave the app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tracking will stop when you leave the app"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Verfolgung stoppt, wenn du die App verlässt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le suivi s'arrêtera quand vous quitterez l'app"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tracciamento si fermerà quando esci dall'app"
+          }
+        }
+      }
+    },
     "Train": {
       "localizations": {
         "de": {
@@ -3719,6 +4043,34 @@
         }
       }
     },
+    "TrainTime uses background location": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime uses background location"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime nutzt den Standort im Hintergrund"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime utilise la position en arrière-plan"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime usa la posizione in background"
+          }
+        }
+      }
+    },
     "Trains, buses, trams": {
       "localizations": {
         "de": {
@@ -3759,6 +4111,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tram"
+          }
+        }
+      }
+    },
+    "Turn off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausschalten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva"
           }
         }
       }
@@ -3851,24 +4231,24 @@
         }
       }
     },
-    "Update in the background": {
+    "Updates get more frequent as departure nears, and rare when it's still far away.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Im Hintergrund aktualisieren"
+            "value": "Aktualisierungen werden häufiger, je näher die Abfahrt rückt, und selten, solange sie fern ist."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mettre à jour en arrière-plan"
+            "value": "Les mises à jour s'accélèrent à l'approche du départ, et se raréfient quand il est encore loin."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aggiorna in background"
+            "value": "Gli aggiornamenti si infittiscono all'avvicinarsi della partenza e diradano quando è ancora lontana."
           }
         }
       }
@@ -3979,6 +4359,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'app orologio non risponde, riapro..."
+          }
+        }
+      }
+    },
+    "While you track a departure, TrainTime uses your location in the background to keep your walk margin and your leave-by time correct, and to time a saved route's reminder. It stops when you stop tracking. You can turn background tracking off in Settings, and without it TrainTime uses your last known location.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While you track a departure, TrainTime uses your location in the background to keep your walk margin and your leave-by time correct, and to time a saved route's reminder. It stops when you stop tracking. You can turn background tracking off in Settings, and without it TrainTime uses your last known location."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Während du eine Abfahrt verfolgst, nutzt TrainTime deinen Standort im Hintergrund, damit Gehzeit und Aufbruchszeit stimmen, und um die Erinnerung einer gespeicherten Route zu timen. Es endet, sobald du die Verfolgung beendest. Du kannst das in den Einstellungen abschalten, dann nutzt TrainTime deinen zuletzt bekannten Standort."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pendant que vous suivez un départ, TrainTime utilise votre position en arrière-plan pour garder votre temps de marche et votre heure de départ justes, et pour caler le rappel d'un itinéraire enregistré. Cela s'arrête quand vous arrêtez le suivi. Vous pouvez le désactiver dans les réglages : TrainTime utilisera alors votre dernière position connue."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentre segui una partenza, TrainTime usa la tua posizione in background per mantenere corretti il tempo a piedi e l'ora in cui uscire, e per calibrare il promemoria di un percorso salvato. Si ferma quando smetti di seguire. Puoi disattivarlo nelle impostazioni: TrainTime userà l'ultima posizione nota."
+          }
+        }
+      }
+    },
+    "Without background tracking there is no countdown, no leave alert and no Live Activity once TrainTime is closed. Tracking only runs while the app is open. You can turn this back on any time.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without background tracking there is no countdown, no leave alert and no Live Activity once TrainTime is closed. Tracking only runs while the app is open. You can turn this back on any time."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Hintergrund-Verfolgung gibt es keinen Countdown, keinen Aufbruch-Hinweis und keine Live-Aktivität, sobald TrainTime geschlossen ist. Die Verfolgung läuft nur bei offener App. Du kannst das jederzeit wieder einschalten."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans suivi en arrière-plan, il n'y a plus de compte à rebours, plus d'alerte de départ et plus d'activité en direct une fois TrainTime fermée. Le suivi ne tourne que app ouverte. Vous pouvez le réactiver à tout moment."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senza il tracciamento in background non ci sono conto alla rovescia, avviso di partenza né attività live quando TrainTime è chiusa. Il tracciamento va solo ad app aperta. Puoi riattivarlo quando vuoi."
           }
         }
       }
@@ -4243,270 +4679,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "© Garmin. Usato secondo la licenza SDK."
-          }
-        }
-      }
-    },
-    "Alert me before departure": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vor Abfahrt benachrichtigen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "M'avertir avant le départ"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Avvisami prima della partenza"
-          }
-        }
-      }
-    },
-    "A one-off heads-up when it's time to leave while tracking": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ein einmaliger Hinweis, wenn es Zeit zu gehen ist, während der Verfolgung"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un rappel unique quand il est temps de partir pendant le suivi"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un avviso una tantum quando è ora di partire durante il monitoraggio"
-          }
-        }
-      }
-    },
-    "Time to leave": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeit zu gehen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il est temps de partir"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "È ora di partire"
-          }
-        }
-      }
-    },
-    "How tracking works": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "So funktioniert die Verfolgung"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comment fonctionne le suivi"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Come funziona il monitoraggio"
-          }
-        }
-      }
-    },
-    "The countdown keeps running": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Countdown läuft weiter"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le compte à rebours continue"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il conto alla rovescia continua"
-          }
-        }
-      }
-    },
-    "It stays live on the Lock Screen and Dynamic Island, even with the app closed.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sie bleibt aktiv auf dem Sperrbildschirm und in der Dynamic Island, auch bei geschlossener App."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il reste actif sur l'écran verrouillé et la Dynamic Island, même app fermée."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resta attivo sulla schermata di blocco e nella Dynamic Island, anche ad app chiusa."
-          }
-        }
-      }
-    },
-    "It checks smartly": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sie prüft clever"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il vérifie intelligemment"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Controlla in modo intelligente"
-          }
-        }
-      }
-    },
-    "Updates get more frequent as departure nears, and rare when it's still far away.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktualisierungen werden häufiger, je näher die Abfahrt rückt, und selten, solange sie fern ist."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les mises à jour s'accélèrent à l'approche du départ, et se raréfient quand il est encore loin."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gli aggiornamenti si infittiscono all'avvicinarsi della partenza e diradano quando è ancora lontana."
-          }
-        }
-      }
-    },
-    "It saves battery": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sie spart Akku"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il économise la batterie"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Risparmia batteria"
-          }
-        }
-      }
-    },
-    "Location only switches on near the station, so a trip hours away costs almost nothing.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Standort schaltet sich erst nahe der Station ein, sodass eine Fahrt in Stunden fast nichts kostet."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La localisation ne s'active qu'à proximité de la gare, donc un trajet dans plusieurs heures ne coûte presque rien."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La posizione si attiva solo vicino alla stazione, così un viaggio tra ore non costa quasi nulla."
-          }
-        }
-      }
-    },
-    "It tells you when to leave": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sie sagt dir, wann du gehen musst"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il vous dit quand partir"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ti dice quando partire"
-          }
-        }
-      }
-    },
-    "A one-off alert reminds you to go, based on your walk time to the station.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ein einmaliger Hinweis erinnert dich, basierend auf deiner Gehzeit zur Station."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un rappel unique vous invite à partir, selon votre temps de marche jusqu'à la gare."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Un avviso una tantum ti ricorda di andare, in base al tempo a piedi fino alla stazione."
           }
         }
       }
