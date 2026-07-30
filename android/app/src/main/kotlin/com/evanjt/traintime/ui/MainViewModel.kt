@@ -459,8 +459,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onAppear() {
         lastInteractionTime = now()
-        // The tracking service's own loop idles while we own the fetching.
-        TrackingSessionBus.appForeground.value = true
+        // Only the immersive tracking screen feeds the notification, so only it
+        // may idle the service's loop. Returning to the BOARD with a background
+        // session running used to claim ownership and then never push (the feed
+        // is gated on appState == 2), freezing the notification on a stale
+        // verdict while the board showed a fresh one.
+        TrackingSessionBus.appForeground.value = appState == 2
         viewModelScope.launch {
             location.start()
             if (location.loadedFromCache) loadedFromCache = true
@@ -961,7 +965,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // stays visible) when the app backgrounds. Without POST_NOTIFICATIONS
         // (API 33+) the system drops the notification silently, so ask now.
         trackingStartedTs = nowSeconds()
-        TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused))
+        TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused), suppressApproachAlert = true)
         notificationPermissionRequest = true
         maybeShowBatteryNotice()
 

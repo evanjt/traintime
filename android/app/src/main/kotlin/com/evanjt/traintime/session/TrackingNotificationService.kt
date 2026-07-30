@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -88,7 +89,7 @@ class TrackingNotificationService : Service() {
                 // keeps the latch so it doesn't fire twice.
                 parsed?.let {
                     if (it.focused.departureTimestamp != snapshot?.focused?.departureTimestamp) {
-                        approachAlerted = false
+                        approachAlerted = intent?.getBooleanExtra(EXTRA_SUPPRESS_ALERT, false) == true
                     }
                     snapshot = it
                 }
@@ -145,28 +146,55 @@ class TrackingNotificationService : Service() {
         }
 
         scope.launch {
+            var lastPollAt = 0L
             while (isActive) {
                 val snap = snapshot
                 val now = System.currentTimeMillis() / 1000
                 val tier = snap?.let { TrackingLogic.pollTier(effectiveMinutes(it, now)) }
-                if (snap != null) {
+                if (snap != null && tier != null) {
+                    // Departed: tear the whole session down. Nothing about a train
+                    // that has left is worth a notification, a poll or a fix.
                     if (TrackingLogic.departed(snap.focused, now)) {
-                        finishDeparted(snap)
+                        stopSession()
                         break
                     }
-                    // Foreground: the VM owns fetching and pushes over the bus.
+                    // Foreground tracking screen: the VM owns fetching and pushes.
                     if (!TrackingSessionBus.appForeground.value) {
-                        applyLocationMode(tier!!.location)
+                        applyLocationMode(tier.location)
                         // Paused (very far): no fetch, no GPS — the chronometer
                         // carries the countdown for free until it's worth waking.
                         if (tier.apiIntervalSec != null) {
-                            refresh(snap, now)
-                            maybeApproachAlert(snapshot ?: snap, now)
+                            if (now - lastPollAt >= tier.apiIntervalSec) {
+                                lastPollAt = now
+                                refresh(snap, now)
+                                maybeApproachAlert(snapshot ?: snap, now)
+                            } else {
+                                // Between polls the bar and the ahead/behind
+                                // verdict still move with the clock, so redraw
+                                // from what we already hold. Costs a render, no
+                                // network and no fix.
+                                pushNotification(snapshot ?: snap)
+                            }
                         }
                     }
                 }
-                delay((tier?.apiIntervalSec ?: PAUSED_WAKE_SEC) * 1000)
+                delay((tier?.let { tickSeconds(it) } ?: PAUSED_WAKE_SEC) * 1000)
             }
+        }
+    }
+
+    // Redraw cadence, deliberately faster than the poll cadence: the board is
+    // expensive to fetch but the bar is pure arithmetic on the clock. Matches
+    // what the tracking screen shows, which is seconds up close and whole
+    // minutes further out.
+    private fun tickSeconds(tier: TrackingLogic.PollTier): Long {
+        val poll = tier.apiIntervalSec ?: return PAUSED_WAKE_SEC
+        return when (tier.location) {
+            // GPS off, so there is no walk verdict yet and nothing but the
+            // chronometer moves. Waking early would buy nothing.
+            TrackingLogic.LocationMode.OFF -> poll
+            TrackingLogic.LocationMode.BALANCED -> minOf(poll, 5L)
+            TrackingLogic.LocationMode.HIGH -> 1L
         }
     }
 
@@ -265,17 +293,23 @@ class TrackingNotificationService : Service() {
     private fun alertApproach(snap: TrackingSnapshot) {
         val ctx = localised()
         ensureChannels(ctx)
+        // Scheduled time plus a separate "+N", the same way the board reads it.
         val time = HHMM.format(
-            Instant.ofEpochSecond(snap.focused.departureTimestamp + snap.focused.delay * 60L)
-                .atZone(ZoneId.systemDefault()),
+            Instant.ofEpochSecond(snap.focused.departureTimestamp).atZone(ZoneId.systemDefault()),
         )
+        val delay = if (snap.focused.delay > 0) {
+            " · " + ctx.getString(R.string.delay_plus_fmt, snap.focused.delay)
+        } else {
+            ""
+        }
         val body = ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination) +
-            " · " + time
+            " · " + time + delay
         val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(ctx.getString(R.string.approach_alert_title))
             .setContentText(body)
             .setAutoCancel(true)
+            .setTimeoutAfter(alertTimeoutMs(snap))
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setContentIntent(tapIntent(snap))
             .build()
@@ -287,9 +321,20 @@ class TrackingNotificationService : Service() {
     // Notifications render outside any activity, so resolve strings through a
     // context wrapped in the stored per-app language tag (pre-33 the picker
     // override only reaches activities).
-    private fun localised(): Context {
+    // Cached: render() now runs as often as once a second, and resolving this
+    // blocks on a DataStore read. Dropped on any configuration change, which is
+    // where both the language and light/dark live.
+    private var localisedCtx: Context? = null
+
+    private fun localised(): Context = localisedCtx ?: run {
         val tag = runBlocking { AppPrefs(this@TrackingNotificationService).appLanguage.first() }
-        return LocaleUtil.localised(this, tag)
+        LocaleUtil.localised(this, tag).also { localisedCtx = it }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        localisedCtx = null
+        snapshot?.let { pushNotification(it) }
     }
 
     private fun render(snap: TrackingSnapshot): Notification {
@@ -297,7 +342,7 @@ class TrackingNotificationService : Service() {
         ensureChannels(ctx)
         val now = System.currentTimeMillis() / 1000
         val focused = snap.focused
-        val effectiveDep = focused.departureTimestamp + focused.delay * 60L
+        val night = isNight()
 
         val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it) }
         val gpsOk = snap.gpsOk && walkMin != null
@@ -315,23 +360,45 @@ class TrackingNotificationService : Service() {
             TrackingLogic.barModel(schedBuf, effectBuf, gpsOk)
         }
 
-        val parts = mutableListOf<String>()
-        if (focused.platform.isNotEmpty()) parts += ctx.getString(R.string.platform_full_fmt, focused.platform)
-        // Scheduled departure clock time, alongside the live countdown in the
-        // chronometer. Same field and zone as the in-app tracking screen.
-        parts += HHMM.format(Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()))
-        if (focused.delay > 0) parts += ctx.getString(R.string.delay_plus_fmt, focused.delay)
-        if (awaitingProximity) {
-            parts += ctx.getString(R.string.tracking_far)
-        } else {
-            parts += statusText(ctx, status, effectBuf)
-        }
-        // Sub-minute walks read as "0 min" — at the station, the walk line is noise.
-        walkMin?.roundToInt()?.takeIf { it >= 1 }?.let { parts += ctx.getString(R.string.walk_min_fmt, it) }
-
         val title = ctx.getString(CoreR.string.leg_places_fmt, focused.lineNumber, focused.destination)
-        val detail = parts.joinToString(" · ")
-        val departing = effectiveDep * 1000 <= System.currentTimeMillis()
+        val dot = when {
+            awaitingProximity -> ""
+            status == TrackingStatus.AHEAD -> "🟢 "
+            status == TrackingStatus.BEHIND -> "🔴 "
+            status == TrackingStatus.ON_TIME -> "🟡 "
+            else -> ""
+        }
+        // The verdict is the first thing on the card. OnePlus Fluid Cloud
+        // drops contentText but renders subText, so the verdict lives there
+        // alongside the timetable facts. contentText carries the walk only.
+        val sub = mutableListOf<String>()
+        if (awaitingProximity) {
+            sub += ctx.getString(R.string.tracking_far)
+        } else {
+            sub += dot + statusText(ctx, status, effectBuf)
+        }
+        snap.stationName?.let { sub += it }
+        if (focused.platform.isNotEmpty()) sub += ctx.getString(R.string.platform_full_fmt, focused.platform)
+        sub += HHMM.format(Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()))
+        if (focused.delay > 0) sub += ctx.getString(R.string.delay_plus_fmt, focused.delay)
+        val subText = sub.joinToString(" · ")
+        val detail = walkMin?.roundToInt()?.takeIf { it >= 1 }
+            ?.let { ctx.getString(R.string.walk_min_fmt, it) } ?: ""
+        // Count down to the moment you have to start walking, not to the
+        // departure: adjusted departure (schedule + delay) minus the walk. Time
+        // until departure is what a timetable app shows; the margin you have
+        // left to catch it is what this app is for. It's also the same quantity
+        // the bar and the ahead/behind line already draw, so the three surfaces
+        // can never disagree.
+        // No walk read yet (far out, GPS deliberately off) means no margin to
+        // count, so fall back to the scheduled departure the board shows.
+        val effectiveDep = focused.departureTimestamp + focused.delay * 60L
+        val leaveBySec = if (gpsOk && walkMin != null) {
+            effectiveDep - (walkMin * 60).toLong()
+        } else {
+            effectiveDep
+        }
+        val departing = now >= effectiveDep
 
         // Android 16+: a promotable ProgressStyle notification, the only shape the
         // system will promote to a status-bar / OEM-island chip. Promotion needs a
@@ -343,54 +410,63 @@ class TrackingNotificationService : Service() {
         if (Build.VERSION.SDK_INT >= 36) {
             val progress = NotificationCompat.ProgressStyle()
                 .setProgress(bar.position)
+                // This is the app's diverging ahead/behind axis, NOT progress
+                // toward departure: centre is zero margin and the colour runs
+                // out from it. Styled-by-progress (the default) fades everything
+                // past the progress point, which erased the dark-red "won't make
+                // it" region entirely and flattened the two greens into one.
+                .setStyledByProgress(false)
                 .setProgressSegments(
                     bar.runs.map {
-                        NotificationCompat.ProgressStyle.Segment(it.length).setColor(zoneColor(it.zone))
+                        NotificationCompat.ProgressStyle.Segment(it.length).setColor(segmentColor(it.zone, night))
                     },
                 )
+                // No centre point: the template draws one as a fat square that
+                // breaks the bar, and the centre is already where the colour
+                // starts (ahead) or ends (behind), so it needs no marker.
             val stopLabel = ctx.getString(R.string.stop_tracking)
             val b = NotificationCompat.Builder(this, CHIP_CHANNEL_ID)
-                // A dot rather than a location pin: the system tints the small
-                // icon with setColor, so the glyph itself carries the verdict
-                // colour in the island and status bar.
                 .setSmallIcon(R.drawable.ic_notif_traintime)
                 .setContentTitle(title)
                 .setContentText(detail)
                 .setStyle(progress)
                 .setColor(verdictColor(status, awaitingProximity))
                 .setColorized(false)
-                .setSubText(snap.stationName)
+                .setSubText(subText)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setRequestPromotedOngoing(true)
                 .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
                 .setContentIntent(tapIntent(snap))
                 .addAction(android.R.drawable.ic_menu_close_clear_cancel, stopLabel, stopIntent())
-            // The island renders shortCriticalText, and the system flattens the
-            // small icon to a monochrome mask, so setColor can't carry the
-            // verdict there. A leading coloured dot is the one channel the
-            // capsule honours — the compact analog of the iOS Live Activity.
-            // Omitted while there's no walk verdict yet (far, GPS still off).
-            val dot = when {
-                awaitingProximity -> ""
-                status == TrackingStatus.AHEAD -> "🟢 "
-                status == TrackingStatus.BEHIND -> "🔴 "
-                status == TrackingStatus.ON_TIME -> "🟡 "
-                else -> ""
-            }
-            // Minutes while they're meaningful, clock time when it's hours out
-            // (which also survives the paused tier without going stale).
-            val effMins = (focused.minutesUntil(now) + focused.delay).roundToInt()
-            val clock = HHMM.format(Instant.ofEpochSecond(effectiveDep).atZone(ZoneId.systemDefault()))
-            b.setShortCriticalText(
-                if (departing) clock else dot + if (effMins in 0..90) ctx.getString(R.string.n_min_fmt, effMins) else clock,
+            // The chip's countdown is a system chronometer that ticks to the
+            // leave-by moment (schedule + delay - walk). Positive = margin left,
+            // zero = leave now. It ticks per second natively, for free. Setting
+            // shortCriticalText overrides it and can only update at our render
+            // rate (5 s at BALANCED), so we only set it when there's no margin
+            // to count: far out with no GPS, or after departure.
+            val clock = HHMM.format(
+                Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()),
             )
+            // Countdown to the leave-by moment. Once it's passed but the train
+            // hasn't gone, count negative: the chip then says how far behind the
+            // walk you are, the same margin the bar and ahead/behind line show.
+            val leaveByDelta = leaveBySec - now
+            fun ms(s: Long) = String.format("%d:%02d", s / 60, s % 60)
+            val critical = when {
+                departing -> clock
+                leaveByDelta < 0 -> "-" + ms(-leaveByDelta)
+                leaveByDelta < 120 -> ms(leaveByDelta)
+                leaveByDelta < 3600 -> "${leaveByDelta / 60}m"
+                else -> "${leaveByDelta / 3600}h"
+            }
+            b.setShortCriticalText(critical)
             if (departing) {
-                // Past departure: freeze rather than counting into the negatives;
-                // the departed teardown replaces the card shortly.
+                // Past the departure: freeze rather than counting into the
+                // negatives. A delayed train keeps its card until it really goes.
                 b.setShowWhen(false)
             } else {
-                b.setWhen(effectiveDep * 1000).setShowWhen(true)
+                b.setWhen(leaveBySec * 1000).setShowWhen(true)
                     .setUsesChronometer(true).setChronometerCountDown(true)
             }
             return b.build()
@@ -400,13 +476,14 @@ class TrackingNotificationService : Service() {
         // versions, so the RemoteView bitmap renders our exact multi-colour bar.
         // DecoratedCustomViewStyle keeps the system header, the countdown
         // chronometer and the Stop action; we own only the strip.
-        val barBmp = renderBarBitmap(bar)
+        val barBmp = renderBarBitmap(bar, night)
         // Countdown ticks system-side (elapsedRealtime base), so it keeps
-        // running with the app suspended. Once the train is at/past departure,
-        // freeze it at 0:00 rather than counting into the negatives; the
-        // departed teardown replaces the card within the grace window.
+        // running with the app suspended. Counts to the same leave-by moment as
+        // the 16+ card. Once the train is at/past departure, freeze it at 0:00
+        // rather than counting into the negatives; the departed teardown
+        // replaces the card within the grace window.
         val countdownBase = android.os.SystemClock.elapsedRealtime() +
-            (effectiveDep * 1000 - System.currentTimeMillis())
+            (leaveBySec * 1000 - System.currentTimeMillis())
         fun RemoteViews.fillCommon(): RemoteViews = apply {
             setTextViewText(R.id.notif_title, title)
             setTextViewText(R.id.notif_detail, detail)
@@ -436,7 +513,7 @@ class TrackingNotificationService : Service() {
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(collapsed)
             .setCustomBigContentView(expanded)
-            .setSubText(snap.stationName)
+            .setSubText(subText)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
@@ -458,17 +535,12 @@ class TrackingNotificationService : Service() {
         else -> 0xFF6B7076.toInt()
     }
 
-    // 16+ posts the promotable card on the non-silent DEFAULT channel; older
-    // versions keep the silent LOW channel for the ongoing bar.
-    private fun trackingChannel(): String =
-        if (Build.VERSION.SDK_INT >= 36) CHIP_CHANNEL_ID else CHANNEL_ID
-
     // Render the tracking-bar model as a small ARGB bitmap: contiguous coloured
     // runs across the buffer axis with rounded ends and a faint centre hairline,
     // matching the in-app TrackingBar. fitXY stretches it to the notification
     // width, so the modest fixed size stays well under the ~1 MB RemoteViews
     // transaction budget.
-    private fun renderBarBitmap(bar: BarModel): Bitmap {
+    private fun renderBarBitmap(bar: BarModel, night: Boolean): Bitmap {
         val w = BAR_BMP_W
         val h = BAR_BMP_H
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
@@ -481,33 +553,61 @@ class TrackingNotificationService : Service() {
         var x = 0f
         val unit = w.toFloat() / TrackingLogic.BAR_UNITS
         for (run in bar.runs) {
-            paint.color = zoneColor(run.zone)
+            paint.color = zoneColor(run.zone, night)
             val next = x + run.length * unit
             canvas.drawRect(x, 0f, next, h.toFloat(), paint)
             x = next
         }
         // Centre marker: the zero-margin hairline, subtle like the in-app bar.
-        paint.color = BAR_CENTRE
+        paint.color = centreColor(night)
         val cx = w / 2f
         val half = w * 0.005f
         canvas.drawRect(cx - half, 0f, cx + half, h.toFloat(), paint)
         return bmp
     }
 
-    // Bar colours on the notification's own track: verdict colours pop, the
-    // empty axis and centre hairline stay dim so the meaningful run reads on
-    // its own against a light or dark shade.
-    private fun zoneColor(zone: BarZone): Int = when (zone) {
-        BarZone.DARK_GREEN -> 0xFF1E8E3E.toInt()
-        BarZone.LIGHT_GREEN -> 0xFF6FCF82.toInt()
-        BarZone.AMBER -> 0xFFE08A00.toInt()
-        BarZone.DARK_RED -> 0xFFD32F2F.toInt()
-        // No-GPS fills the whole bar, so it stays a clearly visible mid grey.
-        BarZone.GREY -> 0xFF6B7076.toInt()
-        // The empty axis: a dim grey a hair above the charcoal card, so unfilled
-        // regions recede instead of reading as bright cut-off sections.
-        BarZone.TRACK -> 0xFF2E3238.toInt()
+    // LightPalette/DarkPalette verbatim, so the bitmap bar reads exactly like
+    // the tracking screen: dark green = guaranteed margin, light green = margin
+    // owed to the delay, amber = recoverable, dark red = irrecoverable. We draw
+    // this one ourselves, so the colours arrive on screen untouched.
+    // A notification follows the SYSTEM theme rather than the app's, so the
+    // light/dark pair is chosen per render from the config.
+    private fun zoneColor(zone: BarZone, night: Boolean): Int = when (zone) {
+        BarZone.DARK_GREEN -> if (night) 0xFF00FF00.toInt() else 0xFF1E8E3E.toInt()
+        BarZone.LIGHT_GREEN -> if (night) 0xFF55FF55.toInt() else 0xFF6FCF82.toInt()
+        BarZone.AMBER -> if (night) 0xFFFFAA00.toInt() else 0xFFE08A00.toInt()
+        BarZone.DARK_RED -> if (night) 0xFFFF0000.toInt() else 0xFFD32F2F.toInt()
+        BarZone.GREY -> if (night) 0xFF444444.toInt() else 0xFFC7C7CC.toInt()
+        // The empty axis. The app draws it as the screen background, which on a
+        // notification card would vanish, so it sits a hair off the card instead.
+        BarZone.TRACK -> if (night) 0xFF2E3238.toInt() else 0xFFE5E5EA.toInt()
     }
+
+    // ProgressStyle repaints every segment we hand it: sanitizeProgressColor()
+    // forces each one to at least 3:1 against the card background, keeping the
+    // hue but dragging the lightness. Passing the app palette through that
+    // flattened both greens onto the same darkness and turned the near-white
+    // empty axis into mid-grey, which is why the card stopped matching the
+    // screen. So this palette is pre-cleared: every colour already sits above
+    // the floor, the platform leaves it alone, and the two greens stay apart on
+    // the only axis left (darker-than in light mode, lighter-than in dark).
+    private fun segmentColor(zone: BarZone, night: Boolean): Int = when (zone) {
+        BarZone.DARK_GREEN -> if (night) 0xFF1F9D4A.toInt() else 0xFF0B5D24.toInt()
+        BarZone.LIGHT_GREEN -> if (night) 0xFFA8F0BC.toInt() else 0xFF448C5C.toInt()
+        BarZone.AMBER -> if (night) 0xFFFFB020.toInt() else 0xFFB36B00.toInt()
+        BarZone.DARK_RED -> if (night) 0xFFFF6B60.toInt() else 0xFFA3231B.toInt()
+        BarZone.GREY -> if (night) 0xFF8A9099.toInt() else 0xFF6E7175.toInt()
+        BarZone.TRACK -> if (night) 0xFF6E7276.toInt() else 0xFF7E7F83.toInt()
+    }
+
+    // The app's zero-margin hairline: barGray at 80%, over the empty axis.
+    private fun centreColor(night: Boolean): Int =
+        if (night) 0xCC444444.toInt() else 0xCCC7C7CC.toInt()
+
+    // Notifications render in the system's theme, not the app's chosen one.
+    private fun isNight(): Boolean =
+        resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
 
     private fun statusText(ctx: Context, status: TrackingStatus, effectBuf: Double): String {
         if (status == TrackingStatus.NO_GPS) return ctx.getString(CoreR.string.no_gps)
@@ -569,30 +669,19 @@ class TrackingNotificationService : Service() {
             .setContentTitle(ctx.getString(R.string.platform_change_title))
             .setContentText(body)
             .setAutoCancel(true)
+            .setTimeoutAfter(alertTimeoutMs(snap))
             .setContentIntent(tapIntent(snap))
             .build()
         getSystemService(NotificationManager::class.java).notify(ALERT_NOTIF_ID, notification)
     }
 
-    // Departure passed while backgrounded: swap to a dismissible "Departed
-    // HH:MM" that cleans itself up, and end the service. A foregrounded app
-    // never reaches this (the VM auto-exits first and stops the service).
-    private fun finishDeparted(snap: TrackingSnapshot) {
-        val ctx = localised()
-        val time = HHMM.format(
-            Instant.ofEpochSecond(snap.focused.departureTimestamp + snap.focused.delay * 60L)
-                .atZone(ZoneId.systemDefault()),
-        )
-        val notification = NotificationCompat.Builder(this, trackingChannel())
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination))
-            .setContentText(ctx.getString(R.string.departed_at_fmt, time))
-            .setAutoCancel(true)
-            .setTimeoutAfter(DEPARTED_TIMEOUT_MS)
-            .build()
-        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
-        getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
-        stopSelf()
+    // How long a one-shot alert stays useful: until the train leaves, plus the
+    // session's own grace. onDestroy clears them on every ordinary teardown, but
+    // an OEM-killed process never gets there, so the system expires them for us.
+    private fun alertTimeoutMs(snap: TrackingSnapshot): Long {
+        val effectiveDep = snap.focused.departureTimestamp + snap.focused.delay * 60L
+        val remaining = (effectiveDep + TrackingLogic.DEPARTED_GRACE_SEC) * 1000 - System.currentTimeMillis()
+        return remaining.coerceAtLeast(ALERT_MIN_TIMEOUT_MS)
     }
 
     private fun stopSession() {
@@ -603,6 +692,13 @@ class TrackingNotificationService : Service() {
     override fun onDestroy() {
         locationCallback?.let {
             LocationServices.getFusedLocationProviderClient(this).removeLocationUpdates(it)
+        }
+        // Every teardown path lands here (departed, in-app stop, notification
+        // Stop), and the one-shot alerts are only about catching this train, so
+        // they end with the session rather than sitting in the shade for days.
+        getSystemService(NotificationManager::class.java).let {
+            it.cancel(ALERT_NOTIF_ID)
+            it.cancel(APPROACH_NOTIF_ID)
         }
         scope.cancel()
         super.onDestroy()
@@ -687,7 +783,10 @@ class TrackingNotificationService : Service() {
         // no GPS, just a periodic clock check to notice the departure nearing.
         private const val PAUSED_WAKE_SEC = 300L
         private const val FIX_MAX_AGE_MS = 3 * 60 * 1000L
-        private const val DEPARTED_TIMEOUT_MS = 60_000L
+
+        // Floor for a one-shot alert's self-expiry, so an alert fired right on
+        // top of the departure is still readable before it clears.
+        private const val ALERT_MIN_TIMEOUT_MS = 60_000L
 
         const val ACTION_STOP = "com.evanjt.traintime.session.STOP"
         private const val EXTRA_CMD = "cmd"
@@ -697,13 +796,15 @@ class TrackingNotificationService : Service() {
         private const val EXTRA_WALK_DIST = "walkDist"
         private const val EXTRA_GPS_OK = "gpsOk"
         private const val EXTRA_STARTED = "started"
+        private const val EXTRA_SUPPRESS_ALERT = "suppress_alert"
 
-        fun start(context: Context, snapshot: TrackingSnapshot) {
+        fun start(context: Context, snapshot: TrackingSnapshot, suppressApproachAlert: Boolean = false) {
             val intent = Intent(context, TrackingNotificationService::class.java)
                 .putExtra(EXTRA_CMD, WearSync.json.encodeToString(TrackCommand.from(snapshot.focused, snapshot.stationId)))
                 .putExtra(EXTRA_STATION_NAME, snapshot.stationName)
                 .putExtra(EXTRA_STARTED, snapshot.startedEpochSeconds)
                 .putExtra(EXTRA_GPS_OK, snapshot.gpsOk)
+                .putExtra(EXTRA_SUPPRESS_ALERT, suppressApproachAlert)
             snapshot.stationLat?.let { intent.putExtra(EXTRA_STATION_LAT, it) }
             snapshot.stationLon?.let { intent.putExtra(EXTRA_STATION_LON, it) }
             snapshot.walkDistMeters?.let { intent.putExtra(EXTRA_WALK_DIST, it) }

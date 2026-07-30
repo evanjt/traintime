@@ -203,7 +203,6 @@
     <string name="tracking_now">Attivo</string>
     <string name="tracking_far">Non ancora vicino</string>
     <string name="approach_alert_title">È ora di partire</string>
-    <string name="departed_at_fmt">Partito alle %1$s</string>
     <string name="platform_change_title">Cambio di binario</string>
     <string name="bg_intro_title">Promemoria di percorso più precisi</string>
     <string name="bg_intro_body">Novità di questa versione: il promemoria di un percorso salvato può basarsi sulla tua distanza in tempo reale dalla stazione, anche con l\'app chiusa. È facoltativo. TrainTime rileva la posizione in background solo per questo. Senza, i promemoria usano la tua ultima posizione nota.</string>

@@ -144,8 +144,11 @@ object TrackingLogic {
         else -> TrackingStatus.ON_TIME
     }
 
+    // A late train has not left. Measure the grace from the effective departure
+    // (schedule + delay), or a +3 session would tear itself down while the user
+    // is still standing on the platform waiting for it.
     fun departed(focused: FocusedDeparture, nowEpochSeconds: Long): Boolean =
-        focused.secondsUntil(nowEpochSeconds) < -DEPARTED_GRACE_SEC
+        focused.secondsUntil(nowEpochSeconds) + focused.delay * 60L < -DEPARTED_GRACE_SEC
 
     const val BAR_UNITS = 1000
 

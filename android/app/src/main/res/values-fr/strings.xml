@@ -203,7 +203,6 @@
     <string name="tracking_now">Suivi</string>
     <string name="tracking_far">Pas encore à proximité</string>
     <string name="approach_alert_title">Il est temps de partir</string>
-    <string name="departed_at_fmt">Parti à %1$s</string>
     <string name="platform_change_title">Changement de quai</string>
     <string name="bg_intro_title">Rappels d\'itinéraire plus précis</string>
     <string name="bg_intro_body">Nouveau dans cette version : le rappel d\'un itinéraire enregistré peut se caler sur votre distance en direct jusqu\'à la gare, même app fermée. C\'est optionnel. TrainTime ne collecte la position en arrière-plan que pour cela. Sans cela, les rappels utilisent votre dernière position connue.</string>

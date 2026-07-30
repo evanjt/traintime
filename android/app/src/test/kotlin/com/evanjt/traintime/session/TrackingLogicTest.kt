@@ -112,6 +112,14 @@ class TrackingLogicTest {
     }
 
     @Test
+    fun departed_counts_from_the_delayed_departure() {
+        // Scheduled 2 min ago but running 3 late: still sitting at the platform.
+        assertFalse(TrackingLogic.departed(focused(dep = now - 120, delay = 3), now))
+        // 3 late and 5 min past schedule: gone, grace included.
+        assertTrue(TrackingLogic.departed(focused(dep = now - 300, delay = 3), now))
+    }
+
+    @Test
     fun bar_comfortable_margin_paints_green_from_centre() {
         // +1.5 sched, +3 effect: dark green 500..750, light green 750..1000.
         val bar = TrackingLogic.barModel(1.5, 3.0, gpsOk = true)

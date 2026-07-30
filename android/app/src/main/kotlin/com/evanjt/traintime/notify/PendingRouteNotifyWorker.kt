@@ -64,6 +64,12 @@ class PendingRouteNotifyWorker(
             .setContentText(ctx.getString(R.string.notif_departs_fmt, time, leg.originName))
             .setContentIntent(tapIntent)
             .setAutoCancel(true)
+            // Expire at departure. A "leaves at 04:46" reminder is noise once the
+            // train has gone, and with the app closed nothing else clears it.
+            .setTimeoutAfter(
+                ((leg.depTs + DEPARTED_GRACE_SEC) * 1000 - System.currentTimeMillis())
+                    .coerceAtLeast(MIN_TIMEOUT_MS),
+            )
 
         // Offer "Send to Watch" only when a Garmin is paired (cached by the VM;
         // this worker has no SDK binding). Picking it on the watch runs the
@@ -90,5 +96,11 @@ class PendingRouteNotifyWorker(
         applicationContext.getSystemService(NotificationManager::class.java)
             .notify(PendingRouteNotifier.NOTIF_ID, notification)
         return Result.success()
+    }
+
+    private companion object {
+        // Same grace the tracking session uses before it calls a train departed.
+        const val DEPARTED_GRACE_SEC = 90L
+        const val MIN_TIMEOUT_MS = 60_000L
     }
 }

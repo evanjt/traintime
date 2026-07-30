@@ -203,7 +203,6 @@
     <string name="tracking_now">Aktiv</string>
     <string name="tracking_far">Noch nicht in der Nähe</string>
     <string name="approach_alert_title">Zeit zu gehen</string>
-    <string name="departed_at_fmt">Abgefahren um %1$s</string>
     <string name="platform_change_title">Gleiswechsel</string>
     <string name="bg_intro_title">Schlauere Routen-Erinnerungen</string>
     <string name="bg_intro_body">Neu in dieser Version: Die Erinnerung an eine gespeicherte Route kann sich nach deiner Live-Distanz zum Bahnhof richten, auch bei geschlossener App. Das ist optional. TrainTime erfasst den Standort im Hintergrund nur dafür. Ohne diese Freigabe nutzen Erinnerungen deinen zuletzt bekannten Standort.</string>

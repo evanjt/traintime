@@ -203,7 +203,6 @@
     <string name="tracking_now">Tracking</string>
     <string name="tracking_far">Not nearby yet</string>
     <string name="approach_alert_title">Time to leave</string>
-    <string name="departed_at_fmt">Departed %1$s</string>
     <string name="platform_change_title">Platform changed</string>
     <string name="delay_plus_fmt" translatable="false">+%1$d</string>
     <string name="bg_intro_title">Smarter route reminders</string>
