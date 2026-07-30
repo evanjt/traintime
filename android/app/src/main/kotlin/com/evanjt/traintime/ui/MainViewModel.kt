@@ -2613,6 +2613,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             pendingRouteStore.save(normalized)
             PendingRouteNotifier.schedule(getApplication(), normalized, nowSeconds())
         }
+        // A process kill (OnePlus reaps background apps aggressively) drops the
+        // in-memory session while the route persists, so on reopen the board
+        // would fall back to the old chip. Re-establish the live session here so
+        // the green now-tracking card is the single top surface; the tiered
+        // engine keeps a far session paused and free. No-op if a session already
+        // runs, we're mid immersive-tracking, or the current leg isn't trackable.
+        normalized.legs.getOrNull(normalized.cursor)?.let { leg ->
+            enterBackgroundTrack(leg, leg.originName, normalized.finalDestination)
+        }
     }
 
     // Notification tap / route-view "Track now" on the current leg. An explicit

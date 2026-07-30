@@ -1,0 +1,19 @@
+<!-- TrainTime's clock mark, redrawn as a flat alpha mask: the system forces
+     notification small icons to monochrome, so the launcher PNG can't be used
+     directly. Ring plus hands at 10:10, matching the launcher icon's face. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,12m-9.5,0a9.5,9.5 0 1,1 19,0a9.5,9.5 0 1,1 -19,0zM12,12m-7.6,0a7.6,7.6 0 1,0 15.2,0a7.6,7.6 0 1,0 -15.2,0z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.49,11.43L9.49,8.83L8.51,9.97L11.51,12.57z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.42,12.5L16.02,9.5L15.18,8.5L11.58,11.5z" />
+</vector>

@@ -105,7 +105,6 @@ class TrackingNotificationService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
-                updateCompanion(snapshot!!)
                 ensureRunning()
             }
         }
@@ -332,19 +331,80 @@ class TrackingNotificationService : Service() {
 
         val title = ctx.getString(CoreR.string.leg_places_fmt, focused.lineNumber, focused.destination)
         val detail = parts.joinToString(" · ")
+        val departing = effectiveDep * 1000 <= System.currentTimeMillis()
 
-        // Draw the in-app diverging bar into a bitmap and mount it in a custom
-        // layout. A custom RemoteView can't earn the Android 16 promoted chip,
-        // but it renders our exact gapless multi-colour bar in the collapsed
-        // shade on every OS version — ProgressStyle only ever draws gapped
-        // segments. DecoratedCustomViewStyle keeps the system header, the
-        // countdown chronometer and the Stop action; we own only the strip.
+        // Android 16+: a promotable ProgressStyle notification, the only shape the
+        // system will promote to a status-bar / OEM-island chip. Promotion needs a
+        // promotable style with a title and — verified on-device — NOT colorized:
+        // a colorized card never earns FLAG_PROMOTED_ONGOING. A custom RemoteView
+        // disqualifies it too, so the gapless bitmap bar can't be promoted; its
+        // ahead/behind colours are carried by ProgressStyle segments instead
+        // (segmented with hairline gaps, the closest the template allows).
+        if (Build.VERSION.SDK_INT >= 36) {
+            val progress = NotificationCompat.ProgressStyle()
+                .setProgress(bar.position)
+                .setProgressSegments(
+                    bar.runs.map {
+                        NotificationCompat.ProgressStyle.Segment(it.length).setColor(zoneColor(it.zone))
+                    },
+                )
+            val stopLabel = ctx.getString(R.string.stop_tracking)
+            val b = NotificationCompat.Builder(this, CHIP_CHANNEL_ID)
+                // A dot rather than a location pin: the system tints the small
+                // icon with setColor, so the glyph itself carries the verdict
+                // colour in the island and status bar.
+                .setSmallIcon(R.drawable.ic_notif_traintime)
+                .setContentTitle(title)
+                .setContentText(detail)
+                .setStyle(progress)
+                .setColor(verdictColor(status, awaitingProximity))
+                .setColorized(false)
+                .setSubText(snap.stationName)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setRequestPromotedOngoing(true)
+                .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+                .setContentIntent(tapIntent(snap))
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, stopLabel, stopIntent())
+            // The island renders shortCriticalText, and the system flattens the
+            // small icon to a monochrome mask, so setColor can't carry the
+            // verdict there. A leading coloured dot is the one channel the
+            // capsule honours — the compact analog of the iOS Live Activity.
+            // Omitted while there's no walk verdict yet (far, GPS still off).
+            val dot = when {
+                awaitingProximity -> ""
+                status == TrackingStatus.AHEAD -> "🟢 "
+                status == TrackingStatus.BEHIND -> "🔴 "
+                status == TrackingStatus.ON_TIME -> "🟡 "
+                else -> ""
+            }
+            // Minutes while they're meaningful, clock time when it's hours out
+            // (which also survives the paused tier without going stale).
+            val effMins = (focused.minutesUntil(now) + focused.delay).roundToInt()
+            val clock = HHMM.format(Instant.ofEpochSecond(effectiveDep).atZone(ZoneId.systemDefault()))
+            b.setShortCriticalText(
+                if (departing) clock else dot + if (effMins in 0..90) ctx.getString(R.string.n_min_fmt, effMins) else clock,
+            )
+            if (departing) {
+                // Past departure: freeze rather than counting into the negatives;
+                // the departed teardown replaces the card shortly.
+                b.setShowWhen(false)
+            } else {
+                b.setWhen(effectiveDep * 1000).setShowWhen(true)
+                    .setUsesChronometer(true).setChronometerCountDown(true)
+            }
+            return b.build()
+        }
+
+        // Pre-16: the custom gapless diverging bar. No promotion exists on these
+        // versions, so the RemoteView bitmap renders our exact multi-colour bar.
+        // DecoratedCustomViewStyle keeps the system header, the countdown
+        // chronometer and the Stop action; we own only the strip.
         val barBmp = renderBarBitmap(bar)
         // Countdown ticks system-side (elapsedRealtime base), so it keeps
         // running with the app suspended. Once the train is at/past departure,
         // freeze it at 0:00 rather than counting into the negatives; the
         // departed teardown replaces the card within the grace window.
-        val departing = effectiveDep * 1000 <= System.currentTimeMillis()
         val countdownBase = android.os.SystemClock.elapsedRealtime() +
             (effectiveDep * 1000 - System.currentTimeMillis())
         fun RemoteViews.fillCommon(): RemoteViews = apply {
@@ -382,10 +442,26 @@ class TrackingNotificationService : Service() {
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setShowWhen(false)
             .setContentIntent(tapIntent(snap))
-            .setGroup(GROUP_KEY)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, stopLabel, stopIntent())
             .build()
     }
+
+    // Card colour by walk verdict: green ahead, amber on time, red behind,
+    // grey when there's no walk read yet (far, GPS still off). Drives the
+    // header/icon accent on Android 16+ (the card itself can't be colorized
+    // without losing promotion).
+    private fun verdictColor(status: TrackingStatus, awaiting: Boolean): Int = when {
+        awaiting -> 0xFF6B7076.toInt()
+        status == TrackingStatus.AHEAD -> 0xFF1E8E3E.toInt()
+        status == TrackingStatus.BEHIND -> 0xFFD32F2F.toInt()
+        status == TrackingStatus.ON_TIME -> 0xFFE08A00.toInt()
+        else -> 0xFF6B7076.toInt()
+    }
+
+    // 16+ posts the promotable card on the non-silent DEFAULT channel; older
+    // versions keep the silent LOW channel for the ongoing bar.
+    private fun trackingChannel(): String =
+        if (Build.VERSION.SDK_INT >= 36) CHIP_CHANNEL_ID else CHANNEL_ID
 
     // Render the tracking-bar model as a small ARGB bitmap: contiguous coloured
     // runs across the buffer axis with rounded ends and a faint centre hairline,
@@ -475,62 +551,10 @@ class TrackingNotificationService : Service() {
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
     }
 
-    // Render the main gradient-bar card and, on Android 16+, the companion chip.
+    // On 16+ render() itself is the promoted card; below 16 it's the gradient
+    // bar. Either way it's the single foreground-service notification.
     private fun pushNotification(snap: TrackingSnapshot) {
         notifySilently(render(snap))
-        updateCompanion(snap)
-    }
-
-    // The status-bar / OEM-island chip. The gradient-bar card is a custom
-    // RemoteView, which can never be promoted (containsCustomViews disqualifies
-    // it), so the chip is a second, minimal, standard-template notification:
-    // NOT colorized (colorize also disqualifies promotion), a small icon tinted
-    // green/amber/red by the ahead/behind verdict, and the countdown as short
-    // critical text. Grouped with the card to keep the shade tidy. API 36+ only;
-    // older versions have no chip, so there is nothing to duplicate.
-    private fun updateCompanion(snap: TrackingSnapshot) {
-        if (Build.VERSION.SDK_INT < 36) return
-        val ctx = localised()
-        ensureChannels(ctx)
-        val now = System.currentTimeMillis() / 1000
-        val focused = snap.focused
-        val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it) }
-        val gpsOk = snap.gpsOk && walkMin != null
-        val effectBuf = TrackingLogic.effectiveBuffer(focused, walkMin ?: 0.0, now)
-        val tint = when (TrackingLogic.status(effectBuf, gpsOk)) {
-            TrackingStatus.AHEAD -> zoneColor(BarZone.DARK_GREEN)
-            TrackingStatus.BEHIND -> zoneColor(BarZone.DARK_RED)
-            TrackingStatus.ON_TIME -> zoneColor(BarZone.AMBER)
-            else -> zoneColor(BarZone.GREY)
-        }
-        val effMins = (focused.minutesUntil(now) + focused.delay).roundToInt()
-        val short = if (effMins in 0..90) {
-            ctx.getString(R.string.n_min_fmt, effMins)
-        } else {
-            HHMM.format(
-                Instant.ofEpochSecond(focused.departureTimestamp + focused.delay * 60L)
-                    .atZone(ZoneId.systemDefault()),
-            )
-        }
-        val chip = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, focused.lineNumber, focused.destination))
-            .setContentText(ctx.getString(R.string.tracking_now))
-            .setColor(tint)
-            .setColorized(false)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setShortCriticalText(short)
-            .setRequestPromotedOngoing(true)
-            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
-            .setContentIntent(tapIntent(snap))
-            .setGroup(GROUP_KEY)
-            .build()
-        getSystemService(NotificationManager::class.java).notify(PROMOTED_NOTIF_ID, chip)
-    }
-
-    private fun cancelCompanion() {
-        getSystemService(NotificationManager::class.java).cancel(PROMOTED_NOTIF_ID)
     }
 
     // One-shot heads-up on the alert channel, mirroring the in-app double
@@ -559,21 +583,19 @@ class TrackingNotificationService : Service() {
             Instant.ofEpochSecond(snap.focused.departureTimestamp + snap.focused.delay * 60L)
                 .atZone(ZoneId.systemDefault()),
         )
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, trackingChannel())
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination))
             .setContentText(ctx.getString(R.string.departed_at_fmt, time))
             .setAutoCancel(true)
             .setTimeoutAfter(DEPARTED_TIMEOUT_MS)
             .build()
-        cancelCompanion()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
         stopSelf()
     }
 
     private fun stopSession() {
-        cancelCompanion()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -588,13 +610,33 @@ class TrackingNotificationService : Service() {
 
     private fun ensureChannels(ctx: Context) {
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_ID,
-                ctx.getString(R.string.live_tracking_channel),
-                NotificationManager.IMPORTANCE_LOW,
-            ),
-        )
+        // The tracking card. On 16+ it must be non-silent (DEFAULT) or the system
+        // sweeps it into the collapsed "silent" section and never promotes it to
+        // a chip; sound off keeps it a quiet, glanceable navigation card. Below
+        // 16 there's no promotion, so a silent LOW channel keeps the bar quiet.
+        if (Build.VERSION.SDK_INT >= 36) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHIP_CHANNEL_ID,
+                    ctx.getString(R.string.live_tracking_channel),
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply {
+                    setSound(null, null)
+                    enableVibration(false)
+                },
+            )
+            // Retire the old LOW tracking channel so it doesn't linger as a
+            // duplicate "Live tracking" entry in settings.
+            manager.deleteNotificationChannel(CHANNEL_ID)
+        } else {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ID,
+                    ctx.getString(R.string.live_tracking_channel),
+                    NotificationManager.IMPORTANCE_LOW,
+                ),
+            )
+        }
         manager.createNotificationChannel(
             NotificationChannel(
                 ALERT_CHANNEL_ID,
@@ -636,12 +678,11 @@ class TrackingNotificationService : Service() {
         private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 
         private const val CHANNEL_ID = "live_tracking"
+        private const val CHIP_CHANNEL_ID = "live_tracking_chip"
         private const val ALERT_CHANNEL_ID = "tracking_alerts"
         private const val NOTIF_ID = 3
         private const val ALERT_NOTIF_ID = 4
         private const val APPROACH_NOTIF_ID = 5
-        private const val PROMOTED_NOTIF_ID = 6
-        private const val GROUP_KEY = "traintime_tracking"
         // How long to sleep between wakes on the paused (> 6 h) tier: no fetch,
         // no GPS, just a periodic clock check to notice the departure nearing.
         private const val PAUSED_WAKE_SEC = 300L
