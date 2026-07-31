@@ -1,4 +1,4 @@
-- Ein verspäteter Zug fliegt nicht mehr eine Minute nach der Fahrplanzeit aus der Verfolgung, auf iPhone und Apple Watch.
-- Der Aufbruch-Hinweis richtet sich jetzt nach der Live-Verspätung statt nach dem Fahrplan und kommt nicht mehr zu früh.
-- Die Einstellungen sagen jetzt, was sie tun: ein klarer Vorlauf und ein Schalter, der die Hintergrund-Verfolgung wirklich abschaltet.
-- Eine abgelegte Verfolgung endet sauber, sobald der Zug weg ist.
+- Die Verfolgung läuft weiter, auch bei geschlossener App. Eine Live-Aktivität zählt auf Sperrbildschirm und Dynamic Island herunter, mit Gleis, Verspätung und Fussweg.
+- Schonender für den Akku. Updates und GPS richten sich danach, wie nah die Abfahrt ist.
+- Eine geteilte SBB-Fahrt startet die Verfolgung selbst und zeigt die restlichen Abschnitte.
+- Apple Watch: Der verfolgte Zug zeigt seine Endstation, dein Ziel darunter. Verspätete Züge verschwinden nicht mehr zu früh.

@@ -1,4 +1,4 @@
-- A delayed train is no longer dropped from tracking a minute after its timetable slot, on iPhone and Apple Watch.
-- The leave alert now follows the live delay instead of the timetable, so it no longer fires early.
-- Settings now say what they do: one clear lead time, and a background-tracking switch that really turns tracking off.
-- A parked tracking session ends properly once the train has gone.
+- Tracking keeps running with the app closed. A Live Activity counts down on the Lock Screen and Dynamic Island, with platform, delay and walk margin.
+- Easier on the battery. Updates and GPS scale with how close departure is.
+- A shared SBB trip starts tracking itself and shows the legs still ahead.
+- Apple Watch: the tracked train shows its own terminus, your destination below. Delayed trains no longer disappear early.

@@ -1,4 +1,4 @@
-- Un train retardé n'est plus retiré du suivi une minute après son horaire, sur iPhone et Apple Watch.
-- L'alerte de départ suit désormais le retard en direct et non l'horaire : elle ne se déclenche plus trop tôt.
-- Les réglages disent enfin ce qu'ils font : un seul délai clair et un interrupteur qui coupe vraiment le suivi en arrière-plan.
-- Un suivi mis de côté se termine correctement une fois le train parti.
+- Le suivi continue même l'app fermée. Une activité en direct fait le compte à rebours sur l'écran verrouillé et la Dynamic Island, avec quai, retard et marge de marche.
+- Plus économe en batterie. Les mises à jour et le GPS s'adaptent à la proximité du départ.
+- Un trajet CFF partagé lance le suivi tout seul et affiche les tronçons restants.
+- Apple Watch : le train suivi affiche son terminus, votre destination en dessous. Les trains retardés ne disparaissent plus trop tôt.
