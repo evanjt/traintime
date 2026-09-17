@@ -37,6 +37,7 @@
     <string id="NotInSwitzerland">Nicht in der Schweiz</string>
     <string id="NoStationsNearby">Keine Stationen</string>
     <string id="RateLimited">Zu viele Anfragen</string>
+    <string id="UpdateRequired">App aktualisieren</string>
     <string id="ServerError">Serverfehler</string>
     <string id="TimeoutError">Zeitüberschreitung</string>
     <string id="NoConnection">Keine Verbindung</string>

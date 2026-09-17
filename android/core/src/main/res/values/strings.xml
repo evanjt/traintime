@@ -18,6 +18,7 @@
     <string name="ctx_stations">Stations</string>
     <string name="ctx_departures">Departures</string>
     <string name="err_rate_limited">Rate limited</string>
+    <string name="err_update_required">Update TrainTime to keep using it</string>
     <string name="err_code_fmt">%1$s: %2$d</string>
     <string name="err_generic_fmt">%1$s error</string>
     <string name="err_no_connection">No connection</string>

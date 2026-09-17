@@ -1233,6 +1233,28 @@
         }
       }
     },
+    "Update TrainTime to keep using it": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiere TrainTime, um es weiter zu nutzen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour TrainTime pour continuer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna TrainTime per continuare"
+          }
+        }
+      }
+    },
     "Updating stations...": {
       "localizations": {
         "de": {

@@ -4231,6 +4231,28 @@
         }
       }
     },
+    "Update TrainTime to keep using it": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiere TrainTime, um es weiter zu nutzen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour TrainTime pour continuer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna TrainTime per continuare"
+          }
+        }
+      }
+    },
     "Updates get more frequent as departure nears, and rare when it's still far away.": {
       "localizations": {
         "de": {

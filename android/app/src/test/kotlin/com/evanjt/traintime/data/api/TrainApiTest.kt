@@ -206,6 +206,17 @@ class TrainApiTest {
     }
 
     @Test
+    fun `unauthorised raises UpdateRequired`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(401))
+        try {
+            api.fetchDepartures("8501120")
+            throw AssertionError("expected UpdateRequired")
+        } catch (e: TrainApiException.UpdateRequired) {
+            // expected
+        }
+    }
+
+    @Test
     fun `formation parses wagons with class field`() = runTest {
         server.enqueue(
             MockResponse().setBody(

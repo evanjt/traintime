@@ -16,6 +16,7 @@
     <string name="ctx_stations">Fermate</string>
     <string name="ctx_departures">Partenze</string>
     <string name="err_rate_limited">Troppe richieste</string>
+    <string name="err_update_required">Aggiorna TrainTime per continuare</string>
     <string name="err_code_fmt">%1$s: %2$d</string>
     <string name="err_generic_fmt">%1$s: errore</string>
     <string name="err_no_connection">Nessuna connessione</string>

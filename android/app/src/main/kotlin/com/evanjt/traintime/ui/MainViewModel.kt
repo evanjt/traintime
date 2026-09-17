@@ -2189,6 +2189,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         status = when (error) {
             is TrainApiException.RateLimited -> str(CoreR.string.err_rate_limited)
+            is TrainApiException.UpdateRequired -> str(CoreR.string.err_update_required)
             is TrainApiException.Http -> str(CoreR.string.err_code_fmt, context, error.code)
             is TrainApiException.NoData -> str(CoreR.string.err_generic_fmt, context)
             is TrainApiException.Network -> str(CoreR.string.err_no_connection)

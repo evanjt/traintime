@@ -8,6 +8,7 @@ module ApiHandler {
 
     function decodeError(responseCode) {
         if (responseCode == 429) { return Txt.t(Rez.Strings.RateLimited); }
+        if (responseCode == 401) { return Txt.t(Rez.Strings.UpdateRequired); }
         if (responseCode == 500) { return Txt.t(Rez.Strings.ServerError); }
         if (responseCode == -104) { return Txt.t(Rez.Strings.TimeoutError); }
         if (responseCode == -400) { return Txt.t(Rez.Strings.NoConnection); }

@@ -20,6 +20,7 @@ import okhttp3.Request
 
 sealed class TrainApiException(message: String) : Exception(message) {
     class RateLimited : TrainApiException("Rate limited")
+    class UpdateRequired : TrainApiException("Update required")
     class Http(val code: Int) : TrainApiException("HTTP $code")
     class NoData : TrainApiException("No data")
     class Network : TrainApiException("Network error")
@@ -124,6 +125,7 @@ class TrainApi(
         response.use {
             when {
                 it.code == 429 -> throw TrainApiException.RateLimited()
+                it.code == 401 -> throw TrainApiException.UpdateRequired()
                 it.code != 200 -> throw TrainApiException.Http(it.code)
                 else -> it.body?.string() ?: throw TrainApiException.NoData()
             }

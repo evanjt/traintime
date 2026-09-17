@@ -37,6 +37,7 @@
     <string id="NotInSwitzerland">Not in Switzerland</string>
     <string id="NoStationsNearby">No stations nearby</string>
     <string id="RateLimited">Rate limited</string>
+    <string id="UpdateRequired">Update the app</string>
     <string id="ServerError">Server error</string>
     <string id="TimeoutError">Timeout</string>
     <string id="NoConnection">No connection</string>

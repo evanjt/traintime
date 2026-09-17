@@ -1013,6 +1013,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             switch apiError {
             case .rateLimited:
                 status = String(localized: "Rate limited")
+            case .updateRequired:
+                status = String(localized: "Update TrainTime to keep using it")
             case .httpError(let code):
                 status = String(localized: "\(context): \(code)")
             case .noData:

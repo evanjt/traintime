@@ -3,6 +3,7 @@ import CoreLocation
 
 enum TrainAPIError: Error {
     case rateLimited
+    case updateRequired
     case httpError(Int)
     case noData
     case networkError
@@ -106,6 +107,7 @@ struct TrainAPIService {
     private static func checkHTTPResponse(_ response: URLResponse) throws {
         guard let http = response as? HTTPURLResponse else { return }
         if http.statusCode == 429 { throw TrainAPIError.rateLimited }
+        if http.statusCode == 401 { throw TrainAPIError.updateRequired }
         if http.statusCode != 200 { throw TrainAPIError.httpError(http.statusCode) }
     }
 }
