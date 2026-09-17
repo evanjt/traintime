@@ -1,0 +1,4 @@
+<properties>
+    <!-- Empty means api.traintime.ch. Set in Garmin Connect / Express, never in-app. -->
+    <property id="apiHost" type="string"></property>
+</properties>

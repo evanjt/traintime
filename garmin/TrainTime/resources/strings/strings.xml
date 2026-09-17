@@ -75,6 +75,8 @@
     <string id="RateApp">Rate this app</string>
     <string id="OpensOnPhone">Opens on your phone</string>
     <string id="Version">Version</string>
+    <string id="ApiHostTitle">Custom API host</string>
+    <string id="ApiHostPrompt">Leave empty to use api.traintime.ch</string>
     <string id="DataLabel">Data</string>
     <string id="StationLabel">Station</string>
 

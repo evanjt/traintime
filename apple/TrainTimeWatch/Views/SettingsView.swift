@@ -103,6 +103,14 @@ struct SettingsView: View {
             } footer: {
                 Text("Opens the review page on your paired iPhone.\nData: opentransportdata.swiss")
             }
+
+            // Set on the iPhone, mirrored here. Shown so a self-hosted setup is visible.
+            Section("Advanced") {
+                Text(viewModel.apiHost.isEmpty ? String(localized: "Using api.traintime.ch") : viewModel.apiHost)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
         .navigationTitle("Settings")
     }

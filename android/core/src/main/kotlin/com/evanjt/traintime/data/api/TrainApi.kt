@@ -40,11 +40,15 @@ data class DeparturesResult(
 
 // Port of apple/TrainTimeWatch/Services/TrainAPIService.swift.
 class TrainApi(
-    baseUrl: String = "https://api.traintime.ch",
+    baseUrl: String? = null,
     private val apiKey: String = BuildConfig.TRAINTIME_API_KEY,
     private val clock: () -> Long = { System.currentTimeMillis() / 1000 },
 ) {
-    private val baseUrl: HttpUrl = baseUrl.toHttpUrl()
+    // A fixed URL (tests) or, when null, the user's host override read per
+    // request so a settings change applies without rebuilding the client.
+    private val fixedBaseUrl: HttpUrl? = baseUrl?.toHttpUrl()
+    private val baseUrl: HttpUrl
+        get() = fixedBaseUrl ?: ApiHost.effective(hostOverride).toHttpUrl()
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(Timing.REQUEST_TIMEOUT.toLong(), TimeUnit.SECONDS)
@@ -133,6 +137,9 @@ class TrainApi(
     }
 
     companion object {
+        // "" = api.traintime.ch. Written by ApiHost.bind from the saved pref.
+        @Volatile var hostOverride: String = ""
+
         val shared = TrainApi()
     }
 }

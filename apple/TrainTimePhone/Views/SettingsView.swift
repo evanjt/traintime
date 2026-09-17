@@ -17,6 +17,18 @@ struct PhoneSettingsView: View {
     @AppStorage("alertBeforeDeparture") private var alertBeforeDeparture = true
     @State private var notificationsAuthorized: Bool?
     @State private var confirmBackgroundOff = false
+    @State private var apiHostDraft = ""
+    @State private var apiHostInvalid = false
+    @FocusState private var apiHostFocused: Bool
+
+    private func commitApiHost() {
+        if viewModel.setApiHost(apiHostDraft) {
+            apiHostDraft = viewModel.apiHost
+            apiHostInvalid = false
+        } else {
+            apiHostInvalid = true
+        }
+    }
 
     private var reminderSummary: String {
         distanceAwareReminder
@@ -308,6 +320,28 @@ struct PhoneSettingsView: View {
                 }
 
                 Section {
+                    TextField("Custom API host", text: $apiHostDraft, prompt: Text(verbatim: ApiHost.defaultURL))
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                        .focused($apiHostFocused)
+                        .onSubmit { commitApiHost() }
+                        .onChange(of: apiHostFocused) { _, focused in
+                            if !focused { commitApiHost() }
+                        }
+                    if apiHostInvalid {
+                        Text("Enter an https:// address")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.behind)
+                    }
+                } header: {
+                    Text("Advanced")
+                } footer: {
+                    Text("Leave empty to use api.traintime.ch")
+                }
+
+                Section {
                     HStack {
                         Text("Version")
                         Spacer()
@@ -317,7 +351,10 @@ struct PhoneSettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .onAppear { refreshNotificationStatus() }
+            .onAppear {
+                refreshNotificationStatus()
+                apiHostDraft = viewModel.apiHost
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshNotificationStatus() }
             }

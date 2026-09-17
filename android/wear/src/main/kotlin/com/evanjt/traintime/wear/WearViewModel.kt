@@ -212,6 +212,7 @@ class WearViewModel(
                 wearSync.pushState()
             }
         }
+        viewModelScope.launch { prefs.apiHost.collect { wearSync.pushState() } }
         viewModelScope.launch {
             favouritesStore.favourites.collect {
                 favouritesList = it

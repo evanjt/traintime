@@ -59,4 +59,9 @@
     <string name="row_now">part</string>
     <string name="walk_under_min">&lt;1 min</string>
     <string name="walk_info_fmt">%1$s à pied - %2$dm</string>
+    <string name="settings_advanced">Avancé</string>
+    <string name="settings_api_host">Hôte API personnalisé</string>
+    <string name="settings_api_host_hint">Laissez vide pour utiliser api.traintime.ch</string>
+    <string name="settings_api_host_invalid">Saisissez une adresse https://</string>
+    <string name="settings_api_host_default">Utilise api.traintime.ch</string>
 </resources>

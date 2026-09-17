@@ -1,11 +1,10 @@
 package com.evanjt.traintime.wear
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Chip
@@ -21,7 +20,7 @@ import com.evanjt.traintime.review.ReviewLauncher
 // phone). Swipe-to-dismiss counts as "Not now".
 @Composable
 fun WearReviewPrompt(vm: WearViewModel) {
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     Dialog(
         showDialog = vm.showReviewPrompt,
         onDismissRequest = { vm.snoozeReview() },

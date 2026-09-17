@@ -26,6 +26,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var currentMode: TransportMode = .train
     @Published var availableModes: [TransportMode] = []
     @Published var defaultMode: TransportMode = .train
+    @Published var apiHost: String = ApiHost.stored
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
@@ -180,6 +181,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                let mode = TransportMode(rawValue: modeRaw) {
                 self?.defaultMode = mode
                 UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
+            }
+            if let host = applicationContext[ApiHost.key] as? String, let valid = ApiHost.normalise(host) {
+                self?.apiHost = valid
+                ApiHost.stored = valid
             }
             self?.favouritesStore.handleReceivedContext(applicationContext)
             MyStationsStore.shared.handleReceivedContext(applicationContext)

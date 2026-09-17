@@ -21,6 +21,7 @@ data class SyncPayload(
     val favourites: List<Favourite>,
     val myStations: List<PinnedStation>,
     val defaultMode: Int,
+    val apiHost: String = "",
     val pendingRoute: PendingRoute? = null,
 )
 
@@ -55,6 +56,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
         favourites = favStore.all(),
         myStations = myStore.all(),
         defaultMode = prefs.defaultModeNow().raw,
+        apiHost = prefs.apiHostNow(),
         pendingRoute = pendingStore.current(),
     )
 
@@ -65,6 +67,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
             dataMap.putString(WearSync.KEY_FAVOURITES, WearSync.json.encodeToString(payload.favourites))
             dataMap.putString(WearSync.KEY_MY_STATIONS, WearSync.json.encodeToString(payload.myStations))
             dataMap.putInt(WearSync.KEY_DEFAULT_MODE, payload.defaultMode)
+            dataMap.putString(WearSync.KEY_API_HOST, payload.apiHost)
             if (!isWatch) {
                 payload.pendingRoute?.let {
                     dataMap.putString(WearSync.KEY_PENDING_ROUTE, WearSync.json.encodeToString(it))
@@ -87,6 +90,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
         } else {
             null
         }
+        val apiHost = map.getString(WearSync.KEY_API_HOST)
 
         // Pending route: watch applies (absent key = phone cleared it); the
         // phone never accepts it back.
@@ -104,6 +108,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
                 favourites = favourites ?: current.favourites,
                 myStations = myStations ?: current.myStations,
                 defaultMode = mode ?: current.defaultMode,
+                apiHost = apiHost ?: current.apiHost,
                 pendingRoute = if (isWatch) pendingRoute else current.pendingRoute,
             ),
         )
@@ -119,6 +124,7 @@ class WearStateSync private constructor(context: Context) : WearSyncPort {
         }
         if (myStations != null && myStations != current.myStations) myStore.replaceAll(myStations)
         if (mode != null && mode != current.defaultMode) prefs.setDefaultMode(TransportMode.fromRaw(mode))
+        if (apiHost != null && apiHost != current.apiHost) prefs.setApiHost(apiHost)
         if (isWatch && pendingRoute != current.pendingRoute) pendingStore.replaceFromSync(pendingRoute)
     }
 

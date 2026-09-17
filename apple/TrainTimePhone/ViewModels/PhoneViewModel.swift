@@ -36,6 +36,7 @@ class PhoneViewModel: ObservableObject {
     @Published var currentMode: TransportMode = .train
     @Published var availableModes: [TransportMode] = []
     @Published var defaultMode: TransportMode = .train
+    @Published var apiHost: String = ApiHost.stored
 
     // MARK: - Departures
     @Published var departures: [Departure] = []
@@ -522,6 +523,10 @@ class PhoneViewModel: ObservableObject {
                let mode = TransportMode(rawValue: modeRaw) {
                 self.defaultMode = mode
                 UserDefaults.standard.set(modeRaw, forKey: "defaultMode")
+            }
+            if let host = context[ApiHost.key] as? String, let valid = ApiHost.normalise(host) {
+                self.apiHost = valid
+                ApiHost.stored = valid
             }
             self.favouritesStore.handleReceivedContext(context)
             self.myStationsStore.handleReceivedContext(context)
@@ -1098,6 +1103,17 @@ class PhoneViewModel: ObservableObject {
         defaultMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "defaultMode")
         watchService.wcService.updateApplicationContext(["defaultMode": mode.rawValue])
+    }
+
+    /// Stores a custom API origin and mirrors it to the watch. False leaves the
+    /// previous value in place when the input is not a bare https:// origin.
+    @discardableResult
+    func setApiHost(_ raw: String) -> Bool {
+        guard let host = ApiHost.normalise(raw) else { return false }
+        apiHost = host
+        ApiHost.stored = host
+        watchService.wcService.updateApplicationContext([ApiHost.key: host])
+        return true
     }
 
     /// Count tracking sessions and surface the timed review ask when the shared

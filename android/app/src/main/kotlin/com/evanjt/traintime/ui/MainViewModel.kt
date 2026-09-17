@@ -24,6 +24,7 @@ import com.evanjt.traintime.GarminConnectIQService
 import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
+import com.evanjt.traintime.data.api.ApiHost
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -426,6 +427,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 wearSync.pushState()
             }
         }
+        viewModelScope.launch { prefs.apiHost.collect { wearSync.pushState() } }
         viewModelScope.launch {
             // Re-extract the top section immediately on a toggle rather than waiting
             // for the next fetch (the 30 s cooldown), and refresh star tints.
@@ -1076,6 +1078,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateDefaultMode(mode: TransportMode) {
         defaultMode = mode
         viewModelScope.launch { prefs.setDefaultMode(mode) }
+    }
+
+    // Returns false and leaves the saved host alone when the input isn't an
+    // https origin. The apiHost flow collector pushes the change to the watch.
+    fun updateApiHost(input: String): Boolean {
+        val host = ApiHost.normalise(input) ?: return false
+        viewModelScope.launch { prefs.setApiHost(host) }
+        return true
     }
 
     fun updateAppearanceMode(mode: String) {

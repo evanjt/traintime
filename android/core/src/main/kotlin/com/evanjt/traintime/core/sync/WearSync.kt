@@ -19,6 +19,7 @@ object WearSync {
     const val KEY_FAVOURITES = "favourites"
     const val KEY_MY_STATIONS = "myStations"
     const val KEY_DEFAULT_MODE = "defaultMode"
+    const val KEY_API_HOST = "apiHost"
     const val KEY_PENDING_ROUTE = "pendingRoute"
 
     // MessageClient track command (phone -> watch), like PhoneWatchService.

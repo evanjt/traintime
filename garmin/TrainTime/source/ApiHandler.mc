@@ -2,9 +2,48 @@ using Toybox.Communications;
 using Toybox.Lang;
 using Toybox.Time;
 using Toybox.WatchUi;
+using Toybox.Application;
 using Toybox.Application.Storage;
 
 module ApiHandler {
+
+    const DEFAULT_HOST = "https://api.traintime.ch";
+
+    // The Connect IQ app setting "apiHost", read once per request. Empty or
+    // anything that is not an https URL falls back to api.traintime.ch, so a
+    // typo in Garmin Connect never strands the watch on a dead host.
+    function baseUrl() {
+        var raw = null;
+        if (Application has :Properties) {
+            try {
+                raw = Application.Properties.getValue("apiHost");
+            } catch (e) {
+                raw = null;
+            }
+        }
+        return hostOrDefault(raw);
+    }
+
+    function hostOrDefault(raw) {
+        if (!(raw instanceof Lang.String)) { return DEFAULT_HOST; }
+        var host = trim(raw);
+        if (host.length() <= 8 || !host.substring(0, 8).equals("https://")) {
+            return DEFAULT_HOST;
+        }
+        while (host.length() > 8 && host.substring(host.length() - 1, host.length()).equals("/")) {
+            host = host.substring(0, host.length() - 1);
+        }
+        if (host.length() <= 8) { return DEFAULT_HOST; }
+        return host;
+    }
+
+    function trim(s) {
+        var start = 0;
+        var end = s.length();
+        while (start < end && s.substring(start, start + 1).equals(" ")) { start++; }
+        while (end > start && s.substring(end - 1, end).equals(" ")) { end--; }
+        return s.substring(start, end);
+    }
 
     function decodeError(responseCode) {
         if (responseCode == 429) { return Txt.t(Rez.Strings.RateLimited); }
@@ -25,7 +64,7 @@ module ApiHandler {
         if (defaultMode == 1) { modeParam = "&mode=bus"; }
         else if (defaultMode == 2) { modeParam = "&mode=tram"; }
 
-        var url = "https://api.traintime.ch/v1/nearby"
+        var url = baseUrl() + "/v1/nearby"
             + "?lat=" + lat + "&lon=" + lon + modeParam;
 
         var params = {
@@ -148,7 +187,7 @@ module ApiHandler {
     }
 
     function fetchDepartures(view, stationId) {
-        var url = "https://api.traintime.ch/v1/departures"
+        var url = baseUrl() + "/v1/departures"
             + "?id=" + stationId
             + "&limit=20";
 
@@ -314,7 +353,7 @@ module ApiHandler {
         var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var date = now.year + "-" + now.month.format("%02d") + "-" + now.day.format("%02d");
 
-        var url = "https://api.traintime.ch/v1/formation"
+        var url = baseUrl() + "/v1/formation"
             + "?train=" + trainNumber
             + "&date=" + date
             + "&stop=" + stationId;

@@ -112,6 +112,17 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_APP_LANGUAGE] = value }
     }
 
+    // Self-hosted API origin, "" for api.traintime.ch. Validated by
+    // ApiHost.normalise before it gets here.
+    val apiHost: Flow<String> =
+        dataStore.data.map { it[KEY_API_HOST] ?: "" }
+
+    suspend fun apiHostNow(): String = apiHost.first()
+
+    suspend fun setApiHost(value: String) {
+        dataStore.edit { it[KEY_API_HOST] = value }
+    }
+
     // The route leg whose live session the user ended by hand ("<routeId>:<cursor>",
     // "" for none). Survives a process kill so reopening the app doesn't
     // re-establish a session the user deliberately stopped. The route itself,
@@ -281,6 +292,7 @@ class AppPrefs(context: Context) {
         val KEY_SEEN_ONBOARDING_VERSION = intPreferencesKey("seenOnboardingVersion")
         val KEY_APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val KEY_APP_LANGUAGE = stringPreferencesKey("appLanguage")
+        val KEY_API_HOST = stringPreferencesKey("apiHost")
         val KEY_REVIEW_TRACK_COUNT = intPreferencesKey("reviewTrackCount")
         val KEY_REVIEW_PROMPTED_VERSION = stringPreferencesKey("reviewPromptedVersion")
         val KEY_FIRST_LAUNCH_TS = longPreferencesKey("firstLaunchTs")

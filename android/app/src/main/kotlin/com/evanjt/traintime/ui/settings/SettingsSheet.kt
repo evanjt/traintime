@@ -28,6 +28,14 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import com.evanjt.traintime.data.api.ApiHost
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -263,7 +271,65 @@ fun SettingsSheet(
             ) {
                 Text(stringResource(R.string.attribution), color = onSurface)
             }
+
+            ApiHostSetting(viewModel = viewModel, modifier = Modifier.padding(top = 24.dp))
         }
+    }
+}
+
+// Advanced: point the app at a self-hosted API. Saved on Done or when the
+// field loses focus; an invalid entry shows the message and keeps the old host.
+@Composable
+private fun ApiHostSetting(viewModel: MainViewModel, modifier: Modifier = Modifier) {
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    val saved by viewModel.prefs.apiHost.collectAsState(initial = "")
+    var text by remember(saved) { mutableStateOf(saved) }
+    var invalid by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    fun commit() {
+        invalid = !viewModel.updateApiHost(text)
+        if (invalid) text = saved
+    }
+
+    Column(modifier.fillMaxWidth()) {
+        Text(
+            stringResource(CoreR.string.settings_advanced),
+            color = onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = {
+                text = it
+                invalid = false
+            },
+            label = { Text(stringResource(CoreR.string.settings_api_host)) },
+            placeholder = { Text(ApiHost.DEFAULT) },
+            supportingText = {
+                Text(
+                    stringResource(
+                        if (invalid) CoreR.string.settings_api_host_invalid else CoreR.string.settings_api_host_hint,
+                    ),
+                    color = if (invalid) MaterialTheme.colorScheme.error else secondary,
+                )
+            },
+            isError = invalid,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = {
+                commit()
+                focusManager.clearFocus()
+            }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+                .onFocusChanged { if (!it.isFocused && text != saved) commit() },
+        )
     }
 }
 

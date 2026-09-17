@@ -243,6 +243,28 @@
         }
       }
     },
+    "Advanced": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erweitert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avancé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanzate"
+          }
+        }
+      }
+    },
     "Back": {
       "localizations": {
         "de": {
@@ -1273,6 +1295,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aggiorno..."
+          }
+        }
+      }
+    },
+    "Using api.traintime.ch": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwendet api.traintime.ch"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilise api.traintime.ch"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa api.traintime.ch"
           }
         }
       }

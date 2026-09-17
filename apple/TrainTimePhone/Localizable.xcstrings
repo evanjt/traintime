@@ -463,6 +463,28 @@
         }
       }
     },
+    "Advanced": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erweitert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avancé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanzate"
+          }
+        }
+      }
+    },
     "Alert me before departure": {
       "localizations": {
         "de": {
@@ -821,6 +843,28 @@
         }
       }
     },
+    "Custom API host": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigener API-Host"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hôte API personnalisé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Host API personalizzato"
+          }
+        }
+      }
+    },
     "Dark": {
       "localizations": {
         "de": {
@@ -1147,6 +1191,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ti piace TrainTime?"
+          }
+        }
+      }
+    },
+    "Enter an https:// address": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib eine https://-Adresse ein"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez une adresse https://"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserisci un indirizzo https://"
           }
         }
       }
@@ -1621,6 +1687,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anticipo prima della partenza"
+          }
+        }
+      }
+    },
+    "Leave empty to use api.traintime.ch": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer lassen für api.traintime.ch"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laissez vide pour utiliser api.traintime.ch"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lascia vuoto per usare api.traintime.ch"
           }
         }
       }

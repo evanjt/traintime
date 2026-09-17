@@ -1,0 +1,5 @@
+<settings>
+    <setting propertyKey="@Properties.apiHost" title="@Strings.ApiHostTitle" prompt="@Strings.ApiHostPrompt">
+        <settingConfig type="alphaNumeric" />
+    </setting>
+</settings>

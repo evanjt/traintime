@@ -1,6 +1,6 @@
 package com.evanjt.traintime.wear
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.appcompat.app.AppCompatDelegate
@@ -50,7 +52,7 @@ import com.evanjt.traintime.wear.R
 @Composable
 fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
     val listState = rememberScalingLazyListState()
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     val config = LocalConfiguration.current
     val sidePad = (config.screenWidthDp * 0.06f).dp
     val vertPad = (config.screenHeightDp * 0.14f).dp
@@ -107,6 +109,31 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                         androidx.wear.compose.material.RadioButton(selected = vm.defaultMode == mode)
                     },
                     colors = ToggleChipDefaults.toggleChipColors(),
+                )
+            }
+            // Self-hosted API origin, set on the phone and synced here. No
+            // keyboard on the watch, so read-only.
+            item {
+                Text(
+                    stringResource(CoreR.string.settings_advanced),
+                    color = MaterialTheme.colors.onBackground,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
+                )
+            }
+            item {
+                val apiHost by vm.prefs.apiHost.collectAsState(initial = "")
+                Chip(
+                    onClick = {},
+                    enabled = false,
+                    label = { Text(stringResource(CoreR.string.settings_api_host)) },
+                    secondaryLabel = {
+                        Text(apiHost.ifEmpty { stringResource(CoreR.string.settings_api_host_default) })
+                    },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             // In-app language, same radio idiom as the default mode above.

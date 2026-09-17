@@ -1,2 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- HapticService vibrates from the library, so lint needs the grant here too -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+</manifest>

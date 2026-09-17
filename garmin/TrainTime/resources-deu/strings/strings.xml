@@ -75,6 +75,8 @@
     <string id="RateApp">App bewerten</string>
     <string id="OpensOnPhone">Öffnet auf dem Handy</string>
     <string id="Version">Version</string>
+    <string id="ApiHostTitle">Eigener API-Host</string>
+    <string id="ApiHostPrompt">Leer lassen für api.traintime.ch</string>
     <string id="DataLabel">Daten</string>
     <string id="StationLabel">Station</string>
 

@@ -10,7 +10,7 @@ enum TrainAPIError: Error {
 }
 
 struct TrainAPIService {
-    private static let baseURL = "https://api.traintime.ch"
+    private static var baseURL: String { ApiHost.baseURL }
     private static let apiKey = Secrets.apiKey
 
     // MARK: - Station Search by Coordinates
