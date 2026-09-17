@@ -106,4 +106,6 @@ Uses a self-hosted worker API backed by [Open Transport Data Switzerland](https:
 
 ## License
 
-&copy; 2026 Evan Thomas
+AGPL-3.0-or-later. See `LICENSE`.
+
+The deployed service at api.traintime.ch and its API keys are not part of the licence. Station data comes from the [SBB Didok dataset](https://opendata.swiss/en/dataset/haltestellen-des-offentlichen-verkehrs) under "Open use. Must provide the source."
