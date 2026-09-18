@@ -1,4 +1,4 @@
-Your wrist has the internet and precise GPS. Swiss timetables are accurate to the minute. TrainTime connects the two: live SBB train, bus and tram departures around you, with platform, delay and walking time, tracking whether you'll make it with every step. No more missing your train while you unlock your phone. Glance and go.
+Your wrist has the internet and precise GPS. Swiss timetables are accurate to the minute. TrainTime connects the two: live Swiss train, bus and tram departures around you, with platform, delay and walking time, tracking whether you'll make it with every step. No more missing your train while you unlock your phone. Glance and go.
 
 <b>Nearby</b>
 The closest stations to you, found by GPS. No timetable searching. Each departure shows destination, line, platform, delay and direction of travel.

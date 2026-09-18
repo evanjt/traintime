@@ -1,0 +1,59 @@
+Saved copy of https://opentransportdata.swiss/en/limits-and-costs/
+Fetched 2026-09-18 for App Store Review Guideline 5.2.2 (third-party data authorisation).
+
+# Limits and costs
+
+In principle, you can obtain file and service related data free of charge. In order to make the operating costs associated with the open data platform mobility Switzerland scalable, an upper limit has been set on requests for purely service-related data.
+
+The following limits therefore apply at present:
+
+**OJP 1.0, OJP 2.0, OJPFare, Train Formation Service, CKAN**
+
+  * Limit A: 50 requests per minute and API-key
+  * Limit B: 20‘000 requests per day and API-key
+
+**GTFS RT, GTFS RT Service Alerts**
+
+  * 5 requests per minute and API-key
+
+**SIRI-SX (from 30/06/2026)**
+
+  * SIRI-SX _Planned_ : 
+    * Limit A: 10 requests per hour and API-key
+    * Limit B: 48 requests per day and API-key
+  * SIRI-SX _Unplanned_ : 
+    * Limit A: 2 requests per minute and API-key
+    * Limit B: 3’000 requests per day and API-key
+
+**SIRI-ET**
+
+  * Limit A: 2 requests per minute and API-key
+  * Limit B: 3’000 requests per day and API-key
+
+**SIRI-PT**
+
+  * Limit A: 10 requests per hour and API-key
+  * Limit B: 24 requests per day and API-key
+
+**FEDRO TDP: Traffic counters, Traffic lights, Traffic information**
+
+  * 50 requests per minute and API-key
+  * 6 Monate, see special [terms of use](https://opentransportdata.swiss/en/tac-fedro/)
+
+These limits can be exceeded, but then costs will be incurred*. In this case please contact us via [contact form](/contact/).
+
+The “[Quality of Service (QoS)](https://opentransportdata.swiss/wp-content/uploads/2026/02/260101_QoS_QualityOfService_OJP_V2.pdf)” document contains all the relevant technical and organisational details for using the “Open Journey Planner” service.
+
+**Overview of limits and costs for the OJP (valid from 01/01/2023):**
+
+free| Limit A: 50 requests per minute and API key  
+Limit B: 20’000 requests per day and API key  
+---|---  
+CHF 500.- / month| Limit A: 2’500 requests per minute and API key  
+Limit B: 1’000’000 requests per day and API key  
+CHF 1’000.- / month| Limit A: 5’000 requests per minute and API key  
+Limit B: 2’000’000 requests per day and API key  
+  
+_*Limits and costs subject to change._
+
+**Please note:** Data sets from FEDRO have their own [terms of use](https://opentransportdata.swiss/en/tac-fedro/).

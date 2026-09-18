@@ -1,0 +1,83 @@
+Saved copy of https://opentransportdata.swiss/en/terms-of-use/
+Fetched 2026-09-18 for App Store Review Guideline 5.2.2 (third-party data authorisation).
+
+# General Terms and Conditions of Use
+
+General Terms and Conditions of Use for the data defined as Open Data on opentransportdata.swiss: The Terms and Conditions of Use apply to the use of the platform and the use of the data provided. **Exception:** The use of the ASTRA Traffic Data Platform (TDP) integrated into opentransportdata.swiss and its data are subject to the **[Terms of Use[FEDRO](https://opentransportdata.swiss/en/tac-fedro/)](https://opentransportdata.swiss/en/tac-fedro/)****.**
+
+## Definitions
+
+  * _ODMCH_ : the Open data platform mobility Switzerland.
+  * Open data: data that are freely available for anyone to use.
+  * _ODMCH_ data: umbrella term for all data that are provided by the _ODMCH_ and are publicly available.
+  * Data use: obtaining, using and publishing _ODMCH_ data.
+  * Data user: a private individual or company that obtains _ODMCH_ data.
+  * File-based data: data provided by or obtained from the _ODMCH_ in the form of a downloadable file.
+  * Service-based data: data provided by or obtained from a _ODMCH_ service.
+  * Raw data: _ODMCH_ data that have not (yet) been processed.
+  * Data processing: converting, editing or refining raw data. Processing can also mean making changes to the data such as aggregating them, selecting them or supplementing them with other data or converting data into other formats.
+  * Processed data: _ODMCH_ data that have been converted, edited or refined by a third party.
+  * Request: individual enquiry for a data service on the _ODMCH_ .
+  * Analysis: statistics and evaluation based on raw data and/or processed _ODMCH_ data.
+  * Publication: publishing _ODMCH_ data in any form, including as part of an application or as a file or service, either as raw or processed data.
+  * SBB: SBB AG (Infrastructure Division) operates the _ODMCH_ system on behalf of the Swiss Federal Office of Transport FOT.
+
+## 1\. Scope of data use
+
+The content defined as open data is freely available in machine-readable format on the ODMCH. Users can access the data via opentransportdata.swiss. The data obtained can be processed, analysed and published, including incorporating additional data.
+
+## 2\. Registration
+
+Users are not required to register or pay in order to obtain and use the file-based data provided by the _ODMCH_ . However, they are required to [register](https://api-manager.opentransportdata.swiss/auth/password/register) in order to obtain and use service-based data.
+
+## 3\. Access code
+
+After registering, users will be issued with an access code in order to use service-based data. The code enables a number of requests (see clause 4) to be made. The code can be withdrawn or blocked by SBB, in particular if the obligations outlined in clause 5 are not adhered to.
+
+## 4\. Request limit
+
+A maximum number of requests in a certain time is set in order to limit usage of the service-based data provided by the _ODMCH_. Use of the data service is free of charge below the limit. The usage limit must be respected where possible. If the set number of requests in a certain time is repeatedly exceeded, SBB can conclude a contract with the data user to allow them a higher number of requests. This form of use shall be subject to a charge.
+
+If the data user refuses to conclude a contract with SBB, SBB can block the corresponding access code.
+
+The [limit and costs](/limits-and-costs/) are regulated separately.
+
+## 5\. Obligations when using data
+
+### 5.1. Citing sources
+
+The URL opentransportdata.swiss must be cited as the source for raw data in publications and analyses that make use of _ODMCH_ data.
+
+### 5.1.1 Exemption for databases
+
+If the _ODMCH_ data form part of a database that has many different data sources and does not just use data from opentransportdata.swiss, opentransportdata.swiss need only be cited once in the list of sources contributing to this database. It is then not necessary to explicitly cite opentransportdata.swiss every time data are used. This also applies to the licence holders of the database in question. An indirect citation that mentions the database publisher citing opentransportdata.swiss will suffice. SBB decides whether data can be classified as a “database” and this classification can be requested in [writing](/contact/). SBB keeps a list of [authorised databases](/authorised-databases/).
+
+### 5.2 Updating raw data
+
+_ODMCH_ data must be updated regularly and at the same frequency as the underlying raw data.
+
+### 5.3 Authorship
+
+Processed data and analyses must be published under the name of the data user.
+
+## 6\. Links
+
+The pages on _ODMCH_ may contain links to third-party websites, whose content SBB cannot control. SBB cannot provide any assurances or take any responsibility for this external content.
+
+## 7\. Liability and guarantee
+
+SBB accepts no liability for damage or loss of any kind caused by the use of the data. It provides no guarantee that the published data and links, and will be up to date, correct, complete, available or accurate.
+
+## 8\. Misuse
+
+Any misuse of the data shall immediately result in the relevant data user being banned from using any more data.
+
+## 9\. Amendments and addenda
+
+SBB reserves the right to amend or add to these terms of use at any time.
+
+## 10\. Applicable law and place of jurisdiction
+
+These terms of use are governed by Swiss law. The exclusive place of jurisdiction is Bern.
+
+In the event of discrepancies between the various language versions, the German version shall be deemed binding.

@@ -1,1 +1,1 @@
-SBB,CFF,fermata,binario,ritardo,tram,bus,battello,funicolare,funivia,vicino,orologio,treno,stazione
+fermata,binario,ritardo,tram,bus,battello,funicolare,funivia,vicino,orologio,treno,stazione,orario

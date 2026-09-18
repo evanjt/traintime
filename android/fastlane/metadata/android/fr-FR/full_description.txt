@@ -1,4 +1,4 @@
-Votre poignet a Internet et un GPS précis. L'horaire suisse est exact à la minute. TrainTime relie les deux : départs CFF, train, bus et tram en direct autour de vous, avec quai, retard et temps de marche, et à chaque pas vous savez si vous l'aurez. Fini le train manqué parce qu'il fallait déverrouiller le téléphone. Un coup d'œil et c'est parti.
+Votre poignet a Internet et un GPS précis. L'horaire suisse est exact à la minute. TrainTime relie les deux : départs train, bus et tram en direct autour de vous, avec quai, retard et temps de marche, et à chaque pas vous savez si vous l'aurez. Fini le train manqué parce qu'il fallait déverrouiller le téléphone. Un coup d'œil et c'est parti.
 
 <b>À proximité</b>
 Les arrêts les plus proches, trouvés par GPS. Pas de recherche d'horaire. Chaque départ affiche destination, ligne, quai, retard et direction.

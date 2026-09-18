@@ -1,1 +1,1 @@
-SBB,CFF,Fahrplan,Haltestelle,Postauto,Schiff,Seilbahn,Perron,Gleis,Nahverkehr,Verspätung,Uhr,Widget
+Fahrplan,Haltestelle,Postauto,Schiff,Seilbahn,Perron,Gleis,Nahverkehr,Verspätung,Uhr,Widget,Abfahrt

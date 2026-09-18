@@ -1,4 +1,4 @@
-Dein Handgelenk hat Internet und präzises GPS. Der Schweizer Fahrplan stimmt auf die Minute. TrainTime verbindet beides: Live-Abfahrten von SBB, Zug, Bus und Tram in deiner Umgebung, mit Gleis, Verspätung und Gehzeit, und mit jedem Schritt siehst du, ob du es noch schaffst. Kein verpasster Zug mehr, weil du erst das Handy entsperren musst. Hinschauen und los.
+Dein Handgelenk hat Internet und präzises GPS. Der Schweizer Fahrplan stimmt auf die Minute. TrainTime verbindet beides: Live-Abfahrten von Zug, Bus und Tram in deiner Umgebung, mit Gleis, Verspätung und Gehzeit, und mit jedem Schritt siehst du, ob du es noch schaffst. Kein verpasster Zug mehr, weil du erst das Handy entsperren musst. Hinschauen und los.
 
 <b>In der Nähe</b>
 Die nächstgelegenen Haltestellen, per GPS gefunden. Kein Suchen im Fahrplan. Jede Abfahrt zeigt Ziel, Linie, Gleis, Verspätung und Fahrtrichtung.

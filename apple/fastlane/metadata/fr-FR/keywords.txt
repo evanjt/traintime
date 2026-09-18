@@ -1,1 +1,1 @@
-SBB,FFS,horaire,arrêt,quai,retard,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,gare
+horaire,arrêt,quai,retard,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,gare,train

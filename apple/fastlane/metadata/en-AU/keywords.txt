@@ -1,1 +1,1 @@
-CFF,FFS,timetable,schedule,nearby,realtime,widget,watch,tram,boat,ferry,funicular,station,next,delay
+timetable,schedule,nearby,realtime,widget,watch,tram,bus,boat,ferry,funicular,station,delay,swiss
