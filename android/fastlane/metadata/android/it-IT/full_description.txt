@@ -25,7 +25,7 @@ Treni, bus, tram, battelli, funicolari e funivie. Fino a 5 fermate vicine per me
 Dati orario in tempo reale di opentransportdata.swiss: FFS (SBB/CFF), AutoPostale e operatori regionali, oltre 51'000 fermate.
 
 <b>Privacy</b>
-Nessun account, nessun tracciamento, nessuna analisi. Le tue coordinate vengono elaborate in memoria e subito eliminate, mai memorizzate né condivise. Tutto su traintime.ch/privacy.
+Nessun account, nessun tracciamento, nessuna analisi. Le tue coordinate vengono elaborate in memoria e subito eliminate, mai memorizzate né condivise. Tutto su traintime.ch/privacy. Condizioni d'uso su traintime.ch/terms/it.
 
 <b>Open source</b>
 L'app Train Time e la sua API sono entrambe open source.

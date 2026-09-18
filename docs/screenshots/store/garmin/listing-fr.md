@@ -21,7 +21,7 @@ TOUTE LA SUISSE
 Données d'horaire en temps réel d'opentransportdata.swiss : CFF (SBB/FFS), CarPostal et opérateurs régionaux, plus de 51 000 arrêts.
 
 CONFIDENTIALITÉ
-Pas de compte, pas de pistage, pas d'analytique. Vos coordonnées sont traitées en mémoire puis immédiatement supprimées, jamais stockées ni partagées. Tout est sur traintime.ch/privacy.
+Pas de compte, pas de pistage, pas d'analytique. Vos coordonnées sont traitées en mémoire puis immédiatement supprimées, jamais stockées ni partagées. Tout est sur traintime.ch/privacy. Conditions d'utilisation sur traintime.ch/terms/fr.
 
 OPEN SOURCE
 L'app Train Time et son API sont toutes deux open source.

@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,14 +30,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.R
 
-// Credits for the data and software TrainTime builds on. Two sources require attribution (Open
-// Transport Data Switzerland, the Garmin SDK); the rest is credited as good practice. Peer of
-// SettingsSheet.kt, opened from its "Attribution" row. The open-source list is Android's real
-// shipping stack, the iOS screen lists only the Garmin SDK.
+// Credits for the data and software TrainTime builds on, plus the legal pages. Three sources
+// require attribution (Open Transport Data Switzerland by a literal clickable link, the FOT station
+// dataset, the Garmin SDK); the rest is credited as good practice. Peer of SettingsSheet.kt, opened
+// from its "Attribution" row. The open-source list is Android's real shipping stack, the iOS screen
+// lists only the Garmin SDK.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttributionSheet(onDismiss: () -> Unit) {
     val context = LocalContext.current
+    // The app language (per-app locale), so the terms and dataset pages open in it.
+    val language = LocalConfiguration.current.locales[0].language
     fun open(url: String) = runCatching {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
@@ -64,8 +68,18 @@ fun AttributionSheet(onDismiss: () -> Unit) {
 
             SectionHeader(stringResource(R.string.departure_data))
             Paragraph(stringResource(R.string.departure_data_desc))
-            LinkEntry(stringResource(R.string.terms_of_use), "opentransportdata.swiss") {
+            LinkEntry("opentransportdata.swiss", stringResource(R.string.otd_platform_desc)) {
+                open("https://opentransportdata.swiss")
+            }
+            LinkEntry(stringResource(R.string.terms_of_use), "opentransportdata.swiss/terms-of-use") {
                 open("https://opentransportdata.swiss/en/terms-of-use/")
+            }
+
+            Divider()
+            SectionHeader(stringResource(R.string.stations_heading))
+            Paragraph(stringResource(R.string.stations_desc))
+            LinkEntry(stringResource(R.string.stations_dataset_title), "opendata.swiss") {
+                open(LegalLinks.stationsDataset(language))
             }
 
             Divider()
@@ -83,6 +97,15 @@ fun AttributionSheet(onDismiss: () -> Unit) {
             Entry("Google Play Services", stringResource(R.string.play_services_desc))
             LinkEntry("Garmin Connect IQ Mobile SDK", stringResource(R.string.garmin_sdk_desc)) {
                 open("https://developer.garmin.com/connect-iq/")
+            }
+
+            Divider()
+            SectionHeader(stringResource(R.string.legal_heading))
+            LinkEntry(stringResource(R.string.privacy_policy), "traintime.ch/privacy") {
+                open(LegalLinks.PRIVACY)
+            }
+            LinkEntry(stringResource(R.string.terms_of_use), "traintime.ch/terms") {
+                open(LegalLinks.terms(language))
             }
         }
     }

@@ -21,7 +21,7 @@ SWITZERLAND-WIDE
 Real-time timetable data from opentransportdata.swiss: SBB (CFF/FFS), PostBus and regional operators, 51,000+ stations.
 
 PRIVACY
-No account, no tracking, no analytics. Your coordinates are processed in-memory and immediately discarded, never stored or shared. Full policy at traintime.ch/privacy.
+No account, no tracking, no analytics. Your coordinates are processed in-memory and immediately discarded, never stored or shared. Full policy at traintime.ch/privacy. Terms of use at traintime.ch/terms.
 
 OPEN SOURCE
 Both the Train Time app and its API are open source.

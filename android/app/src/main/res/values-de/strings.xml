@@ -58,6 +58,12 @@
     <string name="kotlinx_desc">Coroutinen und Serialisierung. Apache License 2.0</string>
     <string name="play_services_desc">Standort, Wearable, In-App-Bewertung. Google-Bedingungen</string>
     <string name="garmin_sdk_desc">© Garmin. Verwendet unter der SDK-Lizenz.</string>
+    <string name="otd_platform_desc">Open-Data-Plattform Mobilität Schweiz</string>
+    <string name="stations_heading">Haltestellen</string>
+    <string name="stations_desc">Standorte der Haltestellen vom Bundesamt für Verkehr (BAV). Freie Nutzung mit Quellenangabe.</string>
+    <string name="stations_dataset_title">Haltestellen des öffentlichen Verkehrs</string>
+    <string name="legal_heading">Rechtliches</string>
+    <string name="privacy_policy">Datenschutz</string>
 
     <!-- Dialogs -->
     <string name="bg_track_title">Im Hintergrund verfolgen?</string>

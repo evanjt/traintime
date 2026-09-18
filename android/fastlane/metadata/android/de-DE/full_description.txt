@@ -25,7 +25,7 @@ Züge, Busse, Trams, Schiffe, Standseilbahnen und Luftseilbahnen. Bis zu 5 nahe 
 Echtzeit-Fahrplandaten von opentransportdata.swiss: SBB (CFF/FFS), Postauto und regionale Betriebe, über 51'000 Haltestellen.
 
 <b>Datenschutz</b>
-Kein Konto, kein Tracking, keine Analyse. Deine Koordinaten werden im Speicher verarbeitet und sofort verworfen, nie gespeichert oder geteilt. Alles unter traintime.ch/privacy.
+Kein Konto, kein Tracking, keine Analyse. Deine Koordinaten werden im Speicher verarbeitet und sofort verworfen, nie gespeichert oder geteilt. Alles unter traintime.ch/privacy. Nutzungsbedingungen unter traintime.ch/terms/de.
 
 <b>Open Source</b>
 Die Train Time App und ihre API sind beide Open Source.

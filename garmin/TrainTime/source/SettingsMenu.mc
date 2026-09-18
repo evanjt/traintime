@@ -10,6 +10,16 @@ module SettingsMenu {
     // openWebPage surfaces this on the paired phone via Garmin Connect Mobile.
     // There is no on-device review API, so the listing opens in the store there.
     const STORE_URL = "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb";
+    const PRIVACY_URL = "https://traintime.ch/privacy";
+
+    // The terms page exists in the four app languages; follow the watch language.
+    function termsUrl() {
+        var lang = System.getDeviceSettings().systemLanguage;
+        if (lang == System.LANGUAGE_DEU) { return "https://traintime.ch/terms/de/"; }
+        if (lang == System.LANGUAGE_FRE) { return "https://traintime.ch/terms/fr/"; }
+        if (lang == System.LANGUAGE_ITA) { return "https://traintime.ch/terms/it/"; }
+        return "https://traintime.ch/terms/";
+    }
 
     function modeLabel(mode) {
         if (mode == 1) { return Txt.t(Rez.Strings.ModeBus); }
@@ -89,11 +99,31 @@ module SettingsMenu {
             :version,
             {}
         ));
-        // Data attribution, matching the Apple/Wear settings footers.
+        // Data attribution, matching the Apple/Wear settings footers, and the
+        // legal pages. The watch has no browser: the URL is the sublabel, and
+        // select opens it on the phone like the store listing.
         menu.addItem(new WatchUi.MenuItem(
             Txt.t(Rez.Strings.DataLabel),
             "opentransportdata.swiss",
             :dataSource,
+            {}
+        ));
+        menu.addItem(new WatchUi.MenuItem(
+            Txt.t(Rez.Strings.StationsLabel),
+            "opendata.swiss",
+            :stationsSource,
+            {}
+        ));
+        menu.addItem(new WatchUi.MenuItem(
+            Txt.t(Rez.Strings.PrivacyPolicy),
+            "traintime.ch/privacy",
+            :privacy,
+            {}
+        ));
+        menu.addItem(new WatchUi.MenuItem(
+            Txt.t(Rez.Strings.TermsOfUse),
+            "traintime.ch/terms",
+            :terms,
             {}
         ));
 
@@ -172,9 +202,17 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             WatchUi.pushView(subMenu, new FavouritesListDelegate(), WatchUi.SLIDE_LEFT);
         } else if (item.getId() == :rate) {
             // Opens the Connect IQ Store listing on the paired phone.
-            if (Communications has :openWebPage) {
-                Communications.openWebPage(SettingsMenu.STORE_URL, null, null);
-            }
+            openOnPhone(SettingsMenu.STORE_URL);
+        } else if (item.getId() == :privacy) {
+            openOnPhone(SettingsMenu.PRIVACY_URL);
+        } else if (item.getId() == :terms) {
+            openOnPhone(SettingsMenu.termsUrl());
+        }
+    }
+
+    private function openOnPhone(url) {
+        if (Communications has :openWebPage) {
+            Communications.openWebPage(url, null, null);
         }
     }
 }

@@ -58,6 +58,12 @@
     <string name="kotlinx_desc">Coroutine e serializzazione. Apache License 2.0</string>
     <string name="play_services_desc">Posizione, wearable, recensioni in-app. Termini Google</string>
     <string name="garmin_sdk_desc">© Garmin. Usato secondo la licenza SDK.</string>
+    <string name="otd_platform_desc">Piattaforma open data mobilità Svizzera</string>
+    <string name="stations_heading">Fermate</string>
+    <string name="stations_desc">Posizioni delle fermate dall\'Ufficio federale dei trasporti (UFT). Uso libero con indicazione della fonte.</string>
+    <string name="stations_dataset_title">Fermate dei trasporti pubblici</string>
+    <string name="legal_heading">Note legali</string>
+    <string name="privacy_policy">Informativa sulla privacy</string>
 
     <!-- Dialogs -->
     <string name="bg_track_title">Seguire in background?</string>

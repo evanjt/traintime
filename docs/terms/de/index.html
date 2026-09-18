@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nutzungsbedingungen - TrainTime</title>
+    <meta
+      name="description"
+      content="Nutzungsbedingungen von TrainTime. Einmaliger Kauf, Online-Dienst nach bestem Bemühen, Daten von opentransportdata.swiss."
+    />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/png" href="../../favicon.png" />
+    <link rel="alternate" hreflang="en" href="https://traintime.ch/terms/" />
+    <link rel="alternate" hreflang="de" href="https://traintime.ch/terms/de/" />
+    <link rel="alternate" hreflang="fr" href="https://traintime.ch/terms/fr/" />
+    <link rel="alternate" hreflang="it" href="https://traintime.ch/terms/it/" />
+    <link rel="alternate" hreflang="x-default" href="https://traintime.ch/terms/" />
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+      :root {
+        --bg: #000000;
+        --bg-elevated: #0a0a0a;
+        --surface: #141414;
+        --text: #f0f0f0;
+        --text-secondary: #888888;
+        --text-muted: #555555;
+        --green: #00e352;
+        --blue: #5ac8fa;
+        --red: #ff3b30;
+        --swiss-red: #ff0000;
+        --border: #222222;
+        --card: #0e0e0e;
+        --nav-bg: rgba(0, 0, 0, 0.8);
+      }
+
+      [data-theme="light"] {
+        --bg: #f5f5f0;
+        --bg-elevated: #ffffff;
+        --surface: #ffffff;
+        --text: #111111;
+        --text-secondary: #666666;
+        --text-muted: #999999;
+        --border: #e0e0dc;
+        --card: #ffffff;
+        --nav-bg: rgba(245, 245, 240, 0.85);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 0 32px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--nav-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .theme-toggle {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 8px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s, border-color 0.2s;
+      }
+
+      .theme-toggle:hover {
+        color: var(--text);
+        border-color: var(--border-light, #2a2a2a);
+      }
+
+      .theme-toggle svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .theme-toggle .icon-moon { display: none; }
+      [data-theme="light"] .theme-toggle .icon-sun { display: none; }
+      [data-theme="light"] .theme-toggle .icon-moon { display: block; }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--text);
+      }
+
+      .nav-logo-mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .nav-logo-mark img {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .nav-title {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: 22px;
+        letter-spacing: 0.08em;
+        font-weight: 400;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 28px;
+        align-items: center;
+      }
+
+      .nav-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+
+      .nav-langs {
+        display: flex;
+        gap: 10px;
+      }
+
+      .nav-langs a {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .nav-langs a[aria-current="page"] {
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+
+      main {
+        padding: 120px 0 80px;
+      }
+
+      h1 {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-weight: 400;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .last-updated {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-bottom: 48px;
+      }
+
+      .highlight-box p + p {
+        margin-top: 8px;
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+
+      .highlight-box {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--green);
+        padding: 24px 28px;
+        border-radius: 8px;
+        margin-bottom: 48px;
+      }
+
+      .highlight-box p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.6;
+      }
+
+      h2 {
+        font-family: 'Bebas Neue', 'Helvetica Neue', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 400;
+        letter-spacing: 0.06em;
+        color: var(--swiss-red);
+        margin-top: 48px;
+        margin-bottom: 16px;
+      }
+
+      code {
+        font-size: 0.85em;
+        background: var(--surface);
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+
+      p {
+        margin-bottom: 16px;
+        color: var(--text-secondary);
+        font-size: 15px;
+      }
+
+      ul {
+        margin-bottom: 16px;
+        padding-left: 20px;
+      }
+
+      li {
+        margin-bottom: 10px;
+        color: var(--text-secondary);
+        font-size: 15px;
+      }
+
+      li strong {
+        color: var(--text);
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        padding: 40px 32px;
+        border-top: 1px solid var(--border);
+      }
+
+      .footer-inner {
+        max-width: 720px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .footer-left {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 24px;
+      }
+
+      .footer-links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 13px;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        color: var(--text);
+      }
+
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 20px;
+        }
+
+        .container {
+          padding: 0 20px;
+        }
+
+        main {
+          padding: 100px 0 60px;
+        }
+
+        .footer-inner {
+          flex-direction: column;
+          gap: 16px;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-mark"><img src="../../icon.png" alt="TrainTime" /></div>
+        <span class="nav-title">TRAINTIME</span>
+      </a>
+      <div class="nav-links">
+        <div class="nav-langs">
+          <a href="/terms/" hreflang="en" lang="en">EN</a>
+          <a href="/terms/de/" hreflang="de" lang="de" aria-current="page">DE</a>
+          <a href="/terms/fr/" hreflang="fr" lang="fr">FR</a>
+          <a href="/terms/it/" hreflang="it" lang="it">IT</a>
+        </div>
+        <a href="/">Start</a>
+        <a href="/privacy/de/">Datenschutz</a>
+        <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <main>
+      <div class="container">
+        <h1>NUTZUNGSBEDINGUNGEN</h1>
+        <p class="last-updated">Zuletzt aktualisiert: 18. September 2026</p>
+
+        <div class="highlight-box">
+          <p>TrainTime wird von Evan Thomas, Schweiz, entwickelt. Fragen: <a href="mailto:privacy@traintime.ch">privacy@traintime.ch</a>.</p>
+          <p>Evan Joseph Thomas · Pass. de la Matze 6a · 1950 Sion · Switzerland</p>
+        </div>
+
+        <h2>WAS DU KAUFST</h2>
+        <p>TrainTime ist ein einmaliger Kauf im App Store, bei Google Play oder im Connect IQ Store. Der Preis lizenziert die App auf deinem Gerät und unterstützt ihre Entwicklung. Es ist kein Abo.</p>
+
+        <h2>DER ONLINE-DIENST</h2>
+        <p>Die App bezieht ihre Abfahrten von einem Dienst, den ich betreibe. Er holt die Daten des Schweizer öffentlichen Verkehrs von <a href="https://opentransportdata.swiss" target="_blank">opentransportdata.swiss</a>. Ich halte ihn so gut wie möglich am Laufen, kann aber nicht garantieren, dass er immer verfügbar, schnell oder korrekt ist. Falls ich ihn je ändern oder abschalten muss, etwa weil sich die Quelldaten, ihre Limiten oder ihre Kosten ändern, sage ich das in der App und auf <a href="https://traintime.ch">traintime.ch</a>, wenn möglich mit angemessener Vorlaufzeit. <a href="https://github.com/evanjt/traintime" target="_blank">App</a> und <a href="https://github.com/evanjt/traintime-api" target="_blank">Dienst</a> sind Open Source, jede und jeder kann also eine eigene Instanz betreiben.</p>
+
+        <h2>DIE DATEN</h2>
+        <p>Fahrplan-, Echtzeit- und Formationsdaten stammen von <a href="https://opentransportdata.swiss" target="_blank">opentransportdata.swiss</a>, betrieben von SBB Infrastruktur im Auftrag des Bundesamts für Verkehr. Die Standorte der Haltestellen stammen aus dem Datensatz <a href="https://opendata.swiss/de/dataset/haltestellen-des-offentlichen-verkehrs" target="_blank">Haltestellen des öffentlichen Verkehrs</a>, den das Bundesamt für Verkehr auf opendata.swiss veröffentlicht. Weder die Plattform noch ich garantieren, dass die Daten aktuell, vollständig oder korrekt sind. Verlass dich bei einer Verbindung, die du nicht verpassen darfst, nicht allein auf TrainTime.</p>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-left">&copy; 2026 Evan Thomas</div>
+        <div class="footer-links">
+          <a href="/">Start</a>
+          <a href="/privacy/de/">Datenschutz</a>
+          <a href="/terms/de/">Nutzungsbedingungen</a>
+          <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function() {
+        const toggle = document.getElementById('theme-toggle');
+        const stored = localStorage.getItem('traintime-theme');
+        if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
+
+        toggle.addEventListener('click', function() {
+          const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+          if (isLight) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.removeItem('traintime-theme');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('traintime-theme', 'light');
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1741,6 +1741,28 @@
         }
       }
     },
+    "Legal": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechtliches"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentions légales"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note legali"
+          }
+        }
+      }
+    },
     "Light": {
       "localizations": {
         "de": {
@@ -2335,6 +2357,28 @@
         }
       }
     },
+    "Open Data Platform Mobility Switzerland": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open-Data-Plattform Mobilität Schweiz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plateforme open data mobilité suisse"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piattaforma open data mobilità Svizzera"
+          }
+        }
+      }
+    },
     "Open Settings": {
       "localizations": {
         "de": {
@@ -2617,6 +2661,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Orologio principale"
+          }
+        }
+      }
+    },
+    "Privacy policy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Politique de confidentialité"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informativa sulla privacy"
+          }
+        }
+      }
+    },
+    "Public transport stops": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haltestellen des öffentlichen Verkehrs"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêts des transports publics"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermate dei trasporti pubblici"
           }
         }
       }
@@ -3283,6 +3371,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stazione"
+          }
+        }
+      }
+    },
+    "Station data": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haltestellendaten"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Données des arrêts"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dati delle fermate"
+          }
+        }
+      }
+    },
+    "Station locations from the Federal Office of Transport (FOT). Open use, source named.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standorte der Haltestellen vom Bundesamt für Verkehr (BAV). Freie Nutzung mit Quellenangabe."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emplacements des arrêts de l'Office fédéral des transports (OFT). Utilisation libre avec indication de la source."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posizioni delle fermate dall'Ufficio federale dei trasporti (UFT). Uso libero con indicazione della fonte."
           }
         }
       }

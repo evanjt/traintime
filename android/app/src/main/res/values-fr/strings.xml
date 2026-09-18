@@ -58,6 +58,12 @@
     <string name="kotlinx_desc">Coroutines et sérialisation. Apache License 2.0</string>
     <string name="play_services_desc">Position, wearable, évaluation in-app. Conditions Google</string>
     <string name="garmin_sdk_desc">© Garmin. Utilisé sous sa licence SDK.</string>
+    <string name="otd_platform_desc">Plateforme open data mobilité suisse</string>
+    <string name="stations_heading">Arrêts</string>
+    <string name="stations_desc">Emplacements des arrêts de l\'Office fédéral des transports (OFT). Utilisation libre avec indication de la source.</string>
+    <string name="stations_dataset_title">Arrêts des transports publics</string>
+    <string name="legal_heading">Mentions légales</string>
+    <string name="privacy_policy">Politique de confidentialité</string>
 
     <!-- Dialogs -->
     <string name="bg_track_title">Suivre en arrière-plan ?</string>

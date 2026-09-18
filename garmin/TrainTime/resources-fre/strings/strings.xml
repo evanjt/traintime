@@ -78,6 +78,9 @@
     <string id="ApiHostTitle">Hôte API personnalisé</string>
     <string id="ApiHostPrompt">Laissez vide pour utiliser api.traintime.ch</string>
     <string id="DataLabel">Données</string>
+    <string id="PrivacyPolicy">Confidentialité</string>
+    <string id="TermsOfUse">Conditions d'utilisation</string>
+    <string id="StationsLabel">Arrêts</string>
     <string id="StationLabel">Gare</string>
 
     <!-- Tracking options menu -->

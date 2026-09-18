@@ -78,6 +78,9 @@
     <string id="ApiHostTitle">Custom API host</string>
     <string id="ApiHostPrompt">Leave empty to use api.traintime.ch</string>
     <string id="DataLabel">Data</string>
+    <string id="PrivacyPolicy">Privacy</string>
+    <string id="TermsOfUse">Terms of use</string>
+    <string id="StationsLabel">Stations</string>
     <string id="StationLabel">Station</string>
 
     <!-- Tracking options menu -->
