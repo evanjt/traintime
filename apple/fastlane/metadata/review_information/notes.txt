@@ -54,5 +54,6 @@ Bern Bahnhof: 46.9480, 7.4474. In the simulator, Features > Location > Custom.
 
 Data handling
 Coordinates are sent to api.traintime.ch only to find nearby stations, processed
-in memory, and discarded. Nothing is stored server-side or shared with third
-parties. No account, no analytics. Policy: https://traintime.ch/privacy
+in memory, and discarded. Nothing identifying is stored server-side. Operational
+logs hold the endpoint, HTTP status and latency only, never coordinates, IP or
+device. No account, no analytics. Policy: https://traintime.ch/privacy

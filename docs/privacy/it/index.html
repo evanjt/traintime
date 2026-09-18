@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Privacy Policy - TrainTime</title>
+    <title>Informativa sulla privacy - TrainTime</title>
     <meta
       name="description"
-      content="TrainTime privacy policy. No accounts, no user analytics, no advertising, no tracking. Coordinates are used only to find nearby stations."
+      content="Informativa sulla privacy di TrainTime. Nessun account, nessuna analisi d'uso, nessuna pubblicità, nessun tracciamento. Le coordinate servono solo a trovare le fermate vicine."
     />
     <meta name="theme-color" content="#000000" />
-    <link rel="icon" type="image/png" href="../favicon.png" />
+    <link rel="icon" type="image/png" href="../../favicon.png" />
     <link rel="alternate" hreflang="en" href="https://traintime.ch/privacy/" />
     <link rel="alternate" hreflang="de" href="https://traintime.ch/privacy/de/" />
     <link rel="alternate" hreflang="fr" href="https://traintime.ch/privacy/fr/" />
@@ -314,19 +314,19 @@
   <body>
     <nav>
       <a href="/" class="nav-logo">
-        <div class="nav-logo-mark"><img src="../icon.png" alt="TrainTime" /></div>
+        <div class="nav-logo-mark"><img src="../../icon.png" alt="TrainTime" /></div>
         <span class="nav-title">TRAINTIME</span>
       </a>
       <div class="nav-links">
         <div class="nav-langs">
-          <a href="/privacy/" hreflang="en" lang="en" aria-current="page">EN</a>
+          <a href="/privacy/" hreflang="en" lang="en">EN</a>
           <a href="/privacy/de/" hreflang="de" lang="de">DE</a>
           <a href="/privacy/fr/" hreflang="fr" lang="fr">FR</a>
-          <a href="/privacy/it/" hreflang="it" lang="it">IT</a>
+          <a href="/privacy/it/" hreflang="it" lang="it" aria-current="page">IT</a>
         </div>
         <a href="/">Home</a>
         <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
-        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Cambia tema">
           <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -335,116 +335,118 @@
 
     <main>
       <div class="container">
-        <h1>PRIVACY POLICY</h1>
-        <p class="last-updated">Last updated: 18 September 2026</p>
+        <h1>INFORMATIVA SULLA PRIVACY</h1>
+        <p class="last-updated">Ultimo aggiornamento: 18 settembre 2026</p>
 
         <div class="highlight-box">
           <p>
-            TrainTime has no accounts, no user analytics, no advertising and no tracking.
-            Your coordinates are used only to find nearby stations. They are never written to
-            our logs and never stored.
+            TrainTime non ha account, analisi d'uso, pubblicità né tracciamento.
+            Le tue coordinate servono solo a trovare le fermate vicine. Non vengono mai scritte
+            nei nostri log e mai conservate.
           </p>
         </div>
 
-        <h2>DATA CONTROLLER</h2>
+        <h2>TITOLARE DEL TRATTAMENTO</h2>
         <p>
-          Evan Joseph Thomas<br />Pass. de la Matze 6a<br />1950 Sion<br />Switzerland<br />
+          Evan Joseph Thomas<br />Pass. de la Matze 6a<br />1950 Sion<br />Svizzera<br />
           <a href="mailto:privacy@traintime.ch">privacy@traintime.ch</a>
         </p>
         <p>
-          Requests under the Swiss Federal Act on Data Protection (FADP) go to this address.
-          The supervisory authority is the Federal Data Protection and Information Commissioner (FDPIC).
+          Le richieste ai sensi della legge federale svizzera sulla protezione dei dati (LPD) vanno a
+          questo indirizzo. L'autorità di vigilanza è l'Incaricato federale della protezione dei dati e
+          della trasparenza (IFPDT).
         </p>
 
-        <h2>LOCATION DATA</h2>
-        <p>TrainTime uses your device's location to find nearby stations. Your coordinates:</p>
+        <h2>DATI DI POSIZIONE</h2>
+        <p>TrainTime usa la posizione del tuo dispositivo per trovare le fermate vicine. Le tue coordinate:</p>
         <ul>
-          <li>Go over HTTPS to our API (<code>api.traintime.ch</code>), where they are matched against a station database held in memory</li>
-          <li>Are used for that one request and then discarded. The request line that carries them is not written to our logs</li>
-          <li>Are never passed on to opentransportdata.swiss. Departures are fetched using station identifiers only</li>
-          <li>Your last known position is cached on your device for faster startup</li>
+          <li>Vanno via HTTPS alla nostra API (<code>api.traintime.ch</code>), dove sono confrontate con un database di fermate tenuto in memoria</li>
+          <li>Servono solo per quella richiesta e poi vengono scartate. La riga di richiesta che le contiene non viene scritta nei nostri log</li>
+          <li>Non vengono mai passate a opentransportdata.swiss. Le partenze sono recuperate solo tramite identificativi di fermata</li>
+          <li>La tua ultima posizione nota è salvata nella cache del dispositivo per un avvio più rapido</li>
         </ul>
 
-        <h2>DATA STORED ON YOUR DEVICE</h2>
+        <h2>DATI SALVATI SUL TUO DISPOSITIVO</h2>
         <ul>
-          <li><strong>Last known position</strong> - cached for faster startup when GPS is unavailable</li>
-          <li><strong>Transport mode preference</strong> - your last selected mode (train, bus or tram)</li>
-          <li><strong>Favourites, pinned stations and settings</strong> - shared between your phone and watch through the watch platform's own device link</li>
-          <li><strong>Saved routes and reminders</strong> - if you use them</li>
+          <li><strong>Ultima posizione nota</strong> - per un avvio più rapido quando il GPS non è disponibile</li>
+          <li><strong>Mezzo di trasporto</strong> - l'ultima modalità scelta (treno, bus o tram)</li>
+          <li><strong>Preferiti, fermate fissate e impostazioni</strong> - condivisi tra telefono e orologio tramite il collegamento proprio della piattaforma dell'orologio</li>
+          <li><strong>Percorsi salvati e promemoria</strong> - se li usi</li>
         </ul>
-        <p>No other data is persisted. Departure information is fetched fresh and held only in memory.</p>
+        <p>Nessun altro dato viene conservato. Le partenze sono recuperate ogni volta e tenute solo in memoria.</p>
 
-        <h2>WHY TRAINTIME RUNS ITS OWN API</h2>
+        <h2>PERCHÉ TRAINTIME HA UNA PROPRIA API</h2>
         <p>
-          Swiss public transport data comes from opentransportdata.swiss through separate services:
-          OJP 2.0 for departures and a formation service for train composition. Our API matches your
-          position to the nearest stations, fetches departures and formations, merges them into one
-          response and caches it for a minute, so thousands of watches do not each hit the upstream.
-          It receives nothing beyond the coordinates and station identifiers a request needs.
-          Its source is public: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a>.
+          I dati del trasporto pubblico svizzero arrivano da opentransportdata.swiss tramite servizi
+          separati: OJP 2.0 per le partenze e un servizio di formazione per la composizione dei treni.
+          La nostra API abbina la tua posizione alle fermate più vicine, recupera partenze e formazioni,
+          le unisce in un'unica risposta e la tiene in cache per un minuto, così migliaia di orologi non
+          interrogano ciascuno la fonte. Non riceve nulla oltre alle coordinate e agli identificativi di
+          fermata di cui una richiesta ha bisogno. Il codice sorgente è pubblico: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a>.
         </p>
 
-        <h2>THIRD-PARTY SERVICES</h2>
+        <h2>SERVIZI DI TERZI</h2>
 
-        <p><strong>TrainTime API</strong> (<code>api.traintime.ch</code>)</p>
+        <p><strong>API TrainTime</strong> (<code>api.traintime.ch</code>)</p>
         <ul>
-          <li><strong>Hosting</strong> - the API runs on <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Cloudflare Workers</a> (Cloudflare, Inc., USA) and on a server in Switzerland operated by us. Both are reached through Cloudflare's network</li>
-          <li><strong>Operational logs</strong> - per request we record the endpoint, the HTTP status, the response time, whether the answer came from cache, and a short label of the app platform. We do not record coordinates, IP address, device or any user identifier. Cloudflare keeps a sample of these lines for three days. On our own server they sit in a small rotating buffer that is never copied elsewhere</li>
-          <li><strong>Aggregate statistics</strong> - request counts per endpoint and per platform, without personal data</li>
-          <li><strong>Purpose</strong> - understanding usage, sizing resources up and down, and detecting abuse such as denial-of-service attacks</li>
-          <li><strong>Cloudflare</strong> - as our processor under its <a href="https://www.cloudflare.com/cloudflare-customer-dpa/" target="_blank">Data Processing Addendum</a>, Cloudflare processes connection metadata including your IP address to deliver and protect the service, in the USA and other countries where Cloudflare operates. Cloudflare, Inc. is certified under the Swiss-U.S. Data Privacy Framework, which the Federal Council recognises as adequate for certified companies. The standard contractual clauses in the addendum apply as a fallback</li>
-          <li>Source code: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a></li>
+          <li><strong>Hosting</strong> - l'API gira su <a href="https://www.cloudflare.com/privacypolicy/" target="_blank">Cloudflare Workers</a> (Cloudflare, Inc., USA) e su un server in Svizzera gestito da noi. Entrambi sono raggiunti tramite la rete di Cloudflare</li>
+          <li><strong>Log operativi</strong> - per ogni richiesta registriamo l'endpoint, lo stato HTTP, il tempo di risposta, se la risposta veniva dalla cache e una breve sigla della piattaforma dell'app. Non registriamo coordinate, indirizzo IP, dispositivo né alcun identificativo utente. Cloudflare conserva un campione di queste righe per tre giorni. Sul nostro server restano in un piccolo buffer a rotazione che non viene mai copiato altrove</li>
+          <li><strong>Statistiche aggregate</strong> - numero di richieste per endpoint e per piattaforma, senza dati personali</li>
+          <li><strong>Scopo</strong> - capire l'uso, dimensionare le risorse verso l'alto o il basso, rilevare abusi come gli attacchi denial-of-service</li>
+          <li><strong>Cloudflare</strong> - come nostro responsabile del trattamento ai sensi del suo <a href="https://www.cloudflare.com/cloudflare-customer-dpa/" target="_blank">Data Processing Addendum</a>, Cloudflare tratta i metadati di connessione, compreso il tuo indirizzo IP, per erogare e proteggere il servizio, negli USA e negli altri paesi in cui Cloudflare opera. Cloudflare, Inc. è certificata sotto lo Swiss-U.S. Data Privacy Framework, che il Consiglio federale riconosce come adeguato per le aziende certificate. Le clausole contrattuali standard dell'addendum si applicano in via sussidiaria</li>
+          <li>Codice sorgente: <a href="https://github.com/evanjt/traintime-api" target="_blank">github.com/evanjt/traintime-api</a></li>
         </ul>
 
-        <p><strong>Open Transport Data Switzerland</strong> (<code>opentransportdata.swiss</code>)</p>
+        <p><strong>Open Transport Data Svizzera</strong> (<code>opentransportdata.swiss</code>)</p>
         <ul>
-          <li>Provides timetable, real-time and formation data. Operated by SBB Infrastructure on behalf of the Federal Office of Transport</li>
-          <li>Receives station identifiers only. Your coordinates are never sent to this service</li>
-          <li><a href="https://opentransportdata.swiss/en/terms-of-use/" target="_blank">Terms of use</a></li>
+          <li>Fornisce orari, dati in tempo reale e formazioni. Gestito da FFS Infrastruttura per conto dell'Ufficio federale dei trasporti</li>
+          <li>Riceve solo identificativi di fermata. Le tue coordinate non vengono mai inviate a questo servizio</li>
+          <li><a href="https://opentransportdata.swiss/it/condizioni-duso/" target="_blank">Condizioni d'uso</a></li>
         </ul>
 
         <p>
-          Data the app sends leaves your device to us, the developer, and not to Apple, Google or Garmin.
-          No other third-party services, SDKs or APIs are used. No user analytics, advertising, crash
-          reporting or tracking. Only aggregate request counts without personal data.
+          I dati inviati dall'app lasciano il tuo dispositivo verso di noi, lo sviluppatore, e non verso Apple, Google o Garmin.
+          Non vengono usati altri servizi, SDK o API di terzi. Nessuna analisi d'uso, pubblicità, segnalazione
+          di crash o tracciamento. Solo conteggi aggregati delle richieste, senza dati personali.
         </p>
 
-        <h2>EXTERNAL DATA</h2>
+        <h2>DATI ESTERNI</h2>
         <ul>
-          <li>Transit information (stations, departures, delays, platforms, formations) is sourced from opentransportdata.swiss and provided as-is</li>
-          <li>We do not control or guarantee the accuracy, completeness or availability of this external data</li>
-          <li>Service interruptions or data inaccuracies from upstream providers are outside our control</li>
-          <li>Data source: <a href="https://opentransportdata.swiss" target="_blank">opentransportdata.swiss</a> (attribution required by their terms of use)</li>
+          <li>Le informazioni di trasporto (fermate, partenze, ritardi, binari, formazioni) provengono da opentransportdata.swiss e sono fornite così come sono</li>
+          <li>Non controlliamo né garantiamo l'esattezza, la completezza o la disponibilità di questi dati esterni</li>
+          <li>Interruzioni o errori della fonte sono fuori dal nostro controllo</li>
+          <li>Fonte dei dati: <a href="https://opentransportdata.swiss" target="_blank">opentransportdata.swiss</a> (attribuzione richiesta dalle sue condizioni d'uso)</li>
         </ul>
 
-        <h2>DATA SHARING</h2>
+        <h2>CONDIVISIONE DEI DATI</h2>
         <p>
-          Your coordinates are sent to our API to find nearby stations and are discarded once the request
-          is answered. Departure data is fetched using station identifiers only. The operational logs
-          described above contain no personal data. We do not sell or share data with anyone.
+          Le tue coordinate sono inviate alla nostra API per trovare le fermate vicine e scartate una
+          volta evasa la richiesta. Le partenze sono recuperate solo tramite identificativi di fermata.
+          I log operativi descritti sopra non contengono dati personali. Non vendiamo né condividiamo
+          dati con nessuno.
         </p>
 
-        <h2>CHILDREN'S PRIVACY</h2>
-        <p>TrainTime does not collect data from any user, including children under 13.</p>
+        <h2>PRIVACY DEI MINORI</h2>
+        <p>TrainTime non raccoglie dati da alcun utente, compresi i minori di 13 anni.</p>
 
-        <h2>YOUR RIGHTS</h2>
+        <h2>I TUOI DIRITTI</h2>
         <ul>
-          <li><strong>Ask what we hold:</strong> You can ask at any time whether we process data about you. We will answer within 30 days. The answer will be that the server holds nothing linkable to you, so there is nothing to export or delete on our side</li>
-          <li><strong>View your data:</strong> All data on your device is visible within the app</li>
-          <li><strong>Delete your data:</strong> Uninstall the app to remove all locally stored data</li>
-          <li><strong>Revoke location access:</strong> Disable location permission in your device settings at any time</li>
+          <li><strong>Diritto di accesso:</strong> Puoi chiedere in qualsiasi momento se trattiamo dati su di te. Rispondiamo entro 30 giorni. La risposta sarà che il server non conserva nulla di riconducibile a te, quindi da parte nostra non c'è nulla da esportare o cancellare</li>
+          <li><strong>Vedere i tuoi dati:</strong> Tutti i dati sul tuo dispositivo sono visibili nell'app</li>
+          <li><strong>Cancellare i tuoi dati:</strong> Disinstalla l'app per rimuovere tutti i dati salvati localmente</li>
+          <li><strong>Revocare l'accesso alla posizione:</strong> Disattiva in qualsiasi momento il permesso di localizzazione nelle impostazioni del dispositivo</li>
         </ul>
 
-        <h2>CHANGES</h2>
+        <h2>MODIFICHE</h2>
         <p>
-          This policy may be updated. Check the "Last updated" date above. Continued use after
-          changes constitutes acceptance.
+          Questa informativa può essere aggiornata. Controlla la data di «Ultimo aggiornamento» qui sopra.
+          L'uso continuato dopo una modifica vale come accettazione.
         </p>
 
-        <h2>CONTACT</h2>
+        <h2>CONTATTO</h2>
         <p>
           <a href="mailto:privacy@traintime.ch">privacy@traintime.ch</a><br />
-          <a href="https://github.com/evanjt/traintime/issues">GitHub Issues</a> for anything that is not personal
+          <a href="https://github.com/evanjt/traintime/issues">GitHub Issues</a> per tutto ciò che non è personale
         </p>
       </div>
     </main>
@@ -454,7 +456,7 @@
         <div class="footer-left">&copy; 2026 Evan Thomas</div>
         <div class="footer-links">
           <a href="/">Home</a>
-          <a href="/privacy/">Privacy</a>
+          <a href="/privacy/it/">Privacy</a>
           <a href="https://github.com/evanjt/traintime" target="_blank">GitHub</a>
         </div>
       </div>
