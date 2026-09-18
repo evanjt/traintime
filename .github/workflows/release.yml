@@ -93,7 +93,7 @@ jobs:
       - name: Generate Garmin secrets
         if: steps.check_creds.outputs.has_creds == 'true'
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_GARMIN || secrets.TRAINTIME_API_KEY }}
         run: |
           cat > garmin/TrainTime/source/Secrets.mc <<EOF
           module Secrets {
@@ -176,7 +176,7 @@ jobs:
         if: steps.check_creds.outputs.has_creds == 'true'
         working-directory: android
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_ANDROID || secrets.TRAINTIME_API_KEY }}
           KEYSTORE_FILE: upload-keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}

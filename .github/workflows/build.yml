@@ -105,7 +105,7 @@ jobs:
       # ============================================
       - name: Generate secrets
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_IOS || secrets.TRAINTIME_API_KEY }}
         run: |
           cat > apple/TrainTimeWatch/Secrets.swift <<EOF
           enum Secrets {
@@ -253,7 +253,7 @@ jobs:
       - name: Generate Garmin secrets
         if: steps.check_creds.outputs.has_creds == 'true'
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_GARMIN || secrets.TRAINTIME_API_KEY }}
         run: |
           cat > garmin/TrainTime/source/Secrets.mc <<EOF
           module Secrets {
@@ -361,7 +361,7 @@ jobs:
 
       - name: Build and test
         env:
-          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY }}
+          TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_ANDROID || secrets.TRAINTIME_API_KEY }}
         working-directory: android
         run: ./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug
 
