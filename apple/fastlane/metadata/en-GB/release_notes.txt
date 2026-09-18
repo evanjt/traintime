@@ -1,4 +1,3 @@
-- Tracking keeps running with the app closed. A Live Activity counts down on the Lock Screen and Dynamic Island, with platform, delay and walk margin.
-- Easier on the battery. Updates and GPS scale with how close departure is.
-- A shared SBB trip starts tracking itself and shows the legs still ahead.
-- Apple Watch: the tracked train shows its own terminus, your destination below. Delayed trains no longer disappear early.
+- If one server is down a second takes over, so the board still loads.
+- A version too old for the servers now says so and asks for an update.
+- New privacy and terms pages, linked from About. Advanced: a custom server address in Settings.

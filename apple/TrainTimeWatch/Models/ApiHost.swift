@@ -5,6 +5,7 @@ import Foundation
 // Lives in the shared store because the widget process fetches too.
 enum ApiHost {
     static let defaultURL = "https://api.traintime.ch"
+    static let all = [defaultURL, "https://api1.traintime.ch", "https://api2.traintime.ch"]
     static let key = "apiHost"
 
     /// Trimmed, trailing slashes dropped. "" for blank input, nil when the
@@ -32,5 +33,11 @@ enum ApiHost {
     static var baseURL: String {
         let host = stored
         return host.isEmpty ? defaultURL : host
+    }
+
+    /// The default hosts in failover order, or just the custom host when one is set.
+    static var hosts: [String] {
+        let host = stored
+        return host.isEmpty ? all : [host]
     }
 }

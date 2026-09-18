@@ -184,16 +184,6 @@ class TrainTimeView extends WatchUi.View {
         Renderer.render(dc, self);
     }
 
-    // --- API callback stubs ---
-
-    function onStationsReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        ApiHandler.handleStationsResponse(self, responseCode, data);
-    }
-
-    function onTrainDataReceived(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
-        ApiHandler.handleDeparturesResponse(self, responseCode, data);
-    }
-
     // --- State management ---
 
     function hasMovedSignificantly(lat, lon) {
@@ -468,10 +458,6 @@ class TrainTimeView extends WatchUi.View {
         if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
             ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
         }
-    }
-
-    function onFormationReceived(responseCode, data) {
-        ApiHandler.handleFormationResponse(self, responseCode, data);
     }
 
     function exitToStationView() {

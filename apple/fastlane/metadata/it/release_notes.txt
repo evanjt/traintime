@@ -1,4 +1,3 @@
-- Il tracciamento continua anche con l'app chiusa. Un'attività live fa il conto alla rovescia su schermo di blocco e Dynamic Island, con binario, ritardo e margine a piedi.
-- Più leggero per la batteria. Aggiornamenti e GPS si adattano a quanto è vicina la partenza.
-- Un viaggio FFS condiviso avvia il tracciamento da solo e mostra le tratte rimanenti.
-- Apple Watch: il treno tracciato mostra il suo capolinea, la tua destinazione sotto. I treni in ritardo non spariscono più troppo presto.
+- Se un server non risponde, ne subentra un secondo e il tabellone si carica comunque.
+- Una versione troppo vecchia per i server ora lo dice e chiede un aggiornamento.
+- Nuove pagine su privacy e condizioni d'uso, collegate da Info. Avanzate: un indirizzo server personalizzato nelle impostazioni.

@@ -1,4 +1,3 @@
-- Le suivi continue même l'app fermée. Une activité en direct fait le compte à rebours sur l'écran verrouillé et la Dynamic Island, avec quai, retard et marge de marche.
-- Plus économe en batterie. Les mises à jour et le GPS s'adaptent à la proximité du départ.
-- Un trajet CFF partagé lance le suivi tout seul et affiche les tronçons restants.
-- Apple Watch : le train suivi affiche son terminus, votre destination en dessous. Les trains retardés ne disparaissent plus trop tôt.
+- Si un serveur tombe, un second prend le relais et le tableau se charge quand même.
+- Une version trop ancienne pour les serveurs le dit maintenant et demande une mise à jour.
+- Nouvelles pages de confidentialité et de conditions d'utilisation, liées depuis À propos. Avancé : une adresse de serveur personnalisée dans les réglages.

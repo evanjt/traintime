@@ -20,6 +20,13 @@ object Timing {
     const val FETCH_COOLDOWN_NORMAL = 30.0
     const val FETCH_COOLDOWN_TRACKING = 10.0
     const val REQUEST_TIMEOUT = 30.0
+
+    // Per-host attempt budget for the API client. A dead host is dropped at
+    // the connect timeout, the last host in the list gets the long budget.
+    const val CONNECT_TIMEOUT_SECONDS = 2L
+    const val FIRST_ATTEMPT_TIMEOUT_SECONDS = 3L
+    const val LAST_ATTEMPT_TIMEOUT_SECONDS = 10L
+    const val PRIMARY_REPROBE_SECONDS = 300L
     const val INACTIVITY_TIMEOUT = 60.0
 
     // Widget tap-to-activate window (matches the iOS provider's 5 min).

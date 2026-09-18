@@ -22,7 +22,7 @@ class TrainApiTest {
         server = MockWebServer()
         server.start()
         api = TrainApi(
-            baseUrl = server.url("/").toString(),
+            baseUrls = listOf(server.url("/").toString()),
             apiKey = "test-key",
             clock = { now },
         )

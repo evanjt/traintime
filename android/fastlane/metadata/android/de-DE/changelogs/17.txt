@@ -2,3 +2,4 @@
 - Die Einstellungen sagen jetzt, was sie tun: ein klarer Vorlauf und ein Schalter, der die Hintergrund-Verfolgung wirklich abschaltet.
 - Aus der Benachrichtigung gestoppt bleibt gestoppt, auch nach dem Neustart der App.
 - Ohne Hintergrund-Standort läuft die Verfolgung weiter und nutzt deine zuletzt bekannte Position.
+- Fällt ein Server aus, übernimmt ein zweiter. Zu alte Versionen bitten um ein Update.

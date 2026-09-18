@@ -1,18 +1,107 @@
 using Toybox.Communications;
 using Toybox.Lang;
+using Toybox.System;
 using Toybox.Time;
+using Toybox.Timer;
 using Toybox.WatchUi;
 using Toybox.Application;
 using Toybox.Application.Storage;
 
+// One attempt of an API request: the host it went to and when it left. The
+// object is the makeWebRequest callback, so a reply from a cancelled or
+// superseded attempt is told apart by identity, whatever code it carries.
+class ApiAttempt {
+    var view;
+    var kind;
+    var path;
+    var hosts;
+    var hostIdx;
+    var attempt;
+    var startTs;
+
+    function initialize(v, k, p, h, firstHost) {
+        view = v;
+        kind = k;
+        path = p;
+        hosts = h;
+        hostIdx = firstHost;
+        attempt = 0;
+        startTs = null;
+    }
+
+    function url() {
+        return ApiHandler.urlFor(hosts, hostIdx, path);
+    }
+
+    function isLast() {
+        return attempt >= hosts.size() - 1;
+    }
+
+    function advance() {
+        attempt = attempt + 1;
+        hostIdx = (hostIdx + 1) % hosts.size();
+    }
+
+    function onResponse(responseCode as Lang.Number, data as Lang.Dictionary or Lang.String or Null) as Void {
+        ApiHandler.onResponse(self, responseCode, data);
+    }
+}
+
+// The view's own timer ticks at 5 s on the board, too coarse for a 5 s
+// attempt limit, so the timed request slot runs its own 1 s ticker.
+class ApiTicker {
+    var mTimer;
+
+    function initialize() {
+        mTimer = new Timer.Timer();
+    }
+
+    function start() {
+        mTimer.stop();
+        mTimer.start(method(:onTick), 1000, true);
+    }
+
+    function stop() {
+        mTimer.stop();
+    }
+
+    function onTick() as Void {
+        ApiHandler.tick(Time.now().value());
+    }
+}
+
 module ApiHandler {
 
+    // Failover order (Q9). api is the name a load balancer could later sit on,
+    // the other two are the cluster tunnel and the Worker alias.
+    const HOSTS = ["https://api.traintime.ch", "https://api1.traintime.ch", "https://api2.traintime.ch"];
     const DEFAULT_HOST = "https://api.traintime.ch";
 
+    // Per-attempt budget (Q10): 5 s on every host but the last, 10 s on the
+    // last, so three attempts still fit inside the view's 30 s guard. Connect
+    // IQ has no request timeout option, so the ticker enforces it with
+    // cancelAllRequests. A failed primary is left alone for five minutes.
+    const ATTEMPT_SECS = 5;
+    const LAST_ATTEMPT_SECS = 10;
+    const PRIMARY_REPROBE_SECS = 300;
+
+    const KIND_STATIONS = 0;
+    const KIND_DEPARTURES = 1;
+    const KIND_FORMATION = 2;
+
+    var mActiveHost = 0;
+    var mPrimaryFailedAt = null;
+    // Stations and departures share one timed slot: the view never has both in
+    // flight. Formation runs beside it and is only retried on a failed reply.
+    var mPending = null;
+    var mPendingFormation = null;
+    var mTicker = null;
+
     // The Connect IQ app setting "apiHost", read once per request. Empty or
-    // anything that is not an https URL falls back to api.traintime.ch, so a
-    // typo in Garmin Connect never strands the watch on a dead host.
-    function baseUrl() {
+    // anything that is not an https URL falls back to the built-in host list,
+    // so a typo in Garmin Connect never strands the watch on a dead host. A
+    // custom host is a single-host list: no failover.
+    function hosts() {
         var raw = null;
         if (Application has :Properties) {
             try {
@@ -21,7 +110,13 @@ module ApiHandler {
                 raw = null;
             }
         }
-        return hostOrDefault(raw);
+        return hostsFor(raw);
+    }
+
+    function hostsFor(raw) {
+        var host = hostOrDefault(raw);
+        if (host.equals(DEFAULT_HOST)) { return HOSTS; }
+        return [host];
     }
 
     function hostOrDefault(raw) {
@@ -45,11 +140,135 @@ module ApiHandler {
         return s.substring(start, end);
     }
 
+    function urlFor(hostList, idx, path) {
+        return hostList[idx] + path;
+    }
+
+    // Host bookkeeping. A failure moves the next attempt one host along; a
+    // failed primary is skipped until the re-probe window passes.
+    function preferredHost(now) {
+        if (mPrimaryFailedAt != null && now - mPrimaryFailedAt < PRIMARY_REPROBE_SECS) {
+            return mActiveHost;
+        }
+        return 0;
+    }
+
+    function recordHostFailure(idx, now) {
+        if (idx == 0) { mPrimaryFailedAt = now; }
+        mActiveHost = (idx + 1) % HOSTS.size();
+    }
+
+    function recordHostSuccess(idx) {
+        mActiveHost = idx;
+        if (idx == 0) { mPrimaryFailedAt = null; }
+    }
+
+    function resetHostState() {
+        mActiveHost = 0;
+        mPrimaryFailedAt = null;
+    }
+
+    // Fail over on what a dead host produces: 5xx, 429, a non-JSON body (-400,
+    // how Cloudflare's own error pages arrive, per I6), a timed-out or dropped
+    // request and the BLE transport errors. Never on our own 4xx, on a cancel,
+    // on a missing phone or on a body the watch cannot hold.
+    function shouldFailover(code) {
+        if (code >= 500 || code == 429) { return true; }
+        if (code == Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE) { return true; }
+        if (code == Communications.NETWORK_REQUEST_TIMED_OUT) { return true; }
+        if (code == Communications.REQUEST_CONNECTION_DROPPED) { return true; }
+        return code >= Communications.BLE_SERVER_TIMEOUT && code <= Communications.BLE_ERROR;
+    }
+
+    function request(view, kind, path) {
+        var now = Time.now().value();
+        var hostList = hosts();
+        var first = hostList.size() > 1 ? preferredHost(now) : 0;
+        var a = new ApiAttempt(view, kind, path, hostList, first);
+        if (kind == KIND_FORMATION) {
+            mPendingFormation = a;
+        } else {
+            mPending = a;
+            if (mTicker == null) { mTicker = new ApiTicker(); }
+            mTicker.start();
+        }
+        send(a);
+    }
+
+    function send(a) {
+        a.startTs = Time.now().value();
+        var params = {
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
+            :headers => { "X-API-Key" => Secrets.API_KEY }
+        };
+        Communications.makeWebRequest(a.url(), null, params, a.method(:onResponse));
+    }
+
+    function clearPending(a) {
+        if (a == mPending) {
+            mPending = null;
+            if (mTicker != null) { mTicker.stop(); }
+        } else if (a == mPendingFormation) {
+            mPendingFormation = null;
+        }
+    }
+
+    function failover(a, now) {
+        if (a.hosts.size() > 1) { recordHostFailure(a.hostIdx, now); }
+        a.advance();
+        System.println("failover -> " + a.hosts[a.hostIdx]);
+        if (a != mPendingFormation) { a.view.mRequestStartTime = now; }
+        send(a);
+    }
+
+    function onResponse(a, responseCode, data) {
+        if (a != mPending && a != mPendingFormation) { return; }
+        var now = Time.now().value();
+        if (responseCode == 200) {
+            if (a.hosts.size() > 1) { recordHostSuccess(a.hostIdx); }
+        } else if (shouldFailover(responseCode)) {
+            if (!a.isLast()) {
+                failover(a, now);
+                return;
+            }
+            if (a.hosts.size() > 1) { recordHostFailure(a.hostIdx, now); }
+        }
+        clearPending(a);
+        dispatch(a, responseCode, data);
+    }
+
+    // Enforces the per-attempt budget on the timed slot. A cancel also drops a
+    // formation request in flight; its reply is a cancel code, never a failover.
+    function tick(now) {
+        var a = mPending;
+        if (a == null || a.startTs == null) { return; }
+        var limit = a.isLast() ? LAST_ATTEMPT_SECS : ATTEMPT_SECS;
+        if (now - a.startTs < limit) { return; }
+        Communications.cancelAllRequests();
+        if (!a.isLast()) {
+            failover(a, now);
+            return;
+        }
+        if (a.hosts.size() > 1) { recordHostFailure(a.hostIdx, now); }
+        clearPending(a);
+        dispatch(a, Communications.NETWORK_REQUEST_TIMED_OUT, null);
+    }
+
+    function dispatch(a, responseCode, data) {
+        if (a.kind == KIND_STATIONS) {
+            handleStationsResponse(a.view, responseCode, data);
+        } else if (a.kind == KIND_DEPARTURES) {
+            handleDeparturesResponse(a.view, responseCode, data);
+        } else {
+            handleFormationResponse(a.view, responseCode, data);
+        }
+    }
+
     function decodeError(responseCode) {
         if (responseCode == 429) { return Txt.t(Rez.Strings.RateLimited); }
         if (responseCode == 401) { return Txt.t(Rez.Strings.UpdateRequired); }
         if (responseCode == 500) { return Txt.t(Rez.Strings.ServerError); }
-        if (responseCode == -104) { return Txt.t(Rez.Strings.TimeoutError); }
+        if (responseCode == -104 || responseCode == -300) { return Txt.t(Rez.Strings.TimeoutError); }
         if (responseCode == -400) { return Txt.t(Rez.Strings.NoConnection); }
         if (responseCode < 0) { return Txt.t(Rez.Strings.ConnectionError); }
         return Lang.format(Txt.t(Rez.Strings.ErrorFmt), [responseCode]);
@@ -64,15 +283,8 @@ module ApiHandler {
         if (defaultMode == 1) { modeParam = "&mode=bus"; }
         else if (defaultMode == 2) { modeParam = "&mode=tram"; }
 
-        var url = baseUrl() + "/v1/nearby"
-            + "?lat=" + lat + "&lon=" + lon + modeParam;
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, view.method(:onStationsReceived));
+        var path = "/v1/nearby?lat=" + lat + "&lon=" + lon + modeParam;
+        request(view, KIND_STATIONS, path);
     }
 
     function handleStationsResponse(view, responseCode, data) {
@@ -187,21 +399,13 @@ module ApiHandler {
     }
 
     function fetchDepartures(view, stationId) {
-        var url = baseUrl() + "/v1/departures"
-            + "?id=" + stationId
-            + "&limit=20";
+        var path = "/v1/departures?id=" + stationId + "&limit=20";
 
         var favParam = FavouritesManager.buildFavouritesParam(stationId);
         if (favParam != null) {
-            url = url + "&favourites=" + favParam;
+            path = path + "&favourites=" + favParam;
         }
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, view.method(:onTrainDataReceived));
+        request(view, KIND_DEPARTURES, path);
     }
 
     function parseDepartureArray(departures) {
@@ -353,20 +557,13 @@ module ApiHandler {
         var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var date = now.year + "-" + now.month.format("%02d") + "-" + now.day.format("%02d");
 
-        var url = baseUrl() + "/v1/formation"
-            + "?train=" + trainNumber
+        var path = "/v1/formation?train=" + trainNumber
             + "&date=" + date
             + "&stop=" + stationId;
         if (operatorRef != null) {
-            url = url + "&operatorRef=" + operatorRef;
+            path = path + "&operatorRef=" + operatorRef;
         }
-
-        var params = {
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => { "X-API-Key" => Secrets.API_KEY }
-        };
-
-        Communications.makeWebRequest(url, null, params, view.method(:onFormationReceived));
+        request(view, KIND_FORMATION, path);
     }
 
     function handleFormationResponse(view, responseCode, data) {

@@ -10,7 +10,6 @@ enum TrainAPIError: Error {
 }
 
 struct TrainAPIService {
-    private static var baseURL: String { ApiHost.baseURL }
     private static let apiKey = Secrets.apiKey
 
     // MARK: - Station Search by Coordinates
@@ -18,18 +17,17 @@ struct TrainAPIService {
     static func fetchStations(
         lat: Double, lon: Double, mode: TransportMode? = nil
     ) async throws -> (train: [Station], bus: [Station], tram: [Station], special: [Station]) {
-        var urlString = "\(baseURL)/v1/nearby?lat=\(lat)&lon=\(lon)"
+        var path = "/v1/nearby?lat=\(lat)&lon=\(lon)"
         if let mode = mode {
             switch mode {
-            case .bus: urlString += "&mode=bus"
-            case .tram: urlString += "&mode=tram"
-            case .special: urlString += "&mode=special"
+            case .bus: path += "&mode=bus"
+            case .tram: path += "&mode=tram"
+            case .special: path += "&mode=special"
             default: break
             }
         }
-        guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
-        let (data, response) = try await makeRequest(url: url)
+        let (data, response) = try await makeRequest(path: path)
         try checkHTTPResponse(response)
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -46,13 +44,12 @@ struct TrainAPIService {
 
     static func fetchDepartures(stationId: String, favourites: String? = nil) async throws -> (departures: [Departure], favourites: [Departure]) {
         let encoded = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
-        var urlString = "\(baseURL)/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
+        var path = "/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
         if let favParam = favourites?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            urlString += "&favourites=\(favParam)"
+            path += "&favourites=\(favParam)"
         }
-        guard let url = URL(string: urlString) else { throw TrainAPIError.noData }
 
-        let (data, response) = try await makeRequest(url: url)
+        let (data, response) = try await makeRequest(path: path)
         try checkHTTPResponse(response)
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -74,13 +71,12 @@ struct TrainAPIService {
 
     static func fetchFormation(trainNumber: String, date: String, stationId: String, operatorRef: String? = nil) async throws -> Formation? {
         let encodedStation = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
-        var urlString = "\(baseURL)/v1/formation?train=\(trainNumber)&date=\(date)&stop=\(encodedStation)"
+        var path = "/v1/formation?train=\(trainNumber)&date=\(date)&stop=\(encodedStation)"
         if let op = operatorRef {
-            urlString += "&operatorRef=\(op)"
+            path += "&operatorRef=\(op)"
         }
-        guard let url = URL(string: urlString) else { return nil }
 
-        let (data, response) = try await makeRequest(url: url)
+        let (data, response) = try await makeRequest(path: path)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -94,14 +90,35 @@ struct TrainAPIService {
         return array.compactMap { Station.from(json: $0, mode: mode) }
     }
 
-    private static func makeRequest(url: URL) async throws -> (Data, URLResponse) {
-        var request = URLRequest(url: url)
-        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
-        do {
-            return try await URLSession.shared.data(for: request)
-        } catch {
-            throw TrainAPIError.networkError
+    /// Tries the hosts in the failover order. A transport error, a timeout,
+    /// a 429 or a 5xx moves to the next host; any other answer is returned as is.
+    private static func makeRequest(path: String) async throws -> (Data, URLResponse) {
+        let hosts = ApiHost.hosts
+        let order = await HostFailover.shared.order(hostCount: hosts.count)
+        for (attempt, index) in order.enumerated() {
+            try Task.checkCancellation()
+            guard let url = URL(string: hosts[index] + path) else { throw TrainAPIError.noData }
+            var request = URLRequest(url: url)
+            request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+            request.timeoutInterval = FailoverPolicy.attemptTimeout(attempt: attempt, hostCount: hosts.count)
+            let last = attempt == order.count - 1
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 200
+                if FailoverPolicy.shouldFailover(status: status) {
+                    await HostFailover.shared.recordFailure(index, hostCount: hosts.count)
+                    if last { return (data, response) }
+                    continue
+                }
+                await HostFailover.shared.recordSuccess(index, hostCount: hosts.count)
+                return (data, response)
+            } catch {
+                guard FailoverPolicy.shouldFailover(error: error) else { throw TrainAPIError.networkError }
+                await HostFailover.shared.recordFailure(index, hostCount: hosts.count)
+                if last { throw TrainAPIError.networkError }
+            }
         }
+        throw TrainAPIError.networkError
     }
 
     private static func checkHTTPResponse(_ response: URLResponse) throws {

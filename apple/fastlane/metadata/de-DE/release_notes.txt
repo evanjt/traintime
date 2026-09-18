@@ -1,4 +1,3 @@
-- Die Verfolgung läuft weiter, auch bei geschlossener App. Eine Live-Aktivität zählt auf Sperrbildschirm und Dynamic Island herunter, mit Gleis, Verspätung und Fussweg.
-- Schonender für den Akku. Updates und GPS richten sich danach, wie nah die Abfahrt ist.
-- Eine geteilte SBB-Fahrt startet die Verfolgung selbst und zeigt die restlichen Abschnitte.
-- Apple Watch: Der verfolgte Zug zeigt seine Endstation, dein Ziel darunter. Verspätete Züge verschwinden nicht mehr zu früh.
+- Fällt ein Server aus, springt ein zweiter ein, und die Abfahrten laden trotzdem.
+- Eine zu alte Version sagt es jetzt und bittet um ein Update.
+- Neue Seiten zu Datenschutz und Nutzungsbedingungen, verlinkt unter Info. Für Fortgeschrittene: eine eigene Serveradresse in den Einstellungen.
