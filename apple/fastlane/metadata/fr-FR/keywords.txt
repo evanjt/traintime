@@ -1,1 +1,1 @@
-horaire,arrêt,quai,retard,tram,bus,bateau,funiculaire,téléphérique,proximité,montre,gare,train
+montre,horaire,arrêt,gare,voie,quai,retard,proximité,widget,train,tram,bus,bateau,funiculaire

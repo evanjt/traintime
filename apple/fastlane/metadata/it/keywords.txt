@@ -1,1 +1,1 @@
-fermata,binario,ritardo,tram,bus,battello,funicolare,funivia,vicino,orologio,treno,stazione,orario
+orologio,smartwatch,fermata,stazione,binario,ritardo,vicino,treno,tram,bus,widget,battello,funivia

@@ -1,1 +1,1 @@
-timetable,schedule,nearby,realtime,widget,watch,tram,bus,boat,ferry,funicular,station,delay,swiss
+watch,wrist,countdown,timetable,platform,delay,nearby,realtime,station,schedule,widget,tram,ferry

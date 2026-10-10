@@ -1,1 +1,1 @@
-Fahrplan,Haltestelle,Postauto,Schiff,Seilbahn,Perron,Gleis,Nahverkehr,Verspätung,Uhr,Widget,Abfahrt
+Uhr,Smartwatch,Countdown,Fahrplan,Haltestelle,Bahnhof,Gleis,Perron,Verspätung,Widget,Nahverkehr
