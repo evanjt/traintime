@@ -72,10 +72,18 @@ struct FocusedDeparture {
         Double(secondsUntil) / 60.0
     }
 
-    /// Formatted countdown string matching Garmin logic
+    /// Until the effective departure (schedule plus delay): what "has it left" and
+    /// the delay badge are measured against.
+    var effectiveSecondsUntil: Int { secondsUntil + delay * 60 }
+
+    var effectiveMinutesUntil: Double { Double(effectiveSecondsUntil) / 60.0 }
+
+    /// Formatted countdown string matching Garmin logic. Counts to the schedule, with
+    /// the delay badge beside it, and reads "now" from the scheduled minute until the
+    /// effective time has passed.
     var countdownText: String {
         let secs = secondsUntil
-        if secs < -30 { return String(localized: "Departed") }
+        if effectiveSecondsUntil < -30 { return String(localized: "Departed") }
         if secs < 5 { return String(localized: "now") }
         let totalMin = secs / 60
         let remSec = secs % 60

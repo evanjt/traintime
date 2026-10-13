@@ -1,3 +1,4 @@
+- Un bus o un treno in ritardo ora resta sul tabellone e nel tracciamento finché non è davvero partito, invece di risultare partito all'orario previsto.
 - Se un server non risponde, ne subentra un secondo e il tabellone si carica comunque.
 - Una versione troppo vecchia per i server ora lo dice e chiede un aggiornamento.
 - Nuove pagine su privacy e condizioni d'uso, collegate da Info. Avanzate: un indirizzo server personalizzato nelle impostazioni.

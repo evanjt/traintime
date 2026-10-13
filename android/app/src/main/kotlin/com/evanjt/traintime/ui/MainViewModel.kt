@@ -2002,7 +2002,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // A still-future train just isn't on the board yet (a shared route
             // opened early, before it reaches the 20-row horizon). Keep the
             // local countdown; only give up once it has actually departed.
-            if (nowS < focused.departureTimestamp + PendingRouteLogic.GRACE_SEC) return
+            if (!TrackingLogic.departed(focused, nowS)) return
             haptics.shortPulse()
             exitToStationView()
             return

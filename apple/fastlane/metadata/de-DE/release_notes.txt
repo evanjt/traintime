@@ -1,3 +1,4 @@
+- Ein verspäteter Bus oder Zug bleibt jetzt auf der Tafel und in der Verfolgung, bis er wirklich weg ist, statt zur Fahrplanzeit als weg zu gelten.
 - Fällt ein Server aus, springt ein zweiter ein, und die Abfahrten laden trotzdem.
 - Eine zu alte Version sagt es jetzt und bittet um ein Update.
 - Neue Seiten zu Datenschutz und Nutzungsbedingungen, verlinkt unter Info. Für Fortgeschrittene: eine eigene Serveradresse in den Einstellungen.

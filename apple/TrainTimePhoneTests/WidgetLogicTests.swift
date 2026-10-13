@@ -35,6 +35,18 @@ final class WidgetLogicTests: XCTestCase {
         )
     }
 
+    func testLateDepartureIsNotGoneUntilItsEffectiveTime() {
+        XCTAssertFalse(dep("10", "Bern Bahnhof", in: -120, delay: 4).isGone(at: now))
+        XCTAssertEqual(dep("10", "Bern Bahnhof", in: -120, delay: 4).minutesText(at: now), "now")
+        XCTAssertTrue(dep("10", "Bern Bahnhof", in: -300, delay: 4).isGone(at: now))
+    }
+
+    func testFavouritesBlockKeepsALateDeparturePastItsScheduledMinute() {
+        let late = dep("10", "Bern Bahnhof", in: -120, delay: 4)
+        let block = WidgetFavourites.block(in: [late], favourites: [fav("10", "Bern Bahnhof")], at: now)
+        XCTAssertEqual(block.map(\.lineNumber), ["10"])
+    }
+
     func testMinutesTextCoversGoneNowAndMinutes() {
         XCTAssertEqual(dep("IC8", "Brig", in: -90).minutesText(at: now), "gone")
         XCTAssertEqual(dep("IC8", "Brig", in: 30).minutesText(at: now), "now")

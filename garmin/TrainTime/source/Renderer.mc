@@ -532,7 +532,7 @@ module Renderer {
         var platformChanged = train["platChg"];
         var destination = train["dest"];
         var lineNumber = train["line"];
-        var isGone = (minutesUntil < 0);
+        var isGone = DepartureLogic.isGone(minutesUntil, delay);
 
         // Vertical alignment: FONT_TINY for minutes, FONT_XTINY for rest
         var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
@@ -579,7 +579,8 @@ module Renderer {
         if (isGone) {
             dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
             minText = Txt.t(Rez.Strings.RowGone);
-        } else if (minutesUntil == 0) {
+        } else if (minutesUntil <= 0) {
+            // A late train reads "now" from its scheduled minute until it has left
             dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
             minText = Txt.t(Rez.Strings.RowNow);
         } else if (minutesUntil <= 2) {
@@ -748,7 +749,7 @@ module Renderer {
         if (delay == null) { delay = 0; }
 
         var minStr;
-        if (minutesUntil < -0.5) {
+        if (DepartureLogic.hasDeparted(minutesUntil, delay)) {
             minStr = Txt.t(Rez.Strings.Departed);
             dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
         } else if (minutesUntil < 0.083) {

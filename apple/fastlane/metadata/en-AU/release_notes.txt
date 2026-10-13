@@ -1,3 +1,4 @@
+- A late bus or train now stays on the board and in tracking until it has really left, instead of reading gone at its timetable slot.
 - If one server is down a second takes over, so the board still loads.
 - A version too old for the servers now says so and asks for an update.
 - New privacy and terms pages, linked from About. Advanced: a custom server address in Settings.

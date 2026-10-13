@@ -202,12 +202,16 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 modifier = Modifier.padding(vertical = 8.dp),
             ) {
                 Text(
-                    focused?.countdownText(nowSeconds) ?: "–",
+                    focused?.countdownText(
+                        nowSeconds,
+                        stringResource(CoreR.string.departed),
+                        stringResource(CoreR.string.row_now),
+                    ) ?: "–",
                     color = countdownColor(focused, nowSeconds, palette, secondary, MaterialTheme.colorScheme.onBackground),
                     fontSize = 56.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                if (focused != null && focused.delay > 0 && focused.minutesUntil(nowSeconds) >= -0.5) {
+                if (focused != null && focused.delay > 0 && focused.effectiveMinutesUntil(nowSeconds) >= -0.5) {
                     Text(
                         "+${focused.delay}",
                         color = Color.White,
@@ -431,7 +435,7 @@ private fun countdownColor(
     if (focused == null) return primary
     val minutesUntil = focused.minutesUntil(nowSeconds)
     return when {
-        minutesUntil < -0.5 -> secondary
+        focused.effectiveMinutesUntil(nowSeconds) < -0.5 -> secondary
         minutesUntil < 2.0 -> palette.minutesNow
         else -> palette.minutesSoon
     }

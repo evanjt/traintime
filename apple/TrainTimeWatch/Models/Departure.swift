@@ -52,7 +52,10 @@ struct Departure: Identifiable {
         )
     }
 
-    var isGone: Bool { minutesUntil < 0 }
+    /// Gone once the effective time (schedule plus delay) has passed. A late train is
+    /// still coming after its scheduled minute, and OJP keeps listing it until the
+    /// estimate passes, so the board must too.
+    var isGone: Bool { minutesUntil + delay < 0 }
 
     /// Identity stable across fetches (unlike `id`, a fresh UUID each parse). Includes
     /// trainNumber because OJP can list distinct journeys in the same minute; excludes
@@ -65,9 +68,11 @@ struct Departure: Identifiable {
         return ts - Int(Date().timeIntervalSince1970)
     }
 
+    /// The minute count is to the schedule, with the delay badge beside it, so a late
+    /// train reads "now" from its scheduled minute until it has really left.
     var minutesText: String {
         if isGone { return String(localized: "gone") }
-        if minutesUntil == 0 { return String(localized: "now") }
+        if minutesUntil <= 0 { return String(localized: "now") }
         return "\(minutesUntil)'"
     }
 }

@@ -856,7 +856,7 @@ class TrainTimeView extends WatchUi.View {
             } else if (t["dest"] != null && targetDest != null && t["dest"].equals(targetDest)) {
                 matches = true;
             }
-            if (matches && t["min"] >= -1) {
+            if (matches && DepartureLogic.isMatchable(t["min"], t["delay"])) {
                 var diff = t["min"] - lastMin;
                 if (diff < 0) { diff = -diff; }
                 if (diff < bestDiff) {

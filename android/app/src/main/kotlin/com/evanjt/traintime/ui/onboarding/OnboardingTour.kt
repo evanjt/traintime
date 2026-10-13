@@ -497,7 +497,11 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
                 .onGloballyPositioned { onReport(it.boundsInRoot()) },
         ) {
             Text(
-                focused.countdownText(nowSeconds),
+                focused.countdownText(
+                    nowSeconds,
+                    stringResource(CoreR.string.departed),
+                    stringResource(CoreR.string.row_now),
+                ),
                 color = if (minutesLeft < 2.0) palette.minutesNow else palette.minutesSoon,
                 fontSize = 56.sp,
                 fontWeight = FontWeight.Bold,

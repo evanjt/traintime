@@ -34,7 +34,9 @@ data class WidgetDeparture(
     // The gone/now/minutes label is resolved at render time (WidgetUi.minutesLabel)
     // so a language change applies without recomputing stored state.
 
-    fun isGone(nowEpochSeconds: Long): Boolean = minutesUntil(nowEpochSeconds) < 0
+    // Gone once the effective time (schedule plus delay) has passed, so a late
+    // train stays in the widget until it has really left.
+    fun isGone(nowEpochSeconds: Long): Boolean = minutesUntil(nowEpochSeconds) + delay < 0
 
     // Absolute clock time, shown in the dormant view where a stale minute count misleads.
     val clockTimeText: String

@@ -22,11 +22,19 @@ data class FocusedDeparture(
 
     fun minutesUntil(nowEpochSeconds: Long): Double = secondsUntil(nowEpochSeconds) / 60.0
 
-    // Matches the Garmin countdown formatting.
-    fun countdownText(nowEpochSeconds: Long): String {
+    // Until the effective departure (schedule plus delay): what "has it left"
+    // and the delay badge are measured against.
+    fun effectiveSecondsUntil(nowEpochSeconds: Long): Long = secondsUntil(nowEpochSeconds) + delay * 60L
+
+    fun effectiveMinutesUntil(nowEpochSeconds: Long): Double = effectiveSecondsUntil(nowEpochSeconds) / 60.0
+
+    // Matches the Garmin countdown formatting. Counts to the schedule, with the
+    // delay badge beside it, and reads "now" from the scheduled minute until the
+    // effective time has passed. Callers pass the localised words.
+    fun countdownText(nowEpochSeconds: Long, departed: String = "Departed", nowText: String = "now"): String {
         val secs = secondsUntil(nowEpochSeconds)
-        if (secs < -30) return "Departed"
-        if (secs < 5) return "now"
+        if (effectiveSecondsUntil(nowEpochSeconds) < -30) return departed
+        if (secs < 5) return nowText
         val totalMin = secs / 60
         val remSec = secs % 60
         return if (totalMin < 3) {

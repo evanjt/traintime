@@ -428,8 +428,8 @@ private fun lineLabel(dep: WidgetDeparture, ctx: Context): String = when {
 private fun minutesLabel(dep: WidgetDeparture, now: Long, ctx: Context): String {
     val m = dep.minutesUntil(now)
     return when {
-        m < 0 -> ctx.getString(CoreR.string.row_gone)
-        m == 0 -> ctx.getString(CoreR.string.row_now)
+        dep.isGone(now) -> ctx.getString(CoreR.string.row_gone)
+        m <= 0 -> ctx.getString(CoreR.string.row_now)
         else -> "$m'"
     }
 }

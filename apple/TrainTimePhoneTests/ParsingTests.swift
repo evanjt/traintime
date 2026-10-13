@@ -230,6 +230,52 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(once.map(\.id), ["a:1:x", "b:2:y", "c:3:z"])
     }
 
+    // MARK: - Late departures
+
+    // Scenario: a bus scheduled two minutes ago is running four minutes late.
+    // Expected behaviour: it is not gone, keeps its delay, and reads "now" until
+    // its effective time has passed.
+    private func lateRow(minutesUntil: Int, delay: Int) -> Departure {
+        Departure(destination: "Bern Bahnhof", minutesUntil: minutesUntil, departureTimestamp: nil, delay: delay,
+                  platform: "", platformChanged: false, lineNumber: "10", category: "B",
+                  trainNumber: nil, operatorRef: nil)
+    }
+
+    func testLateBusIsNotGoneUntilItsEffectiveTime() {
+        XCTAssertFalse(lateRow(minutesUntil: -2, delay: 4).isGone)
+        XCTAssertFalse(lateRow(minutesUntil: -4, delay: 4).isGone)
+        XCTAssertTrue(lateRow(minutesUntil: -5, delay: 4).isGone)
+        XCTAssertFalse(lateRow(minutesUntil: -15, delay: 20).isGone)
+    }
+
+    func testOnTimeBusKeepsGoneThreshold() {
+        XCTAssertFalse(lateRow(minutesUntil: 0, delay: 0).isGone)
+        XCTAssertTrue(lateRow(minutesUntil: -1, delay: 0).isGone)
+    }
+
+    func testLateBusReadsNowFromItsScheduledMinute() {
+        XCTAssertEqual(lateRow(minutesUntil: 0, delay: 4).minutesText, "now")
+        XCTAssertEqual(lateRow(minutesUntil: -2, delay: 4).minutesText, "now")
+        XCTAssertEqual(lateRow(minutesUntil: -5, delay: 4).minutesText, "gone")
+    }
+
+    private func lateFocused(secondsFromNow: Int, delay: Int) -> FocusedDeparture {
+        FocusedDeparture(destination: "Brig", departureTimestamp: Int(Date().timeIntervalSince1970) + secondsFromNow,
+                         lineNumber: "IR90", category: "IR", trainNumber: nil, operatorRef: nil,
+                         delay: delay, platform: "2", platformChanged: false)
+    }
+
+    func testCountdownDoesNotSayDepartedWhileTheLateTrainIsStillComing() {
+        XCTAssertEqual(lateFocused(secondsFromNow: -60, delay: 4).countdownText, "now")
+        XCTAssertEqual(lateFocused(secondsFromNow: -180, delay: 4).countdownText, "now")
+        XCTAssertFalse(lateFocused(secondsFromNow: -180, delay: 4).effectiveMinutesUntil < -0.5)
+    }
+
+    func testCountdownSaysDepartedOnceTheEffectiveTimeHasPassed() {
+        XCTAssertEqual(lateFocused(secondsFromNow: -60, delay: 0).countdownText, "Departed")
+        XCTAssertEqual(lateFocused(secondsFromNow: -300, delay: 4).countdownText, "Departed")
+    }
+
     // MARK: - One-leg route synthesis (save from board)
 
     private func brigDeparture(ts: Int = 1_750_000_000) -> Departure {

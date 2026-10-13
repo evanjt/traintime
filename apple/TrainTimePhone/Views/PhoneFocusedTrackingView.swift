@@ -80,7 +80,7 @@ struct PhoneFocusedTrackingView: View {
                             .foregroundStyle(countdownColor)
 
                         if let delay = focused?.delay, delay > 0,
-                           let f = focused, f.minutesUntil >= -0.5 {
+                           let f = focused, f.effectiveMinutesUntil >= -0.5 {
                             Text("+\(delay)")
                                 .font(.system(.subheadline, weight: .medium))
                                 .foregroundStyle(.white)
@@ -240,7 +240,7 @@ struct PhoneFocusedTrackingView: View {
     private var countdownColor: Color {
         guard let focused = viewModel.focusedTrain else { return .primary }
         let minutesUntil = focused.minutesUntil
-        if minutesUntil < -0.5 { return .secondary }
+        if focused.effectiveMinutesUntil < -0.5 { return .secondary }
         if minutesUntil < 2.0 { return AppColors.minutesNow }
         return AppColors.minutesSoon
     }

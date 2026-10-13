@@ -42,6 +42,20 @@ class WidgetLogicTest {
     }
 
     @Test
+    fun `late departure is not gone until its effective time`() {
+        val late = dep("10", "Bern Bahnhof", -120).copy(delay = 4)
+        assertFalse(late.isGone(now))
+        assertTrue(dep("10", "Bern Bahnhof", -5 * 60L).copy(delay = 4).isGone(now))
+    }
+
+    @Test
+    fun `favourites block keeps a late departure past its scheduled minute`() {
+        val late = dep("10", "Bern Bahnhof", -120).copy(delay = 4)
+        val block = WidgetFavourites.block(listOf(late), setOf("10|Bern Bahnhof"), now)
+        assertEquals(listOf(late), block)
+    }
+
+    @Test
     fun `favourites block is empty without keys`() {
         assertTrue(WidgetFavourites.block(listOf(dep("IC8", "Brig", 120)), emptySet(), now).isEmpty())
     }

@@ -70,6 +70,8 @@ object TrackingLogic {
     // when there is one (a protected shared-route leg carries it), so live
     // platform/delay are adopted even though the leg's destName is the alight
     // stop. Fall back to destination for board taps that lack a train number.
+    // A row stays a candidate until its effective time has passed, or a late
+    // train would drop out of matching while it is still on the board.
     fun matchFocused(
         departures: List<Departure>,
         focused: FocusedDeparture,
@@ -78,7 +80,7 @@ object TrackingLogic {
         val matches = departures.filter {
             (it.destination == focused.destination ||
                 (focused.trainNumber != null && it.trainNumber == focused.trainNumber)) &&
-                it.minutesUntil >= -1
+                it.minutesUntil + it.delay >= -1
         }
         return matches.minByOrNull {
             abs(it.minutesUntil.toDouble() - focused.minutesUntil(nowEpochSeconds))

@@ -226,3 +226,28 @@ function testReviewSnoozeWindow(logger) {
 function testReviewOptOutWins(logger) {
     return !ReviewPrompt.shouldPrompt(99, null, "0.5.0", REVIEW_OLD_ENOUGH, 0, true, REVIEW_NOW);
 }
+
+// Scenario: a train scheduled two minutes ago is running four minutes late.
+// Expected behaviour: it is neither gone nor departed, and still matches
+// the tracked departure, until its effective time has passed.
+(:test)
+function testLateTrainIsNotGoneAfterScheduledMinute(logger) {
+    return !DepartureLogic.isGone(-2, 4) && !DepartureLogic.isGone(-4, 4) && DepartureLogic.isGone(-5, 4);
+}
+
+(:test)
+function testOnTimeTrainKeepsGoneThreshold(logger) {
+    return !DepartureLogic.isGone(0, 0) && DepartureLogic.isGone(-1, 0) && DepartureLogic.isGone(-1, null);
+}
+
+(:test)
+function testLateTrainStaysMatchable(logger) {
+    return DepartureLogic.isMatchable(-2, 4) && DepartureLogic.isMatchable(-5, 4) && !DepartureLogic.isMatchable(-6, 4)
+        && !DepartureLogic.isMatchable(-2, 0);
+}
+
+(:test)
+function testCountdownDepartsAtEffectiveTime(logger) {
+    return !DepartureLogic.hasDeparted(-1.0, 4) && !DepartureLogic.hasDeparted(-4.4, 4)
+        && DepartureLogic.hasDeparted(-4.6, 4) && DepartureLogic.hasDeparted(-0.6, 0);
+}

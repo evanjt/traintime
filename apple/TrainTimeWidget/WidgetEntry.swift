@@ -17,12 +17,14 @@ struct WidgetDeparture: Codable {
 
     func minutesText(at date: Date) -> String {
         let m = minutesUntil(at: date)
-        if m < 0 { return String(localized: "gone") }
-        if m == 0 { return String(localized: "now") }
+        if isGone(at: date) { return String(localized: "gone") }
+        if m <= 0 { return String(localized: "now") }
         return "\(m)'"
     }
 
-    func isGone(at date: Date) -> Bool { minutesUntil(at: date) < 0 }
+    /// Gone once the effective time (schedule plus delay) has passed, so a late train
+    /// stays in the widget until it has really left.
+    func isGone(at date: Date) -> Bool { minutesUntil(at: date) + delay < 0 }
 
     /// Absolute clock time "HH:mm", shown in the dormant view, where a stale minute count would mislead.
     var clockTimeText: String {

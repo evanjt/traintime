@@ -1048,23 +1048,14 @@ class WearViewModel(
         val focused = focusedTrain ?: return
         val nowS = nowSeconds()
 
-        // Match by train number when we have one (a protected shared-route leg
-        // carries it), so live platform/delay are adopted even though the leg's
-        // destName is the alight stop, not the board's terminus. Fall back to
-        // destination for board taps that lack a train number (buses/trams).
-        val matches = departures.filter {
-            (it.destination == focused.destination ||
-                (focused.trainNumber != null && it.trainNumber == focused.trainNumber)) &&
-                it.minutesUntil >= -1
-        }
-        val best = matches.minByOrNull {
-            kotlin.math.abs(it.minutesUntil.toDouble() - focused.minutesUntil(nowS))
-        }
+        // Matching lives in TrackingLogic, shared with the phone, so both track
+        // the same train the same way.
+        val best = TrackingLogic.matchFocused(departures, focused, nowS)
         if (best == null) {
             // A still-future train just isn't on the board yet (a shared route
             // opened early, before it reaches the horizon). Keep the local
             // countdown; only give up once it has actually departed.
-            if (nowS < focused.departureTimestamp + PendingRouteLogic.GRACE_SEC) return
+            if (!TrackingLogic.departed(focused, nowS)) return
             haptics.shortPulse()
             exitToStationView()
             return

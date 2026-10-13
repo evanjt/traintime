@@ -18,7 +18,10 @@ data class Departure(
     val trainNumber: String?,
     val operatorRef: String?,
 ) {
-    val isGone: Boolean get() = minutesUntil < 0
+    // Gone once the effective time (schedule plus delay) has passed. A late
+    // train is still coming after its scheduled minute, and OJP keeps listing
+    // it until the estimate passes, so the board must too.
+    val isGone: Boolean get() = minutesUntil + delay < 0
 
     // Identity stable across fetches, so Compose list keys don't churn when a
     // fresh fetch replaces the list. Includes trainNumber because OJP can list
@@ -30,10 +33,12 @@ data class Departure(
         departureTimestamp?.let { it - nowEpochSeconds }
 
     // Localised board label; the context decides the language ("gone"/"now"
-    // are words, so they can't live on the pure model).
+    // are words, so they can't live on the pure model). The minute count is to
+    // the schedule, with the delay badge beside it, so a late train reads
+    // "now" from its scheduled minute until it has really left.
     fun minutesLabel(context: Context): String = when {
         isGone -> context.getString(R.string.row_gone)
-        minutesUntil == 0 -> context.getString(R.string.row_now)
+        minutesUntil <= 0 -> context.getString(R.string.row_now)
         else -> "$minutesUntil'"
     }
 }
