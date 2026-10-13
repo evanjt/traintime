@@ -2,8 +2,9 @@
 """Departure-board store screenshots: captioned device composites per palette.
 
 Renders an HTML template per shot with headless Chromium at exact store sizes.
-Outputs Play phone (1080x2160), App Store 6.9" (1320x2868) and the Play
-feature graphic (1024x500). Raw captures come from screenshots/ and
+Outputs Play phone (1080x2160), App Store 6.9" (1320x2868), the Play
+feature graphic (1024x500) and the Connect IQ hero (1440x720), tiles and
+cover (500x500). Raw captures come from screenshots/ and
 docs/screenshots/; fonts are bundled in docs/screenshots/fonts/.
 
 Usage: board.py [--palette board|swiss|signal] [--install] [locale ...]
@@ -546,6 +547,50 @@ def build_garmin_tiles(palette):
         os.unlink(png)
 
 
+GARMIN_COVER_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><style>
+{css}
+:root {{ --pad: 0px; --cap: 10px; --sub: 10px; --rule: 4px; --glow: 40px; }}
+.canvas {{ align-items: center; justify-content: center; gap: 14px; padding-top: 22px; }}
+.wordmark {{
+  font-family: 'Board', sans-serif;
+  font-weight: 700;
+  font-size: 58px;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: {ink};
+}}
+.wordmark span {{ color: {seg}; }}
+.canvas .rule {{ width: 150px; margin: 0; }}
+.canvas img {{
+  height: 350px;
+  filter: drop-shadow(0 10px 26px rgba(20, 22, 26, 0.3));
+}}
+</style></head>
+<body>
+  <div class="canvas">
+    <div class="wordmark">Train<span>Time</span></div>
+    <div class="rule"></div>
+    <img src="file://{watch}">
+  </div>
+</body></html>
+"""
+
+
+def build_garmin_cover(palette):
+    """Language-neutral 500x500 cover image (the dashboard's web and mobile
+    listing card): wordmark over the tracking screen, same caps as the tiles."""
+    p = PALETTES[palette]
+    html = GARMIN_COVER_HTML.format(
+        css=make_css(p), ink=p["ink"], seg=p["seg"],
+        watch=os.path.join(SCRIPT_DIR, "garmin", "03-focused-tracking-framed.png"),
+    )
+    png = os.path.join(STORE, "garmin", "cover.png")
+    render(html, 500, 500, png)
+    subprocess.run(["magick", png, "-quality", "92", png.replace(".png", ".jpg")], check=True)
+    os.unlink(png)
+
+
 def build_garmin_hero(locale, strings, palette):
     p = PALETTES[palette]
     html = GARMIN_HERO_HTML.format(
@@ -643,6 +688,8 @@ if __name__ == "__main__":
     frame_wear()
     print(f"[{palette}] Garmin tiles 500x500")
     build_garmin_tiles(palette)
+    print(f"[{palette}] Garmin cover 500x500")
+    build_garmin_cover(palette)
     for locale in locales:
         strings = STRINGS[locale]
         print(f"[{locale}/{palette}] Play phone 1080x2160")
