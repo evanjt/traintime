@@ -72,9 +72,12 @@ platform :android do
       metadata_path: metadata_dir,
       # Feature graphic + phone/wear screenshots ship from metadata/android/
       # <locale>/images/, mirrored there by docs/screenshots/board.py --install.
-      # Uploads replace the whole per-locale set; the repo is the source of truth.
+      # The repo is the source of truth, but only an image whose bytes differ
+      # from the live listing is sent: Play lists every uploaded image as a
+      # change to review, identical or not, and that holds the release back.
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      sync_image_upload: true,
     )
 
     # 2. Watch to its own internal track. Listing assets are already up from the
@@ -139,6 +142,7 @@ platform :android do
         skip_upload_metadata: listing_already_sent,
         skip_upload_images: listing_already_sent,
         skip_upload_screenshots: listing_already_sent,
+        sync_image_upload: true,
       )
     end
   end
@@ -218,6 +222,7 @@ platform :android do
       metadata_path: metadata_dir,
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      sync_image_upload: true,
       release_status: "completed",
     )
 
@@ -291,8 +296,10 @@ platform :android do
       skip_upload_changelogs: true,
       # Feature graphic + screenshots live in the repo (board.py --install mirrors
       # them here) and are the source of truth, so a listing push carries them.
+      # Unchanged bytes are skipped, same as ci_release.
       skip_upload_images: false,
       skip_upload_screenshots: false,
+      sync_image_upload: true,
     )
   end
 end
