@@ -26,4 +26,5 @@
     <string name="formation_family">Zona famiglia</string>
     <string name="formation_bike">Ganci per bici</string>
     <string name="formation_car_fmt">Carrozza %1$d, settore %2$s</string>
+    <string name="formation_sector_fmt">Settore %1$s</string>
 </resources>

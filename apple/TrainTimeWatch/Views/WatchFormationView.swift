@@ -71,12 +71,9 @@ struct WatchFormationView: View {
         }
     }
 
-    private func drawNumbers(_ ctx: GraphicsContext, strip: FormationStrip, labels: [FormationNumberLabel]?) {
+    private func drawNumbers(_ ctx: GraphicsContext, strip: FormationStrip, labels: [FormationNumberLabel]) {
         let y = Self.carTop + Self.carHeight / 2 + 0.5
-        let runs = labels ?? formation.wagons.indices.map {
-            FormationNumberLabel(first: $0, last: $0, text: "\(formation.wagons[$0].number)")
-        }
-        for label in runs {
+        for label in labels {
             let mid = (strip.spans[label.first].x0 + strip.spans[label.last].x1) / 2
             ctx.draw(
                 Text(label.text)
@@ -113,8 +110,8 @@ struct WatchFormationView: View {
     }
 }
 
-// One line in the walk line's place: car number, sector, each amenity's colour beside its
-// icon, and a ring that drains until the readout clears by itself.
+// One line in the walk line's place: car number when the feed gives one, sector, each
+// amenity's colour beside its icon, and a ring that drains until the readout clears by itself.
 struct WatchCarReadout: View {
     let wagon: FormationWagon
     let stepAt: Date
@@ -132,9 +129,11 @@ struct WatchCarReadoutRow: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            Text("\(wagon.number)")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            if let number = wagon.number {
+                Text("\(number)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
             if !wagon.sector.isEmpty {
                 Text(wagon.sector)
                     .font(.system(size: 11, weight: .semibold))

@@ -292,7 +292,49 @@ function testFormationShortTrainNumbersEveryCar(logger) {
     var breaks = [false, false, false, false, false, false, false, false, false];
     var g = FormationArc.layout(260, 187, 9, 0);
     var sp = FormationArc.spans(g, breaks);
-    return FormationArc.numberLabels(numbers, classes, breaks, sp, g[:rm], g[:k]) == null;
+    var labels = FormationArc.numberLabels(numbers, classes, breaks, sp, g[:rm], g[:k]);
+    if (labels.size() != 9) { return false; }
+    for (var i = 0; i < 9; i++) {
+        if (labels[i][0] != i || labels[i][1] != i || !labels[i][2].equals(numbers[i].toString())) { return false; }
+    }
+    return true;
+}
+
+(:test)
+function testFormationWithoutNumbersHasNoLabels(logger) {
+    var breaks = [false, false, false, true, false, false, false, false];
+    var g = FormationArc.layout(260, 187, 8, 1);
+    var sp = FormationArc.spans(g, breaks);
+    var none = [null, null, null, null, null, null, null, null];
+    return FormationArc.numberLabels(none, [2, 2, 1, 2, 2, 2, 1, 2], breaks, sp, g[:rm], g[:k]).size() == 0;
+}
+
+// Scenario: cars two and five carry no number in the feed.
+// Expected behaviour: only numbered cars are labelled, and no range runs across an unnumbered car.
+(:test)
+function testFormationLabelsOnlyNumberedCars(logger) {
+    var numbers = [18, null, 16, 15, null, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1];
+    var t = formationFixture();
+    var g = FormationArc.layout(260, 187, 16, 1);
+    var sp = FormationArc.spans(g, t[:breaks]);
+    var labels = FormationArc.numberLabels(numbers, t[:classes], t[:breaks], sp, g[:rm], g[:k]);
+    var seen = new [16];
+    for (var q = 0; q < labels.size(); q++) {
+        for (var i = labels[q][0]; i <= labels[q][1]; i++) {
+            if (numbers[i] == null || seen[i] != null) { return false; }
+            seen[i] = true;
+        }
+    }
+    for (var i = 0; i < 16; i++) { if ((seen[i] == null) != (numbers[i] == null)) { return false; } }
+    return true;
+}
+
+(:test)
+function testFormationNumberUnknownMapsToNull(logger) {
+    return ApiHandler.wagonNumber({"number" => 3, "numberUnknown" => true}) == null
+        && ApiHandler.wagonNumber({"number" => 12}) == 12
+        && ApiHandler.wagonNumber({"number" => 12, "numberUnknown" => false}) == 12
+        && ApiHandler.wagonNumber({}) == null;
 }
 
 (:test)
@@ -323,4 +365,16 @@ function testDepartureLimitFitsSmallWatches(logger) {
     // A 128 KB watch app holds about 6 KB free once the board is loaded: a full 20-row
     // refresh does not fit there, a short one does
     return ApiHandler.departureLimit(126792) < 20 && ApiHandler.departureLimit(1306048) == 20;
+}
+
+(:test)
+function testReadoutRingEndAngleStaysInRange(logger) {
+    // drawArc on the device draws nothing for a negative end angle
+    var lefts = [1.0, 0.8, 0.5, 0.2, 0.0];
+    var ends = [90, 162, 270, 18, 90];
+    for (var i = 0; i < lefts.size(); i++) {
+        var e = FormationArc.ringEndDegree(lefts[i]);
+        if (e < 0 || e > 359 || e != ends[i]) { return false; }
+    }
+    return true;
 }

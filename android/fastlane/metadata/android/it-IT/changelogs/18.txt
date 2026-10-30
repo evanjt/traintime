@@ -1,0 +1,3 @@
+- La composizione del treno ora numera ogni carrozza, mostra i servizi e segna con una barra rossa dove non si può passare da una carrozza all'altra. Sull'orologio, la corona o la ghiera scorre le carrozze una alla volta.
+- Più treni mostrano ora la loro composizione, con ogni carrozza e il suo numero.
+- La notifica del tracciamento ora si chiude sempre quando la fermi o quando il bus o il treno parte, anche con rete debole.

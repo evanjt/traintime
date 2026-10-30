@@ -18,12 +18,21 @@ module FormationArc {
     const AMEN_GLYPHS = ["r", "w", "f", "b"];
 
     const COLOUR_BODY = 0x555555;
+    // Cars are outlined, not filled, so the roof band, lines and numbers keep their contrast
+    const COLOUR_OUTLINE = 0xAAAAAA;
     const COLOUR_FIRST = 0xFFFF00;
     const COLOUR_BREAK = 0xFF0000;
     const COLOUR_TICK = 0xAAAAAA;
 
     // The car readout stays this long after the last Up/Down press
     const READOUT_SECONDS = 5;
+
+    // End angle of the readout ring for the share of time left, drawn clockwise from
+    // 12 o'clock. Kept within 0..359: the device draws nothing for a negative angle.
+    function ringEndDegree(left) {
+        var end = (90 - 360 * left).toNumber() % 360;
+        return end < 0 ? end + 360 : end;
+    }
 
     // Share of the readout time left, 1.0 just after a press, 0.0 once it has gone
     function readoutLeft(elapsed) {
@@ -119,21 +128,29 @@ module FormationArc {
         return b > a ? numbers[a] + "-" + numbers[b] : numbers[a].toString();
     }
 
-    // Number labels: every car's own number when all fit, otherwise a range per run of
-    // same-class cars, extended over the next run in the unit until it fits, so every car
-    // is covered. Returns [i, j, label] triples, or null for per-car numbers.
+    // Number labels as [i, j, label] triples: every numbered car's own number when all fit,
+    // otherwise a range per run of same-class cars, extended over the next run until it fits,
+    // so every numbered car is covered. No label crosses a break or an unnumbered car.
     function numberLabels(numbers, classes, breaks, sp, rm, k) {
         var n = numbers.size();
+        var out = [];
         var perCar = true;
         for (var i = 0; i < n && perCar; i++) {
-            perCar = labelFits(numbers[i].toString(), sp, rm, k, i, i);
+            if (numbers[i] != null) {
+                perCar = labelFits(numbers[i].toString(), sp, rm, k, i, i);
+                out.add([i, i, numbers[i].toString()]);
+            }
         }
-        if (perCar) { return null; }
-        var out = [];
+        if (perCar) { return out; }
+        out = [];
         var i = 0;
         while (i < n) {
+            if (numbers[i] == null) {
+                i++;
+                continue;
+            }
             var u = i;
-            while (u < n - 1 && !breaks[u]) { u++; }
+            while (u < n - 1 && !breaks[u] && numbers[u + 1] != null) { u++; }
             var a = i;
             while (a <= u) {
                 var b = a;
@@ -144,7 +161,7 @@ module FormationArc {
                     while (b < u && classes[b + 1] == classes[b]) { b++; }
                     label = rangeLabel(numbers, a, b);
                 }
-                // A tail that still does not fit joins the label before it in the same unit
+                // A tail that still does not fit joins the label before it in the same run
                 if (!labelFits(label, sp, rm, k, a, b) && out.size() > 0) {
                     var prev = out[out.size() - 1];
                     if (prev[1] == a - 1 && prev[0] >= i) {
@@ -177,7 +194,7 @@ module FormationArc {
         return [(g[:c] + r * Math.cos(a)).toNumber(), (g[:c] + r * Math.sin(a)).toNumber()];
     }
 
-    function fillAnnulus(dc, g, r1, r2, a1, a2) {
+    function annulusPoints(g, r1, r2, a1, a2) {
         var steps = (((a1 - a2).abs() * r2) / 4).toNumber();
         if (steps < 2) { steps = 2; }
         var pts = new [2 * steps + 2];
@@ -185,7 +202,20 @@ module FormationArc {
             pts[s] = point(g, r2, a1 + (a2 - a1) * s / steps);
             pts[2 * steps + 1 - s] = point(g, r1, a1 + (a2 - a1) * s / steps);
         }
-        dc.fillPolygon(pts);
+        return pts;
+    }
+
+    function fillAnnulus(dc, g, r1, r2, a1, a2) {
+        dc.fillPolygon(annulusPoints(g, r1, r2, a1, a2));
+    }
+
+    function outline(dc, pts) {
+        var n = pts.size();
+        for (var i = 0; i < n; i++) {
+            var a = pts[i];
+            var b = pts[(i + 1) % n];
+            dc.drawLine(a[0], a[1], b[0], b[1]);
+        }
     }
 
     // True when a centred text box of width w at y sits inside the sector-letter ring
@@ -208,13 +238,13 @@ module FormationArc {
         var k = g[:k];
         // Nose at the front with a chevron for the direction of travel
         var noseEnd = g[:front] - g[:nosePx] / rm;
-        dc.setColor(COLOUR_BODY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(COLOUR_OUTLINE, Graphics.COLOR_TRANSPARENT);
         var nose = new [10];
         for (var s = 0; s <= 6; s++) { nose[s] = point(g, g[:ro], noseEnd + (g[:front] - noseEnd) * s / 6); }
         nose[7] = point(g, g[:ro] - (g[:ro] - g[:ri]) / 2, g[:front] - 1 / rm);
         nose[8] = point(g, g[:ri] + 2, noseEnd + 3 / rm);
         nose[9] = point(g, g[:ri], noseEnd);
-        dc.fillPolygon(nose);
+        outline(dc, nose);
         var ah = noseEnd + g[:nosePx] * 0.55 / rm;
         var cx = g[:c] + rm * Math.cos(ah);
         var cy = g[:c] + rm * Math.sin(ah);
@@ -233,7 +263,6 @@ module FormationArc {
 
     function drawCars(dc, g, view, cursor, sp, labels) {
         var classes = view.mFormationClasses;
-        var numbers = view.mFormationNumbers;
         var breaks = view.mFormationBreaks;
         var amen = view.mFormationAmenities;
         var mixed = view.mFormationMixed;
@@ -242,19 +271,17 @@ module FormationArc {
         var rm = g[:rm];
         var f = font(k);
 
-        var perCar = labels == null;
         // Numbers sit just outside the roof band, leaving room for horizontal text where the band tilts
         var numR = g[:ri] + 6.5 * k + 1;
 
         for (var i = 0; i < n; i++) {
             var a1 = sp[i][0];
             var a2 = sp[i][1];
-            if (cursor != null && cursor == i) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                fillAnnulus(dc, g, g[:ri] - 2, g[:ro] + 1, a1 + 2 / rm, a2 - 2 / rm);
-            }
-            dc.setColor(COLOUR_BODY, Graphics.COLOR_TRANSPARENT);
-            fillAnnulus(dc, g, g[:ri], g[:ro], a1, a2);
+            var highlighted = cursor != null && cursor == i;
+            dc.setPenWidth(highlighted ? 2 : 1);
+            dc.setColor(highlighted ? Graphics.COLOR_WHITE : COLOUR_OUTLINE, Graphics.COLOR_TRANSPARENT);
+            outline(dc, annulusPoints(g, g[:ri], g[:ro], a1, a2));
+            dc.setPenWidth(1);
             if (classes[i] == 1) {
                 dc.setColor(COLOUR_FIRST, Graphics.COLOR_TRANSPARENT);
                 var end = (mixed != null && mixed[i]) ? (a1 + a2) / 2 : a2 + 1 / rm;
@@ -275,10 +302,6 @@ module FormationArc {
                     q++;
                 }
             }
-            if (perCar) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                drawAlong(dc, g, f, numbers[i].toString(), (a1 + a2) / 2, numR);
-            }
             if (breaks[i] && i < n - 1) {
                 var bb = a2 - g[:slotPx] / 2.0 / rm;
                 dc.setColor(COLOUR_BREAK, Graphics.COLOR_TRANSPARENT);
@@ -286,11 +309,9 @@ module FormationArc {
             }
         }
 
-        if (!perCar) {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            for (var q = 0; q < labels.size(); q++) {
-                drawAlong(dc, g, f, labels[q][2], (sp[labels[q][0]][0] + sp[labels[q][1]][1]) / 2, numR);
-            }
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        for (var q = 0; q < labels.size(); q++) {
+            drawAlong(dc, g, f, labels[q][2], (sp[labels[q][0]][0] + sp[labels[q][1]][1]) / 2, numR);
         }
 
     }
@@ -315,24 +336,31 @@ module FormationArc {
         }
     }
 
-    // One line in the walk line's place: number, sector, and each amenity's colour beside its icon
+    // One line in the walk line's place: number when the feed gives one, sector, and each
+    // amenity's colour beside its icon
     function drawReadout(dc, g, view, cursor, y, rowH, elapsed) {
         var k = g[:k];
         var f = font(k);
-        var num = view.mFormationNumbers[cursor].toString();
+        var num = view.mFormationNumbers[cursor];
         var sector = view.mFormationSectors[cursor];
         var bits = view.mFormationAmenities != null ? view.mFormationAmenities[cursor] : 0;
         var gap = 5 * k;
         var item = 7 * k + 3 + 11 * k + 4 * k;
-        var total = dc.getTextWidthInPixels(num, f) + gap + dc.getTextWidthInPixels(sector, f) + gap;
+        var total = dc.getTextWidthInPixels(sector, f) + gap;
+        if (num != null) {
+            num = num.toString();
+            total += dc.getTextWidthInPixels(num, f) + gap;
+        }
         for (var b = 0; b < AMEN_BITS.size(); b++) { if ((bits & AMEN_BITS[b]) != 0) { total += item; } }
         var ringR = 4 * k + 1;
         total += 2 * ringR + gap;
         var x = (g[:c] - total / 2).toNumber();
         var cy = y + rowH / 2;
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, cy, f, num, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-        x += dc.getTextWidthInPixels(num, f) + gap;
+        if (num != null) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, cy, f, num, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            x += dc.getTextWidthInPixels(num, f) + gap;
+        }
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, cy, f, sector, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         x += dc.getTextWidthInPixels(sector, f) + gap;
@@ -355,7 +383,7 @@ module FormationArc {
             if (left >= 1.0) {
                 dc.drawCircle(rx, cy, ringR);
             } else {
-                dc.drawArc(rx, cy, ringR, Graphics.ARC_CLOCKWISE, 90, (90 - 360 * left).toNumber());
+                dc.drawArc(rx, cy, ringR, Graphics.ARC_CLOCKWISE, 90, ringEndDegree(left));
             }
         }
         dc.setPenWidth(1);

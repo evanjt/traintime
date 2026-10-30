@@ -1072,7 +1072,7 @@ module Renderer {
             }
 
             // Wagon number inside box (only if wide enough)
-            if (wagonW >= 7 && num > 0) {
+            if (wagonW >= 7 && num != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(x + wagonW / 2, textY, Graphics.FONT_XTINY,
                     num.toString(), Graphics.TEXT_JUSTIFY_CENTER);

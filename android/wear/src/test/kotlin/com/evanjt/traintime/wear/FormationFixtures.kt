@@ -7,12 +7,13 @@ import com.evanjt.traintime.data.model.FormationWagon
 object FormationFixtures {
     private fun car(
         position: Int,
-        number: Int,
+        number: Int?,
         wagonClass: Int,
         sector: String,
         vararg features: String,
         noPassageAfter: Boolean = false,
-    ) = FormationWagon(position, number, wagonClass, sector, features.toList(), false, noPassageAfter)
+        mixedClass: Boolean = false,
+    ) = FormationWagon(position, number, wagonClass, sector, features.toList(), false, noPassageAfter, mixedClass)
 
     // Two units of eight with no way through after car 11
     val ic708 = Formation(
@@ -55,6 +56,22 @@ object FormationFixtures {
             car(10, 3, 2, "F", "restaurant", "low_floor"),
             car(11, 2, 1, "G", "low_floor"),
             car(12, 1, 1, "G", "wheelchair", "business", "low_floor"),
+        ),
+    )
+
+    // Two four-car units whose cars the feed does not number
+    val s15185 = Formation(
+        track = "13",
+        sectors = listOf("A", "B", "C", "D", "E", "F"),
+        wagons = listOf(
+            car(1, null, 2, "A", "low_floor"),
+            car(2, null, 2, "A", "wheelchair", "low_floor", "bike"),
+            car(3, null, 1, "A", "low_floor", "bike", mixedClass = true),
+            car(4, null, 2, "A", "low_floor", noPassageAfter = true),
+            car(5, null, 2, "A", "low_floor"),
+            car(6, null, 2, "A", "wheelchair", "low_floor", "bike"),
+            car(7, null, 1, "B", "low_floor", "bike", mixedClass = true),
+            car(8, null, 2, "B", "low_floor"),
         ),
     )
 }

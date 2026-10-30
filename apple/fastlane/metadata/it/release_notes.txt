@@ -1,4 +1,3 @@
-- Un bus o un treno in ritardo ora resta sul tabellone e nel tracciamento finché non è davvero partito, invece di risultare partito all'orario previsto.
-- Se un server non risponde, ne subentra un secondo e il tabellone si carica comunque.
-- Una versione troppo vecchia per i server ora lo dice e chiede un aggiornamento.
-- Nuove pagine su privacy e condizioni d'uso, collegate da Info. Avanzate: un indirizzo server personalizzato nelle impostazioni.
+- La composizione del treno ora numera ogni carrozza, mostra i servizi e segna con una barra rossa dove non si può passare da una carrozza all'altra. Su Apple Watch, la Digital Crown scorre le carrozze una alla volta.
+- Più treni mostrano ora la loro composizione, con ogni carrozza e il suo numero.
+- L'attività live ora si chiude sempre quando la fermi, anche ad app chiusa, e mostra «Partito» quando il bus o il treno è partito.

@@ -312,8 +312,8 @@ private struct CarriageCell: View {
                 .stroke(Color(.systemGray3), lineWidth: 0.5)
                 .frame(width: width, height: height)
 
-            if !wagon.closed {
-                Text(verbatim: "\(wagon.number)")
+            if !wagon.closed, let number = wagon.number {
+                Text(verbatim: "\(number)")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .foregroundColor(.secondary)
                     .lineLimit(1)

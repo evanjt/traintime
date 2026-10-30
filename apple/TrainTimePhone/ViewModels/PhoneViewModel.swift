@@ -183,9 +183,11 @@ class PhoneViewModel: ObservableObject {
     init() {
         reviewStore.ensureFirstLaunchTimestamp()
         UserDefaults.standard.set(UserDefaults.standard.integer(forKey: "launchCount") + 1, forKey: "launchCount")
-        // A process death mid-tracking strands the Live Activity; no session can
-        // exist yet, so anything found is an orphan.
-        reapOrphanLiveActivities()
+        // A process death mid-tracking strands the Live Activity, and can leave a
+        // Stop that was never applied. No session can exist yet, so both are
+        // orphans.
+        _ = TrackingStopRequest.take()
+        endStrayLiveActivities()
 
         // The Live Activity's Stop button (a LiveActivityIntent running in-process)
         // posts here — the analog of Android's notification Stop → stopRequests.
@@ -766,6 +768,10 @@ class PhoneViewModel: ObservableObject {
     }
 
     func onAppear() {
+        // A Live Activity Stop the observer missed (the app was suspended before
+        // it ran), and cards that are no longer this session's own.
+        if TrackingStopRequest.take() { handleStopFromLiveActivity() }
+        endStrayLiveActivities()
         lastInteractionTime = Date()
         location.start()
         startTimer(interval: appState == 2 ? Timing.trackingRefreshInterval : Timing.normalRefreshInterval)
@@ -1194,6 +1200,7 @@ class PhoneViewModel: ObservableObject {
     /// Stop requested from the Live Activity button (see `StopTrackingIntent`).
     /// An immersive session drops to the board; a background-card session tears down.
     func handleStopFromLiveActivity() {
+        _ = TrackingStopRequest.take()
         if appState == 2 {
             exitToStationView()
         } else if backgroundTracked != nil {
@@ -1524,10 +1531,10 @@ class PhoneViewModel: ObservableObject {
         )
     }
 
-    /// `staleDate` marks when the card should dim. An immersive session refreshes
-    /// every tick, so a rolling 15 min is right; a background-card session (a queued
-    /// share) is never updated, so it must stay fresh until the train actually leaves
-    /// — pass its effective departure. ActivityKit still enforces its own ~8 h cap,
+    /// `staleDate` is when ActivityKit re-renders the card on its own. An immersive
+    /// session refreshes every tick, so a rolling 15 min capped at the departure is
+    /// right; a background-card session (a queued share) is never updated, so it
+    /// passes its effective departure. ActivityKit still enforces its own ~8 h cap,
     /// beyond which the scheduled reminder is the backstop.
     private func startLiveActivity(_ focused: FocusedDeparture, staleDate: Date? = nil) {
         endLiveActivity(departed: false) // selecting a new departure replaces the card
@@ -1545,7 +1552,9 @@ class PhoneViewModel: ObservableObject {
         lastActivityState = state
         liveActivity = try? Activity.request(
             attributes: attributes,
-            content: ActivityContent(state: state, staleDate: staleDate ?? Date().addingTimeInterval(900)))
+            content: ActivityContent(
+                state: state,
+                staleDate: staleDate ?? LiveActivityTiming.staleDate(effectiveDeparture: state.effectiveDeparture, now: Date())))
     }
 
     private func updateLiveActivity(alertPlatformChange: Bool = false) {
@@ -1555,7 +1564,9 @@ class PhoneViewModel: ObservableObject {
         // (or a platform alert) are worth a payload.
         guard state != lastActivityState || alertPlatformChange else { return }
         lastActivityState = state
-        let content = ActivityContent(state: state, staleDate: Date().addingTimeInterval(900))
+        let content = ActivityContent(
+            state: state,
+            staleDate: LiveActivityTiming.staleDate(effectiveDeparture: state.effectiveDeparture, now: Date()))
         let alert: AlertConfiguration? = alertPlatformChange
             ? AlertConfiguration(
                 title: "Platform changed",
@@ -1581,11 +1592,30 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    /// End activities orphaned by a process death mid-tracking. Called at init,
-    /// when no session can legitimately exist yet.
-    private func reapOrphanLiveActivities() {
+    /// A card handed to the board gets no more updates, so it goes stale at the
+    /// train's effective departure and re-renders as departed even if the app
+    /// is suspended by then.
+    private func parkLiveActivity(_ focused: FocusedDeparture) {
+        guard let activity = liveActivity else { return }
+        let state = activityContentState(focused)
+        lastActivityState = state
+        Task { await activity.update(ActivityContent(state: state, staleDate: state.effectiveDeparture)) }
+    }
+
+    /// End every tracking activity that is not this session's own: left by a
+    /// process death, or a session's card ended underneath it. The list is
+    /// taken here, synchronously, so a session started straight after (a widget
+    /// or share deep link at launch) is never caught by the ends that follow.
+    private func endStrayLiveActivities() {
+        if let activity = liveActivity, activity.activityState != .active, activity.activityState != .stale {
+            liveActivity = nil
+            lastActivityState = nil
+        }
+        let ownId = liveActivity?.id
+        let strays = Activity<TrackingActivityAttributes>.activities.filter { $0.id != ownId }
+        guard !strays.isEmpty else { return }
         Task {
-            for activity in Activity<TrackingActivityAttributes>.activities {
+            for activity in strays {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         }
@@ -2346,6 +2376,7 @@ class PhoneViewModel: ObservableObject {
         guard let focused = focusedTrain else { return }
         backgroundTracked = focused
         backgroundTrackedStation = currentStation?.name
+        parkLiveActivity(focused)
         // Exit to the board WITHOUT ending the Live Activity (unlike exit): it
         // keeps counting down system-side.
         appState = 0

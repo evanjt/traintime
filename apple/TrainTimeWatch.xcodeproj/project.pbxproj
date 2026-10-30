@@ -142,6 +142,7 @@
 		RG0A00000000000000000001 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
 		RG0A00000000000000000002 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
 		RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000002 /* ReviewGateTests.swift */; };
+		LT0A00000000000000000001 /* LiveActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT0F00000000000000000001 /* LiveActivityTests.swift */; };
 		S0A100000000000000000001 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
 		S0A100000000000000000002 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
 		S0A100000000000000000003 /* SBBShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000002 /* SBBShare.swift */; };
@@ -333,6 +334,7 @@
 		P0P100000000000000000001 /* TrainTimePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		RG0F00000000000000000001 /* ReviewGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGate.swift; sourceTree = "<group>"; };
 		RG0F00000000000000000002 /* ReviewGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGateTests.swift; sourceTree = "<group>"; };
+		LT0F00000000000000000001 /* LiveActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityTests.swift; sourceTree = "<group>"; };
 		S0F100000000000000000001 /* SharedRoute.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedRoute.swift; sourceTree = "<group>"; };
 		S0F100000000000000000002 /* SBBShare.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SBBShare.swift; sourceTree = "<group>"; };
 		S0F100000000000000000003 /* PendingRouteNotifier.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PendingRouteNotifier.swift; sourceTree = "<group>"; };
@@ -553,6 +555,7 @@
 				9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */,
 				EED5FAB58AD7A36A727159EA /* PhoneComponentSnapshotTests.swift */,
 				RG0F00000000000000000002 /* ReviewGateTests.swift */,
+				LT0F00000000000000000001 /* LiveActivityTests.swift */,
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
 				DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */,
@@ -990,6 +993,7 @@
 				73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */,
 				C71D5AD83F433527CADD0101 /* PhoneComponentSnapshotTests.swift in Sources */,
 				RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */,
+				LT0A00000000000000000001 /* LiveActivityTests.swift in Sources */,
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
 				6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */,
@@ -1158,7 +1162,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1167,7 +1171,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1275,7 +1279,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1284,7 +1288,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1305,7 +1309,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1315,7 +1319,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1336,7 +1340,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1346,7 +1350,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1364,7 +1368,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1376,7 +1380,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1393,7 +1397,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1405,7 +1409,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1423,7 +1427,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
@@ -1435,7 +1439,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1453,7 +1457,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
@@ -1465,7 +1469,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.7.1;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

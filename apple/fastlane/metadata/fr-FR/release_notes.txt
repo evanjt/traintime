@@ -1,4 +1,3 @@
-- Un bus ou un train en retard reste maintenant sur le tableau et dans le suivi jusqu'à son vrai départ, au lieu d'être marqué parti à l'horaire.
-- Si un serveur tombe, un second prend le relais et le tableau se charge quand même.
-- Une version trop ancienne pour les serveurs le dit maintenant et demande une mise à jour.
-- Nouvelles pages de confidentialité et de conditions d'utilisation, liées depuis À propos. Avancé : une adresse de serveur personnalisée dans les réglages.
+- La composition du train numérote maintenant chaque voiture, montre les équipements et marque d'une barre rouge les endroits sans passage entre les voitures. Sur l'Apple Watch, la Digital Crown parcourt les voitures une à une.
+- Plus de trains affichent maintenant leur composition, avec chaque voiture et son propre numéro.
+- L'activité en direct se ferme maintenant toujours quand vous l'arrêtez, même app fermée, et affiche « Parti » une fois votre bus ou train parti.

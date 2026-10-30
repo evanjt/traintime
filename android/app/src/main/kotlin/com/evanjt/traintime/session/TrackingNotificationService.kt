@@ -49,6 +49,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -78,6 +79,7 @@ class TrackingNotificationService : Service() {
     @Volatile private var snapshot: TrackingSnapshot? = null
     @Volatile private var lastFix: TimedFix? = null
     private var loopStarted = false
+    private val gate = SessionGate()
 
     // Captured on the monotonic clock; age is derived when the walk is computed.
     private data class TimedFix(val lat: Double, val lon: Double, val elapsedMs: Long)
@@ -118,6 +120,13 @@ class TrackingNotificationService : Service() {
                     // Location permission gone between start and here; tracking
                     // stays in-app only.
                     stopSelf(startId)
+                    return START_NOT_STICKY
+                }
+                // A start redelivered after a process death can be for a train
+                // that left long ago. startForeground had to run first, since a
+                // foreground start that never calls it crashes the app.
+                if (TrackingLogic.departed(snapshot!!.focused, System.currentTimeMillis() / 1000)) {
+                    stopSession()
                     return START_NOT_STICKY
                 }
                 ensureRunning()
@@ -222,8 +231,17 @@ class TrackingNotificationService : Service() {
         var focused = snap.focused
         val previousPlatform = focused.platform
         snap.stationId?.let { stationId ->
-            runCatching { TrainApi.shared.fetchDepartures(stationId) }.getOrNull()?.let { board ->
-                TrackingLogic.matchFocused(board.departures, focused, now)?.let { best ->
+            // Cancellation is rethrown: swallowing it here let a fetch that
+            // outlived the session go on to repost the card.
+            val board = try {
+                TrainApi.shared.fetchDepartures(stationId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            board?.let {
+                TrackingLogic.matchFocused(it.departures, focused, now)?.let { best ->
                     focused = TrackingLogic.adopt(focused, best)
                 }
             }
@@ -260,8 +278,11 @@ class TrackingNotificationService : Service() {
     // Synchronized: the loop and the foreground collector both call this, and two
     // concurrent calls could otherwise each register a callback while only the
     // last one is ever removed, leaking location updates for the process's life.
+    // Once the session is closed every call resolves to OFF, so a loop that
+    // races onDestroy can't register updates after it removed the last ones.
     @Synchronized
-    private fun applyLocationMode(mode: TrackingLogic.LocationMode) {
+    private fun applyLocationMode(requested: TrackingLogic.LocationMode) {
+        val mode = if (gate.isClosed) TrackingLogic.LocationMode.OFF else requested
         if (mode == currentLocationMode) return
         currentLocationMode = mode
         val client = LocationServices.getFusedLocationProviderClient(this)
@@ -349,7 +370,7 @@ class TrackingNotificationService : Service() {
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setContentIntent(tapIntent(snap))
             .build()
-        getSystemService(NotificationManager::class.java).notify(APPROACH_NOTIF_ID, notification)
+        gate.open { getSystemService(NotificationManager::class.java).notify(APPROACH_NOTIF_ID, notification) }
     }
 
     // ---- Notification rendering ----
@@ -684,14 +705,14 @@ class TrackingNotificationService : Service() {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    private fun notifySilently(notification: Notification) {
-        getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification)
-    }
-
     // On 16+ render() itself is the promoted card; below 16 it's the gradient
-    // bar. Either way it's the single foreground-service notification.
-    private fun pushNotification(snap: TrackingSnapshot) {
-        notifySilently(render(snap))
+    // bar. Either way it's the single foreground-service notification. Only the
+    // post is gated: rendering takes long enough that holding the lock through
+    // it would stall teardown.
+    internal fun pushNotification(snap: TrackingSnapshot) {
+        if (gate.isClosed) return
+        val notification = render(snap)
+        gate.open { getSystemService(NotificationManager::class.java).notify(NOTIF_ID, notification) }
     }
 
     // One-shot heads-up on the alert channel, mirroring the in-app double
@@ -709,7 +730,7 @@ class TrackingNotificationService : Service() {
             .setTimeoutAfter(alertTimeoutMs(snap))
             .setContentIntent(tapIntent(snap))
             .build()
-        getSystemService(NotificationManager::class.java).notify(ALERT_NOTIF_ID, notification)
+        gate.open { getSystemService(NotificationManager::class.java).notify(ALERT_NOTIF_ID, notification) }
     }
 
     // How long a one-shot alert stays useful: until the train leaves, plus the
@@ -721,22 +742,26 @@ class TrackingNotificationService : Service() {
         return remaining.coerceAtLeast(ALERT_MIN_TIMEOUT_MS)
     }
 
+    // Cancelling the card by id, not only through stopForeground, also clears
+    // one this instance doesn't own: Stop on a fresh instance has to work too.
     private fun stopSession() {
+        gate.close { getSystemService(NotificationManager::class.java).cancel(NOTIF_ID) }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onDestroy() {
-        locationCallback?.let {
-            LocationServices.getFusedLocationProviderClient(this).removeLocationUpdates(it)
-        }
         // Every teardown path lands here (departed, in-app stop, notification
         // Stop), and the one-shot alerts are only about catching this train, so
         // they end with the session rather than sitting in the shade for days.
-        getSystemService(NotificationManager::class.java).let {
-            it.cancel(ALERT_NOTIF_ID)
-            it.cancel(APPROACH_NOTIF_ID)
+        gate.close {
+            getSystemService(NotificationManager::class.java).let {
+                it.cancel(NOTIF_ID)
+                it.cancel(ALERT_NOTIF_ID)
+                it.cancel(APPROACH_NOTIF_ID)
+            }
         }
+        applyLocationMode(TrackingLogic.LocationMode.OFF)
         scope.cancel()
         super.onDestroy()
     }
@@ -814,7 +839,7 @@ class TrackingNotificationService : Service() {
 
         // Settings reports a per-channel mute, which the app-level grant hides.
         val CHANNEL_IDS = listOf(CHANNEL_ID, CHIP_CHANNEL_ID, ALERT_CHANNEL_ID)
-        private const val NOTIF_ID = 3
+        internal const val NOTIF_ID = 3
         private const val ALERT_NOTIF_ID = 4
         private const val APPROACH_NOTIF_ID = 5
         // How long to sleep between wakes on the paused (> 6 h) tier: no fetch,
@@ -835,6 +860,10 @@ class TrackingNotificationService : Service() {
         private const val EXTRA_SUPPRESS_ALERT = "suppress_alert"
 
         fun start(context: Context, snapshot: TrackingSnapshot, suppressApproachAlert: Boolean = false) {
+            runCatching { ContextCompat.startForegroundService(context, startIntent(context, snapshot, suppressApproachAlert)) }
+        }
+
+        internal fun startIntent(context: Context, snapshot: TrackingSnapshot, suppressApproachAlert: Boolean = false): Intent {
             val intent = Intent(context, TrackingNotificationService::class.java)
                 .putExtra(EXTRA_CMD, WearSync.json.encodeToString(TrackCommand.from(snapshot.focused, snapshot.stationId)))
                 .putExtra(EXTRA_STATION_NAME, snapshot.stationName)
@@ -843,7 +872,7 @@ class TrackingNotificationService : Service() {
             snapshot.stationLat?.let { intent.putExtra(EXTRA_STATION_LAT, it) }
             snapshot.stationLon?.let { intent.putExtra(EXTRA_STATION_LON, it) }
             snapshot.walkDistMeters?.let { intent.putExtra(EXTRA_WALK_DIST, it) }
-            runCatching { ContextCompat.startForegroundService(context, intent) }
+            return intent
         }
 
         fun stop(context: Context) {

@@ -1,0 +1,3 @@
+- Die Zugformation zeigt jetzt jede Wagennummer, die Ausstattung und einen roten Balken, wo es keinen Durchgang zwischen den Wagen gibt. Krone oder Lünette gehen Wagen für Wagen durch.
+- Lange Züge passen jetzt ganz auf den Bildschirm.
+- Mehr Züge zeigen jetzt ihre Formation, mit jedem Wagen und seiner eigenen Nummer.

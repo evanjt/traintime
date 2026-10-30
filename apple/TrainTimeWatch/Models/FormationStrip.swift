@@ -80,21 +80,28 @@ struct FormationStrip {
         CGFloat(label.count) * Self.charWidth <= spans[b].x1 - spans[a].x0 - 1
     }
 
-    static func rangeLabel(_ numbers: [Int], _ a: Int, _ b: Int) -> String {
-        b > a ? "\(numbers[a])–\(numbers[b])" : "\(numbers[a])"
+    static func rangeLabel(_ numbers: [Int?], _ a: Int, _ b: Int) -> String {
+        b > a ? "\(numbers[a]!)–\(numbers[b]!)" : "\(numbers[a]!)"
     }
 
-    // Every car's own number when all fit, otherwise a range per run of same-class cars,
-    // extended over the next run in the unit until it fits, so every car is covered.
-    // Returns nil for per-car numbers.
-    func numberLabels(numbers: [Int], classes: [Int], breaks: [Bool]) -> [FormationNumberLabel]? {
+    // Every numbered car's own number when all fit, otherwise a range per run of same-class
+    // cars, extended over the next run until it fits, so every numbered car is covered. No
+    // label crosses a break or a car the feed does not number.
+    func numberLabels(numbers: [Int?], classes: [Int], breaks: [Bool]) -> [FormationNumberLabel] {
         let n = numbers.count
-        if (0..<n).allSatisfy({ labelFits("\(numbers[$0])", $0, $0) }) { return nil }
+        let numbered = (0..<n).filter { numbers[$0] != nil }
+        if numbered.allSatisfy({ labelFits(Self.rangeLabel(numbers, $0, $0), $0, $0) }) {
+            return numbered.map { FormationNumberLabel(first: $0, last: $0, text: Self.rangeLabel(numbers, $0, $0)) }
+        }
         var out: [FormationNumberLabel] = []
         var i = 0
         while i < n {
+            if numbers[i] == nil {
+                i += 1
+                continue
+            }
             var u = i
-            while u < n - 1 && !breaks[u] { u += 1 }
+            while u < n - 1 && !breaks[u] && numbers[u + 1] != nil { u += 1 }
             var a = i
             while a <= u {
                 var b = a
@@ -105,13 +112,13 @@ struct FormationStrip {
                     while b < u && classes[b + 1] == classes[b] { b += 1 }
                     label = Self.rangeLabel(numbers, a, b)
                 }
-                // A tail that still does not fit joins the label before it in the same unit
+                // A tail that still does not fit joins the label before it in the same run
                 if !labelFits(label, a, b), let prev = out.last, prev.last == a - 1, prev.first >= i {
                     a = prev.first
                     label = Self.rangeLabel(numbers, a, b)
                     out.removeLast()
                 }
-                if !labelFits(label, a, b) { label = "\(numbers[a])" }
+                if !labelFits(label, a, b) { label = Self.rangeLabel(numbers, a, a) }
                 out.append(FormationNumberLabel(first: a, last: b, text: label))
                 a = b + 1
             }

@@ -3,8 +3,6 @@ package com.evanjt.traintime.wear
 import com.evanjt.traintime.data.model.Formation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -15,7 +13,7 @@ class FormationStripTest {
     // A digit or dash at the label size, a little wider than it renders so the test errs tight
     private val charWidth = 6f
 
-    private fun labelsFor(formation: Formation, width: Float): Pair<FormationStrip, List<CarLabel>?> {
+    private fun labelsFor(formation: Formation, width: Float): Pair<FormationStrip, List<CarLabel>> {
         val strip = FormationStrip(width, formation.wagons.map { it.noPassageAfter })
         val labels = numberLabels(
             formation.wagons.map { it.number },
@@ -42,11 +40,11 @@ class FormationStripTest {
         for (formation in listOf(FormationFixtures.ic708, FormationFixtures.ic977)) {
             for (width in widths) {
                 val (_, labels) = labelsFor(formation, width)
-                if (labels != null) assertCoversEachCarOnce(formation, labels)
+                assertCoversEachCarOnce(formation, labels)
             }
         }
         val (_, small708) = labelsFor(FormationFixtures.ic708, widths[0])
-        assertNotNull("16 cars on the small watch are too narrow for their own numbers", small708)
+        assertTrue("16 cars on the small watch are too narrow for their own numbers", small708.any { it.last > it.first })
     }
 
     @Test
@@ -77,7 +75,24 @@ class FormationStripTest {
         val labels = numberLabels(numbers, listOf(2, 2, 2, 2, 2, 2, 1, 1, 1), List(9) { false }) { label, a, b ->
             strip.fits(label.length * charWidth, a, b)
         }
-        assertNull(labels)
+        assertEquals(numbers.indices.map { CarLabel(it, it, numbers[it].toString()) }, labels)
+    }
+
+    @Test
+    fun aTrainWithNoNumberedCarShowsNoNumbers() {
+        val labels = numberLabels(List(6) { null }, listOf(2, 2, 1, 2, 2, 2), List(6) { false }) { _, _, _ -> true }
+        assertEquals(emptyList<CarLabel>(), labels)
+    }
+
+    @Test
+    fun onlyTheNumberedCarsAreLabelled() {
+        val numbers = listOf(null, 9, 8, null, 2, 1)
+        val classes = listOf(2, 2, 2, 2, 1, 1)
+        val roomy = numberLabels(numbers, classes, List(6) { false }) { _, _, _ -> true }
+        assertEquals(listOf(CarLabel(1, 1, "9"), CarLabel(2, 2, "8"), CarLabel(4, 4, "2"), CarLabel(5, 5, "1")), roomy)
+        // Too narrow for single numbers: ranges run over numbered cars only, never across an unnumbered one
+        val tight = numberLabels(numbers, classes, List(6) { false }) { _, a, b -> b > a }
+        assertEquals(listOf(CarLabel(1, 2, "9-8"), CarLabel(4, 5, "2-1")), tight)
     }
 
     @Test

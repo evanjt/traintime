@@ -120,6 +120,18 @@ final class ParsingTests: XCTestCase {
         XCTAssertFalse(w.mixedClass)
     }
 
+    func testFormationCarTheFeedDoesNotNumberHasNoNumber() {
+        let json: [String: Any] = [
+            "track": "13", "sectors": ["A"],
+            "wagons": [
+                ["position": 1, "number": 1, "class": 2, "sector": "A", "numberUnknown": true],
+                ["position": 2, "number": 12, "class": 2, "sector": "A"],
+                ["position": 3, "number": 11, "class": 2, "sector": "A", "numberUnknown": false],
+            ],
+        ]
+        XCTAssertEqual(Formation.from(json: json)!.wagons.map(\.number), [nil, 12, 11])
+    }
+
     func testFormationWithoutWagonsIsNil() {
         XCTAssertNil(Formation.from(json: ["track": "3"]))
     }

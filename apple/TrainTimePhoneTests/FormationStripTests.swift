@@ -4,7 +4,7 @@ import XCTest
 // The watch formation strip's number labels, over two live formations captured at Bern.
 final class FormationStripTests: XCTestCase {
     struct Train {
-        let numbers: [Int]
+        let numbers: [Int?]
         let classes: [Int]
         let breaks: [Bool]
     }
@@ -28,8 +28,7 @@ final class FormationStripTests: XCTestCase {
 
     private func assertCoversEveryCarOnce(_ t: Train, width: CGFloat, file: StaticString = #file, line: UInt = #line) {
         let strip = FormationStrip(width: width, breaks: t.breaks)
-        // nil means each car carries its own number, which covers every car once
-        guard let labels = strip.numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks) else { return }
+        let labels = strip.numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks)
         var seen = Array(repeating: 0, count: t.numbers.count)
         for label in labels {
             XCTAssertLessThanOrEqual(label.first, label.last, file: file, line: line)
@@ -53,20 +52,44 @@ final class FormationStripTests: XCTestCase {
         let t = Self.twelveCars
         let strip = FormationStrip(width: 158, breaks: t.breaks)
         let labels = strip.numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks)
-        XCTAssertEqual(labels?.map(\.text), ["20–16", "7–3", "2–1"])
+        XCTAssertEqual(labels.map(\.text), ["20–16", "7–3", "2–1"])
     }
 
     func testSixteenCarsNeedRangesOnEveryWatch() {
         let t = Self.sixteenCars
         for w in Self.widths {
-            XCTAssertNotNil(FormationStrip(width: w, breaks: t.breaks).numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks))
+            let labels = FormationStrip(width: w, breaks: t.breaks).numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks)
+            XCTAssertTrue(labels.contains { $0.last > $0.first })
         }
     }
 
     func testShortTrainNumbersEveryCar() {
         let breaks = Array(repeating: false, count: 7)
         let strip = FormationStrip(width: 158, breaks: breaks)
-        XCTAssertNil(strip.numberLabels(numbers: [7, 6, 5, 4, 3, 2, 1], classes: [2, 2, 2, 2, 1, 1, 1], breaks: breaks))
+        let labels = strip.numberLabels(numbers: [7, 6, 5, 4, 3, 2, 1], classes: [2, 2, 2, 2, 1, 1, 1], breaks: breaks)
+        XCTAssertEqual(labels, (0..<7).map { FormationNumberLabel(first: $0, last: $0, text: "\(7 - $0)") })
+    }
+
+    func testTrainWithNoNumberedCarShowsNoNumbers() {
+        let breaks = (0..<8).map { $0 == 3 }
+        let strip = FormationStrip(width: 158, breaks: breaks)
+        let labels = strip.numberLabels(numbers: Array(repeating: nil, count: 8), classes: [2, 2, 1, 2, 2, 2, 1, 2], breaks: breaks)
+        XCTAssertEqual(labels, [])
+    }
+
+    // Scenario: the second and fifth cars carry no number in the feed.
+    // Expected behaviour: only numbered cars are labelled, and no range runs across an unnumbered car.
+    func testOnlyNumberedCarsAreLabelled() {
+        var numbers = Self.sixteenCars.numbers
+        numbers[1] = nil
+        numbers[4] = nil
+        let t = Train(numbers: numbers, classes: Self.sixteenCars.classes, breaks: Self.sixteenCars.breaks)
+        for w in Self.widths {
+            let labels = FormationStrip(width: w, breaks: t.breaks).numberLabels(numbers: t.numbers, classes: t.classes, breaks: t.breaks)
+            var seen = Array(repeating: 0, count: 16)
+            for label in labels { for i in label.first...label.last { seen[i] += 1 } }
+            XCTAssertEqual(seen, numbers.map { $0 == nil ? 0 : 1 }, "at \(w) pt")
+        }
     }
 
     func testCarsShrinkToFitTheWidth() {

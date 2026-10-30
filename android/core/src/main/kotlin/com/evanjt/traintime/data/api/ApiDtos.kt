@@ -94,6 +94,7 @@ data class FormationWagonDto(
     val closed: Boolean = false,
     val noPassageAfter: Boolean = false,
     val mixedClass: Boolean = false,
+    val numberUnknown: Boolean = false,
 )
 
 @Serializable
@@ -106,11 +107,11 @@ data class FormationResponseDto(
         val wagons = wagons
             ?.mapNotNull { w ->
                 val position = w.position ?: return@mapNotNull null
-                val number = w.number ?: return@mapNotNull null
                 val wagonClass = w.wagonClass ?: return@mapNotNull null
                 FormationWagon(
                     position = position,
-                    number = number,
+                    // The API sends an unnumbered car's position as its number for older apps
+                    number = w.number.takeUnless { w.numberUnknown },
                     wagonClass = wagonClass,
                     sector = w.sector ?: "",
                     features = w.features,

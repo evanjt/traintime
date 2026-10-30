@@ -77,7 +77,23 @@ class ComponentSnapshotTest {
         ).mapIndexed { i, w -> w.copy(position = i + 1) },
     )
 
-    private fun car(number: Int, wagonClass: Int, sector: String, vararg features: String, noPassageAfter: Boolean = false) =
+    // An S-Bahn of two four-car units whose cars the feed does not number, live at Bern
+    private val unnumbered = Formation(
+        track = "13",
+        sectors = listOf("A", "B", "C", "D", "E", "F"),
+        wagons = listOf(
+            car(null, 2, "A", "low_floor"),
+            car(null, 2, "A", "wheelchair", "low_floor", "bike"),
+            car(null, 1, "A", "low_floor", "bike").copy(mixedClass = true),
+            car(null, 2, "A", "low_floor", noPassageAfter = true),
+            car(null, 2, "A", "low_floor"),
+            car(null, 2, "A", "wheelchair", "low_floor", "bike"),
+            car(null, 1, "B", "low_floor", "bike").copy(mixedClass = true),
+            car(null, 2, "B", "low_floor"),
+        ).mapIndexed { i, w -> w.copy(position = i + 1) },
+    )
+
+    private fun car(number: Int?, wagonClass: Int, sector: String, vararg features: String, noPassageAfter: Boolean = false) =
         FormationWagon(0, number, wagonClass, sector, features.toList(), false, noPassageAfter = noPassageAfter)
 
     @Composable
@@ -122,6 +138,10 @@ class ComponentSnapshotTest {
 
     @Test fun formationDark() = capture("formation_dark", dark = true) {
         Box(Modifier.width(360.dp).padding(16.dp)) { FormationDiagram(doubleUnit) }
+    }
+
+    @Test fun formationUnnumbered() = capture("formation_unnumbered", dark = false) {
+        Box(Modifier.width(360.dp).padding(16.dp)) { FormationDiagram(unnumbered) }
     }
 
     @Test fun pausedLight() = capture("paused_light", dark = false) { Box(Modifier.size(320.dp, 220.dp)) { InactiveScreen {} } }

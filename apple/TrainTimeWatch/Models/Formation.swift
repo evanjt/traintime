@@ -2,7 +2,8 @@ import Foundation
 
 struct FormationWagon {
     let position: Int
-    let number: Int
+    // nil where the feed does not number the car
+    let number: Int?
     let wagonClass: Int // 1 or 2
     let sector: String
     let features: [String] // "wheelchair", "restaurant", "family", "business", "low_floor"
@@ -33,11 +34,12 @@ struct Formation {
 
         let wagons = wagonArray.compactMap { w -> FormationWagon? in
             guard let position = w["position"] as? Int,
-                  let number = w["number"] as? Int,
                   let wagonClass = w["class"] as? Int else { return nil }
             let sector = w["sector"] as? String ?? ""
             let features = w["features"] as? [String] ?? []
             let closed = w["closed"] as? Bool ?? false
+            // The API sends an unnumbered car's position as its number for older apps
+            let number = w["numberUnknown"] as? Bool == true ? nil : w["number"] as? Int
             return FormationWagon(
                 position: position,
                 number: number,

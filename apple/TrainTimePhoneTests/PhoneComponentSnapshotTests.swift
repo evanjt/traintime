@@ -105,6 +105,39 @@ final class PhoneComponentSnapshotTests: XCTestCase {
         )
     }
 
+    // An S-Bahn of two four-car units whose cars the feed does not number, live at Bern
+    func testUnnumberedFormation() {
+        let cars: [(Int, String, [String], Bool)] = [
+            (2, "A", ["low_floor"], false), (2, "A", ["wheelchair", "low_floor", "bike"], false),
+            (1, "A", ["low_floor", "bike"], true), (2, "A", ["low_floor"], false),
+            (2, "A", ["low_floor"], false), (2, "A", ["wheelchair", "low_floor", "bike"], false),
+            (1, "B", ["low_floor", "bike"], true), (2, "B", ["low_floor"], false),
+        ]
+        let wagons = cars.enumerated().map { i, c in
+            FormationWagon(position: i + 1, number: nil, wagonClass: c.0, sector: c.1, features: c.2,
+                           closed: false, noPassageAfter: i == 3, mixedClass: c.3)
+        }
+        let formation = Formation(track: "13", sectors: ["A", "B", "C", "D", "E", "F"], wagons: wagons)
+        let phone = FormationDiagramView(formation: formation)
+            .padding(16)
+            .frame(width: 360)
+            .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(phone), "phone_formation_unnumbered")
+        let watch = VStack(spacing: 6) {
+            WatchFormationView(formation: formation, cursor: 1)
+            WatchCarReadoutRow(wagon: wagons[1], left: 0.6)
+        }
+        .frame(width: 158)
+        .padding(4)
+        .background(Color.black)
+        assertSnapshot(
+            of: AnyView(watch),
+            as: .image(precision: 0.99, perceptualPrecision: 0.98, layout: .sizeThatFits,
+                       traits: .init(userInterfaceStyle: .dark)),
+            named: "watch_formation_unnumbered"
+        )
+    }
+
     func testFormationDoubleUnit() {
         let view = FormationDiagramView(formation: FormationFixtures.doubleUnit)
             .padding(16)

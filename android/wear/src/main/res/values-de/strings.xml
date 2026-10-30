@@ -26,4 +26,5 @@
     <string name="formation_family">Familienzone</string>
     <string name="formation_bike">Velohaken</string>
     <string name="formation_car_fmt">Wagen %1$d, Sektor %2$s</string>
+    <string name="formation_sector_fmt">Sektor %1$s</string>
 </resources>

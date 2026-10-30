@@ -210,8 +210,7 @@ fun FormationStripWear(formation: Formation, strip: FormationStrip, cursor: Int?
             }
         }
 
-        val spans = labels ?: wagons.indices.map { CarLabel(it, it, wagons[it].number.toString()) }
-        for (label in spans) {
+        for (label in labels) {
             val text = measurer.measure(label.text, labelStyle)
             val mid = (strip.cars[label.first].start + strip.cars[label.last].endInclusive) / 2 * u
             drawText(text, topLeft = Offset(mid - text.size.width / 2f, (CAR_TOP + CAR_HEIGHT / 2 + 0.75f) * u - text.size.height / 2f))
@@ -259,17 +258,19 @@ private fun DrawScope.drawNose(strip: FormationStrip, u: Float) {
     drawPath(arrow, Color.White)
 }
 
-// One line under the strip while a car is highlighted: number, sector, each amenity's
-// colour beside its icon as the legend, and a ring that drains until the readout clears.
+// One line under the strip while a car is highlighted: number when the feed gives one,
+// sector, each amenity's colour beside its icon as the legend, and a ring that drains
+// until the readout clears.
 @Composable
 fun FormationReadoutWear(wagon: FormationWagon, left: Float, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.formation_car_fmt, wagon.number, wagon.sector)
+    val description = wagon.number?.let { stringResource(R.string.formation_car_fmt, it, wagon.sector) }
+        ?: stringResource(R.string.formation_sector_fmt, wagon.sector)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         modifier = modifier.semantics { contentDescription = description },
     ) {
-        Text("${wagon.number}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        wagon.number?.let { Text("$it", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         if (wagon.sector.isNotEmpty()) {
             Text(wagon.sector, color = sectorColour, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }

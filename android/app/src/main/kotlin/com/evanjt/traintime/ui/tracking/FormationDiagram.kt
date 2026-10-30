@@ -357,7 +357,7 @@ private fun Carriage(wagon: FormationWagon, width: Dp, height: Dp, colors: Forma
             )
         }
 
-        if (!wagon.closed) {
+        if (!wagon.closed && wagon.number != null) {
             Text(
                 "${wagon.number}",
                 color = colors.carNumber,

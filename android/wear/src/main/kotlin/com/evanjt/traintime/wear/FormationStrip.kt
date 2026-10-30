@@ -51,25 +51,32 @@ class FormationStrip(
 
 data class CarLabel(val first: Int, val last: Int, val text: String)
 
-private fun rangeLabel(numbers: List<Int>, a: Int, b: Int) =
+private fun rangeLabel(numbers: List<Int?>, a: Int, b: Int) =
     if (b > a) "${numbers[a]}-${numbers[b]}" else numbers[a].toString()
 
-// Every car's own number when all fit, otherwise a range per run of same-class cars,
-// extended over the next run in the unit until it fits, so every car is covered and no
-// label crosses a break. Null means per-car numbers. The same rule runs on every watch.
+// Every numbered car's own number when all fit, otherwise a range per run of same-class
+// cars, extended over the next run until it fits, so every numbered car is covered. No
+// label crosses a break or a car the feed does not number. The same rule runs on every watch.
 fun numberLabels(
-    numbers: List<Int>,
+    numbers: List<Int?>,
     classes: List<Int>,
     breaks: List<Boolean>,
     fits: (label: String, first: Int, last: Int) -> Boolean,
-): List<CarLabel>? {
+): List<CarLabel> {
     val n = numbers.size
-    if (numbers.indices.all { fits(numbers[it].toString(), it, it) }) return null
+    val numbered = numbers.indices.filter { numbers[it] != null }
+    if (numbered.all { fits(numbers[it].toString(), it, it) }) {
+        return numbered.map { CarLabel(it, it, numbers[it].toString()) }
+    }
     val out = mutableListOf<CarLabel>()
     var i = 0
     while (i < n) {
+        if (numbers[i] == null) {
+            i++
+            continue
+        }
         var u = i
-        while (u < n - 1 && !breaks[u]) u++
+        while (u < n - 1 && !breaks[u] && numbers[u + 1] != null) u++
         var a = i
         while (a <= u) {
             var b = a
@@ -80,7 +87,7 @@ fun numberLabels(
                 while (b < u && classes[b + 1] == classes[b]) b++
                 label = rangeLabel(numbers, a, b)
             }
-            // A tail that still does not fit joins the label before it in the same unit
+            // A tail that still does not fit joins the label before it in the same run
             if (!fits(label, a, b)) {
                 val prev = out.lastOrNull()
                 if (prev != null && prev.last == a - 1 && prev.first >= i) {

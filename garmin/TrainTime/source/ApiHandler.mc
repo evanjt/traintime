@@ -586,6 +586,13 @@ module ApiHandler {
         return bits;
     }
 
+    // A car's number, or null where the feed does not number it. The API then sends the
+    // car's position as its number for older apps, flagged numberUnknown.
+    function wagonNumber(w) {
+        if (w.hasKey("numberUnknown") && w["numberUnknown"] == true) { return null; }
+        return w.hasKey("number") ? w["number"] : null;
+    }
+
     function handleFormationResponse(view, responseCode, data) {
         if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) {
             view.mFormationClasses = null;
@@ -613,7 +620,7 @@ module ApiHandler {
         for (var i = 0; i < wagons.size(); i++) {
             var w = wagons[i];
             classes[i] = w.hasKey("class") ? w["class"] : 2;
-            numbers[i] = (w.hasKey("number") && w["number"] != null) ? w["number"] : 0;
+            numbers[i] = wagonNumber(w);
             sectors[i] = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
             breaks[i] = w.hasKey("noPassageAfter") && w["noPassageAfter"] == true;
             mixed[i] = w.hasKey("mixedClass") && w["mixedClass"] == true;

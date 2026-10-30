@@ -51,7 +51,7 @@ class TrainTimeView extends WatchUi.View {
     var mMapActive;  // true when MapTrackView is pushed
     var mLastInteractionTime;
     var mFormationClasses;  // Array of Number (1 or 2) per wagon
-    var mFormationNumbers;  // Array of Number (wagon numbers)
+    var mFormationNumbers;  // Array of Number (wagon numbers), null where the feed has none
     var mFormationSectors;  // Array of String (sector letters)
     var mFormationBreaks;   // Array of Boolean: no passage to the next car
     var mFormationAmenities; // Array of Number: FormationArc.AMEN_* bits

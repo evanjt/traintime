@@ -42,17 +42,50 @@ enum TrackingVerdict: String {
     case noGps
 }
 
-/// Stop button on the Live Activity. `LiveActivityIntent` runs in the app
-/// process, so it only signals the running view model — the analog of Android's
-/// notification Stop action feeding `TrackingSessionBus.stopRequests`. If the app
-/// was terminated, its launch re-runs `reapOrphanLiveActivities`, which ends the
-/// stray card anyway, so a missed signal still tears the card down.
+/// Stop button on the Live Activity. It ends the cards itself: when iOS launches
+/// the app in the background to run this, no scene and so no view model exists
+/// to hear the signal. The stop is also recorded, so a view model that missed
+/// the signal (suspended before its main-queue observer ran) applies it on its
+/// next appearance. The signal is the analog of Android's notification Stop
+/// action feeding `TrackingSessionBus.stopRequests`.
 struct StopTrackingIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Stop tracking"
 
     func perform() async throws -> some IntentResult {
+        TrackingStopRequest.record()
+        for activity in Activity<TrackingActivityAttributes>.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
         NotificationCenter.default.post(name: .stopTrackingRequested, object: nil)
         return .result()
+    }
+}
+
+/// A Stop pressed on the Live Activity, held until the view model applies it.
+enum TrackingStopRequest {
+    static let key = "trackingStopRequested"
+
+    static func record(_ defaults: UserDefaults = .standard) {
+        defaults.set(true, forKey: key)
+    }
+
+    /// Reads and clears, so one press stops one session.
+    static func take(_ defaults: UserDefaults = .standard) -> Bool {
+        guard defaults.bool(forKey: key) else { return false }
+        defaults.removeObject(forKey: key)
+        return true
+    }
+}
+
+enum LiveActivityTiming {
+    /// How long one payload stays current while the app keeps updating it.
+    static let freshFor: TimeInterval = 900
+
+    /// Stale at the effective departure at the latest. ActivityKit re-renders a
+    /// card when it goes stale, so a suspended app's card turns to "Departed"
+    /// instead of sitting at 0:00 until the app next runs.
+    static func staleDate(effectiveDeparture: Date, now: Date) -> Date {
+        min(now.addingTimeInterval(freshFor), effectiveDeparture)
     }
 }
 

@@ -2,7 +2,7 @@ package com.evanjt.traintime.data.model
 
 data class FormationWagon(
     val position: Int,
-    val number: Int,
+    val number: Int?, // null when the feed does not number the car
     val wagonClass: Int, // 1 or 2
     val sector: String,
     val features: List<String>, // "wheelchair", "restaurant", "family", "business", "low_floor", "bike"
