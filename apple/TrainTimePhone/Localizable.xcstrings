@@ -1371,6 +1371,28 @@
         }
       }
     },
+    "Get it from the Connect IQ Store": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Connect IQ Store holen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’obtenir sur le Connect IQ Store"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scaricala dal Connect IQ Store"
+          }
+        }
+      }
+    },
     "Have a Garmin? Track on your phone and send a departure to your wrist. There's an Apple Watch app too.": {
       "localizations": {
         "de": {
@@ -1389,6 +1411,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hai una Garmin? Segui sul telefono e invia una partenza al polso. C'è anche un'app Apple Watch."
+          }
+        }
+      }
+    },
+    "Hide": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausblenden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masquer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi"
           }
         }
       }
@@ -4259,6 +4303,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "TrainTime rileva la tua posizione per calibrare il promemoria del percorso, anche ad app chiusa o inutilizzata. Puoi rifiutare: useremo l'ultima posizione nota."
+          }
+        }
+      }
+    },
+    "TrainTime runs on Garmin watches too. Track your train from your wrist.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime läuft auch auf Garmin-Uhren. Verfolge deinen Zug am Handgelenk."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime fonctionne aussi sur les montres Garmin. Suivez votre train au poignet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TrainTime funziona anche sugli orologi Garmin. Segui il tuo treno dal polso."
           }
         }
       }

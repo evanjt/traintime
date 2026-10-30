@@ -182,6 +182,7 @@ class PhoneViewModel: ObservableObject {
 
     init() {
         reviewStore.ensureFirstLaunchTimestamp()
+        UserDefaults.standard.set(UserDefaults.standard.integer(forKey: "launchCount") + 1, forKey: "launchCount")
         // A process death mid-tracking strands the Live Activity; no session can
         // exist yet, so anything found is an orphan.
         reapOrphanLiveActivities()
@@ -641,6 +642,31 @@ class PhoneViewModel: ObservableObject {
         UserDefaults.standard.set(true, forKey: "bgLocationIntroSeen")
     }
 
+    /// Connect IQ Store card above the station name for Garmin Connect users who
+    /// never paired a Garmin here. Runs after refreshConnectedWatches has latched
+    /// garminEverConnected, so a paired watch hides it at once. Mirrors Android.
+    @Published var showGarminTip = false
+
+    private func maybeShowGarminTip() {
+        guard !showGarminTip else { return }
+        let defaults = UserDefaults.standard
+        let tourSeen = effectiveSeenVersion(
+            hasSeen: defaults.bool(forKey: "hasSeenOnboarding"),
+            seenVersion: defaults.integer(forKey: "seenOnboardingVersion"))
+        showGarminTip = GarminTipGate.shouldShow(
+            garminConnectInstalled: watchService.isGarminConnectInstalled,
+            everLinked: defaults.bool(forKey: "garminEverConnected") || watchService.hasKnownGarmin,
+            seen: defaults.bool(forKey: "garminTipSeen"),
+            tourDone: tourSeen >= currentTourVersion,
+            launches: defaults.integer(forKey: "launchCount"))
+    }
+
+    /// Tapping the card or its close button retires it for good.
+    func dismissGarminTip() {
+        showGarminTip = false
+        UserDefaults.standard.set(true, forKey: "garminTipSeen")
+    }
+
     /// The route sheet's note: distance-aware timing is on but the grant is
     /// missing, so the lead is pinned to the save-time location.
     var reminderNeedsBgLocation: Bool {
@@ -752,6 +778,7 @@ class PhoneViewModel: ObservableObject {
             self?.refreshConnectedWatches()
             self?.pushLocationNow()
             self?.maybePingGarmin()
+            self?.maybeShowGarminTip()
         }
     }
 

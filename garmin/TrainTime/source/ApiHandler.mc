@@ -398,8 +398,14 @@ module ApiHandler {
         }
     }
 
+    // Rows asked for and kept. A 128 KB watch app has about 6 KB free once the board is
+    // loaded, too little for a 20-row refresh, so it takes a short one.
+    function departureLimit(totalMemory) {
+        return totalMemory < 262144 ? 8 : 20;
+    }
+
     function fetchDepartures(view, stationId) {
-        var path = "/v1/departures?id=" + stationId + "&limit=20";
+        var path = "/v1/departures?id=" + stationId + "&limit=" + departureLimit(System.getSystemStats().totalMemory);
 
         var favParam = FavouritesManager.buildFavouritesParam(stationId);
         if (favParam != null) {
@@ -413,7 +419,8 @@ module ApiHandler {
         var seen = {};
         var nowSeconds = Time.now().value();
 
-        for (var i = 0; i < departures.size() && i < 20; i++) {
+        var limit = departureLimit(System.getSystemStats().totalMemory);
+        for (var i = 0; i < departures.size() && i < limit; i++) {
             var dep = departures[i];
             var destination = (dep.hasKey("to") && dep["to"] != null) ? dep["to"] : "?";
             var category = (dep.hasKey("category") && dep["category"] != null) ? dep["category"] : "";

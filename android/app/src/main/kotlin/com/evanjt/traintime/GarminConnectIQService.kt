@@ -25,6 +25,7 @@ class GarminConnectIQService(private val context: Context) {
 
     companion object {
         const val APP_UUID = "7df2c0d5-e539-413a-962c-96147dad27f0"
+        const val GARMIN_CONNECT_PACKAGE = "com.garmin.android.apps.connectmobile"
     }
 
     /** Set by MainViewModel to receive state pushed back from the watch (defaultMode etc.). */
@@ -132,6 +133,12 @@ class GarminConnectIQService(private val context: Context) {
     // Paired devices regardless of connection state. Used for the grey "known but
     // unreachable" indicator: a watch we've paired with but that's off / out of range.
     fun hasKnownDevices(): Boolean = isAvailable && knownOrEmpty().isNotEmpty()
+
+    // Garmin Connect on the phone, the one signal both phone platforms share. A
+    // direct package lookup, visible through the manifest's <queries> entry.
+    fun isGarminConnectInstalled(): Boolean = runCatching {
+        context.packageManager.getPackageInfo(GARMIN_CONNECT_PACKAGE, 0)
+    }.isSuccess
 
     fun knownDeviceNames(): List<GarminDevice> =
         if (!isAvailable) emptyList()

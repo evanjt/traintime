@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PhoneStationView: View {
     @ObservedObject var viewModel: PhoneViewModel
+    @Environment(\.openURL) private var openURL
     @State private var showSettings = false
 
     var body: some View {
@@ -43,6 +44,10 @@ struct PhoneStationView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+
+            if viewModel.showGarminTip {
+                garminTipCard
+            }
 
             // Station name, tappable to open picker
             Button {
@@ -207,6 +212,44 @@ struct PhoneStationView: View {
         .contentShape(Rectangle())
         .onTapGesture { viewModel.resumeBackgroundTracking() }
         .listRowBackground(green.opacity(0.12))
+    }
+
+    // A small card under the mode picker pointing at the Garmin watch app. Tap
+    // opens the Connect IQ Store, the cross hides it for good.
+    private var garminTipCard: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "watch.analog")
+                .font(.system(size: 20))
+                .foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TrainTime runs on Garmin watches too. Track your train from your wrist.")
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Get it from the Connect IQ Store")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button { viewModel.dismissGarminTip() } label: {
+                Image(systemName: "xmark")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Hide"))
+        }
+        .font(.subheadline)
+        .padding(.leading, 12)
+        .padding(.vertical, 10)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            viewModel.dismissGarminTip()
+            openURL(ConnectIqStore.current)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
     }
 
     private func departureRow(_ departure: Departure, isFavourite: Bool, onTap: @escaping () -> Void) -> some View {

@@ -55,9 +55,11 @@ import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
 import com.evanjt.traintime.session.TrackingSnapshot
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
+import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
 import com.evanjt.traintime.data.prefs.PendingRouteStore
+import com.evanjt.traintime.domain.GarminTipGate
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.HapticService
 import com.evanjt.traintime.domain.LocationService
@@ -171,6 +173,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var formation by mutableStateOf<Formation?>(null)
         private set
+
+    // The Garmin tip's sweep can finish before init has stored this launch, so the gate
+    // waits for the count rather than reading the previous one.
+    private var launchCounted: Job? = null
 
     // Timed review ask, set at most once per version by a real board tap
     // (maybeRequestReview) and rendered by RootView.
@@ -386,7 +392,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         garminService.initialize()
 
         viewModelScope.launch { prefs.mirrorToWatch.collect { mirrorToWatch = it } }
-        viewModelScope.launch { prefs.ensureFirstLaunchTimestamp() }
+        launchCounted = viewModelScope.launch {
+            prefs.ensureFirstLaunchTimestamp()
+            prefs.incrementLaunchCount()
+        }
         viewModelScope.launch { prefs.hasKnownWearNode.collect { hasKnownWearNode = it } }
         viewModelScope.launch {
             pendingRouteStore.pending.collect {
@@ -496,6 +505,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
             persistGarminEverConnected()
+            maybeShowGarminTip()
             pushLocationNow()
             startHeartbeat()
             maybePingGarmin()
@@ -1416,6 +1426,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             watchLinks = wear + buildGarminLinks(garmin)
             updateKnownButDisconnected()
             persistGarminEverConnected()
+            maybeShowGarminTip()
         }
     }
 
@@ -1425,6 +1436,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Watch" action never appears for someone who has never connected a Garmin.
     private suspend fun persistGarminEverConnected() {
         if (garminTargetIds.isNotEmpty()) prefs.markGarminEverConnected()
+    }
+
+    // Connect IQ Store card above the station name: Garmin Connect is on the phone
+    // and no Garmin has ever linked here. Runs after the sweep has latched
+    // garminEverConnected, so a linked watch hides it at once.
+    var garminTip by mutableStateOf(false)
+        private set
+
+    private suspend fun maybeShowGarminTip() {
+        if (garminTip) return
+        launchCounted?.join()
+        val tourSeen = effectiveSeenVersion(prefs.hasSeenOnboarding.first(), prefs.seenOnboardingVersion.first())
+        garminTip = GarminTipGate.shouldShow(
+            garminConnectInstalled = garminService.isGarminConnectInstalled(),
+            everLinked = prefs.garminEverConnectedNow(),
+            seen = prefs.garminTipSeen.first(),
+            tourDone = tourSeen >= CURRENT_TOUR_VERSION,
+            launches = prefs.launchCount.first(),
+        )
+    }
+
+    // Tapping the card or its close button retires it for good.
+    fun dismissGarminTip() {
+        garminTip = false
+        viewModelScope.launch { prefs.markGarminTipSeen() }
     }
 
     fun setMirrorToWatch(value: Boolean) {

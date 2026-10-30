@@ -75,8 +75,6 @@ let tourTrackDetailBody =
 // the list below.
 let tourFavouriteDetailBody = String(localized: "It now sits above the gold line and still appears in the list below.")
 
-let connectIQStoreURL = URL(string: "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb")!
-
 // Tracking demo: a short, looping countdown so the bar and status visibly shift.
 let tourTrackRunwaySec = 165
 let tourTrackDistanceM = 130.0

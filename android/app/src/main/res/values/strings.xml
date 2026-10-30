@@ -221,4 +221,7 @@
     <string name="notifications_blocked">Partly blocked</string>
     <string name="tour_background_title">Tracking keeps going</string>
     <string name="tour_background_body">Leave the app and your train keeps counting down on the Lock Screen, with an alert when it\'s time to leave. TrainTime uses your location in the background to do it, only while you\'re tracking. Turn it off any time in Settings.</string>
+    <string name="garmin_tip_text">TrainTime runs on Garmin watches too. Track your train from your wrist.</string>
+    <string name="garmin_tip_action">Get it from the Connect IQ Store</string>
+    <string name="garmin_tip_dismiss">Hide</string>
 </resources>

@@ -220,4 +220,7 @@
     <string name="notifications_blocked">Parz. bloccate</string>
     <string name="tour_background_title">Il tracciamento continua</string>
     <string name="tour_background_body">Esci dall\'app e il tuo treno continua il conto alla rovescia sulla schermata di blocco, con un avviso quando è ora di uscire. TrainTime usa la posizione in background solo mentre segui. Disattivabile in qualsiasi momento nelle impostazioni.</string>
+    <string name="garmin_tip_text">TrainTime funziona anche sugli orologi Garmin. Segui il tuo treno dal polso.</string>
+    <string name="garmin_tip_action">Scaricala dal Connect IQ Store</string>
+    <string name="garmin_tip_dismiss">Nascondi</string>
 </resources>

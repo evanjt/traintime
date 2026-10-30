@@ -434,7 +434,7 @@ struct TourWatchCard: View {
         VStack(spacing: 16) {
             HStack(alignment: .top, spacing: 18) {
                 WatchTile(image: "WatchGarmin", name: "Garmin", synced: true) {
-                    Link(destination: connectIQStoreURL) {
+                    Link(destination: ConnectIqStore.current) {
                         WatchTileButtonLabel(icon: "arrow.up.forward.app", text: "Connect IQ")
                     }
                     .buttonStyle(.bordered)

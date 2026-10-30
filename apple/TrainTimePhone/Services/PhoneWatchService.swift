@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 enum PhoneWatchType: Equatable {
     case appleWatch
@@ -187,6 +188,12 @@ class PhoneWatchService: ObservableObject {
     /// A Garmin watch is paired (possibly off / out of range), drives the grey indicator
     /// and primary-watch resolution.
     var hasKnownGarmin: Bool { garminService.hasKnownDevices }
+
+    /// Garmin Connect is on the phone. Its `gcm-ciq` scheme is declared in
+    /// LSApplicationQueriesSchemes, which canOpenURL needs to answer truthfully.
+    var isGarminConnectInstalled: Bool {
+        UIApplication.shared.canOpenURL(URL(string: "gcm-ciq://")!)
+    }
 
     /// An Apple Watch is paired with TrainTime installed (possibly with the app closed).
     var hasKnownAppleWatch: Bool { wcService.isPaired && wcService.isWatchAppInstalled }

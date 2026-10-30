@@ -269,6 +269,21 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_GARMIN_EVER_CONNECTED] = true }
     }
 
+    val garminTipSeen: Flow<Boolean> =
+        dataStore.data.map { it[KEY_GARMIN_TIP_SEEN] ?: false }
+
+    suspend fun markGarminTipSeen() {
+        dataStore.edit { it[KEY_GARMIN_TIP_SEEN] = true }
+    }
+
+    // App launches (process starts), counted for the Garmin tip's delay.
+    val launchCount: Flow<Int> =
+        dataStore.data.map { it[KEY_LAUNCH_COUNT] ?: 0 }
+
+    suspend fun incrementLaunchCount() {
+        dataStore.edit { it[KEY_LAUNCH_COUNT] = (it[KEY_LAUNCH_COUNT] ?: 0) + 1 }
+    }
+
     suspend fun lastCoordinate(): Pair<Double, Double>? {
         val prefs = dataStore.data.first()
         val lat = prefs[KEY_LAST_LAT] ?: 0.0
@@ -311,6 +326,8 @@ class AppPrefs(context: Context) {
         val KEY_GARMIN_LAST_BYE = longPreferencesKey("garminLastByeTs")
         val KEY_GARMIN_PV = intPreferencesKey("garminWatchPv")
         val KEY_GARMIN_EVER_CONNECTED = booleanPreferencesKey("garminEverConnected")
+        val KEY_GARMIN_TIP_SEEN = booleanPreferencesKey("garminTipSeen")
+        val KEY_LAUNCH_COUNT = intPreferencesKey("launchCount")
         val KEY_FAVOURITES = stringPreferencesKey("favourites_v1")
         val KEY_MY_STATIONS = stringPreferencesKey("myStations_v1")
         val KEY_PENDING_ROUTES = stringPreferencesKey("pendingRoutes_v1")

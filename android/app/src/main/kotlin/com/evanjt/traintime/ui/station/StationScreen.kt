@@ -1,5 +1,7 @@
 package com.evanjt.traintime.ui.station
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -13,10 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
@@ -49,7 +53,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +68,7 @@ import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.GpsQuality
+import com.evanjt.traintime.domain.ConnectIqStore
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
 import com.evanjt.traintime.ui.theme.tint
@@ -76,6 +84,8 @@ fun StationScreen(
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val scope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val garminStoreUrl = ConnectIqStore.url(LocalConfiguration.current.locales[0].language)
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Header: mode picker + GPS + settings
@@ -151,6 +161,16 @@ fun StationScreen(
             IconButton(onClick = { onOpenSettings(false) }) {
                 Icon(Icons.Filled.Settings, contentDescription = stringResource(CoreR.string.settings), tint = secondary)
             }
+        }
+
+        if (viewModel.garminTip) {
+            GarminTipCard(
+                onOpen = {
+                    viewModel.dismissGarminTip()
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(garminStoreUrl))) }
+                },
+                onDismiss = { viewModel.dismissGarminTip() },
+            )
         }
 
         // Station name, tappable to open picker
@@ -333,6 +353,54 @@ fun StationScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+// A small card under the mode picker pointing at the Garmin watch app. Tap
+// opens the Connect IQ Store, the cross hides it for good.
+@Composable
+private fun GarminTipCard(onOpen: () -> Unit, onDismiss: () -> Unit) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 10.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onOpen)
+            .padding(start = 12.dp, top = 10.dp, bottom = 10.dp),
+    ) {
+        Icon(
+            Icons.Filled.Watch,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.garmin_tip_text),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+            )
+            Text(
+                stringResource(R.string.garmin_tip_action),
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        IconButton(onClick = onDismiss) {
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = stringResource(R.string.garmin_tip_dismiss),
+                tint = secondary,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

@@ -11,11 +11,6 @@
 		117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
 		1AD2F11980807139DEA59684 /* WidgetEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000002 /* WidgetEntry.swift */; };
 		1B060950AE09D88A3CF1B26A /* SwitchStationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000008 /* SwitchStationIntent.swift */; };
-		HF0A00000000000000000001 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
-		HF0A00000000000000000002 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
-		HF0A00000000000000000003 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
-		HF0A00000000000000000004 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
-		HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000002 /* APIFailoverTests.swift */; };
 		1E34837EE62F56F3895E7793 /* ApiHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20205D496647508E81646995 /* ApiHost.swift */; };
 		2165730DFBA03FEFCC0DE59F /* MyStationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02625399D810FA6B5C14FD14 /* MyStationsTests.swift */; };
 		222BE6576F81920314253647 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333CF7681920314253647580 /* MapView.swift */; };
@@ -37,6 +32,7 @@
 		6968BDDAB3674EC5BD06879E /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
 		6ABF896064164BA2E196DCBB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CD4893706A946E245A1D536 /* Foundation.framework */; };
 		6C1AB31CD092CDF147AAF318 /* FavouritesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */; };
+		6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */; };
 		73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */; };
 		73F1033328A1C13AABCC2F52 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901234567890 /* Secrets.swift */; };
 		77824F9C05F61B09389063F0 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
@@ -90,6 +86,11 @@
 		FAB056A517479B37E72DC7CE /* ApiHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20205D496647508E81646995 /* ApiHost.swift */; };
 		FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0F00000000000000000301 /* WatchPhoneSync.swift */; };
 		FFF9C43546576F8192031425 /* FocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AD546576F819203142536 /* FocusedTrackingView.swift */; };
+		HF0A00000000000000000001 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
+		HF0A00000000000000000002 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
+		HF0A00000000000000000003 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
+		HF0A00000000000000000004 /* HostFailover.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000001 /* HostFailover.swift */; };
+		HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HF0F00000000000000000002 /* APIFailoverTests.swift */; };
 		LA0A00000000000000000001 /* TrackingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000001 /* TrackingActivityAttributes.swift */; };
 		LA0A00000000000000000002 /* TrackingActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000001 /* TrackingActivityAttributes.swift */; };
 		LA0A00000000000000000003 /* TrackingLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = LA0F00000000000000000002 /* TrackingLiveActivity.swift */; };
@@ -255,8 +256,6 @@
 		50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ApiHostTests.swift; sourceTree = "<group>"; };
 		545200192D9C010E25E54E72 /* WidgetEntrySnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEntrySnapshotTests.swift; sourceTree = "<group>"; };
 		555EH0A31425364758697CA3 /* StationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StationPickerView.swift; sourceTree = "<group>"; };
-		HF0F00000000000000000001 /* HostFailover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostFailover.swift; sourceTree = "<group>"; };
-		HF0F00000000000000000002 /* APIFailoverTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIFailoverTests.swift; sourceTree = "<group>"; };
 		57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainAPIService.swift; sourceTree = "<group>"; };
 		583F0998708C4748991F75B5 /* DepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureRowView.swift; sourceTree = "<group>"; };
 		5B51C424F9264A23AD022694 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -284,6 +283,7 @@
 		CCC6910213243546576F8192 /* TrackingBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingBarView.swift; sourceTree = "<group>"; };
 		CCDD01A2B3C4D5E6F7081920 /* TrainTimeViewModel+Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Navigation.swift"; sourceTree = "<group>"; };
 		DD4E5F6A7B8C9D0E1F2A3B4C /* TransportMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportMode.swift; sourceTree = "<group>"; };
+		DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GarminTipTests.swift; sourceTree = "<group>"; };
 		EED5FAB58AD7A36A727159EA /* PhoneComponentSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoneComponentSnapshotTests.swift; sourceTree = "<group>"; };
 		EEE8B3243546576F81920314 /* DirectionArrowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionArrowView.swift; sourceTree = "<group>"; };
 		EFB8D592491119C7EE87E88B /* TrainTimeWidgetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainTimeWidgetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -294,6 +294,8 @@
 		FA0F00000000000000000002 /* FavouritesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavouritesStore.swift; sourceTree = "<group>"; };
 		FE0F00000000000000000301 /* WatchPhoneSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPhoneSync.swift; sourceTree = "<group>"; };
 		FF6A7B8C9D0E1F2A3B4C5D6E /* GPSQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPSQuality.swift; sourceTree = "<group>"; };
+		HF0F00000000000000000001 /* HostFailover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostFailover.swift; sourceTree = "<group>"; };
+		HF0F00000000000000000002 /* APIFailoverTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIFailoverTests.swift; sourceTree = "<group>"; };
 		LA0F00000000000000000001 /* TrackingActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingActivityAttributes.swift; sourceTree = "<group>"; };
 		LA0F00000000000000000002 /* TrackingLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingLiveActivity.swift; sourceTree = "<group>"; };
 		P0F100000000000000000001 /* TrainTimePhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainTimePhoneApp.swift; sourceTree = "<group>"; };
@@ -546,6 +548,7 @@
 				RG0F00000000000000000002 /* ReviewGateTests.swift */,
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
+				DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */,
 			);
 			name = TrainTimePhoneTests;
 			path = TrainTimePhoneTests;
@@ -980,6 +983,7 @@
 				RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */,
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
+				6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

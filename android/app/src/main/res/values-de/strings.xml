@@ -220,4 +220,7 @@
     <string name="notifications_blocked">Teils blockiert</string>
     <string name="tour_background_title">Die Verfolgung läuft weiter</string>
     <string name="tour_background_body">Verlasse die App und dein Zug zählt auf dem Sperrbildschirm weiter herunter, mit Hinweis, wann du losmusst. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Jederzeit in den Einstellungen abschaltbar.</string>
+    <string name="garmin_tip_text">TrainTime läuft auch auf Garmin-Uhren. Verfolge deinen Zug am Handgelenk.</string>
+    <string name="garmin_tip_action">Im Connect IQ Store holen</string>
+    <string name="garmin_tip_dismiss">Ausblenden</string>
 </resources>

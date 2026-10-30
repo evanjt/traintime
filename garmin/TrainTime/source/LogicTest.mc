@@ -317,3 +317,10 @@ function testFormationReadoutRingDrains(logger) {
         && FormationArc.readoutLeft(2.5) > 0.49 && FormationArc.readoutLeft(2.5) < 0.51
         && FormationArc.readoutLeft(9) == 0.0;
 }
+
+(:test)
+function testDepartureLimitFitsSmallWatches(logger) {
+    // A 128 KB watch app holds about 6 KB free once the board is loaded: a full 20-row
+    // refresh does not fit there, a short one does
+    return ApiHandler.departureLimit(126792) < 20 && ApiHandler.departureLimit(1306048) == 20;
+}

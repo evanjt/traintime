@@ -171,3 +171,37 @@ extension GarminConnectIQService: IQDeviceEventDelegate, IQAppMessageDelegate, I
     func needsToInstallConnectMobile() {}
 }
 #endif
+
+/// One-time "TrainTime runs on your Garmin too" tip. Mirrors the Android
+/// GarminTipGate: Garmin Connect on the phone, no Garmin ever linked, tip
+/// unseen, the tour done and a few launches in, so it never arrives with the
+/// tour, which already points at the Garmin app. Pure for unit testing.
+enum GarminTipGate {
+    static let minLaunches = 2
+
+    static func shouldShow(
+        garminConnectInstalled: Bool, everLinked: Bool, seen: Bool, tourDone: Bool, launches: Int
+    ) -> Bool {
+        garminConnectInstalled && !everLinked && !seen && tourDone && launches >= minLaunches
+    }
+}
+
+/// The Connect IQ Store page in the app's language. Swiss locales redirect to
+/// these on the store anyway, and anything else falls back to English.
+enum ConnectIqStore {
+    static let appID = "c70bbfae-846a-4d00-9e96-d485217035fb"
+
+    static func url(language: String) -> URL {
+        let locale: String
+        switch language.lowercased().split(separator: "-").first.map(String.init) ?? "" {
+        case "de": locale = "de-DE"
+        case "fr": locale = "fr-FR"
+        case "it": locale = "it-IT"
+        default: locale = "en-US"
+        }
+        return URL(string: "https://apps.garmin.com/\(locale)/apps/\(appID)")!
+    }
+
+    /// The page for the language the app is running in.
+    static var current: URL { url(language: Bundle.main.preferredLocalizations.first ?? "en") }
+}

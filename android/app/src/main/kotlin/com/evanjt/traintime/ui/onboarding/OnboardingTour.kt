@@ -64,6 +64,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -83,6 +84,7 @@ import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.FavouritesStore
 import com.evanjt.traintime.data.prefs.MyStationsStore
+import com.evanjt.traintime.domain.ConnectIqStore
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.linePill
 import com.evanjt.traintime.ui.station.DepartureRow
@@ -651,7 +653,7 @@ internal fun TourWatchSurface(topInset: Dp, onReport: (Rect) -> Unit) {
                     badge = WatchBadgeKind.SYNCS_LIVE,
                     modifier = Modifier.weight(1f),
                     buttonLabel = "Connect IQ",
-                    url = CONNECT_IQ_STORE_URL,
+                    url = ConnectIqStore.url(LocalConfiguration.current.locales[0].language),
                 )
                 WatchTile(
                     R.drawable.watch_wear,
@@ -771,9 +773,6 @@ private fun WatchBadge(kind: WatchBadgeKind) {
         )
     }
 }
-
-private const val CONNECT_IQ_STORE_URL =
-    "https://apps.garmin.com/en-CH/apps/c70bbfae-846a-4d00-9e96-d485217035fb"
 
 private const val APP_STORE_URL = "https://apps.apple.com/app/id6760388620"
 
