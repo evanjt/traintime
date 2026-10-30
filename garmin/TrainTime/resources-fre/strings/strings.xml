@@ -55,6 +55,7 @@
     <!-- Walk info -->
     <string id="WalkUnder1">&lt;1 min</string>
     <string id="WalkInfoFmt">$1$ à pied - $2$m</string>
+    <string id="WalkInfoShortFmt">$1$ · $2$m</string>
 
     <!-- Settings menu -->
     <string id="SettingsTitle">Réglages</string>

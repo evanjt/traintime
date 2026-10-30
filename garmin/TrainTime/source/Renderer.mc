@@ -37,7 +37,13 @@ module Renderer {
 
         // State 2: focused tracking
         if (view.mAppState == 2 && view.mFocusedTrain != null) {
-            drawFocusedMode(dc, view, width, height);
+            // The band is drawn after drawFocusedMode returns: its large frame leaves too
+            // little stack for the band's geometry underneath it
+            var band = drawFocusedMode(dc, view, width, height);
+            if (band != null) {
+                drawWalkAndBand(dc, view, width, band[0], band[1], band[2]);
+                drawToast(dc, view, width, height);
+            }
             return;
         }
 
@@ -624,7 +630,7 @@ module Renderer {
     function drawFocusedMode(dc, view, width, height) {
         var centerX = width / 2;
 
-        if (view.mStationName == null) { return; }
+        if (view.mStationName == null) { return null; }
 
         // Status row centred in the top arc: [GPS bars] HH:MM. Centred placement
         // keeps it clear of the round-display chord on every diameter
@@ -830,6 +836,11 @@ module Renderer {
         var walkY = statusY + tinyH + DrawUtils.px(2, width);
         var hasFormation = view.mFormationClasses != null
             && view.mFormationClasses.size() > 0;
+        if (hasFormation && DrawUtils.isRound() && view.mFormationBreaks != null) {
+            drawDirectionArrow(dc, view, width, height, minY);
+            drawButtonHints(dc, view, width, height);
+            return [statusY + tinyH, walkY, xtinyH];
+        }
         var showWalk = view.mWalkInfo != null;
         if (showWalk && hasFormation) {
             var formTop = height - xtinyH - (xtinyH + 3) - DrawUtils.px(4, width);
@@ -854,6 +865,38 @@ module Renderer {
 
         drawButtonHints(dc, view, width, height);
 
+        drawToast(dc, view, width, height);
+        return null;
+    }
+
+    // Walk line (or the car readout while Up/Down is in use) above the formation band.
+    // The walk line never goes: where the band is tight it falls back to its short form.
+    function drawWalkAndBand(dc, view, width, statusBottom, walkY, xtinyH) {
+        var breaks = view.mFormationBreaks;
+        var nBreaks = 0;
+        for (var i = 0; i < breaks.size() - 1; i++) { if (breaks[i]) { nBreaks++; } }
+        var g = FormationArc.layout(width, statusBottom, breaks.size(), nBreaks);
+        var cursor = view.formationCursor();
+        if (cursor != null) {
+            FormationArc.drawReadout(dc, g, view, cursor, walkY, xtinyH,
+                Time.now().value() - view.mFormationCursorTime);
+        } else if (view.mWalkInfo != null) {
+            var walk = view.mWalkInfo;
+            if (!FormationArc.clearsBand(g, dc.getTextWidthInPixels(walk, Graphics.FONT_XTINY), walkY, xtinyH)
+                    && view.mWalkInfoShort != null) {
+                walk = view.mWalkInfoShort;
+            }
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(width / 2, walkY, Graphics.FONT_XTINY, walk, Graphics.TEXT_JUSTIFY_CENTER);
+        }
+        var sp = FormationArc.spans(g, breaks);
+        var labels = FormationArc.numberLabels(view.mFormationNumbers, view.mFormationClasses, breaks,
+            sp, g[:rm], g[:k]);
+        FormationArc.draw(dc, g, view, cursor, sp, labels);
+    }
+
+    function drawToast(dc, view, width, height) {
+        var centerX = width / 2;
         // Toast overlay (map errors, reminder delivery)
         if (view.mToast != null && view.mToastTick != null) {
             var elapsed = Time.now().value() - view.mToastTick;

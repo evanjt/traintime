@@ -566,6 +566,19 @@ module ApiHandler {
         request(view, KIND_FORMATION, path);
     }
 
+    function amenityBits(features) {
+        var bits = 0;
+        if (features == null || !(features instanceof Lang.Array)) { return bits; }
+        for (var i = 0; i < features.size(); i++) {
+            var f = features[i];
+            if (f.equals("restaurant")) { bits |= FormationArc.AMEN_RESTAURANT; }
+            else if (f.equals("wheelchair")) { bits |= FormationArc.AMEN_WHEELCHAIR; }
+            else if (f.equals("family")) { bits |= FormationArc.AMEN_FAMILY; }
+            else if (f.equals("bike")) { bits |= FormationArc.AMEN_BIKE; }
+        }
+        return bits;
+    }
+
     function handleFormationResponse(view, responseCode, data) {
         if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) {
             view.mFormationClasses = null;
@@ -587,16 +600,25 @@ module ApiHandler {
         var classes = new [wagons.size()];
         var numbers = new [wagons.size()];
         var sectors = new [wagons.size()];
+        var breaks = new [wagons.size()];
+        var amenities = new [wagons.size()];
+        var mixed = new [wagons.size()];
         for (var i = 0; i < wagons.size(); i++) {
             var w = wagons[i];
             classes[i] = w.hasKey("class") ? w["class"] : 2;
             numbers[i] = (w.hasKey("number") && w["number"] != null) ? w["number"] : 0;
             sectors[i] = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
+            breaks[i] = w.hasKey("noPassageAfter") && w["noPassageAfter"] == true;
+            mixed[i] = w.hasKey("mixedClass") && w["mixedClass"] == true;
+            amenities[i] = amenityBits(w.hasKey("features") ? w["features"] : null);
         }
 
         view.mFormationClasses = classes;
         view.mFormationNumbers = numbers;
         view.mFormationSectors = sectors;
+        view.mFormationBreaks = breaks;
+        view.mFormationAmenities = amenities;
+        view.mFormationMixed = mixed;
         WatchUi.requestUpdate();
     }
 

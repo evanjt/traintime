@@ -18,6 +18,7 @@ class TrainTimeView extends WatchUi.View {
     var mStationName;
     var mRequestInFlight;
     var mWalkInfo;
+    var mWalkInfoShort;  // Same, without the word, for screens where the formation band is tight
     var mStations;
     var mStationIndex;
     var mLastSearchLat;
@@ -52,6 +53,11 @@ class TrainTimeView extends WatchUi.View {
     var mFormationClasses;  // Array of Number (1 or 2) per wagon
     var mFormationNumbers;  // Array of Number (wagon numbers)
     var mFormationSectors;  // Array of String (sector letters)
+    var mFormationBreaks;   // Array of Boolean: no passage to the next car
+    var mFormationAmenities; // Array of Number: FormationArc.AMEN_* bits
+    var mFormationMixed;    // Array of Boolean: first and second class in one car
+    var mFormationCursor = null;     // Highlighted car while Up/Down steps through them
+    var mFormationCursorTime = 0;
     var mFavouriteData; // favourite departures from API (separate from mTrainData)
     var mToast;             // short-lived message overlay in the tracking view
     var mToastTick;         // timestamp when the toast was set
@@ -114,6 +120,10 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mFormationBreaks = null;
+        mFormationAmenities = null;
+        mFormationMixed = null;
+        mFormationCursor = null;
         mFavouriteData = null;
         mToast = null;
         mToastTick = null;
@@ -453,11 +463,38 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mFormationBreaks = null;
+        mFormationAmenities = null;
+        mFormationMixed = null;
+        mFormationCursor = null;
         var trainNum = t["trainNum"];
         var cat = t["cat"];
         if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
             ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
         }
+    }
+
+    // Up/Down on the tracking screen: step the highlight along the train
+    function moveFormationCursor(step) {
+        if (mFormationClasses == null || mFormationClasses.size() == 0) { return; }
+        var n = mFormationClasses.size();
+        if (formationCursor() == null) {
+            mFormationCursor = step > 0 ? 0 : n - 1;
+        } else {
+            mFormationCursor = (mFormationCursor + step + n) % n;
+        }
+        mFormationCursorTime = Time.now().value();
+        WatchUi.requestUpdate();
+    }
+
+    // The readout gives way to the walk line a few seconds after the last press
+    function formationCursor() {
+        if (mFormationCursor == null) { return null; }
+        if (FormationArc.readoutLeft(Time.now().value() - mFormationCursorTime) <= 0.0) {
+            mFormationCursor = null;
+            return null;
+        }
+        return mFormationCursor;
     }
 
     function exitToStationView() {
@@ -474,6 +511,10 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mFormationBreaks = null;
+        mFormationAmenities = null;
+        mFormationMixed = null;
+        mFormationCursor = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -502,6 +543,10 @@ class TrainTimeView extends WatchUi.View {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
+        mFormationBreaks = null;
+        mFormationAmenities = null;
+        mFormationMixed = null;
+        mFormationCursor = null;
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -949,6 +994,7 @@ class TrainTimeView extends WatchUi.View {
         }
 
         // Station counter lives in the header carousel, not here
+        mWalkInfoShort = Lang.format(Txt.t(Rez.Strings.WalkInfoShortFmt), [timeStr, dist]);
         return Lang.format(Txt.t(Rez.Strings.WalkInfoFmt), [timeStr, dist]);
     }
 

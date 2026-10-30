@@ -1,0 +1,5 @@
+<fonts>
+    <!-- Pixel digits, sector letters and amenity glyphs for the formation band -->
+    <font id="Formation1" filename="formation1.fnt" antialias="false" filter="0123456789-ABCDEFGHIJKLMNOPrwfb"/>
+    <font id="Formation2" filename="formation2.fnt" antialias="false" filter="0123456789-ABCDEFGHIJKLMNOPrwfb"/>
+</fonts>

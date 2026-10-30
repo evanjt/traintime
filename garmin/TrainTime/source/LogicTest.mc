@@ -1,5 +1,6 @@
 using Toybox.Test;
 using Toybox.Application.Storage;
+using Toybox.Math;
 
 // Geo, parsing and favourites logic. Built only with `monkeyc -t`.
 
@@ -250,4 +251,69 @@ function testLateTrainStaysMatchable(logger) {
 function testCountdownDepartsAtEffectiveTime(logger) {
     return !DepartureLogic.hasDeparted(-1.0, 4) && !DepartureLogic.hasDeparted(-4.4, 4)
         && DepartureLogic.hasDeparted(-4.6, 4) && DepartureLogic.hasDeparted(-0.6, 0);
+}
+
+// A 16-car train in two units of eight, front first, as the formation band receives it
+function formationFixture() {
+    return {
+        :numbers => [18, 17, 16, 15, 14, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1],
+        :classes => [2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1],
+        :breaks => [false, false, false, false, false, false, false, true,
+            false, false, false, false, false, false, false, false]
+    };
+}
+
+(:test)
+function testFormationLabelsCoverEveryCarOnce(logger) {
+    var t = formationFixture();
+    var g = FormationArc.layout(260, 187, 16, 1);
+    var sp = FormationArc.spans(g, t[:breaks]);
+    var labels = FormationArc.numberLabels(t[:numbers], t[:classes], t[:breaks], sp, g[:rm], g[:k]);
+    if (labels == null) { return false; }
+    var seen = new [16];
+    for (var q = 0; q < labels.size(); q++) {
+        var a = labels[q][0];
+        var b = labels[q][1];
+        // A label never reaches across the unit boundary after the eighth car
+        if (a <= 7 && b >= 8) { return false; }
+        for (var i = a; i <= b; i++) {
+            if (seen[i] != null) { return false; }
+            seen[i] = true;
+        }
+    }
+    for (var i = 0; i < 16; i++) { if (seen[i] == null) { return false; } }
+    return true;
+}
+
+(:test)
+function testFormationShortTrainNumbersEveryCar(logger) {
+    var numbers = [9, 8, 7, 6, 5, 4, 3, 2, 1];
+    var classes = [2, 2, 2, 2, 2, 2, 1, 1, 1];
+    var breaks = [false, false, false, false, false, false, false, false, false];
+    var g = FormationArc.layout(260, 187, 9, 0);
+    var sp = FormationArc.spans(g, breaks);
+    return FormationArc.numberLabels(numbers, classes, breaks, sp, g[:rm], g[:k]) == null;
+}
+
+(:test)
+function testFormationLabelStepWidensTowardTheEnds(logger) {
+    var bottom = FormationArc.stepAt(Math.PI / 2, 1);
+    var side = FormationArc.stepAt(0.5, 1);
+    return bottom > 5.99 && bottom < 6.01 && side > bottom
+        && FormationArc.stepAt(Math.PI / 2, 2) > 10.99;
+}
+
+(:test)
+function testFormationAmenityBits(logger) {
+    var bits = ApiHandler.amenityBits(["wheelchair", "restaurant", "low_floor", "bike"]);
+    return bits == (FormationArc.AMEN_RESTAURANT | FormationArc.AMEN_WHEELCHAIR | FormationArc.AMEN_BIKE)
+        && ApiHandler.amenityBits(null) == 0 && ApiHandler.amenityBits(["kw"]) == 0;
+}
+
+(:test)
+function testFormationReadoutRingDrains(logger) {
+    return FormationArc.readoutLeft(0) == 1.0
+        && FormationArc.readoutLeft(5) == 0.0
+        && FormationArc.readoutLeft(2.5) > 0.49 && FormationArc.readoutLeft(2.5) < 0.51
+        && FormationArc.readoutLeft(9) == 0.0;
 }

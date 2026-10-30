@@ -18,8 +18,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
             mView.cycleMode();            // cycle modes forward
         } else if (state == 1) {
             mView.moveCursorDown();
+        } else if (state == 2) {
+            mView.moveFormationCursor(1);
         }
-        // State 2: no-op
         return true;
     }
 
@@ -32,8 +33,9 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
             mView.cycleModeReverse();     // cycle modes backward
         } else if (state == 1) {
             mView.moveCursorUp();
+        } else if (state == 2) {
+            mView.moveFormationCursor(-1);
         }
-        // State 2: no-op
         return true;
     }
 
@@ -59,6 +61,12 @@ class TrainTimeDelegate extends WatchUi.BehaviorDelegate {
     function onBack() {
         mView.mLastInteractionTime = Toybox.Time.now().value();
         var state = mView.getAppState();
+        // Back first closes the car readout; tracking only ends on the next press
+        if (state == 2 && mView.formationCursor() != null) {
+            mView.mFormationCursor = null;
+            WatchUi.requestUpdate();
+            return true;
+        }
         if (state == 1 || state == 2) {
             mView.exitToStationView();
             return true;  // consumed, don't exit app
