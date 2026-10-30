@@ -24,6 +24,7 @@
 		3D21DFD006126D43CBC84E33 /* FavouritesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000002 /* FavouritesStore.swift */; };
 		40B38B5AFDDD4E87B015AAB6 /* Station.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0776EECB8D2496AA4A29C74 /* Station.swift */; };
 		444DG8920314253647586B92 /* StationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555EH0A31425364758697CA3 /* StationPickerView.swift */; };
+		47A917B6CE811DEF0CC912A8 /* FormationStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */; };
 		490335BD08DD9D60D7F4D9AA /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000003 /* WidgetViews.swift */; };
 		49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */; };
 		501EF45BF70303C8F50A9A64 /* GeoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE4DE7715F97367EA34B9B9 /* GeoTests.swift */; };
@@ -31,6 +32,7 @@
 		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
 		6968BDDAB3674EC5BD06879E /* Favourite.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0F00000000000000000001 /* Favourite.swift */; };
 		6ABF896064164BA2E196DCBB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CD4893706A946E245A1D536 /* Foundation.framework */; };
+		6BDDE5C711B74D2BFDF3B88B /* FormationStripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1390CCE9520A0974DF8E6440 /* FormationStripTests.swift */; };
 		6C1AB31CD092CDF147AAF318 /* FavouritesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */; };
 		6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */; };
 		73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */; };
@@ -38,6 +40,7 @@
 		77824F9C05F61B09389063F0 /* TrainAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57045F4F1EAE4BCD90A7E433 /* TrainAPIService.swift */; };
 		77D14C5D6E7F809102132435 /* GPSIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E25D6E7F80910213243546 /* GPSIndicatorView.swift */; };
 		7E21A2FD80980B8821C505ED /* SwitchModeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000007 /* SwitchModeIntent.swift */; };
+		885635C9AC725E2232AC64CD /* WatchFormationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F100000000000000000003 /* WatchFormationView.swift */; };
 		8D78A06DBFD449E5BD8820F5 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126C5CC247C946DFB19AA5E7 /* Constants.swift */; };
 		903B468600AD31D4C6DC3A2C /* GeoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* GeoUtils.swift */; };
 		9267457D659A2F29B9AB50EC /* ApiHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20205D496647508E81646995 /* ApiHost.swift */; };
@@ -66,6 +69,7 @@
 		CD29A0F93FFC675AEE286506 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = BC53D2410C89B093018DCE7E /* SnapshotTesting */; };
 		CDFF29E54E2D79903BFD97C4 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CD4893706A946E245A1D536 /* Foundation.framework */; };
 		DC0DF392F3916F887E8A0FA3 /* FocusedDeparture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228C9D0E1F2A3B4C5D6E7F80 /* FocusedDeparture.swift */; };
+		DC30063F77067FC7E229D469 /* FormationStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */; };
 		DD85640342070AD0AB33CF75 /* ParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6390A9C142D9AF015FE486CF /* ParsingTests.swift */; };
 		DDD7A213243546576F819203 /* DirectionArrowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE8B3243546576F81920314 /* DirectionArrowView.swift */; };
 		E2A8F234BE630819E1031F1F /* RefreshIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000004 /* RefreshIntent.swift */; };
@@ -244,6 +248,7 @@
 		111AD546576F819203142536 /* FocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedTrackingView.swift; sourceTree = "<group>"; };
 		1122334455667788990011AA /* TrainTimeViewModel+Tracking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainTimeViewModel+Tracking.swift"; sourceTree = "<group>"; };
 		126C5CC247C946DFB19AA5E7 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		1390CCE9520A0974DF8E6440 /* FormationStripTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FormationStripTests.swift; sourceTree = "<group>"; };
 		17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FavouritesTests.swift; sourceTree = "<group>"; };
 		1ECAA0CAB08B43EE9F8318B8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		20205D496647508E81646995 /* ApiHost.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ApiHost.swift; sourceTree = "<group>"; };
@@ -260,6 +265,7 @@
 		583F0998708C4748991F75B5 /* DepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepartureRowView.swift; sourceTree = "<group>"; };
 		5B51C424F9264A23AD022694 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5EFDB27D479A403E916113BF /* RoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingService.swift; sourceTree = "<group>"; };
+		6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FormationStrip.swift; sourceTree = "<group>"; };
 		6390A9C142D9AF015FE486CF /* ParsingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ParsingTests.swift; sourceTree = "<group>"; };
 		66C03B4C5D6E7F8091021324 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
 		888B01A2B3C4D5E6F7081920 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -529,6 +535,7 @@
 				RG0F00000000000000000001 /* ReviewGate.swift */,
 				S0F100000000000000000001 /* SharedRoute.swift */,
 				20205D496647508E81646995 /* ApiHost.swift */,
+				6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -549,6 +556,7 @@
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
 				DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */,
+				1390CCE9520A0974DF8E6440 /* FormationStripTests.swift */,
 			);
 			name = TrainTimePhoneTests;
 			path = TrainTimePhoneTests;
@@ -936,6 +944,7 @@
 				F0A100000000000000000002 /* WatchFormationView.swift in Sources */,
 				37248F0EE9539D2AC5726919 /* ApiHost.swift in Sources */,
 				HF0A00000000000000000001 /* HostFailover.swift in Sources */,
+				DC30063F77067FC7E229D469 /* FormationStrip.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -984,6 +993,7 @@
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
 				6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */,
+				6BDDE5C711B74D2BFDF3B88B /* FormationStripTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1041,6 +1051,8 @@
 				F0A100000000000000000004 /* FormationDiagramView.swift in Sources */,
 				9267457D659A2F29B9AB50EC /* ApiHost.swift in Sources */,
 				HF0A00000000000000000003 /* HostFailover.swift in Sources */,
+				47A917B6CE811DEF0CC912A8 /* FormationStrip.swift in Sources */,
+				885635C9AC725E2232AC64CD /* WatchFormationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

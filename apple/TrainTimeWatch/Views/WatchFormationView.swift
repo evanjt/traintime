@@ -2,149 +2,188 @@ import SwiftUI
 
 struct WatchFormationView: View {
     let formation: Formation
+    // Car highlighted while the readout shows
+    var cursor: Int? = nil
 
-    private let carriageHeight: CGFloat = 14
-    private let gap: CGFloat = 1
-    private let noseWidth: CGFloat = 14
+    private static let carTop: CGFloat = 1
+    private static let carHeight: CGFloat = 14
+    private static let lineTop: CGFloat = carTop + carHeight + 1
+    private static let lineHeight: CGFloat = 3
+    private static let sectorY: CGFloat = lineTop + lineHeight + 6
+    static let height: CGFloat = sectorY + 6
+
+    private static let bodyColour = Color(white: 0.30)
+    private static let first = Color(red: 0.92, green: 0.72, blue: 0.0)
+    private static let breakRed = Color(red: 1, green: 0, blue: 0)
 
     var body: some View {
         GeometryReader { geo in
-            let n = CGFloat(formation.wagons.count)
-            let available = geo.size.width - noseWidth - (n - 1) * gap
-            let carriageWidth = min(16, max(available / n, 8))
+            let wagons = formation.wagons
+            let breaks = wagons.map(\.noPassageAfter)
+            let strip = FormationStrip(width: geo.size.width, breaks: breaks)
+            let labels = strip.numberLabels(numbers: wagons.map(\.number), classes: wagons.map(\.wagonClass), breaks: breaks)
 
-            VStack(spacing: 1) {
-                // Train
-                HStack(spacing: 0) {
-                    // Locomotive
-                    WatchLocoView(height: carriageHeight)
+            ZStack(alignment: .topLeading) {
+                WatchLocoView(width: FormationStrip.noseWidth, height: Self.carHeight)
+                    .offset(y: Self.carTop)
 
-                    // Carriages
-                    ForEach(Array(formation.wagons.enumerated()), id: \.offset) { i, wagon in
-                        if i > 0 {
-                            Rectangle()
-                                .fill(Color(white: 0.12))
-                                .frame(width: gap, height: carriageHeight * 0.35)
-                        }
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color(white: 0.18))
-                                .frame(width: carriageWidth, height: carriageHeight)
-                                .opacity(wagon.closed ? 0.4 : 1.0)
-
-                            RoundedRectangle(cornerRadius: 2)
-                                .stroke(Color(white: 0.30), lineWidth: 0.5)
-                                .frame(width: carriageWidth, height: carriageHeight)
-
-                            // 1st class yellow stripe
-                            if wagon.wagonClass == 1 {
-                                VStack {
-                                    RoundedRectangle(cornerRadius: 0.5)
-                                        .fill(Color(red: 0.92, green: 0.72, blue: 0.0))
-                                        .frame(width: carriageWidth - 2, height: 1.5)
-                                        .offset(y: 1)
-                                    Spacer()
-                                }
-                                .frame(height: carriageHeight)
-                                .clipShape(RoundedRectangle(cornerRadius: 2))
-                            }
-
-                            // Car number
-                            Text("\(wagon.number)")
-                                .font(.system(size: 9, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color(white: 0.55))
-                                .minimumScaleFactor(0.6)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-
-                // Sector labels with bracket lines
-                if !sectorGroups.isEmpty {
-                    WatchSectorLabels(
-                        groups: sectorGroups,
-                        carriageWidth: carriageWidth,
-                        gap: gap,
-                        noseWidth: noseWidth
-                    )
+                Canvas { ctx, _ in
+                    drawCars(ctx, strip: strip, breaks: breaks)
+                    drawNumbers(ctx, strip: strip, labels: labels)
+                    drawSectors(ctx, strip: strip)
                 }
             }
-            .frame(width: geo.size.width)
         }
-        .frame(height: 28)
+        .frame(height: Self.height)
     }
 
-    struct SectorGroup {
-        let sector: String
-        let count: Int
-    }
+    private func drawCars(_ ctx: GraphicsContext, strip: FormationStrip, breaks: [Bool]) {
+        let w = strip.carWidth
+        for (i, wagon) in formation.wagons.enumerated() {
+            let x = strip.spans[i].x0
+            let car = CGRect(x: x, y: Self.carTop, width: w, height: Self.carHeight)
+            if cursor == i {
+                ctx.fill(Path(roundedRect: car.insetBy(dx: -1, dy: -1), cornerRadius: 2.5), with: .color(.white))
+            }
+            var carCtx = ctx
+            carCtx.opacity = wagon.closed ? 0.4 : 1
+            carCtx.fill(Path(roundedRect: car, cornerRadius: 2), with: .color(Self.bodyColour))
+            if wagon.wagonClass == 1 {
+                let stripe = wagon.mixedClass ? w / 2 : w
+                carCtx.fill(Path(CGRect(x: x, y: Self.carTop, width: stripe, height: 2)), with: .color(Self.first))
+            }
 
-    private var sectorGroups: [SectorGroup] {
-        var groups: [SectorGroup] = []
-        var currentSector = ""
-        var count = 0
-
-        for wagon in formation.wagons {
-            if wagon.sector != currentSector {
-                if count > 0 {
-                    groups.append(SectorGroup(sector: currentSector, count: count))
+            // One colour line on black under the car, a segment per amenity
+            let amenities = FormationAmenity.of(wagon)
+            if !amenities.isEmpty {
+                let seg = (w - 1.5 * CGFloat(amenities.count - 1)) / CGFloat(amenities.count)
+                for (q, a) in amenities.enumerated() {
+                    let r = CGRect(x: x + CGFloat(q) * (seg + 1.5), y: Self.lineTop, width: seg, height: Self.lineHeight)
+                    ctx.fill(Path(r), with: .color(Color(rgb: a.rgb)))
                 }
-                currentSector = wagon.sector
-                count = 1
-            } else {
-                count += 1
+            }
+
+            if breaks[i] && i < formation.wagons.count - 1 {
+                let bx = strip.breakX(after: i)
+                let bar = CGRect(x: bx - 1, y: 0, width: 2, height: Self.lineTop + Self.lineHeight)
+                ctx.fill(Path(bar), with: .color(Self.breakRed))
             }
         }
-        if count > 0 {
-            groups.append(SectorGroup(sector: currentSector, count: count))
+    }
+
+    private func drawNumbers(_ ctx: GraphicsContext, strip: FormationStrip, labels: [FormationNumberLabel]?) {
+        let y = Self.carTop + Self.carHeight / 2 + 0.5
+        let runs = labels ?? formation.wagons.indices.map {
+            FormationNumberLabel(first: $0, last: $0, text: "\(formation.wagons[$0].number)")
         }
-        return groups
+        for label in runs {
+            let mid = (strip.spans[label.first].x0 + strip.spans[label.last].x1) / 2
+            ctx.draw(
+                Text(label.text)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundColor(Color(white: 0.85)),
+                at: CGPoint(x: mid, y: y)
+            )
+        }
+    }
+
+    private func drawSectors(_ ctx: GraphicsContext, strip: FormationStrip) {
+        let wagons = formation.wagons
+        // Direction of travel under the nose
+        ctx.draw(
+            Text(Image(systemName: "arrow.left")).font(.system(size: 7, weight: .medium)).foregroundColor(.white),
+            at: CGPoint(x: FormationStrip.noseWidth / 2, y: Self.sectorY)
+        )
+        var i = 0
+        while i < wagons.count {
+            var j = i + 1
+            while j < wagons.count && wagons[j].sector == wagons[i].sector { j += 1 }
+            let x0 = strip.spans[i].x0
+            let x1 = strip.spans[j - 1].x1
+            ctx.fill(Path(CGRect(x: x0 + 1, y: Self.sectorY, width: x1 - x0 - 2, height: 0.5)),
+                     with: .color(Color(white: 0.35)))
+            let letter = ctx.resolve(Text(wagons[i].sector).font(.system(size: 9, weight: .bold)).foregroundColor(.white))
+            let size = letter.measure(in: CGSize(width: 40, height: 20))
+            let mid = (x0 + x1) / 2
+            ctx.fill(Path(CGRect(x: mid - size.width / 2 - 2, y: Self.sectorY - size.height / 2,
+                                 width: size.width + 4, height: size.height)), with: .color(.black))
+            ctx.draw(letter, at: CGPoint(x: mid, y: Self.sectorY + 0.25))
+            i = j
+        }
     }
 }
 
-private struct WatchSectorLabels: View {
-    let groups: [WatchFormationView.SectorGroup]
-    let carriageWidth: CGFloat
-    let gap: CGFloat
-    let noseWidth: CGFloat
+// One line in the walk line's place: car number, sector, each amenity's colour beside its
+// icon, and a ring that drains until the readout clears by itself.
+struct WatchCarReadout: View {
+    let wagon: FormationWagon
+    let stepAt: Date
 
     var body: some View {
-        HStack(spacing: 0) {
-            Image(systemName: "arrow.left")
-                .font(.system(size: 7, weight: .medium))
-                .foregroundColor(.white)
-                .frame(width: noseWidth)
-
-            ForEach(Array(groups.enumerated()), id: \.offset) { i, group in
-                let groupWidth = CGFloat(group.count) * carriageWidth + CGFloat(max(0, group.count - 1)) * gap + (i > 0 ? gap : 0)
-
-                ZStack {
-                    // Line through the middle
-                    Rectangle()
-                        .fill(Color(white: 0.35))
-                        .frame(width: groupWidth - 2, height: 0.5)
-
-                    // Sector letter with opaque background
-                    Text(group.sector)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 2)
-                        .background(Color.black)
-                }
-                .frame(width: groupWidth, height: 12)
-            }
+        TimelineView(.periodic(from: stepAt, by: 0.2)) { context in
+            WatchCarReadoutRow(wagon: wagon, left: FormationReadout.left(elapsed: context.date.timeIntervalSince(stepAt)))
         }
+    }
+}
+
+struct WatchCarReadoutRow: View {
+    let wagon: FormationWagon
+    let left: Double
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text("\(wagon.number)")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+            if !wagon.sector.isEmpty {
+                Text(wagon.sector)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(FormationAmenity.of(wagon), id: \.self) { a in
+                HStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Color(rgb: a.rgb))
+                        .frame(width: 7, height: 3)
+                    Image(systemName: a.symbol)
+                        .font(.system(size: 9))
+                        .foregroundStyle(.white)
+                }
+            }
+            ReadoutRing(left: left)
+        }
+    }
+}
+
+private struct ReadoutRing: View {
+    let left: Double
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color(white: 0.30), lineWidth: 1.5)
+            Circle()
+                .trim(from: 0, to: left)
+                .stroke(Color.white, lineWidth: 1.5)
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: 9, height: 9)
+    }
+}
+
+private extension Color {
+    init(rgb: UInt32) {
+        self.init(red: Double((rgb >> 16) & 0xFF) / 255, green: Double((rgb >> 8) & 0xFF) / 255, blue: Double(rgb & 0xFF) / 255)
     }
 }
 
 private struct WatchLocoView: View {
+    let width: CGFloat
     let height: CGFloat
-    private let width: CGFloat = 14
 
     var body: some View {
         ZStack {
             WatchLocoShape()
-                .fill(Color(white: 0.18))
+                .fill(Color(white: 0.30))
                 .frame(width: width, height: height)
 
             WatchLocoShape()

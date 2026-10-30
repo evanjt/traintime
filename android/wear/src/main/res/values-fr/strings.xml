@@ -21,4 +21,9 @@
     <string name="tracking_channel">Suivi</string>
     <string name="inactive">Inactif</string>
     <string name="yes_short">Oui</string>
+    <string name="formation_restaurant">Restaurant</string>
+    <string name="formation_wheelchair">Place pour fauteuil roulant</string>
+    <string name="formation_family">Zone famille</string>
+    <string name="formation_bike">Crochets à vélos</string>
+    <string name="formation_car_fmt">Voiture %1$d, secteur %2$s</string>
 </resources>

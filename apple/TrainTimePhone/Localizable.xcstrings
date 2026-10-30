@@ -689,6 +689,28 @@
         }
       }
     },
+    "Bike space": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veloplatz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place pour vélo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posto per bici"
+          }
+        }
+      }
+    },
     "Bring trips from SBB": {
       "localizations": {
         "de": {
@@ -729,6 +751,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bus"
+          }
+        }
+      }
+    },
+    "Business zone": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Businesszone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zone business"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zona business"
           }
         }
       }
@@ -1235,6 +1279,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Invio non riuscito"
+          }
+        }
+      }
+    },
+    "Family zone": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familienzone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zone famille"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zona famiglia"
           }
         }
       }
@@ -2089,6 +2155,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ancora nessun preferito"
+          }
+        }
+      }
+    },
+    "No passage between these cars": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Durchgang zwischen diesen Wagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de passage entre ces voitures"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun passaggio tra queste carrozze"
           }
         }
       }
@@ -2997,6 +3085,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rivedi la guida"
+          }
+        }
+      }
+    },
+    "Restaurant": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurant"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurant"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ristorante"
           }
         }
       }
@@ -4667,6 +4777,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'app orologio non risponde, riapro..."
+          }
+        }
+      }
+    },
+    "Wheelchair space": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rollstuhlplatz"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place pour fauteuil roulant"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posto per sedia a rotelle"
           }
         }
       }

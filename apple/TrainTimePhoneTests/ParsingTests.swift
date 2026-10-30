@@ -79,7 +79,7 @@ final class ParsingTests: XCTestCase {
             "track": "3", "sectors": ["A", "B"],
             "wagons": [
                 ["position": 1, "number": 101, "class": 2, "sector": "A", "features": ["wheelchair"]],
-                ["position": 2, "number": 102, "class": 1, "sector": "B"],
+                ["position": 2, "number": 102, "class": 1, "sector": "B", "noPassageAfter": true, "mixedClass": true],
             ],
         ]
         let f = Formation.from(json: json)!
@@ -89,6 +89,35 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(f.wagons[0].wagonClass, 2)
         XCTAssertEqual(f.wagons[0].features, ["wheelchair"])
         XCTAssertEqual(f.wagons[1].wagonClass, 1)
+        XCTAssertFalse(f.wagons[0].noPassageAfter)
+        XCTAssertTrue(f.wagons[1].noPassageAfter)
+        XCTAssertTrue(f.wagons[1].mixedClass)
+    }
+
+    func testFormationReadsNoPassageAndMixedClass() {
+        let json: [String: Any] = [
+            "track": "6", "sectors": ["A"],
+            "wagons": [
+                ["position": 1, "number": 11, "class": 1, "sector": "A", "noPassageAfter": true],
+                ["position": 2, "number": 8, "class": 1, "sector": "A", "mixedClass": true],
+            ],
+        ]
+        let f = Formation.from(json: json)!
+        XCTAssertTrue(f.wagons[0].noPassageAfter)
+        XCTAssertFalse(f.wagons[0].mixedClass)
+        XCTAssertFalse(f.wagons[1].noPassageAfter)
+        XCTAssertTrue(f.wagons[1].mixedClass)
+    }
+
+    func testFormationWithoutNewFlagsStillDecodes() {
+        let json: [String: Any] = [
+            "track": "3", "sectors": ["A"],
+            "wagons": [["position": 1, "number": 5, "class": 2, "sector": "A", "features": ["kw"]]],
+        ]
+        let w = Formation.from(json: json)!.wagons[0]
+        XCTAssertEqual(w.number, 5)
+        XCTAssertFalse(w.noPassageAfter)
+        XCTAssertFalse(w.mixedClass)
     }
 
     func testFormationWithoutWagonsIsNil() {
@@ -305,5 +334,75 @@ final class ParsingTests: XCTestCase {
         let dep = brigDeparture()
         let leg = SharedRoute.forDeparture(station: bernStation, departure: dep).legs[0]
         XCTAssertEqual(matchDeparture([dep], leg: leg)?.stableId, dep.stableId)
+    }
+}
+
+// A 16-car double unit, front first, with no passage after the eleventh car and features as
+// the API sends them, low floor and pram included.
+enum FormationFixtures {
+    static let doubleUnit: Formation = {
+        let cars: [(Int, Int, String, [String])] = [
+            (18, 2, "H", ["family", "low_floor"]), (17, 2, "H", ["low_floor", "bike"]),
+            (16, 2, "G", ["low_floor", "bike"]), (15, 2, "G", ["wheelchair", "low_floor"]),
+            (14, 2, "F", ["wheelchair", "low_floor"]), (13, 1, "F", ["low_floor", "bike"]),
+            (12, 1, "E", ["low_floor", "bike"]), (11, 1, "E", ["business", "low_floor", "bike"]),
+            (8, 2, "D", ["family", "low_floor"]), (7, 2, "D", ["low_floor", "bike"]),
+            (6, 2, "C", ["low_floor", "bike"]), (5, 2, "B", ["wheelchair", "low_floor"]),
+            (4, 2, "B", ["wheelchair", "restaurant", "low_floor"]), (3, 1, "B", ["low_floor", "bike"]),
+            (2, 1, "A", ["low_floor", "bike"]), (1, 1, "A", ["business", "low_floor", "bike"]),
+        ]
+        let wagons = cars.enumerated().map { i, c in
+            FormationWagon(position: i + 1, number: c.0, wagonClass: c.1, sector: c.2,
+                           features: c.3, closed: false, noPassageAfter: c.0 == 11)
+        }
+        return Formation(track: "6", sectors: ["H", "G", "F", "E", "D", "C", "B", "A"], wagons: wagons)
+    }()
+}
+
+final class FormationLayoutTests: XCTestCase {
+    func testSixteenCarsFitAPhoneWidth() {
+        let wagons = FormationFixtures.doubleUnit.wagons
+        let layout = FormationLayout(wagons: wagons, width: 300)
+        XCTAssertEqual(layout.carX.count, 16)
+        XCTAssertLessThanOrEqual(layout.carX[15] + layout.carWidth, 300)
+        XCTAssertGreaterThan(layout.carWidth, 12)
+    }
+
+    func testBreakWidensTheGapAndSplitsTheUnits() {
+        let layout = FormationLayout(wagons: FormationFixtures.doubleUnit.wagons, width: 300)
+        XCTAssertEqual(layout.units, [0..<8, 8..<16])
+        XCTAssertEqual(layout.breaks.count, 1)
+        let joined = layout.carX[7] - (layout.carX[6] + layout.carWidth)
+        let broken = layout.carX[8] - (layout.carX[7] + layout.carWidth)
+        XCTAssertGreaterThan(broken, joined)
+        XCTAssertGreaterThan(layout.breaks[0], layout.carX[7] + layout.carWidth)
+        XCTAssertLessThan(layout.breaks[0], layout.carX[8])
+    }
+
+    func testShortTrainKeepsTheWidestCar() {
+        let wagons = Array(FormationFixtures.doubleUnit.wagons.prefix(3))
+        let layout = FormationLayout(wagons: wagons, width: 340)
+        XCTAssertEqual(layout.carWidth, FormationLayout.maxCarWidth)
+    }
+
+    func testNoPassageOnTheLastCarDrawsNoBreak() {
+        let last = FormationWagon(position: 1, number: 1, wagonClass: 2, sector: "A", features: [],
+                                  closed: false, noPassageAfter: true)
+        let layout = FormationLayout(wagons: [last], width: 340)
+        XCTAssertTrue(layout.breaks.isEmpty)
+        XCTAssertEqual(layout.units, [0..<1])
+    }
+
+    func testLaneShowsOneFeatureByPriority() {
+        func lane(_ features: [String], closed: Bool = false) -> String? {
+            FormationLayout.laneFeature(FormationWagon(position: 1, number: 1, wagonClass: 2, sector: "A",
+                                                       features: features, closed: closed))
+        }
+        XCTAssertEqual(lane(["wheelchair", "restaurant", "low_floor"]), "restaurant")
+        XCTAssertEqual(lane(["business", "low_floor", "bike"]), "bike")
+        XCTAssertEqual(lane(["family", "low_floor"]), "family")
+        XCTAssertEqual(lane(["business"]), "business")
+        XCTAssertNil(lane(["low_floor", "kw"]))
+        XCTAssertNil(lane(["restaurant"], closed: true))
     }
 }

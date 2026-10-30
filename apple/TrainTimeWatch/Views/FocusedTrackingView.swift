@@ -3,6 +3,8 @@ import SwiftUI
 struct FocusedTrackingView: View {
     @ObservedObject var viewModel: TrainTimeViewModel
     @State private var showMap = false
+    @State private var crownValue = 0.0
+    @FocusState private var crownFocused: Bool
 
     var body: some View {
         let focused = viewModel.focusedTrain
@@ -96,20 +98,26 @@ struct FocusedTrackingView: View {
                 .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(viewModel.trackingStatusColor)
 
-            // Walk info + direction
-            HStack(spacing: 4) {
-                DirectionArrowView(degrees: viewModel.directionToStation)
+            // The car readout takes the walk line's place until it clears
+            if let formation = viewModel.formation, let car = viewModel.formationCursor,
+               car < formation.wagons.count {
+                WatchCarReadout(wagon: formation.wagons[car], stepAt: viewModel.formationStepAt)
+            } else {
+                // Walk info + direction
+                HStack(spacing: 4) {
+                    DirectionArrowView(degrees: viewModel.directionToStation)
 
-                Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    Text(GeoUtils.formatWalkInfo(distanceMeters: viewModel.lastWalkDist, walkTimeSeconds: viewModel.lastWalkTime))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
 
-                Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-            }
-            .onTapGesture {
-                viewModel.toggleRoutedDistance()
+                    Image(systemName: viewModel.useRoutedDistance ? "point.bottomleft.forward.to.point.topright.scurvepath" : "line.diagonal")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
+                }
+                .onTapGesture {
+                    viewModel.toggleRoutedDistance()
+                }
             }
 
             // Onward connection (shared multi-leg route): where you change and
@@ -123,8 +131,24 @@ struct FocusedTrackingView: View {
 
             // Formation strip
             if let formation = viewModel.formation {
-                WatchFormationView(formation: formation)
+                // The screen does not scroll, so the Crown steps cars; a tap shows the car under the Crown
+                WatchFormationView(formation: formation, cursor: viewModel.formationCursor)
                     .padding(.top, 1)
+                    .focusable()
+                    .focusEffectDisabled()
+                    .focused($crownFocused)
+                    .digitalCrownRotation(
+                        $crownValue, from: 0, through: Double(max(0, formation.wagons.count - 1)), by: 1,
+                        sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
+                    )
+                    .onChange(of: crownValue) { _, value in
+                        viewModel.stepFormationCar(to: Int(value.rounded()))
+                    }
+                    .onTapGesture {
+                        crownFocused = true
+                        viewModel.stepFormationCar(to: Int(crownValue.rounded()))
+                    }
+                    .onAppear { crownFocused = true }
             }
 
             // Save this departure as a reminder on the phone.

@@ -248,6 +248,30 @@ class TrainApiTest {
     }
 
     @Test
+    fun `formation maps no passage and mixed class, false when absent`() = runTest {
+        server.enqueue(
+            MockResponse().setBody(
+                """
+                {
+                  "track": "7",
+                  "sectors": ["A"],
+                  "wagons": [
+                    {"position": 1, "number": 11, "class": 1, "sector": "A", "noPassageAfter": true},
+                    {"position": 2, "number": 8, "class": 1, "sector": "A", "mixedClass": true},
+                    {"position": 3, "number": 7, "class": 2, "sector": "A"}
+                  ]
+                }
+                """.trimIndent(),
+            ),
+        )
+
+        val wagons = api.fetchFormation("708", "2026-10-30", "8507000")!!.wagons
+
+        assertEquals(listOf(true, false, false), wagons.map { it.noPassageAfter })
+        assertEquals(listOf(false, true, false), wagons.map { it.mixedClass })
+    }
+
+    @Test
     fun `formation returns null on http error`() = runTest {
         server.enqueue(MockResponse().setResponseCode(404))
         assertNull(api.fetchFormation("823", "2026-06-12", "8501120"))

@@ -21,4 +21,9 @@
     <string name="tracking_channel">Tracking</string>
     <string name="inactive">Inactive</string>
     <string name="yes_short">Yes</string>
+    <string name="formation_restaurant">Restaurant</string>
+    <string name="formation_wheelchair">Wheelchair space</string>
+    <string name="formation_family">Family zone</string>
+    <string name="formation_bike">Bike hooks</string>
+    <string name="formation_car_fmt">Car %1$d, sector %2$s</string>
 </resources>

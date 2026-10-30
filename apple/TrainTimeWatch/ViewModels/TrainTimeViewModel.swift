@@ -43,7 +43,13 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var focusedTrain: FocusedDeparture? = nil
     // Transient feedback for the "remind on phone" button; auto-clears.
     @Published var reminderStatus: String? = nil
-    @Published var formation: Formation? = nil
+    @Published var formation: Formation? = nil {
+        didSet { closeFormationReadout() }
+    }
+    // Car picked with the Crown on the formation strip, nil when no readout shows
+    @Published var formationCursor: Int? = nil
+    @Published var formationStepAt = Date.distantPast
+    private var formationReadoutTask: Task<Void, Never>?
 
     // Timed review ask (Yes hands off to the iPhone, the watch has no review page).
     @Published var showReviewPrompt = false
@@ -785,6 +791,25 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func isDepartureFavourite(_ departure: Departure) -> Bool {
         guard let stationId = currentStation?.id else { return false }
         return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
+    }
+
+    func stepFormationCar(to index: Int) {
+        guard let count = formation?.wagons.count, count > 0 else { return }
+        formationCursor = min(max(0, index), count - 1)
+        formationStepAt = Date()
+        lastInteractionTime = Date()
+        formationReadoutTask?.cancel()
+        formationReadoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(FormationReadout.seconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.formationCursor = nil
+        }
+    }
+
+    func closeFormationReadout() {
+        formationReadoutTask?.cancel()
+        formationReadoutTask = nil
+        if formationCursor != nil { formationCursor = nil }
     }
 
     func exitToStationView() {

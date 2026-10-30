@@ -22,8 +22,13 @@ struct ContentView: View {
                     FocusedTrackingView(viewModel: viewModel)
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
+                                // Back closes the car readout first, then leaves tracking
                                 Button("Back") {
-                                    viewModel.exitToStationView()
+                                    if viewModel.formationCursor != nil {
+                                        viewModel.closeFormationReadout()
+                                    } else {
+                                        viewModel.exitToStationView()
+                                    }
                                 }
                             }
                         }

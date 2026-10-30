@@ -2,11 +2,9 @@ package com.evanjt.traintime.ui.tracking
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -17,12 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Accessible
-import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.FamilyRestroom
-import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.PedalBike
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Work
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,12 +28,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.FormationWagon
@@ -47,151 +47,241 @@ import com.evanjt.traintime.data.model.FormationWagon
 private data class FormationColors(
     val body: Color,
     val outline: Color,
-    val groupBorder: Color,
+    val unitBorder: Color,
     val connector: Color,
     val sectorLine: Color,
     val carNumber: Color,
-    val featureIcon: Color,
+    val muted: Color,
     val primary: Color,
     val labelBackground: Color,
     val accentBand: Color,
+    val noPassage: Color,
 )
 
+// Follows the app theme rather than the system one, so a forced light or dark
+// mode draws the matching greys.
 @Composable
 private fun formationColors(): FormationColors {
-    val dark = isSystemInDarkTheme()
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val primary = MaterialTheme.colorScheme.onBackground
+    val noPassage = LocalAppPalette.current.darkRed
     return if (dark) {
         FormationColors(
             body = Color(0xFF2E2E2E),
             outline = Color(0xFF4D4D4D),
-            groupBorder = Color(0xFF474747),
+            unitBorder = Color(0xFF5C5C5C),
             connector = Color(0xFF1F1F1F),
             sectorLine = Color(0xFF595959),
-            carNumber = Color(0xFFA6A6A6),
-            featureIcon = Color(0xFF737373),
+            carNumber = Color(0xFFC7C7C7),
+            muted = Color(0xFF8E8E8E),
             primary = primary,
             labelBackground = MaterialTheme.colorScheme.background,
             accentBand = primary.copy(alpha = 0.08f),
+            noPassage = noPassage,
         )
     } else {
         FormationColors(
             body = Color(0xFFE5E5EA),
             outline = Color(0xFFC7C7CC),
-            groupBorder = Color(0xFFC7C7CC),
+            unitBorder = Color(0xFFAEAEB2),
             connector = Color(0xFFD1D1D6),
             sectorLine = Color(0xFFC7C7CC),
-            carNumber = Color(0xFF6D6D72),
-            featureIcon = Color(0xFF8E8E93),
+            carNumber = Color(0xFF48484A),
+            muted = Color(0xFF8E8E93),
             primary = primary,
             labelBackground = MaterialTheme.colorScheme.background,
             accentBand = primary.copy(alpha = 0.06f),
+            noPassage = noPassage,
         )
     }
 }
 
-private data class WagonGroup(val sector: String, val wagons: List<FormationWagon>)
+internal object FormationMetrics {
+    const val NOSE = 28f
+    const val NOSE_GAP = 4f
+    const val GAP = 2f
+    // Wide enough for the 3 dp bar with clear space either side of it.
+    const val BREAK_GAP = 9f
+    const val BAR_WIDTH = 3f
+    const val END_PAD = 2f
+    const val MAX_CAR = 56f
+}
 
-private fun sectorGroups(wagons: List<FormationWagon>): List<WagonGroup> {
-    val groups = mutableListOf<WagonGroup>()
-    var current = ""
-    var batch = mutableListOf<FormationWagon>()
-    for (w in wagons) {
-        if (w.sector != current) {
-            if (batch.isNotEmpty()) groups.add(WagonGroup(current, batch))
-            current = w.sector
-            batch = mutableListOf(w)
-        } else {
-            batch.add(w)
+// Car positions in dp from the left edge, the nose first. Cars shrink to fit
+// the width with no floor, so a long train never runs off the screen.
+internal data class FormationLayout(val carWidth: Float, val carLefts: List<Float>, val barCentres: List<Float>) {
+    val width: Float
+        get() = (carLefts.lastOrNull()?.plus(carWidth) ?: FormationMetrics.NOSE) + FormationMetrics.END_PAD
+}
+
+internal fun formationLayout(wagons: List<FormationWagon>, width: Float): FormationLayout {
+    val m = FormationMetrics
+    val n = wagons.size
+    if (n == 0) return FormationLayout(0f, emptyList(), emptyList())
+    val gaps = (0 until n - 1).sumOf { (if (wagons[it].noPassageAfter) m.BREAK_GAP else m.GAP).toDouble() }.toFloat()
+    val available = width - m.NOSE - m.NOSE_GAP - m.END_PAD - gaps
+    val carWidth = (available / n).coerceIn(0f, m.MAX_CAR)
+    val lefts = mutableListOf<Float>()
+    val bars = mutableListOf<Float>()
+    var x = m.NOSE + m.NOSE_GAP
+    wagons.forEachIndexed { i, w ->
+        lefts.add(x)
+        x += carWidth
+        if (i < n - 1) {
+            if (w.noPassageAfter) {
+                bars.add(x + m.BREAK_GAP / 2)
+                x += m.BREAK_GAP
+            } else {
+                x += m.GAP
+            }
         }
     }
-    if (batch.isNotEmpty()) groups.add(WagonGroup(current, batch))
-    return groups
+    return FormationLayout(carWidth, lefts, bars)
 }
 
-private fun featureIcon(feature: String): ImageVector = when (feature) {
-    "wheelchair" -> Icons.Filled.Accessible
-    "restaurant" -> Icons.Filled.Restaurant
-    "family" -> Icons.Filled.FamilyRestroom
-    "business" -> Icons.Filled.Work
-    "low_floor" -> Icons.Filled.ArrowDownward
-    else -> Icons.Filled.QuestionMark
+// The one amenity a car shows in the icon lane, by priority. Low floor and
+// pram space are left out, and an unknown feature draws nothing.
+internal val laneFeatures = listOf("restaurant", "wheelchair", "family", "bike", "business")
+
+internal fun laneFeature(wagon: FormationWagon): String? =
+    if (wagon.closed) null else laneFeatures.firstOrNull { it in wagon.features }
+
+private fun laneIcon(feature: String): Pair<ImageVector, Int> = when (feature) {
+    "restaurant" -> Icons.Filled.Restaurant to R.string.formation_restaurant_cd
+    "wheelchair" -> Icons.Filled.Accessible to R.string.formation_wheelchair_cd
+    "family" -> Icons.Filled.FamilyRestroom to R.string.formation_family_cd
+    "bike" -> Icons.Filled.PedalBike to R.string.formation_bike_cd
+    else -> Icons.Filled.Work to R.string.formation_business_cd
 }
 
-// Port of FormationDiagramView.swift: locomotive + carriages grouped by
-// sector, 1st-class stripe, feature icons, sector bracket labels.
+// Runs of cars between two no-passage bars, each drawn with its own outline.
+private fun units(wagons: List<FormationWagon>): List<IntRange> {
+    val out = mutableListOf<IntRange>()
+    var start = 0
+    wagons.forEachIndexed { i, w ->
+        if (w.noPassageAfter || i == wagons.lastIndex) {
+            out.add(start..i)
+            start = i + 1
+        }
+    }
+    return out
+}
+
+private fun sectorRuns(wagons: List<FormationWagon>): List<Pair<String, IntRange>> {
+    val out = mutableListOf<Pair<String, IntRange>>()
+    var start = 0
+    for (i in 1..wagons.size) {
+        if (i == wagons.size || wagons[i].sector != wagons[start].sector) {
+            out.add(wagons[start].sector to (start until i))
+            start = i
+        }
+    }
+    return out
+}
+
+private const val LANE_HEIGHT = 16f
+private const val CAR_HEIGHT = 30f
+// The bar stands this far proud of the cars above and below.
+private const val BAR_PROUD = 3f
+
+// Nose and direction arrow on the left at the first car, an icon lane above
+// the cars, red bars where there is no passage, sector letters below.
 @Composable
 fun FormationDiagram(formation: Formation, modifier: Modifier = Modifier) {
-    val carriageHeight = 30.dp
-    val gap = 2.dp
-    val locoWidth = 32.dp
     val colors = formationColors()
+    val wagons = formation.wagons
 
     BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-        val n = formation.wagons.size
-        val available = maxWidth - locoWidth - gap * (n - 1)
-        val carriageWidth = (available / n).coerceIn(20.dp, 56.dp)
-        val groups = sectorGroups(formation.wagons)
+        val layout = formationLayout(wagons, maxWidth.value)
+        val carWidth = layout.carWidth
 
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Loco(width = locoWidth, height = carriageHeight, colors = colors)
-                groups.forEachIndexed { gi, group ->
-                    if (gi > 0) Connector(gap, carriageHeight, colors)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+            Box(Modifier.width(layout.width.dp).height(LANE_HEIGHT.dp)) {
+                val iconSize = minOf(12f, carWidth - 2f).coerceAtLeast(0f)
+                wagons.forEachIndexed { i, w ->
+                    val feature = laneFeature(w) ?: return@forEachIndexed
+                    val (icon, label) = laneIcon(feature)
+                    Icon(
+                        icon,
+                        contentDescription = stringResource(label),
+                        tint = if (feature == "bike") colors.muted else colors.primary,
                         modifier = Modifier
-                            .padding(vertical = 2.dp)
-                            .border(0.5.dp, colors.groupBorder, RoundedCornerShape(5.dp)),
-                    ) {
-                        group.wagons.forEachIndexed { wi, wagon ->
-                            if (wi > 0) Connector(gap, carriageHeight, colors)
-                            Carriage(
-                                wagon = wagon,
-                                width = carriageWidth,
-                                height = carriageHeight,
-                                showFeature = carriageWidth >= 30.dp,
-                                colors = colors,
-                            )
-                        }
-                    }
+                            .align(Alignment.BottomStart)
+                            .offset(x = (layout.carLefts[i] + (carWidth - iconSize) / 2).dp, y = (-2).dp)
+                            .size(iconSize.dp),
+                    )
                 }
             }
 
-            // Sector labels with bracket lines
-            if (formation.sectors.isNotEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.width(locoWidth), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.direction_of_travel_cd),
-                            tint = colors.primary,
-                            modifier = Modifier.size(12.dp),
+            Box(Modifier.width(layout.width.dp).height((CAR_HEIGHT + BAR_PROUD * 2).dp)) {
+                Nose(
+                    width = FormationMetrics.NOSE.dp,
+                    height = CAR_HEIGHT.dp,
+                    colors = colors,
+                    modifier = Modifier.offset(y = BAR_PROUD.dp),
+                )
+                for (unit in units(wagons)) {
+                    val left = layout.carLefts[unit.first] - 1.5f
+                    val right = layout.carLefts[unit.last] + carWidth + 1.5f
+                    Box(
+                        Modifier
+                            .offset(x = left.dp, y = (BAR_PROUD - 1.5f).dp)
+                            .size((right - left).dp, (CAR_HEIGHT + 3f).dp)
+                            .border(0.5.dp, colors.unitBorder, RoundedCornerShape(5.dp)),
+                    )
+                    for (i in unit.first until unit.last) {
+                        Box(
+                            Modifier
+                                .offset(
+                                    x = (layout.carLefts[i] + carWidth).dp,
+                                    y = (BAR_PROUD + CAR_HEIGHT * 0.325f).dp,
+                                )
+                                .size(FormationMetrics.GAP.dp, (CAR_HEIGHT * 0.35f).dp)
+                                .background(colors.connector),
                         )
                     }
-                    groups.forEachIndexed { i, group ->
-                        val groupWidth =
-                            carriageWidth * group.wagons.size +
-                                gap * (group.wagons.size - 1).coerceAtLeast(0) +
-                                if (i > 0) gap else 0.dp
-                        Box(Modifier.width(groupWidth).height(14.dp), contentAlignment = Alignment.Center) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp)
-                                    .height(0.5.dp)
-                                    .background(colors.sectorLine),
-                            )
-                            Text(
-                                group.sector,
-                                color = colors.primary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .background(colors.labelBackground)
-                                    .padding(horizontal = 3.dp),
-                            )
-                        }
+                }
+                wagons.forEachIndexed { i, w ->
+                    Carriage(
+                        wagon = w,
+                        width = carWidth.dp,
+                        height = CAR_HEIGHT.dp,
+                        colors = colors,
+                        modifier = Modifier.offset(x = layout.carLefts[i].dp, y = BAR_PROUD.dp),
+                    )
+                }
+                val barLabel = stringResource(R.string.formation_no_passage_cd)
+                for (centre in layout.barCentres) {
+                    Box(
+                        Modifier
+                            .offset(x = (centre - FormationMetrics.BAR_WIDTH / 2).dp)
+                            .size(FormationMetrics.BAR_WIDTH.dp, (CAR_HEIGHT + BAR_PROUD * 2).dp)
+                            .background(colors.noPassage, RoundedCornerShape(1.dp))
+                            .semantics { contentDescription = barLabel },
+                    )
+                }
+            }
+
+            Box(Modifier.width(layout.width.dp).padding(top = 2.dp)) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.direction_of_travel_cd),
+                    tint = colors.primary,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .offset(x = ((FormationMetrics.NOSE - 12f) / 2).dp)
+                        .size(12.dp),
+                )
+                if (formation.sectors.isNotEmpty()) {
+                    for ((sector, run) in sectorRuns(wagons)) {
+                        if (sector.isEmpty()) continue
+                        val left = layout.carLefts[run.first]
+                        val span = layout.carLefts[run.last] + carWidth - left
+                        SectorLabel(
+                            sector = sector,
+                            colors = colors,
+                            modifier = Modifier.offset(x = left.dp).width(span.dp),
+                        )
                     }
                 }
             }
@@ -199,21 +289,36 @@ fun FormationDiagram(formation: Formation, modifier: Modifier = Modifier) {
     }
 }
 
+// The letter sizes its own box, so it is never clipped however narrow the run.
 @Composable
-private fun Connector(gap: Dp, carriageHeight: Dp, colors: FormationColors) {
-    Box(
-        Modifier
-            .width(gap)
-            .height(carriageHeight * 0.35f)
-            .background(colors.connector),
-    )
+private fun SectorLabel(sector: String, colors: FormationColors, modifier: Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 1.dp)
+                .height(0.5.dp)
+                .background(colors.sectorLine),
+        )
+        Text(
+            sector,
+            color = colors.primary,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier
+                .background(colors.labelBackground)
+                .padding(horizontal = 2.dp),
+        )
+    }
 }
 
 @Composable
-private fun Loco(width: Dp, height: Dp, colors: FormationColors) {
+private fun Nose(width: Dp, height: Dp, colors: FormationColors, modifier: Modifier) {
     // Simplified nose: rounded body with a steeper leading corner.
     Box(
-        Modifier
+        modifier
             .size(width, height)
             .clip(RoundedCornerShape(topStart = height * 0.6f, topEnd = 3.dp, bottomEnd = 3.dp, bottomStart = 3.dp))
             .background(colors.body),
@@ -229,65 +334,43 @@ private fun Loco(width: Dp, height: Dp, colors: FormationColors) {
 }
 
 @Composable
-private fun Carriage(wagon: FormationWagon, width: Dp, height: Dp, showFeature: Boolean, colors: FormationColors) {
+private fun Carriage(wagon: FormationWagon, width: Dp, height: Dp, colors: FormationColors, modifier: Modifier) {
     Box(
-        Modifier
+        modifier
             .size(width, height)
-            .alpha(if (wagon.closed) 0.4f else 1f)
+            .alpha(if (wagon.closed) 0.35f else 1f)
             .clip(RoundedCornerShape(3.dp))
             .background(colors.body)
             .border(0.5.dp, colors.outline, RoundedCornerShape(3.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        // 1st class accent: yellow stripe along the top
+        // First class: yellow roof stripe, half width on a mixed-class car.
         if (wagon.wagonClass == 1) {
+            val stripe = width - 4.dp
             Box(
                 Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 1.5.dp)
-                    .width(width - 4.dp)
+                    .align(Alignment.TopStart)
+                    .padding(start = 2.dp, top = 1.5.dp)
+                    .width(if (wagon.mixedClass) stripe / 2 else stripe)
                     .height(2.5.dp)
                     .background(Color(0xFFEBB800), RoundedCornerShape(1.dp)),
             )
         }
 
-        // Window band
-        Box(
-            Modifier
-                .offset(y = (-3).dp)
-                .width(width - 6.dp)
-                .height(6.dp)
-                .background(colors.accentBand, RoundedCornerShape(1.dp)),
-        )
-
-        Text(
-            "${wagon.number}",
-            color = colors.carNumber,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.offset(y = 2.dp),
-        )
-
-        if (showFeature) {
-            wagon.features.firstOrNull()?.let { feature ->
-                Icon(
-                    featureIcon(feature),
-                    contentDescription = feature,
-                    tint = colors.featureIcon,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 2.dp, bottom = 2.dp)
-                        .size(7.dp),
-                )
-            }
-        }
-
-        if (wagon.closed) {
-            Box(
-                Modifier
-                    .width(width * 0.7f)
-                    .height(1.dp)
-                    .background(colors.primary.copy(alpha = 0.35f)),
+        if (!wagon.closed) {
+            Text(
+                "${wagon.number}",
+                color = colors.carNumber,
+                fontSize = when {
+                    width >= 22.dp -> 11.sp
+                    width >= 17.dp -> 10.sp
+                    else -> 9.sp
+                },
+                letterSpacing = if (width >= 17.dp) 0.sp else (-0.3).sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.offset(y = 1.dp),
             )
         }
     }

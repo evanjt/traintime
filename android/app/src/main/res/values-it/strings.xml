@@ -149,6 +149,12 @@
     <string name="track_on_watch">Segui sull\'orologio</string>
     <string name="direction_to_station_cd">Direzione della fermata</string>
     <string name="direction_of_travel_cd">Direzione di marcia</string>
+    <string name="formation_no_passage_cd">Nessun passaggio tra le carrozze</string>
+    <string name="formation_restaurant_cd">Ristorante</string>
+    <string name="formation_wheelchair_cd">Posto per sedia a rotelle</string>
+    <string name="formation_family_cd">Zona famiglia</string>
+    <string name="formation_bike_cd">Posti per bici</string>
+    <string name="formation_business_cd">Zona business</string>
 
     <!-- Pending route chip + sheet -->
     <string name="departs_fmt">%1$s parte alle %2$s</string>

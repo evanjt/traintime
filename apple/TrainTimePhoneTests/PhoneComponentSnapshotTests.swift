@@ -76,6 +76,59 @@ final class PhoneComponentSnapshotTests: XCTestCase {
         assertLightDark(AnyView(view), "phone_formation")
     }
 
+    // Twelve cars in two units with a no-passage break, as the 40 mm watch draws them
+    func testWatchFormation() {
+        let cars: [(Int, Int, String, [String])] = [
+            (20, 2, "B", ["family", "bike"]), (19, 2, "B", ["bike"]), (18, 1, "C", []),
+            (17, 2, "C", ["bike"]), (16, 2, "D", ["bike"]), (7, 2, "D", ["family", "low_floor", "bike"]),
+            (6, 2, "E", ["low_floor"]), (5, 2, "E", ["low_floor"]), (4, 2, "F", ["low_floor"]),
+            (3, 2, "F", ["restaurant", "low_floor"]), (2, 1, "G", ["low_floor"]), (1, 1, "G", ["wheelchair", "business"]),
+        ]
+        let wagons = cars.enumerated().map { i, c in
+            FormationWagon(position: i + 1, number: c.0, wagonClass: c.1, sector: c.2, features: c.3,
+                           closed: false, noPassageAfter: i == 4)
+        }
+        let formation = Formation(track: "7", sectors: ["B", "C", "D", "E", "F", "G"], wagons: wagons)
+        let view = VStack(spacing: 6) {
+            WatchFormationView(formation: formation)
+            WatchFormationView(formation: formation, cursor: 9)
+            WatchCarReadoutRow(wagon: wagons[9], left: 0.6)
+        }
+        .frame(width: 158)
+        .padding(4)
+        .background(Color.black)
+        assertSnapshot(
+            of: AnyView(view),
+            as: .image(precision: 0.99, perceptualPrecision: 0.98, layout: .sizeThatFits,
+                       traits: .init(userInterfaceStyle: .dark)),
+            named: "watch_formation_40mm"
+        )
+    }
+
+    func testFormationDoubleUnit() {
+        let view = FormationDiagramView(formation: FormationFixtures.doubleUnit)
+            .padding(16)
+            .frame(width: 360)
+            .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(view), "phone_formation_double_unit")
+    }
+
+    func testFormationClosedAndMixedClass() {
+        let formation = Formation(
+            track: "4", sectors: ["A", "B"],
+            wagons: [
+                FormationWagon(position: 1, number: 21, wagonClass: 1, sector: "A", features: ["restaurant"], closed: true),
+                FormationWagon(position: 2, number: 22, wagonClass: 1, sector: "A", features: ["wheelchair"], closed: false, mixedClass: true),
+                FormationWagon(position: 3, number: 23, wagonClass: 2, sector: "B", features: ["kw"], closed: false),
+            ]
+        )
+        let view = FormationDiagramView(formation: formation)
+            .padding(16)
+            .frame(width: 360)
+            .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(view), "phone_formation_closed_mixed")
+    }
+
     func testTourWatch() {
         let view = TourWatchCard()
             .padding(16)

@@ -45,11 +45,40 @@ class ComponentSnapshotTest {
         track = "3",
         sectors = listOf("A", "B", "C"),
         wagons = listOf(
-            FormationWagon(1, 1, 1, "A", listOf("business"), false),
+            FormationWagon(1, 1, 1, "A", listOf("business"), false, mixedClass = true),
             FormationWagon(2, 2, 2, "B", listOf("wheelchair", "restaurant"), false),
-            FormationWagon(3, 3, 2, "C", emptyList(), false),
+            FormationWagon(3, 3, 2, "C", listOf("wifi"), false),
+            FormationWagon(4, 4, 2, "C", listOf("bike"), true),
         ),
     )
+
+    // A 16-car double unit as the feed gives it at the boarding stop, front first,
+    // with no passage between the two units after car 11.
+    private val doubleUnit = Formation(
+        track = "7",
+        sectors = listOf("H", "G", "F", "E", "D", "C", "B", "A"),
+        wagons = listOf(
+            car(18, 2, "H", "family", "low_floor"),
+            car(17, 2, "H", "low_floor", "bike"),
+            car(16, 2, "G", "low_floor", "bike"),
+            car(15, 2, "G", "wheelchair", "low_floor"),
+            car(14, 2, "F", "wheelchair", "low_floor"),
+            car(13, 1, "F", "low_floor", "bike"),
+            car(12, 1, "E", "low_floor", "bike"),
+            car(11, 1, "E", "business", "low_floor", "bike", noPassageAfter = true),
+            car(8, 2, "D", "family", "low_floor"),
+            car(7, 2, "D", "low_floor", "bike"),
+            car(6, 2, "C", "low_floor", "bike"),
+            car(5, 2, "B", "wheelchair", "low_floor"),
+            car(4, 2, "B", "wheelchair", "restaurant", "low_floor"),
+            car(3, 1, "B", "low_floor", "bike"),
+            car(2, 1, "A", "low_floor", "bike"),
+            car(1, 1, "A", "business", "low_floor", "bike"),
+        ).mapIndexed { i, w -> w.copy(position = i + 1) },
+    )
+
+    private fun car(number: Int, wagonClass: Int, sector: String, vararg features: String, noPassageAfter: Boolean = false) =
+        FormationWagon(0, number, wagonClass, sector, features.toList(), false, noPassageAfter = noPassageAfter)
 
     @Composable
     private fun tracking() {
@@ -86,6 +115,14 @@ class ComponentSnapshotTest {
     @Test fun trackingLight() = capture("tracking_light", dark = false) { tracking() }
 
     @Test fun trackingDark() = capture("tracking_dark", dark = true) { tracking() }
+
+    @Test fun formationLight() = capture("formation_light", dark = false) {
+        Box(Modifier.width(360.dp).padding(16.dp)) { FormationDiagram(doubleUnit) }
+    }
+
+    @Test fun formationDark() = capture("formation_dark", dark = true) {
+        Box(Modifier.width(360.dp).padding(16.dp)) { FormationDiagram(doubleUnit) }
+    }
 
     @Test fun pausedLight() = capture("paused_light", dark = false) { Box(Modifier.size(320.dp, 220.dp)) { InactiveScreen {} } }
 

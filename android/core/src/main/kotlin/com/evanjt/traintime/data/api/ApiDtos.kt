@@ -92,6 +92,8 @@ data class FormationWagonDto(
     val sector: String? = null,
     val features: List<String> = emptyList(),
     val closed: Boolean = false,
+    val noPassageAfter: Boolean = false,
+    val mixedClass: Boolean = false,
 )
 
 @Serializable
@@ -113,6 +115,8 @@ data class FormationResponseDto(
                     sector = w.sector ?: "",
                     features = w.features,
                     closed = w.closed,
+                    noPassageAfter = w.noPassageAfter,
+                    mixedClass = w.mixedClass,
                 )
             }
             ?.takeIf { it.isNotEmpty() }

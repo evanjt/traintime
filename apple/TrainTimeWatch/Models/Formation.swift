@@ -7,6 +7,10 @@ struct FormationWagon {
     let sector: String
     let features: [String] // "wheelchair", "restaurant", "family", "business", "low_floor"
     let closed: Bool
+    // No access from this car to the next one; never set on the last car.
+    var noPassageAfter: Bool = false
+    // A car with first and second class compartments.
+    var mixedClass: Bool = false
 }
 
 struct Formation {
@@ -40,7 +44,9 @@ struct Formation {
                 wagonClass: wagonClass,
                 sector: sector,
                 features: features,
-                closed: closed
+                closed: closed,
+                noPassageAfter: w["noPassageAfter"] as? Bool ?? false,
+                mixedClass: w["mixedClass"] as? Bool ?? false
             )
         }
 

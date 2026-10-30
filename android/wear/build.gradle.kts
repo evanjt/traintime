@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
 }
 
 // Release signing. Must use the same key as :app: Play delivers both under one
@@ -73,6 +74,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { it.systemProperty("robolectric.graphicsMode", "NATIVE") }
         }
     }
 }
@@ -105,8 +107,16 @@ dependencies {
     implementation(libs.play.services.wearable)
 
     debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+
+    // Roborazzi Compose screenshot tests (JVM via Robolectric, no emulator).
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(libs.compose.ui.test.junit4)
 }

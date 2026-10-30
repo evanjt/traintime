@@ -149,6 +149,12 @@
     <string name="track_on_watch">Track on watch</string>
     <string name="direction_to_station_cd">Direction to station</string>
     <string name="direction_of_travel_cd">Direction of travel</string>
+    <string name="formation_no_passage_cd">No passage between cars</string>
+    <string name="formation_restaurant_cd">Restaurant</string>
+    <string name="formation_wheelchair_cd">Wheelchair space</string>
+    <string name="formation_family_cd">Family zone</string>
+    <string name="formation_bike_cd">Bike spaces</string>
+    <string name="formation_business_cd">Business zone</string>
 
     <!-- Pending route chip + sheet -->
     <string name="departs_fmt">%1$s departs %2$s</string>

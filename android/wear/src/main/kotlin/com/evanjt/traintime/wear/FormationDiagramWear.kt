@@ -1,236 +1,290 @@
 package com.evanjt.traintime.wear
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.PedalBike
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import com.evanjt.traintime.data.model.Formation
 import com.evanjt.traintime.data.model.FormationWagon
+import kotlinx.coroutines.delay
 
-private data class FormationColors(
-    val body: Color,
-    val outline: Color,
-    val groupBorder: Color,
-    val connector: Color,
-    val sectorLine: Color,
-    val carNumber: Color,
-    val featureIcon: Color,
-    val primary: Color,
-    val labelBackground: Color,
-    val accentBand: Color,
+// The watch always draws the dark palette: the face is black whatever the system theme
+private val bodyColour = Color(0xFF555555)
+private val firstClassColour = Color(0xFFFFFF00)
+private val breakColour = Color(0xFFFF0000)
+private val tickColour = Color(0xFFAAAAAA)
+private val sectorColour = Color(0xFFAAAAAA)
+
+private const val CAR_TOP = 3f
+private const val CAR_HEIGHT = 16f
+private const val LINE_TOP = CAR_TOP + CAR_HEIGHT + 2f
+private const val LINE_HEIGHT = 3f
+private const val TICK_TOP = LINE_TOP + LINE_HEIGHT + 1f
+private const val SECTOR_TOP = TICK_TOP + 3f
+private const val STRIP_HEIGHT = SECTOR_TOP + 12f
+
+private val labelStyle = TextStyle(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+private val sectorStyle = TextStyle(color = sectorColour, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+
+private fun Amenity.icon(): ImageVector = when (this) {
+    Amenity.RESTAURANT -> Icons.Filled.Restaurant
+    Amenity.WHEELCHAIR -> Icons.Filled.Accessible
+    Amenity.FAMILY -> Icons.Filled.FamilyRestroom
+    Amenity.BIKE -> Icons.Filled.PedalBike
+}
+
+@Composable
+private fun Amenity.label(): String = stringResource(
+    when (this) {
+        Amenity.RESTAURANT -> R.string.formation_restaurant
+        Amenity.WHEELCHAIR -> R.string.formation_wheelchair
+        Amenity.FAMILY -> R.string.formation_family
+        Amenity.BIKE -> R.string.formation_bike
+    },
 )
 
-@Composable
-private fun formationColors(): FormationColors {
-    val dark = isSystemInDarkTheme()
-    val primary = MaterialTheme.colors.onBackground
-    return if (dark) {
-        FormationColors(
-            body = Color(0xFF2E2E2E),
-            outline = Color(0xFF4D4D4D),
-            groupBorder = Color(0xFF474747),
-            connector = Color(0xFF1F1F1F),
-            sectorLine = Color(0xFF595959),
-            carNumber = Color(0xFFA6A6A6),
-            featureIcon = Color(0xFF9C9C9C),
-            primary = primary,
-            labelBackground = MaterialTheme.colors.background,
-            accentBand = primary.copy(alpha = 0.08f),
-        )
-    } else {
-        FormationColors(
-            body = Color(0xFFE5E5EA),
-            outline = Color(0xFFC7C7CC),
-            groupBorder = Color(0xFFC7C7CC),
-            connector = Color(0xFFD1D1D6),
-            sectorLine = Color(0xFFC7C7CC),
-            carNumber = Color(0xFF6D6D72),
-            featureIcon = Color(0xFF8E8E93),
-            primary = primary,
-            labelBackground = MaterialTheme.colors.background,
-            accentBand = primary.copy(alpha = 0.06f),
-        )
-    }
-}
-
-private data class WagonGroup(val sector: String, val wagons: List<FormationWagon>)
-
-private fun sectorGroups(wagons: List<FormationWagon>): List<WagonGroup> {
-    val groups = mutableListOf<WagonGroup>()
-    var current = ""
-    var batch = mutableListOf<FormationWagon>()
-    for (w in wagons) {
-        if (w.sector != current) {
-            if (batch.isNotEmpty()) groups.add(WagonGroup(current, batch))
-            current = w.sector
-            batch = mutableListOf(w)
-        } else {
-            batch.add(w)
-        }
-    }
-    if (batch.isNotEmpty()) groups.add(WagonGroup(current, batch))
-    return groups
-}
-
-// Single-letter glyphs instead of material icons to keep the watch APK lean.
-private fun featureGlyph(feature: String): String = when (feature) {
-    "wheelchair" -> "♿" // ♿
-    "restaurant" -> "🍴" // 🍴
-    "family" -> "F"
-    "business" -> "B"
-    "low_floor" -> "↓" // ↓
-    else -> "?"
-}
-
-// Port of the phone FormationDiagram: locomotive + carriages grouped by sector,
-// 1st-class stripe, feature glyph, sector bracket labels.
+// Formation strip with the car readout. The rotary input steps a highlighted car once a
+// tap on the strip has taken it, since it otherwise scrolls the tracking screen.
 @Composable
 fun FormationDiagramWear(formation: Formation, modifier: Modifier = Modifier) {
-    val carriageHeight = 26.dp
-    val gap = 2.dp
-    val locoWidth = 26.dp
-    val colors = formationColors()
+    var cursor by remember(formation) { mutableStateOf<Int?>(null) }
+    var steppedAt by remember(formation) { mutableLongStateOf(0L) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var rotary by remember { mutableFloatStateOf(0f) }
+    val focus = remember { FocusRequester() }
+    val stepPx = with(LocalDensity.current) { 24.dp.toPx() }
+    val count = formation.wagons.size
 
-    BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-        val n = formation.wagons.size.coerceAtLeast(1)
-        val available = maxWidth - locoWidth - gap * (n - 1)
-        val carriageWidth = (available / n).coerceIn(16.dp, 44.dp)
-        val groups = sectorGroups(formation.wagons)
+    fun select(car: Int) {
+        cursor = car
+        steppedAt = System.currentTimeMillis()
+        now = steppedAt
+    }
 
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Loco(width = locoWidth, height = carriageHeight, colors = colors)
-                groups.forEachIndexed { gi, group ->
-                    if (gi > 0) Connector(gap, carriageHeight, colors)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .padding(vertical = 2.dp)
-                            .border(0.5.dp, colors.groupBorder, RoundedCornerShape(5.dp)),
-                    ) {
-                        group.wagons.forEachIndexed { wi, wagon ->
-                            if (wi > 0) Connector(gap, carriageHeight, colors)
-                            Carriage(
-                                wagon = wagon,
-                                width = carriageWidth,
-                                height = carriageHeight,
-                                showFeature = carriageWidth >= 26.dp,
-                                colors = colors,
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (formation.sectors.isNotEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.width(locoWidth), contentAlignment = Alignment.Center) {
-                        Text("◀", color = colors.primary, fontSize = 10.sp) // ◀ direction of travel
-                    }
-                    groups.forEachIndexed { i, group ->
-                        val groupWidth =
-                            carriageWidth * group.wagons.size +
-                                gap * (group.wagons.size - 1).coerceAtLeast(0) +
-                                if (i > 0) gap else 0.dp
-                        Box(Modifier.width(groupWidth).height(14.dp), contentAlignment = Alignment.Center) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp)
-                                    .height(0.5.dp)
-                                    .background(colors.sectorLine),
-                            )
-                            Text(
-                                group.sector,
-                                color = colors.primary,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.background(colors.labelBackground).padding(horizontal = 3.dp),
-                            )
-                        }
-                    }
-                }
-            }
+    LaunchedEffect(cursor, steppedAt) {
+        while (cursor != null) {
+            now = System.currentTimeMillis()
+            if (readoutLeft(now - steppedAt) <= 0f) cursor = null
+            delay(100)
         }
     }
-}
 
-@Composable
-private fun Connector(gap: Dp, carriageHeight: Dp, colors: FormationColors) {
-    Box(Modifier.width(gap).height(carriageHeight * 0.35f).background(colors.connector))
-}
+    BackHandler(enabled = cursor != null) { cursor = null }
 
-@Composable
-private fun Loco(width: Dp, height: Dp, colors: FormationColors) {
-    Box(
-        Modifier
-            .size(width, height)
-            .clip(RoundedCornerShape(topStart = height * 0.6f, topEnd = 3.dp, bottomEnd = 3.dp, bottomStart = 3.dp))
-            .background(colors.body),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .size(7.dp, height * 0.38f)
-                .offset(x = (-2).dp, y = (-2).dp)
-                .background(colors.accentBand, RoundedCornerShape(2.dp)),
-        )
-    }
-}
-
-@Composable
-private fun Carriage(wagon: FormationWagon, width: Dp, height: Dp, showFeature: Boolean, colors: FormationColors) {
-    Box(
-        Modifier
-            .size(width, height)
-            .alpha(if (wagon.closed) 0.4f else 1f)
-            .clip(RoundedCornerShape(3.dp))
-            .background(colors.body)
-            .border(0.5.dp, colors.outline, RoundedCornerShape(3.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (wagon.wagonClass == 1) {
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 1.5.dp)
-                    .width(width - 4.dp)
-                    .height(2.5.dp)
-                    .background(Color(0xFFEBB800), RoundedCornerShape(1.dp)),
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val strip = remember(formation, maxWidth) {
+                FormationStrip(maxWidth.value, formation.wagons.map { it.noPassageAfter })
+            }
+            val density = LocalDensity.current
+            FormationStripWear(
+                formation = formation,
+                strip = strip,
+                cursor = cursor,
+                modifier = Modifier
+                    .focusRequester(focus)
+                    .onRotaryScrollEvent { event ->
+                        val current = cursor ?: return@onRotaryScrollEvent false
+                        rotary += event.verticalScrollPixels
+                        if (kotlin.math.abs(rotary) >= stepPx) {
+                            select(stepCar(current, if (rotary > 0) 1 else -1, count))
+                            rotary = 0f
+                        }
+                        true
+                    }
+                    .focusable()
+                    .pointerInput(strip) {
+                        detectTapGestures { offset ->
+                            val x = with(density) { offset.x.toDp().value }
+                            select(strip.carAt(x) ?: stepCar(cursor, 1, count))
+                            rotary = 0f
+                            focus.requestFocus()
+                        }
+                    },
             )
         }
-        Text("${wagon.number}", color = colors.carNumber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        if (showFeature) {
-            wagon.features.firstOrNull()?.let { feature ->
-                Text(
-                    featureGlyph(feature),
-                    color = colors.featureIcon,
-                    fontSize = 8.sp,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 2.dp, bottom = 1.dp),
+        cursor?.let { car ->
+            FormationReadoutWear(
+                wagon = formation.wagons[car],
+                left = readoutLeft(now - steppedAt),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+// The train as a row of cars: nose and arrow on the left at the first car, a red bar
+// where there is no way through, a colour line below each car per amenity, numbers or
+// ranges on the cars and sector letters underneath.
+@Composable
+fun FormationStripWear(formation: Formation, strip: FormationStrip, cursor: Int?, modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
+    val scale = LocalDensity.current.density
+    val wagons = formation.wagons
+    val labels = remember(formation, strip, scale) {
+        numberLabels(
+            wagons.map { it.number },
+            wagons.map { it.wagonClass },
+            wagons.map { it.noPassageAfter },
+        ) { label, a, b -> strip.fits(measurer.measure(label, labelStyle).size.width / scale, a, b) }
+    }
+
+    Canvas(modifier.fillMaxWidth().height(STRIP_HEIGHT.dp)) {
+        val u = density
+        drawNose(strip, u)
+        wagons.forEachIndexed { i, wagon ->
+            val car = strip.cars[i]
+            val left = car.start * u
+            val w = strip.carWidth * u
+            if (i == cursor) {
+                drawRect(Color.White, Offset(left - 1.5f * u, (CAR_TOP - 1.5f) * u), Size(w + 3f * u, (CAR_HEIGHT + 3f) * u))
+            }
+            val alpha = if (wagon.closed) 0.4f else 1f
+            drawRect(bodyColour, Offset(left, CAR_TOP * u), Size(w, CAR_HEIGHT * u), alpha = alpha)
+            if (wagon.wagonClass == 1 || wagon.mixedClass) {
+                val stripe = if (wagon.mixedClass) w / 2 else w
+                drawRect(firstClassColour, Offset(left, CAR_TOP * u), Size(stripe, 2.5f * u), alpha = alpha)
+            }
+            val found = if (wagon.closed) emptyList() else amenities(wagon.features)
+            if (found.isNotEmpty()) {
+                val seg = (w - 2f * u * (found.size - 1)) / found.size
+                found.forEachIndexed { q, amenity ->
+                    drawRect(amenity.colour, Offset(left + q * (seg + 2f * u), LINE_TOP * u), Size(seg, LINE_HEIGHT * u))
+                }
+            }
+            if (wagon.noPassageAfter && i < wagons.lastIndex) {
+                val mid = (car.endInclusive + strip.slot / 2) * u
+                drawRect(
+                    breakColour,
+                    Offset(mid - 1.5f * u, (CAR_TOP - 2f) * u),
+                    Size(3f * u, (LINE_TOP + LINE_HEIGHT - CAR_TOP + 2f) * u),
                 )
             }
+        }
+
+        val spans = labels ?: wagons.indices.map { CarLabel(it, it, wagons[it].number.toString()) }
+        for (label in spans) {
+            val text = measurer.measure(label.text, labelStyle)
+            val mid = (strip.cars[label.first].start + strip.cars[label.last].endInclusive) / 2 * u
+            drawText(text, topLeft = Offset(mid - text.size.width / 2f, (CAR_TOP + CAR_HEIGHT / 2 + 0.75f) * u - text.size.height / 2f))
+        }
+
+        var i = 0
+        while (i < wagons.size) {
+            var j = i + 1
+            while (j < wagons.size && wagons[j].sector == wagons[i].sector) j++
+            val mid = (strip.cars[i].start + strip.cars[j - 1].endInclusive) / 2 * u
+            if (wagons[i].sector.isNotEmpty()) {
+                val text = measurer.measure(wagons[i].sector, sectorStyle)
+                drawText(text, topLeft = Offset(mid - text.size.width / 2f, SECTOR_TOP * u))
+            }
+            if (j < wagons.size) {
+                val edge = (strip.cars[j - 1].endInclusive + strip.cars[j].start) / 2 * u
+                drawRect(tickColour, Offset(edge - 0.5f * u, TICK_TOP * u), Size(1f * u, 4f * u))
+            }
+            i = j
+        }
+    }
+}
+
+private fun DrawScope.drawNose(strip: FormationStrip, u: Float) {
+    val end = strip.nose * u
+    val top = CAR_TOP * u
+    val bottom = (CAR_TOP + CAR_HEIGHT) * u
+    val nose = Path().apply {
+        moveTo(end, top)
+        lineTo(end, bottom)
+        lineTo(1f * u, bottom)
+        quadraticTo(0f, top + (bottom - top) * 0.2f, end * 0.55f, top)
+        close()
+    }
+    drawPath(nose, bodyColour)
+    val cy = (top + bottom) / 2
+    val cx = end * 0.55f
+    val z = 3f * u
+    val arrow = Path().apply {
+        moveTo(cx - z, cy)
+        lineTo(cx + z * 0.6f, cy - z)
+        lineTo(cx + z * 0.6f, cy + z)
+        close()
+    }
+    drawPath(arrow, Color.White)
+}
+
+// One line under the strip while a car is highlighted: number, sector, each amenity's
+// colour beside its icon as the legend, and a ring that drains until the readout clears.
+@Composable
+fun FormationReadoutWear(wagon: FormationWagon, left: Float, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.formation_car_fmt, wagon.number, wagon.sector)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = modifier.semantics { contentDescription = description },
+    ) {
+        Text("${wagon.number}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        if (wagon.sector.isNotEmpty()) {
+            Text(wagon.sector, color = sectorColour, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        for (amenity in amenities(wagon.features)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Box(Modifier.size(7.dp, 3.dp).background(amenity.colour))
+                Icon(amenity.icon(), contentDescription = amenity.label(), tint = Color.White, modifier = Modifier.size(13.dp))
+            }
+        }
+        Canvas(Modifier.size(10.dp)) {
+            val stroke = 1.5.dp.toPx()
+            val inset = Offset(stroke / 2, stroke / 2)
+            val arc = Size(size.width - stroke, size.height - stroke)
+            drawArc(bodyColour, 0f, 360f, false, inset, arc, style = Stroke(stroke))
+            if (left > 0f) drawArc(Color.White, -90f, 360f * left, false, inset, arc, style = Stroke(stroke))
         }
     }
 }

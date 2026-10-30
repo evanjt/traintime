@@ -5,8 +5,10 @@ data class FormationWagon(
     val number: Int,
     val wagonClass: Int, // 1 or 2
     val sector: String,
-    val features: List<String>, // "wheelchair", "restaurant", "family", "business", "low_floor"
+    val features: List<String>, // "wheelchair", "restaurant", "family", "business", "low_floor", "bike"
     val closed: Boolean,
+    val noPassageAfter: Boolean = false, // no way through to the next car
+    val mixedClass: Boolean = false, // first and second class in one car
 )
 
 data class Formation(
