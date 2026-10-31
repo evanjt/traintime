@@ -57,3 +57,13 @@ Coordinates are sent to api.traintime.ch only to find nearby stations, processed
 in memory, and discarded. Nothing identifying is stored server-side. Operational
 logs hold the endpoint, HTTP status and latency only, never coordinates, IP or
 device. No account, no analytics. Policy: https://traintime.ch/privacy
+
+GARMIN WATCHES (screenshot 4)
+The iPhone app links Garmin's Connect IQ Mobile SDK to talk to TrainTime's own
+watch app for Garmin, which is published separately on the Connect IQ Store.
+Through it the iPhone app sends a departure to the Garmin watch ("Send to
+Watch"), syncs saved favourites both ways, and receives reminders the watch
+asks the phone to schedule. Screenshot 4 shows that watch app beside the Apple
+Watch app because both are paired surfaces of the same iPhone app. Testing it
+needs a Garmin watch with the TrainTime watch app and Garmin Connect on the
+iPhone. Without Garmin Connect installed, nothing Garmin-related appears.
