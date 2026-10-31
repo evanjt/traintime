@@ -22,14 +22,14 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/store/feature/en-AU/featureGraphic.png" width="720" alt="TrainTime - Swiss departures, live on phone and watch" />
+  <img src="android/fastlane/metadata/android/en-AU/images/featureGraphic.png" width="720" alt="TrainTime - Swiss departures, live on phone and watch" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/apple/02-focused-tracking.png" width="170" alt="Apple Watch tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/wear/02-focused-tracking-framed.png" width="170" alt="Wear OS tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/garmin/03-focused-tracking-framed.png" width="160" alt="Garmin tracking" />&nbsp;&nbsp;
-  <img src="docs/screenshots/iphone/02-focused-tracking.png" width="140" alt="iPhone tracking" />
+  <img src="store/framed/apple-watch/02-focused-tracking.png" width="170" alt="Apple Watch tracking" />&nbsp;&nbsp;
+  <img src="store/framed/wear-os/02-focused-tracking-framed.png" width="170" alt="Wear OS tracking" />&nbsp;&nbsp;
+  <img src="store/framed/garmin/03-focused-tracking-framed.png" width="160" alt="Garmin tracking" />&nbsp;&nbsp;
+  <img src="store/framed/iphone/02-focused-tracking.png" width="140" alt="iPhone tracking" />
 </p>
 
 ---

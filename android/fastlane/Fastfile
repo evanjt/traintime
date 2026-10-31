@@ -71,7 +71,7 @@ platform :android do
       release_status: "completed",
       metadata_path: metadata_dir,
       # Feature graphic + phone/wear screenshots ship from metadata/android/
-      # <locale>/images/, mirrored there by docs/screenshots/board.py --install.
+      # <locale>/images/, mirrored there by store/board.py --install.
       # The repo is the source of truth, but only an image whose bytes differ
       # from the live listing is sent: Play lists every uploaded image as a
       # change to review, identical or not, and that holds the release back.

@@ -46,7 +46,7 @@ xcuserdata/
 
 # Garmin store copy is release metadata, not notes. No API to upload it, so the
 # repo is the only record of what was pasted into the Connect IQ dashboard.
-!docs/screenshots/store/garmin/*.md
+!store/manual/garmin/*.md
 
 # Fastlane
 apple/fastlane/vendor/
@@ -69,5 +69,9 @@ android/dist/
 android/.idea/
 android/captures/
 /screenshots/
+# Store renders before install(); the fastlane trees hold what ships.
+/store/out/
+# The App Store header and search videos rebuild from tracked inputs (board.py --video).
+/store/manual/app-store/*/*.mp4
 /*.png
 .*
