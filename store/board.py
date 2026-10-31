@@ -26,10 +26,13 @@ framed/wear-os from the same captures.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+
+import frame
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.join(SCRIPT_DIR, "..")
@@ -69,6 +72,33 @@ PALETTES = {
                    "0 26px 90px rgba(0, 0, 0, 0.55)",
     ),
 }
+
+
+def drop_shadow(box_shadow):
+    """A box-shadow list as drop-shadow filters, which follow the device art's
+    alpha instead of its rectangle."""
+    return " ".join(f"drop-shadow({part.strip()})"
+                    for part in re.split(r",\s*(?![^()]*\))", box_shadow))
+
+
+_framed = {}
+
+
+def framed(device, capture):
+    """The capture in its manufacturer's device art, as a PNG under out/framed,
+    with the art's size and the screen's rect inside it."""
+    # Captures from a 1440-wide phone go in the 1440-wide Pixel art.
+    if device == "android" and frame.Image.open(capture).width == 1440:
+        device = "android-qhd"
+    key = (device, capture)
+    if key not in _framed:
+        image = frame.frame_device(device, capture)
+        stem = os.path.splitext(os.path.basename(capture))[0]
+        path = os.path.join(STORE, "framed", f"{device}-{stem}.png")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        image.save(path)
+        _framed[key] = (path, image.size, frame.screen_rect(device))
+    return _framed[key]
 
 
 def make_css(p):
@@ -153,15 +183,7 @@ def make_css(p):
     transform: translateX(-50%);
     top: 0;
     width: var(--devw);
-    border-radius: var(--devr);
-    padding: var(--bezel);
-    background: linear-gradient(160deg, #33343a, #1c1d21 40%);
-    box-shadow: {p['dev_shadow']};
-  }}
-  .screen {{
-    display: block;
-    width: 100%;
-    border-radius: calc(var(--devr) - var(--bezel));
+    filter: {drop_shadow(p['dev_shadow'])};
   }}
 """
 
@@ -171,7 +193,7 @@ PHONE_HTML = """<!doctype html>
 {css}
 :root {{
   --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg}; --segw: {segw}; --headh: {headh}px;
-  --devw: {devw}px; --devr: {devr}px; --bezel: {bezel}px; --glow: {glow}px;
+  --devw: {devw}px; --glow: {glow}px;
 }}
 </style></head>
 <body>
@@ -182,9 +204,7 @@ PHONE_HTML = """<!doctype html>
     </div>
     <div class="rule"></div>
     <div class="stage">
-      <div class="device">
-        <img class="screen" src="file://{screen}">
-      </div>
+      <img class="device" src="file://{device}">
     </div>
   </div>
 </body></html>
@@ -248,10 +268,8 @@ FEATURE_HTML = """<!doctype html>
 .right {{ height: 100%; position: relative; width: 360px; flex: none; }}
 .right img {{ position: absolute; }}
 .phone {{
-  width: 230px; left: 0; top: 56px;
-  border-radius: 30px;
-  border: 8px solid #26272c;
-  box-shadow: {dev_shadow};
+  width: {devw}px; left: 0; top: 56px;
+  filter: {dev_shadow};
 }}
 .wearfg {{
   width: 190px; right: -14px; bottom: 8px;
@@ -340,28 +358,7 @@ WEAR_FRAMED = os.path.join(FRAMED, "wear-os", "02-focused-tracking-framed.png")
 
 
 def frame_wear():
-    """Composite the Wear captures into the product frame (case + strap) from
-    frames/wear-os.png: the tracking shot for the store boards and the
-    station and tracking pair for the website gallery."""
-    from PIL import Image, ImageDraw
-
-    wear_list = os.path.join(CAPTURES, "wear-os", "01.png")
-    frame = Image.open(os.path.join(SCRIPT_DIR, "frames", "wear-os.png")).convert("RGBA")
-    size, cx, cy = 404, 220, 300
-    mask = Image.new("L", (size * 4, size * 4), 0)
-    ImageDraw.Draw(mask).ellipse([0, 0, size * 4 - 1, size * 4 - 1], fill=255)
-    mask = mask.resize((size, size), Image.LANCZOS)
-    for src, dest in [
-        (wear_list, os.path.join(FRAMED, "wear-os", "01-station-view-framed.png")),
-        (WEAR_TRACKING, WEAR_FRAMED),
-    ]:
-        # Through RGB, as Play receives it: the capture's edge alpha is dropped.
-        shot = Image.open(src).convert("RGB").convert("RGBA").resize((size, size), Image.LANCZOS)
-        out = frame.copy()
-        out.paste(shot, (cx - size // 2, cy - size // 2), mask)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        out.save(dest)
-        print(f"  {os.path.relpath(dest, SCRIPT_DIR)}")
+    frame.frame_wear_os()
 
 
 # Shot list: (output stem, screen capture, caption, subcaption). Captions are
@@ -482,12 +479,16 @@ def build_locale(locale, strings, target, out_subdir, palette):
     headh = head_height(cap, sub)
     sizes = dict(
         css=css, pad=pad, cap=cap, sub=sub, rule=max(4, base // 270),
-        devw=int(base * 0.86), devr=int(base * 0.115), bezel=max(8, base // 108),
         glow=int(base * 0.16), segw=segw, headh=headh,
     )
+    device = "android" if out_subdir == "play" else "iphone"
     for i, (stem, screen, caption, sub_text) in enumerate(shots(locale, strings, out_subdir)):
+        path, (aw, _), (_, _, sw, _) = framed(device, screen)
+        # The screen keeps the width it had in the drawn bezel; the art's own
+        # body adds the rest.
         html = PHONE_HTML.format(
-            screen=screen, caption=caption, sub_text=sub_text, seg=segs[i], **sizes,
+            device=path, caption=caption, sub_text=sub_text, seg=segs[i],
+            devw=int(base * 0.79 * aw / sw), **sizes,
         )
         render(html, width, height, os.path.join(STORE, out_subdir, locale, f"{stem}.png"))
 
@@ -617,11 +618,12 @@ def build_garmin_hero(locale, strings, palette):
 
 def build_feature_graphic(locale, strings, palette):
     p = PALETTES[palette]
+    phone, (aw, _), (_, _, sw, _) = framed("android", os.path.join(CAPTURES, "android", "01-tracking.png"))
     html = FEATURE_HTML.format(
         css=make_css(p), ink=p["ink"], seg=p["seg"], grey=p["sub"],
-        dev_shadow=p["dev_shadow"],
+        dev_shadow=drop_shadow(p["dev_shadow"]),
         tagline=strings["tagline"],
-        screen=os.path.join(CAPTURES, "android", "01-tracking.png"),
+        screen=phone, devw=int(214 * aw / sw),
         wear=os.path.join(FRAMED, "garmin", "03-focused-tracking-framed.png"),
     )
     render(html, 1024, 500, os.path.join(STORE, "feature", locale, "featureGraphic.png"))
@@ -654,10 +656,8 @@ CREATIVE_HTML = """<!doctype html>
 }}
 .tagline {{ font-size: {tag}px; line-height: 1.22; color: {grey}; }}
 .phone {{
-  position: absolute; left: {px}px; top: {py}px; height: {ph}px;
-  border-radius: {pr}px;
-  border: {bezel}px solid #26272c;
-  box-shadow: {dev_shadow};
+  position: absolute; left: {dx}px; top: {dy}px; width: {dw}px;
+  filter: {dev_shadow};
 }}
 .watch {{
   position: absolute; left: {wx}px; top: {wy}px; height: {wh}px;
@@ -749,20 +749,25 @@ def creative_layout(name):
 def creative_html(p, strings, lay, layer="", capture="tracking"):
     phone, watch = CREATIVE_SCREENS[capture]
     sh = lay["sh"]
+    # The layout places the screen; the device art is scaled and shifted so
+    # its screen hole lands there.
+    phone, (aw, _), (hx, hy, hw, _) = framed("iphone", phone)
+    scale = lay["pw"] / hw
+    dx = lay["px"] + lay["bezel"] - int(hx * scale)
+    dy = lay["py"] + lay["bezel"] - int(hy * scale)
     watch_img = ""
     if lay["watch"]:
         watch_img = f'<img class="watch" src="file://{watch}">'
     wx, wy, wh = lay["watch"] or (0, 0, 0)
     return CREATIVE_HTML.format(
         css=make_css(p), ink=p["ink"], seg=p["seg"], grey=p["sub"],
-        rule_base=p["rule_base"], dev_shadow=p["dev_shadow"], layer=layer,
+        rule_base=p["rule_base"], dev_shadow=drop_shadow(p["dev_shadow"]), layer=layer,
         # No lone last word when the tagline wraps.
         tagline=" ".join(strings["tagline"].rsplit(" ", 1)), width=lay["width"],
         cy=lay["cy"], lx=lay["lx"], lw=lay["lw"], word=lay["word"],
         tag=int(lay["word"] * 0.4), rule=max(6, sh // 110),
         rulegap=int(sh * 0.05), glow=int(sh * 0.1),
-        px=lay["px"], py=lay["py"], ph=lay["ph"], pr=int(lay["pw"] * 0.13),
-        bezel=lay["bezel"], wx=wx, wy=wy, wh=wh,
+        dx=dx, dy=dy, dw=int(aw * scale), wx=wx, wy=wy, wh=wh,
         wshadow=int(sh * 0.02), wblur=int(sh * 0.05),
         phone=phone, watch_img=watch_img,
     )

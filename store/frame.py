@@ -1,94 +1,122 @@
 #!/usr/bin/env python3
-"""Frame screenshots in device mockups for all platforms."""
+"""Frame raw captures in the manufacturers' own device art.
+
+Apple's product bezels (developer.apple.com/design/resources, used under its
+marketing guidelines) have a transparent screen hole; the capture goes under
+them. Google's device art from Android Studio (Apache 2.0) is a back plate, a
+screen mask and sometimes a foreground; the capture goes between. The Garmin
+frame is a product photo with its display blanked.
+"""
 
 from PIL import Image, ImageDraw
-import numpy as np
-import io
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CAPTURES = os.path.join(SCRIPT_DIR, "captures")
 FRAMED = os.path.join(SCRIPT_DIR, "framed")
+FRAMES = os.path.join(SCRIPT_DIR, "frames")
+
+# Google art places the screen by its layout file; Apple art by its hole.
+DEVICES = {
+    "iphone": dict(art="apple-iphone-17-pro-max.png"),
+    "iphone-duo-inner": dict(art="apple-iphone-duo-inner.png"),
+    "iphone-duo-outer": dict(art="apple-iphone-duo-outer.png"),
+    "apple-watch": dict(art="apple-watch-s11-46mm.png"),
+    # The Pixel's "mask" is drawn over the screen (rounded corners, camera).
+    "android": dict(back="google-pixel-5-back.webp", over="google-pixel-5-mask.webp",
+                    screen=(60, 65, 1080, 2340)),
+    "android-qhd": dict(back="google-pixel-7-pro-back.webp", over="google-pixel-7-pro-mask.webp",
+                        screen=(48, 66, 1440, 3120)),
+    "wear-os": dict(back="google-watch-round-back.png", fore="google-watch-round-fore.png",
+                    mask="google-watch-round-mask.png", screen=(25, 26, 320, 320)),
+}
+
+
+def screen_rect(device):
+    """(x, y, w, h) of the screen inside the device art."""
+    spec = DEVICES[device]
+    if "screen" in spec:
+        return spec["screen"]
+    # Flood the transparent hole from the art's centre; islands inside it (the
+    # Dynamic Island) stay out of the flood but inside its bounding box.
+    art = Image.open(os.path.join(FRAMES, spec["art"]))
+    hole = art.getchannel("A").point(lambda a: 255 if a < 128 else 0)
+    ImageDraw.floodfill(hole, (art.width // 2, art.height // 2), 128)
+    return _bbox(hole)
+
+
+def _bbox(hole):
+    x0, y0, x1, y1 = hole.point(lambda v: 255 if v == 128 else 0).getbbox()
+    return x0, y0, x1 - x0, y1 - y0
+
+
+def frame_device(device, capture):
+    """The capture (path or image) in the device art, as an RGBA image."""
+    spec = DEVICES[device]
+    shot = capture if isinstance(capture, Image.Image) else Image.open(capture)
+    x, y, w, h = screen_rect(device)
+    shot = shot.convert("RGBA")
+    # A capture from a taller screen is cut at the bottom, never squashed.
+    if shot.height * w > shot.width * h + shot.width:
+        shot = shot.crop((0, 0, shot.width, round(shot.width * h / w)))
+    shot = shot.resize((w, h), Image.LANCZOS)
+    if "art" in spec:
+        art = Image.open(os.path.join(FRAMES, spec["art"])).convert("RGBA")
+        out = Image.new("RGBA", art.size, (0, 0, 0, 0))
+        out.paste(shot, (x, y))
+        out.alpha_composite(art)
+        return out
+    out = Image.open(os.path.join(FRAMES, spec["back"])).convert("RGBA")
+    layer = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    if "mask" in spec:
+        mask = Image.open(os.path.join(FRAMES, spec["mask"])).convert("RGBA")
+        if mask.size != (w, h):
+            mask = mask.crop((x, y, x + w, y + h))
+        layer.paste(shot, (x, y), mask.getchannel("A"))
+    else:
+        layer.paste(shot, (x, y))
+    out.alpha_composite(layer)
+    if "over" in spec:
+        out.alpha_composite(Image.open(os.path.join(FRAMES, spec["over"])).convert("RGBA"), (x, y))
+    if "fore" in spec:
+        out.alpha_composite(Image.open(os.path.join(FRAMES, spec["fore"])).convert("RGBA"))
+    return out
+
+
+def save_framed(device, capture, dest, width):
+    framed = frame_device(device, capture)
+    framed = framed.resize((width, round(framed.height * width / framed.width)), Image.LANCZOS)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    framed.save(dest)
+    print(f"  Framed: {os.path.relpath(dest, SCRIPT_DIR)}")
+
 
 def frame_apple_watch():
-    """Frame Apple Watch screenshots using existing framed image as template."""
-    SCREEN_X, SCREEN_Y = 72, 194
-    SCREEN_W, SCREEN_H = 416, 496
+    for src, dst in [("watch-station-view.png", "01-station-view.png"),
+                     ("watch-tracking.png", "02-focused-tracking.png")]:
+        save_framed("apple-watch", os.path.join(CAPTURES, "apple-watch", src),
+                    os.path.join(FRAMED, "apple-watch", dst), 560)
 
-    # Build frame overlay by comparing all 3 original framed images from git.
-    # Pixels identical across all 3 = frame (bezel, case, bands).
-    # Pixels that differ = screen content → make transparent.
-    import subprocess
-    refs = []
-    for name in ["01-station-view.png", "02-focused-tracking.png"]:
-        data = subprocess.run(
-            ["git", "show", f"HEAD:store/framed/apple-watch/{name}"],
-            capture_output=True,
-        ).stdout
-        refs.append(np.array(Image.open(io.BytesIO(data))))
-    refs.append(np.array(Image.open(os.path.join(FRAMED, "apple-watch", "03-station-picker.png"))))
 
-    # Max pixel difference across all 3 references in the screen region
-    screens = [r[SCREEN_Y:SCREEN_Y + SCREEN_H, SCREEN_X:SCREEN_X + SCREEN_W] for r in refs]
-    diffs = []
-    for i in range(3):
-        for j in range(i + 1, 3):
-            diffs.append(np.max(np.abs(
-                screens[i][:, :, :3].astype(int) - screens[j][:, :, :3].astype(int)
-            ), axis=2))
-    max_diff = np.maximum(diffs[0], np.maximum(diffs[1], diffs[2]))
+def frame_wear_os():
+    """The station and tracking captures on the round watch, for the website
+    gallery and the Play watch board."""
+    for src, dst in [("01.png", "01-station-view-framed.png"),
+                     ("02.png", "02-focused-tracking-framed.png")]:
+        # Through RGB, as Play receives it: the capture's edge alpha is dropped.
+        shot = Image.open(os.path.join(CAPTURES, "wear-os", src)).convert("RGB")
+        framed = frame_device("wear-os", shot)
+        framed = framed.crop(framed.getbbox())
+        framed = framed.resize((440, round(framed.height * 440 / framed.width)), Image.LANCZOS)
+        dest = os.path.join(FRAMED, "wear-os", dst)
+        framed.save(dest)
+        print(f"  Framed: {os.path.relpath(dest, SCRIPT_DIR)}")
 
-    # Identify bezel pixels at screen corners. A pixel is frame/bezel if:
-    # 1. Identical across all 3 refs (max_diff <= 3)
-    # 2. Located in a corner region (bezel only intrudes at rounded corners)
-    # 3. Either non-black (actual bezel metal) OR semi-transparent (watch edge)
-    # Black opaque pixels matching across refs are just black screen background.
-    CORNER = 30
-    EDGE_TOP = 10     # glass gradient rows at top
-    EDGE_BOTTOM = 16  # glass gradient rows at bottom
-    brightness = np.max(screens[0][:, :, :3], axis=2)
-    alpha = screens[0][:, :, 3]
 
-    is_matching = max_diff <= 8
-    is_visible_bezel = (brightness > 0) | (alpha < 255)
-
-    # Bezel exists at corners AND along top/bottom glass edge
-    edge_mask = np.zeros((SCREEN_H, SCREEN_W), dtype=bool)
-    edge_mask[:CORNER, :CORNER] = True
-    edge_mask[:CORNER, SCREEN_W - CORNER:] = True
-    edge_mask[SCREEN_H - CORNER:, :CORNER] = True
-    edge_mask[SCREEN_H - CORNER:, SCREEN_W - CORNER:] = True
-    edge_mask[:EDGE_TOP, :] = True
-    edge_mask[SCREEN_H - EDGE_BOTTOM:, :] = True
-
-    is_frame = is_matching & is_visible_bezel & edge_mask
-
-    # Paste mask: 255 = replace with new content, 0 = keep original frame pixel
-    paste_mask = Image.fromarray(
-        np.where(is_frame, 0, 255).astype(np.uint8), mode="L"
-    )
-
-    # Use first reference as base (frame pixels are identical across all refs)
-    base_frame = Image.fromarray(refs[0])
-
-    mappings = [
-        ("watch-station-view.png", "01-station-view.png"),
-        ("watch-tracking.png", "02-focused-tracking.png"),
-    ]
-
-    for src_name, dst_name in mappings:
-        src_path = os.path.join(CAPTURES, "apple-watch", src_name)
-        if not os.path.exists(src_path):
-            print(f"  Skipping {src_name} (not found)")
-            continue
-
-        raw = Image.open(src_path).convert("RGBA")
-        resized = raw.resize((SCREEN_W, SCREEN_H), Image.LANCZOS)
-
-        result = base_frame.copy()
-        result.paste(resized, (SCREEN_X, SCREEN_Y), paste_mask)
-        result.save(os.path.join(FRAMED, "apple-watch", dst_name))
-        print(f"  Framed: {src_name} -> {dst_name}")
+def frame_iphone():
+    for name in ["01-station-view", "02-focused-tracking", "03-station-picker"]:
+        save_framed("iphone", os.path.join(CAPTURES, "iphone", f"{name}-raw.png"),
+                    os.path.join(FRAMED, "iphone", f"{name}.png"), 440)
 
 
 def frame_garmin():
@@ -132,124 +160,14 @@ def frame_garmin():
         print(f"  Framed: {raw_name} -> {framed_name}")
 
 
-def frame_iphone():
-    """Frame iPhone screenshots in an iPhone 17 Pro Max style device frame."""
-    os.makedirs(os.path.join(FRAMED, "iphone"), exist_ok=True)
-
-    # Scale 1320x2868 to gallery size
-    SCREEN_W, SCREEN_H = 400, 868
-
-    # iPhone 17 Pro Max: very thin bezels, titanium frame
-    BEZEL = 10
-    OUTER_RADIUS = 44
-    INNER_RADIUS = 38
-    FRAME_EDGE = 3  # titanium frame highlight width
-    FRAME_W = SCREEN_W + BEZEL * 2  # 420
-    FRAME_H = SCREEN_H + BEZEL * 2  # 888
-
-    # Dynamic Island proportions (scaled from 1320 → 400 width)
-    DI_W, DI_H = 92, 26
-    DI_X = FRAME_W // 2 - DI_W // 2
-    DI_Y = BEZEL + 8
-
-    # Side button (power) on the right
-    BTN_W, BTN_H = 3, 52
-    BTN_X = FRAME_W - 1
-    BTN_Y = FRAME_H // 4
-
-    # Volume buttons on the left
-    VOL_W, VOL_H = 3, 34
-    VOL_X = 0
-    VOL1_Y = FRAME_H // 4 - 10
-    VOL2_Y = VOL1_Y + VOL_H + 12
-
-    # Build frame layer (transparent background)
-    frame = Image.new("RGBA", (FRAME_W, FRAME_H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(frame)
-
-    # Outer titanium shell
-    draw.rounded_rectangle(
-        [0, 0, FRAME_W - 1, FRAME_H - 1],
-        radius=OUTER_RADIUS,
-        fill=(42, 42, 44, 255),  # dark titanium base
-    )
-
-    # Titanium frame highlight (subtle lighter edge)
-    draw.rounded_rectangle(
-        [FRAME_EDGE, FRAME_EDGE, FRAME_W - 1 - FRAME_EDGE, FRAME_H - 1 - FRAME_EDGE],
-        radius=OUTER_RADIUS - FRAME_EDGE,
-        fill=(30, 30, 32, 255),  # inner shell
-    )
-
-    # Screen area (black)
-    draw.rounded_rectangle(
-        [BEZEL, BEZEL, BEZEL + SCREEN_W - 1, BEZEL + SCREEN_H - 1],
-        radius=INNER_RADIUS,
-        fill=(0, 0, 0, 255),
-    )
-
-    # Side buttons
-    draw.rounded_rectangle(
-        [BTN_X - BTN_W + 1, BTN_Y, BTN_X, BTN_Y + BTN_H],
-        radius=1, fill=(55, 55, 58, 255),
-    )
-    draw.rounded_rectangle(
-        [VOL_X, VOL1_Y, VOL_X + VOL_W - 1, VOL1_Y + VOL_H],
-        radius=1, fill=(55, 55, 58, 255),
-    )
-    draw.rounded_rectangle(
-        [VOL_X, VOL2_Y, VOL_X + VOL_W - 1, VOL2_Y + VOL_H],
-        radius=1, fill=(55, 55, 58, 255),
-    )
-
-    # Screen content mask
-    screen_mask = Image.new("L", (SCREEN_W, SCREEN_H), 0)
-    mask_draw = ImageDraw.Draw(screen_mask)
-    mask_draw.rounded_rectangle(
-        [0, 0, SCREEN_W - 1, SCREEN_H - 1],
-        radius=INNER_RADIUS,
-        fill=255,
-    )
-
-    mappings = [
-        ("01-station-view-raw.png", "01-station-view.png"),
-        ("02-focused-tracking-raw.png", "02-focused-tracking.png"),
-        ("03-station-picker-raw.png", "03-station-picker.png"),
-    ]
-
-    for src_name, dst_name in mappings:
-        src_path = os.path.join(CAPTURES, "iphone", src_name)
-        if not os.path.exists(src_path):
-            print(f"  Skipping {src_name} (not found)")
-            continue
-
-        raw = Image.open(src_path).convert("RGBA")
-        resized = raw.resize((SCREEN_W, SCREEN_H), Image.LANCZOS)
-
-        # Composite: screen content, then frame on top
-        result = frame.copy()
-        result.paste(resized, (BEZEL, BEZEL), screen_mask)
-
-        # Dynamic Island on top of screen content
-        result_draw = ImageDraw.Draw(result)
-        result_draw.rounded_rectangle(
-            [DI_X, DI_Y, DI_X + DI_W, DI_Y + DI_H],
-            radius=DI_H // 2,
-            fill=(0, 0, 0, 255),
-        )
-
-        result.save(os.path.join(FRAMED, "iphone", dst_name))
-        print(f"  Framed: {src_name} -> {dst_name}")
-
 
 if __name__ == "__main__":
     print("Framing Apple Watch screenshots...")
     frame_apple_watch()
-    print()
     print("Framing Garmin screenshots...")
     frame_garmin()
-    print()
     print("Framing iPhone screenshots...")
     frame_iphone()
-    print()
+    print("Framing Wear OS screenshots...")
+    frame_wear_os()
     print("Done!")
