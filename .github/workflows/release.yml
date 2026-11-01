@@ -504,6 +504,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Internal testing:** published (live to internal testers, phone + Wear OS)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Open testing:** staged as a draft (review and roll out in the console)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Open testing:** published (live to open testers, phone + Wear OS)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production:** phone and Wear OS staged as drafts, not sent for review" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To release both, run \`fastlane android promote_to_production\` from android/ (or send the drafts in the console)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Build will appear in the [Play Console](https://play.google.com/console) shortly." >> $GITHUB_STEP_SUMMARY

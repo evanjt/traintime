@@ -251,9 +251,9 @@ platform :android do
 
   # Play only defines well-known form-factor track ids for production, open
   # testing and internal. There is no wear:alpha, so the watch has no closed
-  # testing step and goes to production straight from its internal track.
+  # testing step. Production takes what a tag put on open testing, phone and watch.
   TO_CLOSED = { "internal" => "alpha" }.freeze
-  TO_PRODUCTION = { "alpha" => "production", "wear:internal" => "wear:production" }.freeze
+  TO_PRODUCTION = { "beta" => "production", "wear:beta" => "wear:production" }.freeze
 
   desc "Promote the latest internal build to the closed (alpha) track. Phone only"
   lane :promote_to_closed do
