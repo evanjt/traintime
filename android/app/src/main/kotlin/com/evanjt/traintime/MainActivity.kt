@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -39,6 +40,11 @@ import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
 import com.evanjt.traintime.ui.BackgroundLocationIntroDialog
 import com.evanjt.traintime.ui.BatteryNoticeDialog
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.adaptive.PaneLayout
+import com.evanjt.traintime.ui.adaptive.TrackingPaneHint
+import com.evanjt.traintime.ui.adaptive.TwoPane
+import com.evanjt.traintime.ui.adaptive.paneLayout
+import com.evanjt.traintime.ui.adaptive.widthClassOf
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
@@ -246,28 +252,32 @@ private fun RootView(
                     onDismiss = { viewModel.dismissPendingRoute() },
                 )
             }
-            Box(Modifier.weight(1f)) {
-                when (viewModel.appState) {
-                    2 -> TrackingScreen(viewModel)
-                    // Keep the last board visible, darkened, with Resume floating
-                    // on top rather than blanking it.
-                    3 -> Box(Modifier.fillMaxSize()) {
-                        StationScreen(
-                            viewModel,
-                            onOpenSettings = { focusWatch ->
-                                settingsFocusWatch = focusWatch
-                                showSettings = true
+            BoxWithConstraints(Modifier.weight(1f)) {
+                val openSettings = { focusWatch: Boolean ->
+                    settingsFocusWatch = focusWatch
+                    showSettings = true
+                }
+                val board = @Composable { StationScreen(viewModel, onOpenSettings = openSettings) }
+                val width = widthClassOf(maxWidth.value)
+                // Keep the last board visible, darkened, with Resume floating
+                // on top rather than blanking it. On a split window the scrim
+                // covers both panes.
+                Box(Modifier.fillMaxSize()) {
+                    // One TwoPane for both split cases, so switching the right
+                    // pane keeps the board's scroll position.
+                    when (val layout = paneLayout(width, viewModel.appState)) {
+                        PaneLayout.TRACKING -> TrackingScreen(viewModel)
+                        PaneLayout.BOARD -> board()
+                        PaneLayout.SPLIT_TRACKING, PaneLayout.SPLIT_HINT -> TwoPane(
+                            board = board,
+                            detail = {
+                                if (layout == PaneLayout.SPLIT_TRACKING) TrackingScreen(viewModel) else TrackingPaneHint()
                             },
                         )
+                    }
+                    if (viewModel.appState == 3) {
                         InactiveScreen(onResume = { viewModel.resumeToStationView() })
                     }
-                    else -> StationScreen(
-                        viewModel,
-                        onOpenSettings = { focusWatch ->
-                            settingsFocusWatch = focusWatch
-                            showSettings = true
-                        },
-                    )
                 }
             }
         }

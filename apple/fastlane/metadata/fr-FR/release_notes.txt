@@ -1,3 +1,4 @@
 - Nouveau réglage « Sons des alertes ». Désactivé, les alertes s'affichent et vibrent toujours, simplement sans son.
 - Nouveau réglage « Vibration » sur iPhone et Apple Watch, pour couper les vibrations quand l'app est ouverte.
 - Nouveau réglage « M'avertir d'un changement de quai », à côté de l'alerte avant le départ.
+- Suivi : une rangée Carte, Montre, Son et Vibrations. Touchez pour couper pendant ce trajet, maintenez pour tous les trajets. Retour garde le suivi, Arrêter y met fin.

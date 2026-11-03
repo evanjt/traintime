@@ -19,24 +19,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -70,6 +69,10 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.evanjt.traintime.session.SessionMute
+import com.evanjt.traintime.session.SessionMutes
+import com.evanjt.traintime.session.TrackingSessionBus
 
 private val departureTimeFormat = DateTimeFormatter.ofPattern("HH:mm")
 
@@ -90,7 +93,10 @@ fun TrackingScreen(viewModel: MainViewModel) {
         onDispose { view.keepScreenOn = false }
     }
 
-    BackHandler { viewModel.exitToStationView() }
+    BackHandler { viewModel.leaveTracking() }
+
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Keep the watch link/status fresh for the "Open on watch" button, and the
     // connected-watch list for "Send to Watch".
@@ -278,71 +284,59 @@ fun TrackingScreen(viewModel: MainViewModel) {
                 FormationDiagram(formation, Modifier.padding(top = 16.dp))
             }
 
-            // Map: hand off to the platform maps app, pinned to the station
+            // One row of actions. Map hands off to the platform maps app pinned
+            // to the station. Watch mirrors iOS: tap sends this departure to a
+            // live watch or opens a closed Garmin, hold picks the watch. Sound
+            // and Buzz decide for this trip on a tap and for every trip on a hold.
             val station = viewModel.currentStation
-            if (station?.lat != null && station.lon != null) {
-                OutlinedButton(
-                    onClick = {
+            val watches = viewModel.connectedWatches
+            val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
+            val sounds by viewModel.alertSoundsOn.collectAsState()
+            val buzzes by viewModel.hapticsOn.collectAsState()
+            val mutes by TrackingSessionBus.mutes.collectAsState()
+            val tripMutes = mutes.takeIf { it.departureTimestamp == focused?.departureTimestamp } ?: SessionMutes()
+            var showWatchMenu by remember { mutableStateOf(false) }
+            fun hint(override: Boolean?) {
+                val text = context.getString(tripHint(override) ?: return)
+                scope.launch {
+                    snackbar.currentSnackbarData?.dismiss()
+                    snackbar.showSnackbar(text)
+                }
+            }
+            HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
+            TrackingActionRow(
+                showMap = station?.lat != null && station.lon != null,
+                watch = if (watches.isNotEmpty() || hasGarmin) {
+                    WatchAction(
+                        trackingHere = viewModel.watchTrackingFocused,
+                        checking = viewModel.watchChecking,
+                        liveness = when {
+                            viewModel.watchAlive -> WatchLiveness.OPEN
+                            viewModel.watchKnownButDisconnected -> WatchLiveness.OFF
+                            else -> WatchLiveness.CLOSED
+                        },
+                    )
+                } else {
+                    null
+                },
+                sound = SessionMute.state(sounds, tripMutes.sound),
+                buzz = SessionMute.state(buzzes, tripMutes.buzz),
+                onMap = {
+                    if (station?.lat != null && station.lon != null) {
                         val name = Uri.encode(station.name ?: context.getString(CoreR.string.station_fallback))
                         val uri = Uri.parse("geo:${station.lat},${station.lon}?q=${station.lat},${station.lon}($name)")
                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    },
-                    modifier = Modifier.padding(top = 16.dp),
-                ) {
-                    Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(stringResource(R.string.show_on_map), modifier = Modifier.padding(start = 6.dp))
-                }
-            }
-
-            // Save this as a route and keep it going with the app closed via the
-            // distance-aware reminder. Asks for background location (disclosure)
-            // the first time it's used.
-            OutlinedButton(
-                onClick = { viewModel.trackCurrentInBackground() },
-                modifier = Modifier.padding(top = 12.dp),
-            ) {
-                Icon(Icons.Filled.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.track_in_background), modifier = Modifier.padding(start = 6.dp))
-            }
-
-            // One watch button, mirroring iOS: a live watch takes an explicit send
-            // of this departure, a closed Garmin the launch/re-sync path. Colour
-            // tracks liveness (green = open, amber = closed, grey = paired but off)
-            // and a spinner shows while opening. Multiple watches open a picker.
-            val watches = viewModel.connectedWatches
-            val hasGarmin = viewModel.watchLinks.any { it.type == PhoneWatchType.GARMIN }
-            if (watches.isNotEmpty() || hasGarmin) {
-                HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
-                var showWatchMenu by remember { mutableStateOf(false) }
-                Box {
-                    OutlinedButton(onClick = {
-                        when {
-                            // The watch already tracks this departure; a re-send
-                            // would only make it re-enter and buzz again.
-                            viewModel.watchTrackingFocused -> {}
-                            watches.size > 1 -> showWatchMenu = true
-                            else -> viewModel.sendToPrimaryOrOpen()
-                        }
-                    }) {
-                        if (viewModel.watchChecking) {
-                            CircularProgressIndicator(strokeWidth = 2.dp, color = palette.platform, modifier = Modifier.size(18.dp))
-                        } else {
-                            Icon(
-                                Icons.Filled.Watch,
-                                contentDescription = null,
-                                tint = when {
-                                    viewModel.watchAlive -> Color(0xFF34C759)
-                                    viewModel.watchKnownButDisconnected -> Color(0xFF8E8E93)
-                                    else -> Color(0xFFFFB300)
-                                },
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                        Text(
-                            if (viewModel.watchTrackingFocused) stringResource(R.string.tracking_on_watch) else stringResource(R.string.track_on_watch),
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
                     }
+                },
+                // The watch already tracks this departure; a re-send would only
+                // make it re-enter and buzz again.
+                onWatch = { if (!viewModel.watchTrackingFocused) viewModel.sendToPrimaryOrOpen() },
+                onWatchHold = { if (watches.isNotEmpty()) showWatchMenu = true },
+                onSound = { hint(viewModel.tapTripSound()) },
+                onSoundHold = { viewModel.holdTripSound() },
+                onBuzz = { hint(viewModel.tapTripBuzz()) },
+                onBuzzHold = { viewModel.holdTripBuzz() },
+                watchMenu = {
                     DropdownMenu(expanded = showWatchMenu, onDismissRequest = { showWatchMenu = false }) {
                         watches.forEach { watch ->
                             DropdownMenuItem(
@@ -354,16 +348,17 @@ fun TrackingScreen(viewModel: MainViewModel) {
                             )
                         }
                     }
-                }
-            }
+                },
+            )
             viewModel.watchSendStatus?.let {
                 Text(it, color = secondary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
 
-        // Back button overlay
+        // Back leaves with the session still running where a service carries
+        // it, Stop opposite always ends it.
         TextButton(
-            onClick = { viewModel.exitToStationView() },
+            onClick = { viewModel.leaveTracking() },
             modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
         ) {
             Icon(
@@ -374,6 +369,13 @@ fun TrackingScreen(viewModel: MainViewModel) {
             )
             Text(stringResource(CoreR.string.back), color = palette.platform, modifier = Modifier.padding(start = 4.dp))
         }
+        TextButton(
+            onClick = { viewModel.stopSession() },
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+        ) {
+            Text(stringResource(R.string.stop_short), color = palette.platform)
+        }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }
 }
 

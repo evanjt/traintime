@@ -299,4 +299,11 @@ class TrackingLogicTest {
         assertFalse(TrackingLogic.platformChangeAlertFires("9", focused().copy(platform = "9", platformChanged = true), enabled = true))
         assertFalse(TrackingLogic.platformChangeAlertFires("7", focused().copy(platform = "9", platformChanged = false), enabled = true))
     }
+
+    @Test
+    fun back_keeps_a_running_session_only_with_background_tracking_on() {
+        assertTrue(TrackingLogic.backKeepsSession(backgroundTracking = true, tracking = true))
+        assertFalse(TrackingLogic.backKeepsSession(backgroundTracking = false, tracking = true))
+        assertFalse(TrackingLogic.backKeepsSession(backgroundTracking = true, tracking = false))
+    }
 }

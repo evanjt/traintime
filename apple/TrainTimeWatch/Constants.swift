@@ -70,6 +70,15 @@ enum AppColors {
         light: Color(red: 0x00/255, green: 0x7A/255, blue: 0x87/255),
         dark: Color(red: 0x1A/255, green: 0xA2/255, blue: 0xB0/255))
 
+    // The phone tracking row's own colours, one per button. Watch and Buzz
+    // reuse the regional and tram line colours.
+    static let actionMap = adaptive(
+        light: Color(red: 0x1E/255, green: 0x8E/255, blue: 0x3E/255),
+        dark: Color(red: 0x00/255, green: 0xFF/255, blue: 0x00/255))
+    static let actionSound = adaptive(
+        light: Color(red: 0xE0/255, green: 0x8A/255, blue: 0x00/255),
+        dark: Color(red: 0xFF/255, green: 0xAA/255, blue: 0x00/255))
+
     private static let longDistancePrefixes: Set<String> =
         ["IC", "ICE", "EC", "ICN", "IR", "RJ", "RJX", "TGV", "EN", "NJ", "PE"]
 

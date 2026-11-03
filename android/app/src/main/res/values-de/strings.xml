@@ -99,6 +99,7 @@
     <string name="tour_modes_body">Wechsle die Ansicht mit den Modus-Chips. Jeder Modus hat eigene Haltestellen.</string>
     <string name="tour_track_title">Eine Abfahrt verfolgen</string>
     <string name="tour_track_body">Tippe auf eine Abfahrt, um ihr zu folgen.</string>
+    <string name="split_pane_hint">Tippe links auf eine Abfahrt, um ihr hier zu folgen.</string>
     <string name="tour_tracking_extra">Dein Standort und die Abfahrtszeit aktualisieren sich live und zeigen, ob du es zu Fuss schaffst.</string>
     <string name="tour_star_title">Deine Linien markieren</string>
     <string name="tour_star_body">Wische eine Linie nach rechts oder halte sie, um sie zu favorisieren.</string>
@@ -153,7 +154,6 @@
     <string name="toggle_favourite_cd">Favorit umschalten</string>
     <string name="tracking_route_to_fmt">Route nach %1$s wird verfolgt</string>
     <string name="show_on_map">Auf Karte zeigen</string>
-    <string name="track_in_background">Im Hintergrund verfolgen</string>
     <string name="tracking_on_watch">Verfolgt auf der Uhr</string>
     <string name="track_on_watch">Auf der Uhr verfolgen</string>
     <string name="direction_to_station_cd">Richtung zur Station</string>
@@ -234,8 +234,22 @@
     <string name="bg_off_warning_confirm">Ausschalten</string>
     <string name="notifications_blocked">Teils blockiert</string>
     <string name="tour_background_title">Die Verfolgung läuft weiter</string>
-    <string name="tour_background_body">Verlasse die App und dein Zug zählt auf dem Sperrbildschirm weiter herunter, mit Hinweis, wann du losmusst. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Jederzeit in den Einstellungen abschaltbar.</string>
+    <string name="tour_background_body">Geh zurück zu den Abfahrten und dein Zug zählt weiter herunter, auch auf dem Sperrbildschirm, mit Hinweis, wann du losmusst. Beenden stoppt es. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Hintergrundverfolgung jederzeit in den Einstellungen abschaltbar.</string>
+    <string name="tour_mute_title">Ruhe für diese Fahrt</string>
+    <string name="tour_mute_body">Tippe auf Ton oder Vibration, um sie für diese Fahrt stummzuschalten. Halten schaltet sie für jede Fahrt aus, oder wieder ein, wenn sie schon aus ist.</string>
     <string name="garmin_tip_text">TrainTime läuft auch auf Garmin-Uhren. Verfolge deinen Zug am Handgelenk.</string>
     <string name="garmin_tip_action">Im Connect IQ Store holen</string>
     <string name="garmin_tip_dismiss">Ausblenden</string>
+    <string name="action_map">Karte</string>
+    <string name="action_watch_send">Senden</string>
+    <string name="action_watch_on">Auf der Uhr</string>
+    <string name="trip_mute_on">Ein</string>
+    <string name="trip_mute_this_trip">Diese Fahrt</string>
+    <string name="trip_mute_off">Aus</string>
+    <string name="trip_usually_on">Sonst ein</string>
+    <string name="trip_usually_off">Sonst aus</string>
+    <string name="trip_muted_hint">Für diese Fahrt stumm. Halten für immer stumm.</string>
+    <string name="trip_on_hint">Für diese Fahrt an.</string>
+    <string name="trip_mute_hold_label">Für alle Fahrten festlegen</string>
+    <string name="trip_hold_hint">Halten: für jede Fahrt ändern</string>
 </resources>

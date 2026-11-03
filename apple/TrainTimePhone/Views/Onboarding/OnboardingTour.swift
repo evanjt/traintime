@@ -20,6 +20,7 @@ private extension View {
 }
 
 private enum StationHighlight { case list, modeChips, trackRow, favRow }
+private enum TrackHighlight { case countdown, mute }
 
 // Guided coach-mark walkthrough. Each step renders a real, mocked app surface and spotlights one
 // feature with an anchored callout. All state is local (mode/favourites/pins live only here), so
@@ -35,6 +36,11 @@ struct OnboardingTour: View {
     @State private var favourites: Set<String> = []
     @State private var pinnedIds: Set<String> = []
     @State private var targetRect: CGRect?
+    // Sound and Buzz work as on the real screen, on tour-local state only.
+    @State private var soundOn = true
+    @State private var buzzOn = true
+    @State private var soundTrip: Bool?
+    @State private var buzzTrip: Bool?
 
     private let base = Int(Date().timeIntervalSince1970)
     private var departures: [Departure] { TourMockData.departures(base: base, mode: mode) }
@@ -108,11 +114,13 @@ struct OnboardingTour: View {
         case .mode:
             stationSurface(.modeChips)
         case .track:
-            if trackingActive { trackingSurface } else { stationSurface(.trackRow) }
+            if trackingActive { trackingSurface(.countdown) } else { stationSurface(.trackRow) }
         // Same surface as the tracking detail page: the point is that this screen
         // keeps running once you leave the app.
         case .background:
-            trackingSurface
+            trackingSurface(.countdown)
+        case .mute:
+            trackingSurface(.mute)
         case .favourite:
             stationSurface(.favRow)
         case .pin:
@@ -229,10 +237,20 @@ struct OnboardingTour: View {
             .modifier(FavouriteLongPress(active: isTarget && highlight == .favRow) { toggleFavourite(d) })
     }
 
-    private var trackingSurface: some View {
+    private func trackingSurface(_ highlight: TrackHighlight) -> some View {
         let focused = TourMockData.focused(base: base)
         return ScrollView {
             VStack(spacing: 0) {
+                // Back and Stop as the real screen has them, shown only.
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left").font(.system(size: 16, weight: .medium))
+                        Text("Back").font(.body)
+                    }
+                    .foregroundStyle(.blue)
+                    Spacer()
+                    Text("Stop").font(.body).foregroundStyle(.red)
+                }
                 Text(TourMockData.stationName).font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 8)
                 HStack(spacing: 6) {
                     Text(focused.lineNumber)
@@ -267,7 +285,7 @@ struct OnboardingTour: View {
                 }
                 .padding(.top, 8)
                 .frame(maxWidth: .infinity)
-                .tourTarget()
+                .modifier(ConditionalTarget(active: highlight == .countdown))
 
                 HStack(spacing: 8) {
                     DirectionArrowView(degrees: 45)
@@ -276,6 +294,28 @@ struct OnboardingTour: View {
                 .padding(.top, 8)
 
                 FormationDiagramView(formation: TourMockData.formation).padding(.top, 16)
+
+                TrackingActionRow(
+                    watch: nil,
+                    sound: TripMute.state(global: soundOn, session: soundTrip),
+                    buzz: TripMute.state(global: buzzOn, session: buzzTrip),
+                    onSound: { soundTrip = TripMute.tapped(global: soundOn, session: soundTrip) },
+                    onSoundHold: { (soundOn, soundTrip) = TripMute.held(global: soundOn, session: soundTrip) },
+                    onBuzz: { buzzTrip = TripMute.tapped(global: buzzOn, session: buzzTrip) },
+                    onBuzzHold: { (buzzOn, buzzTrip) = TripMute.held(global: buzzOn, session: buzzTrip) }
+                ) { EmptyView() }
+                .overlay {
+                    // With no watch the row is Map, Sound and Buzz in equal slots, so
+                    // Sound and Buzz are its trailing two thirds.
+                    GeometryReader { geo in
+                        Color.clear
+                            .frame(width: geo.size.width * 2 / 3, height: geo.size.height)
+                            .modifier(ConditionalTarget(active: highlight == .mute))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                    .allowsHitTesting(false)
+                }
+                .padding(.top, 16)
             }
             .padding(.horizontal, 16).padding(.vertical, 24)
             .frame(maxWidth: .infinity)

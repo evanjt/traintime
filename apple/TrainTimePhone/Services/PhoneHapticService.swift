@@ -7,24 +7,30 @@ enum PhoneHapticService {
     private static let heavyImpact = UIImpactFeedbackGenerator(style: .heavy)
     private static let notification = UINotificationFeedbackGenerator()
 
+    /// The tracked trip's Buzz choice, set by the view model while that trip is
+    /// on screen. Board taps follow the setting alone.
+    static var tripOverride: () -> Bool? = { nil }
+
     /// Covers the app's own buzzes only. Notification vibration follows the
     /// system settings.
-    static func isEnabled(_ defaults: UserDefaults = .standard) -> Bool {
-        defaults.object(forKey: key) as? Bool ?? true
+    static func isEnabled(_ defaults: UserDefaults = .standard, session: Bool? = nil) -> Bool {
+        TripMute.effective(global: defaults.object(forKey: key) as? Bool ?? true, session: session)
     }
 
+    private static var enabledNow: Bool { isEnabled(session: tripOverride()) }
+
     static func shortPulse() {
-        guard isEnabled() else { return }
+        guard enabledNow else { return }
         impact.impactOccurred()
     }
 
     static func doublePulse() {
-        guard isEnabled() else { return }
+        guard enabledNow else { return }
         notification.notificationOccurred(.warning)
     }
 
     static func heartbeat() {
-        guard isEnabled() else { return }
+        guard enabledNow else { return }
         heavyImpact.impactOccurred()
     }
 }

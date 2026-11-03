@@ -15,7 +15,8 @@ Layout of store/:
              listing text, hero, tiles and cover
   out/       renders before install (gitignored)
 Store renders are mirrored into the fastlane upload trees by install(); the
-Duo set stays in out/ until it is captured on a Duo.
+Duo set renders from the inner-display captures in captures/iphone-duo and
+ships only from DUO_FROM on.
 
 Usage: board.py [--palette board|swiss|signal] [--install] [--video] [locale ...]
 --install mirrors the existing renders without re-rendering; --video also
@@ -366,7 +367,12 @@ def frame_wear():
 # Each store shows its own platform's app: Play gets the Android captures, the
 # App Store gets the iOS ones.
 def shots(locale, strings, out_subdir):
-    if out_subdir == "play":
+    if out_subdir == "appstore-duo":
+        duo = os.path.join(CAPTURES, "iphone-duo")
+        track = os.path.join(duo, "02-focused-tracking-inner-raw.png")
+        fav = os.path.join(duo, "04-station-favourites-inner-raw.png")
+        widget = os.path.join(duo, "04-widget-inner-raw.png")
+    elif out_subdir == "play":
         track = os.path.join(CAPTURES, "android", "01-tracking.png")
         fav = os.path.join(CAPTURES, "android", "02-station-fav.png")
         widget = os.path.join(CAPTURES, "android", "03-widget.png")
@@ -379,6 +385,17 @@ def shots(locale, strings, out_subdir):
         ("02", fav, strings["fav_cap"], strings["fav_sub"]),
         ("03", widget, strings["widget_cap"], strings["widget_sub"]),
     ]
+
+
+def shot_device(out_subdir):
+    """The device art a set's phone shots sit in."""
+    return {"play": "android", "appstore-duo": "iphone-duo-inner"}.get(out_subdir, "iphone")
+
+
+def duo_missing():
+    """Inner-display captures the Duo set still lacks."""
+    return [capture for _, capture, _, _ in shots("en-AU", STRINGS["en-AU"], "appstore-duo")
+            if not os.path.exists(capture)]
 
 
 # Phone shots plus the closing watch frame.
@@ -481,7 +498,7 @@ def build_locale(locale, strings, target, out_subdir, palette):
         css=css, pad=pad, cap=cap, sub=sub, rule=max(4, base // 270),
         glow=int(base * 0.16), segw=segw, headh=headh,
     )
-    device = "android" if out_subdir == "play" else "iphone"
+    device = shot_device(out_subdir)
     for i, (stem, screen, caption, sub_text) in enumerate(shots(locale, strings, out_subdir)):
         path, (aw, _), (_, _, sw, _) = framed(device, screen)
         # The screen keeps the width it had in the drawn bezel; the art's own
@@ -888,6 +905,40 @@ def build_creative_video(locale, strings, palette):
 # so the larger size serves both.
 DUO = (2007, 2853)
 
+# The first release whose IPA is built with the iOS 27.1 SDK. Uploading any Duo
+# screenshot badges the listing as optimised for the Duo, so the set ships only
+# with a build that runs on it. Move this if the SDK switch moves.
+DUO_FROM = "0.10.0"
+
+PBXPROJ = os.path.join(REPO, "apple", "TrainTimeWatch.xcodeproj", "project.pbxproj")
+
+
+def version_tuple(version):
+    return tuple(int(part) for part in version.split("."))
+
+
+def duo_enabled(version):
+    return version_tuple(version) >= version_tuple(DUO_FROM)
+
+
+def marketing_version():
+    with open(PBXPROJ) as f:
+        return re.search(r"MARKETING_VERSION = ([\d.]+);", f.read()).group(1)
+
+
+def apple_set(locale, version):
+    """(source, file name) for one App Store locale. deliver sorts by file name
+    within a device class and detects the class from resolution (1320x2868
+    iPhone 6.9", 2007x2853 iPhone Duo, 416x496 Apple Watch)."""
+    files = [(os.path.join(STORE, "appstore", locale, f"{i:02d}.png"), f"{i:02d}.png")
+             for i in range(1, SHOT_COUNT + 1)]
+    files += [(os.path.join(CAPTURES, "apple-watch", f"store-{i:02d}.png"), f"watch-{i:02d}.png")
+              for i in (1, 2)]
+    if duo_enabled(version):
+        files += [(os.path.join(STORE, "appstore-duo", locale, f"{i:02d}.png"), f"duo-{i:02d}.png")
+                  for i in range(1, SHOT_COUNT + 1)]
+    return files
+
 # App Store Connect uses the bare "it" locale where Play uses "it-IT".
 APPLE_LOCALE = {"it-IT": "it"}
 
@@ -921,6 +972,9 @@ def install(locales):
     framed shots copied into docs/img."""
     from PIL import Image
 
+    version = marketing_version()
+    if duo_enabled(version) and duo_missing():
+        raise SystemExit(f"{version} ships the Duo set but captures are missing: {duo_missing()}")
     play_meta = os.path.join(REPO, "android", "fastlane", "metadata", "android")
     apple_shots = os.path.join(REPO, "apple", "fastlane", "screenshots")
     targets = []
@@ -948,20 +1002,11 @@ def install(locales):
             src = os.path.join(CAPTURES, "wear-os", f"{i:02d}.png")
             Image.open(src).convert("RGB").save(os.path.join(wear, f"{i:02d}.png"))
 
-        # deliver sorts by filename within a device class and detects the class
-        # from resolution (1320x2868 iPhone 6.9", 416x496 Apple Watch). The Duo
-        # set stays out until it is captured on a Duo: uploading any Duo
-        # screenshot badges the listing as optimised for it.
         adir = os.path.join(apple_shots, APPLE_LOCALE.get(locale, locale))
         shutil.rmtree(adir, ignore_errors=True)
         os.makedirs(adir)
-        for i in range(1, SHOT_COUNT + 1):
-            shutil.copy(os.path.join(STORE, "appstore", source, f"{i:02d}.png"), adir)
-        for i in (1, 2):
-            shutil.copy(
-                os.path.join(CAPTURES, "apple-watch", f"store-{i:02d}.png"),
-                os.path.join(adir, f"watch-{i:02d}.png"),
-            )
+        for src, name in apple_set(source, version):
+            shutil.copy(src, os.path.join(adir, name))
         print(f"[{locale}] installed into fastlane trees")
     for device, name in SITE_IMAGES:
         os.makedirs(os.path.join(SITE, device), exist_ok=True)
@@ -997,8 +1042,11 @@ if __name__ == "__main__":
         build_locale(locale, strings, (1080, 2160), "play", palette)
         print(f"[{locale}/{palette}] App Store 1320x2868")
         build_locale(locale, strings, (1320, 2868), "appstore", palette)
-        print(f"[{locale}/{palette}] App Store iPhone Duo {DUO[0]}x{DUO[1]}")
-        build_locale(locale, strings, DUO, "appstore-duo", palette)
+        if duo_missing():
+            print(f"[{locale}/{palette}] App Store iPhone Duo skipped, no inner-display captures")
+        else:
+            print(f"[{locale}/{palette}] App Store iPhone Duo {DUO[0]}x{DUO[1]}")
+            build_locale(locale, strings, DUO, "appstore-duo", palette)
         print(f"[{locale}/{palette}] App Store header and search results")
         build_creative(locale, strings, palette)
         if video:

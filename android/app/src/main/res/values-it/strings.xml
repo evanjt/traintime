@@ -99,6 +99,7 @@
     <string name="tour_modes_body">Cambia vista con i selettori di modo. Ogni modo ha le sue fermate.</string>
     <string name="tour_track_title">Segui una partenza</string>
     <string name="tour_track_body">Tocca una partenza per seguirla.</string>
+    <string name="split_pane_hint">Tocca una partenza a sinistra per seguirla qui.</string>
     <string name="tour_tracking_extra">La tua posizione e l\'orario di partenza si aggiornano live e ti dicono se ce la fai a piedi.</string>
     <string name="tour_star_title">Le tue linee con la stella</string>
     <string name="tour_star_body">Scorri una linea a destra, o tienila premuta, per salvarla nei preferiti.</string>
@@ -153,7 +154,6 @@
     <string name="toggle_favourite_cd">Attiva/disattiva preferito</string>
     <string name="tracking_route_to_fmt">Seguo il percorso per %1$s</string>
     <string name="show_on_map">Mostra sulla mappa</string>
-    <string name="track_in_background">Segui in background</string>
     <string name="tracking_on_watch">Seguito sull\'orologio</string>
     <string name="track_on_watch">Segui sull\'orologio</string>
     <string name="direction_to_station_cd">Direzione della fermata</string>
@@ -234,8 +234,22 @@
     <string name="bg_off_warning_confirm">Disattiva</string>
     <string name="notifications_blocked">Parz. bloccate</string>
     <string name="tour_background_title">Il tracciamento continua</string>
-    <string name="tour_background_body">Esci dall\'app e il tuo treno continua il conto alla rovescia sulla schermata di blocco, con un avviso quando è ora di uscire. TrainTime usa la posizione in background solo mentre segui. Disattivabile in qualsiasi momento nelle impostazioni.</string>
+    <string name="tour_background_body">Torna alle partenze e il tuo treno continua il conto alla rovescia, anche sulla schermata di blocco, con un avviso quando è ora di uscire. Interrompi per terminarlo. TrainTime usa la posizione in background solo mentre segui. Tracciamento in background disattivabile in qualsiasi momento nelle impostazioni.</string>
+    <string name="tour_mute_title">Silenzio per questo viaggio</string>
+    <string name="tour_mute_body">Tocca suono o vibrazione per disattivarli in questo viaggio. Tieni premuto per disattivarli in ogni viaggio, o riattivarli se sono già disattivati.</string>
     <string name="garmin_tip_text">TrainTime funziona anche sugli orologi Garmin. Segui il tuo treno dal polso.</string>
     <string name="garmin_tip_action">Scaricala dal Connect IQ Store</string>
     <string name="garmin_tip_dismiss">Nascondi</string>
+    <string name="action_map">Mappa</string>
+    <string name="action_watch_send">Invia</string>
+    <string name="action_watch_on">Sull\'orologio</string>
+    <string name="trip_mute_on">Attivo</string>
+    <string name="trip_mute_this_trip">Questo viaggio</string>
+    <string name="trip_mute_off">Disattivo</string>
+    <string name="trip_usually_on">Di solito attivo</string>
+    <string name="trip_usually_off">Di solito disattivo</string>
+    <string name="trip_muted_hint">Disattivato per questo viaggio. Tieni premuto per disattivarlo sempre.</string>
+    <string name="trip_on_hint">Attivo per questo viaggio.</string>
+    <string name="trip_mute_hold_label">Imposta per tutti i viaggi</string>
+    <string name="trip_hold_hint">Tieni premuto: ogni viaggio</string>
 </resources>

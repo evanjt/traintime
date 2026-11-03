@@ -1,4 +1,5 @@
-- Nouveau réglage « Sons des alertes ». Désactivé, les alertes s'affichent et vibrent toujours, simplement sans son.
-- Nouveau réglage « Vibrations » sur le téléphone et la montre, pour couper les vibrations quand l'app est ouverte.
+- Nouveau réglage « Sons des alertes ». Désactivé, les alertes vibrent toujours, sans son.
+- Nouveau réglage « Vibrations » sur téléphone et montre, quand l'app est ouverte.
 - Nouveau réglage « M'avertir d'un changement de quai », à côté de l'alerte avant le départ.
-- L'app ne joue plus de son d'alerte quand vous la mettez en arrière-plan.
+- Plus de son d'alerte quand l'app passe en arrière-plan.
+- Suivi : une rangée Carte, Montre, Son et Vibrations. Touchez pour couper pendant ce trajet, maintenez pour tous les trajets. Retour garde le suivi, Arrêter y met fin.

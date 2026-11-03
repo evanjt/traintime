@@ -32,6 +32,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
@@ -92,7 +93,9 @@ import com.evanjt.traintime.ui.station.ModePicker
 import com.evanjt.traintime.ui.station.icon
 import com.evanjt.traintime.ui.tracking.DirectionArrow
 import com.evanjt.traintime.ui.tracking.FormationDiagram
+import com.evanjt.traintime.ui.tracking.TrackingActionRow
 import com.evanjt.traintime.ui.tracking.TrackingBar
+import com.evanjt.traintime.session.SessionMute
 import kotlinx.coroutines.delay
 
 // Guided coach-mark walkthrough. Each step renders a real, mocked app surface
@@ -210,7 +213,7 @@ fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
                         )
                         TourStage.TRACK ->
                             if (trackingActive) {
-                                TourTrackingSurface(base, mode, report)
+                                TourTrackingSurface(base, mode, TrackHighlight.COUNTDOWN, report)
                             } else {
                                 TourStationSurface(
                                     mode, favourites, departures, StationHighlight.TRACK_ROW,
@@ -219,7 +222,8 @@ fun OnboardingTour(steps: List<TourStep> = tourSteps, onComplete: () -> Unit) {
                             }
                         // Same surface as the tracking detail page: the point is
                         // that this screen keeps running once you leave the app.
-                        TourStage.BACKGROUND -> TourTrackingSurface(base, mode, report)
+                        TourStage.BACKGROUND -> TourTrackingSurface(base, mode, TrackHighlight.COUNTDOWN, report)
+                        TourStage.MUTE -> TourTrackingSurface(base, mode, TrackHighlight.MUTE, report)
                         TourStage.FAVOURITE -> TourStationSurface(
                             mode, favourites, departures, StationHighlight.FAV_ROW,
                             report, onTrack = {}, onToggleFav = ::toggleFavourite,
@@ -411,8 +415,15 @@ private fun TourStationSurface(
     }
 }
 
+private enum class TrackHighlight { COUNTDOWN, MUTE }
+
 @Composable
-private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect) -> Unit) {
+private fun TourTrackingSurface(
+    base: Long,
+    mode: TransportMode,
+    highlight: TrackHighlight,
+    onReport: (Rect) -> Unit,
+) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val walkMin = GeoUtils.walkMinutes(TOUR_TRACK_DISTANCE_M)
@@ -449,6 +460,13 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
         else -> palette.onTime
     }
 
+    // Sound and Buzz work as on the real screen, on tour-local state only.
+    var soundOn by remember { mutableStateOf(true) }
+    var buzzOn by remember { mutableStateOf(true) }
+    var soundTrip by remember { mutableStateOf<Boolean?>(null) }
+    var buzzTrip by remember { mutableStateOf<Boolean?>(null) }
+    val spotlight = Modifier.onGloballyPositioned { onReport(it.boundsInRoot()) }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -457,6 +475,18 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
+        // Back and Stop as the real screen has them, shown only.
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                tint = palette.platform,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(stringResource(CoreR.string.back), color = palette.platform, modifier = Modifier.padding(start = 4.dp))
+            Spacer(Modifier.weight(1f))
+            Text(stringResource(R.string.stop_short), color = palette.platform)
+        }
         Text(TourMockData.STATION_NAME, color = secondary, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
 
         Row(
@@ -496,7 +526,7 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp)
-                .onGloballyPositioned { onReport(it.boundsInRoot()) },
+                .then(if (highlight == TrackHighlight.COUNTDOWN) spotlight else Modifier),
         ) {
             Text(
                 focused.countdownText(
@@ -534,6 +564,22 @@ private fun TourTrackingSurface(base: Long, mode: TransportMode, onReport: (Rect
         }
 
         FormationDiagram(TourMockData.formation, Modifier.padding(top = 16.dp))
+
+        HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp, start = 24.dp, end = 24.dp))
+        TrackingActionRow(
+            showMap = true,
+            watch = null,
+            sound = SessionMute.state(soundOn, soundTrip),
+            buzz = SessionMute.state(buzzOn, buzzTrip),
+            onMap = {},
+            onWatch = {},
+            onWatchHold = {},
+            onSound = { soundTrip = SessionMute.tapped(soundOn, soundTrip) },
+            onSoundHold = { soundOn = SessionMute.held(soundOn, soundTrip); soundTrip = null },
+            onBuzz = { buzzTrip = SessionMute.tapped(buzzOn, buzzTrip) },
+            onBuzzHold = { buzzOn = SessionMute.held(buzzOn, buzzTrip); buzzTrip = null },
+            muteModifier = if (highlight == TrackHighlight.MUTE) spotlight else Modifier,
+        )
     }
 }
 

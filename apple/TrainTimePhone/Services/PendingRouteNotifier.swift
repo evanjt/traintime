@@ -204,7 +204,9 @@ enum PendingRouteNotifier {
     /// Schedule the distance-aware "time to leave" alert: fires walk + buffer
     /// before the effective departure. No-op (and clears any prior one) when the
     /// window has already passed at schedule time.
-    static func scheduleApproachAlert(_ focused: FocusedDeparture, walkSeconds: Int, now: Int) {
+    static func scheduleApproachAlert(
+        _ focused: FocusedDeparture, walkSeconds: Int, now: Int, sound: AlertSound.Choice = AlertSound.choice()
+    ) {
         cancelApproachAlert()
         requestAuthorizationIfNeeded()
         // Measured from the effective departure, matching the Android tier
@@ -224,7 +226,7 @@ enum PendingRouteNotifier {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Time to leave")
         content.body = "\(line) \(focused.destination) · \(time)"
-        content.sound = AlertSound.notificationSound()
+        content.sound = AlertSound.notificationSound(sound)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(fireIn), repeats: false)
         let request = UNNotificationRequest(identifier: approachIdentifier, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)

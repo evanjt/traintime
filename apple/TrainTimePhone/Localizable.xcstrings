@@ -1569,6 +1569,28 @@
         }
       }
     },
+    "Hold to change for every trip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halten: für jede Fahrt ändern"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenir : changer toujours"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni premuto: ogni viaggio"
+          }
+        }
+      }
+    },
     "How tracking works": {
       "localizations": {
         "de": {
@@ -1889,34 +1911,6 @@
         }
       }
     },
-    "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verlasse die App und dein Zug zählt auf dem Sperrbildschirm weiter herunter, mit Hinweis, wann du losmusst. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Jederzeit in den Einstellungen abschaltbar."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quittez l'app : votre train continue son compte à rebours sur l'écran verrouillé, avec une alerte au moment de partir. TrainTime utilise pour cela votre position en arrière-plan, uniquement pendant le suivi. Désactivable à tout moment dans les réglages."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Esci dall'app e il tuo treno continua il conto alla rovescia sulla schermata di blocco, con un avviso quando è ora di uscire. TrainTime usa la posizione in background solo mentre segui. Disattivabile in qualsiasi momento nelle impostazioni."
-          }
-        }
-      }
-    },
     "Legal": {
       "localizations": {
         "de": {
@@ -2067,6 +2061,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Riflette le tue partenze su un orologio. Garmin richiede l'app Garmin Connect."
+          }
+        }
+      }
+    },
+    "Muted for this trip. Hold to mute always.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diese Fahrt stumm. Halten für immer stumm."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coupé pour ce trajet. Maintenez pour couper toujours."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattivato per questo viaggio. Tieni premuto per disattivarlo sempre."
           }
         }
       }
@@ -2511,6 +2527,28 @@
         }
       }
     },
+    "On for this trip.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diese Fahrt an."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé pour ce trajet."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivo per questo viaggio."
+          }
+        }
+      }
+    },
     "On time": {
       "localizations": {
         "de": {
@@ -2529,6 +2567,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "In orario"
+          }
+        }
+      }
+    },
+    "On watch": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf der Uhr"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur la montre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sull'orologio"
           }
         }
       }
@@ -3287,6 +3347,28 @@
         }
       }
     },
+    "Send": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia"
+          }
+        }
+      }
+    },
     "Send to %@": {
       "localizations": {
         "de": {
@@ -3393,6 +3475,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inviato all'orologio"
+          }
+        }
+      }
+    },
+    "Set for every trip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für alle Fahrten festlegen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Régler pour tous les trajets"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imposta per tutti i viaggi"
           }
         }
       }
@@ -3679,6 +3783,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Passo %lld di %lld"
+          }
+        }
+      }
+    },
+    "Stop": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beenden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompi"
           }
         }
       }
@@ -4113,6 +4239,28 @@
         }
       }
     },
+    "This trip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Fahrt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce trajet"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo viaggio"
+          }
+        }
+      }
+    },
     "This trip is already underway or finished": {
       "localizations": {
         "de": {
@@ -4197,28 +4345,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Segui una partenza"
-          }
-        }
-      }
-    },
-    "Track in the background": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Im Hintergrund verfolgen"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suivre en arrière-plan"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Segui in background"
           }
         }
       }
@@ -4781,6 +4907,50 @@
         }
       }
     },
+    "Usually off": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonst aus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D'habitude désactivé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di solito disattivo"
+          }
+        }
+      }
+    },
+    "Usually on": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonst ein"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D'habitude activé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di solito attivo"
+          }
+        }
+      }
+    },
     "Version": {
       "localizations": {
         "de": {
@@ -5229,6 +5399,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "© Garmin. Usato secondo la licenza SDK."
+          }
+        }
+      }
+    },
+    "Go back to the board and your train keeps counting down, on the Lock Screen too, with an alert when it's time to leave. Stop ends it. TrainTime uses your location in the background to do it, only while you're tracking. Turn background tracking off any time in Settings.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geh zurück zu den Abfahrten und dein Zug zählt weiter herunter, auch auf dem Sperrbildschirm, mit Hinweis, wann du losmusst. Beenden stoppt es. TrainTime nutzt dafür deinen Standort im Hintergrund, nur während du verfolgst. Hintergrundverfolgung jederzeit in den Einstellungen abschaltbar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenez aux départs : votre train continue son compte à rebours, aussi sur l'écran verrouillé, avec une alerte au moment de partir. Arrêter y met fin. TrainTime utilise pour cela votre position en arrière-plan, uniquement pendant le suivi. Suivi en arrière-plan désactivable à tout moment dans les réglages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torna alle partenze e il tuo treno continua il conto alla rovescia, anche sulla schermata di blocco, con un avviso quando è ora di uscire. Interrompi per terminarlo. TrainTime usa la posizione in background solo mentre segui. Tracciamento in background disattivabile in qualsiasi momento nelle impostazioni."
+          }
+        }
+      }
+    },
+    "Quiet for this trip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruhe für diese Fahrt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silence pour ce trajet"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silenzio per questo viaggio"
+          }
+        }
+      }
+    },
+    "Tap sound or vibration to mute it for this trip. Hold to turn it off for every trip, or back on if it's already off.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf Ton oder Vibration, um sie für diese Fahrt stummzuschalten. Halten schaltet sie für jede Fahrt aus, oder wieder ein, wenn sie schon aus ist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez le son ou les vibrations pour les couper pendant ce trajet. Maintenez pour les couper pour tous les trajets, ou les réactiver s'ils sont déjà coupés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca suono o vibrazione per disattivarli in questo viaggio. Tieni premuto per disattivarli in ogni viaggio, o riattivarli se sono già disattivati."
           }
         }
       }

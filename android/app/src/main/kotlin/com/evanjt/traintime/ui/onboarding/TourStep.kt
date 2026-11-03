@@ -6,7 +6,7 @@ import com.evanjt.traintime.R
 // The interactive walkthrough is a guided coach-mark tour: each step renders a
 // real, mocked app surface and spotlights one feature with an anchored callout.
 // Stages are the surfaces the steps run over; several steps share a surface.
-enum class TourStage { NEARBY, MODE, TRACK, BACKGROUND, FAVOURITE, PIN, SETTINGS, SHARE, ROUTE_PLAN, WATCH, WIDGET }
+enum class TourStage { NEARBY, MODE, TRACK, BACKGROUND, MUTE, FAVOURITE, PIN, SETTINGS, SHARE, ROUTE_PLAN, WATCH, WIDGET }
 
 data class TourStep(
     val stage: TourStage,
@@ -22,7 +22,8 @@ data class TourStep(
 // v2: Wear OS released — the watch step announces it instead of teasing it.
 // v3: tracking survives backgrounding, so the background-location disclosure
 // reaches existing users as a one-step delta tour on first open after updating.
-const val CURRENT_TOUR_VERSION = 3
+// v4: the tracking screen's Sound and Buzz, tap for this trip, hold for every trip.
+const val CURRENT_TOUR_VERSION = 4
 
 // Each step's copy is a string resource, so the tour localises with the rest of
 // the app. The step-to-surface binding stays in Kotlin.
@@ -38,6 +39,8 @@ val tourSteps: List<TourStep> = listOf(
         R.string.tour_background_body,
         introducedIn = 3,
     ),
+    // Same tracking surface, now pointing at the row's Sound and Buzz.
+    TourStep(TourStage.MUTE, R.string.tour_mute_title, R.string.tour_mute_body, introducedIn = 4),
     TourStep(TourStage.FAVOURITE, R.string.tour_star_title, R.string.tour_star_body),
     TourStep(TourStage.PIN, R.string.tour_pin_title, R.string.tour_pin_body),
     TourStep(TourStage.SETTINGS, R.string.tour_mode_title, R.string.tour_mode_body),

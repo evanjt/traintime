@@ -2,3 +2,4 @@
 - New Vibration switch on phone and watch, to turn off the buzzes while the app is open.
 - New "Alert me on a platform change" switch, beside the alert before departure.
 - Sending the app to the background no longer plays an alert sound.
+- Tracking screen: one row for Map, Watch, Sound and Buzz. Tap to mute for this trip, hold for every trip. Back keeps tracking, Stop ends it.

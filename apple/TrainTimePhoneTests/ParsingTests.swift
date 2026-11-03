@@ -230,11 +230,22 @@ final class ParsingTests: XCTestCase {
         XCTAssertTrue(stepsToShow(tourWithFutureStep, effectiveSeen: nextVersion, current: nextVersion).isEmpty)
     }
 
-    // The background disclosure has to reach existing users on first open after
-    // the update, which is what makes it the release's disclosure surface.
-    func testV1FinisherSeesOnlyTheBackgroundStep() {
+    // v2 added the background disclosure and v3 the tracking row's Sound and
+    // Buzz, so a v1 finisher catches up on both and a v2 finisher on the row only.
+    func testV1FinisherSeesTheBackgroundAndMuteSteps() {
         let shown = stepsToShow(tourSteps, effectiveSeen: 1, current: currentTourVersion)
-        XCTAssertEqual(shown.map(\.stage), [.background])
+        XCTAssertEqual(shown.map(\.stage), [.background, .mute])
+    }
+
+    func testV2FinisherSeesOnlyTheMuteStep() {
+        let shown = stepsToShow(tourSteps, effectiveSeen: 2, current: currentTourVersion)
+        XCTAssertEqual(shown.map(\.stage), [.mute])
+    }
+
+    func testNewInstallSeesTheMuteStepRightAfterBackground() {
+        let shown = stepsToShow(tourSteps, effectiveSeen: 0, current: currentTourVersion).map(\.stage)
+        XCTAssertEqual(shown, tourSteps.map(\.stage))
+        XCTAssertEqual(shown.firstIndex(of: .mute), shown.firstIndex(of: .background).map { $0 + 1 })
     }
 
     func testEffectiveSeenVersionMigratesLegacyFinisher() {

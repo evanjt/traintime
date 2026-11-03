@@ -99,6 +99,7 @@
     <string name="tour_modes_body">Switch what you see with the mode chips. Each mode has its own nearby stops.</string>
     <string name="tour_track_title">Track a departure</string>
     <string name="tour_track_body">Tap a departure to follow it.</string>
+    <string name="split_pane_hint">Tap a departure on the left to track it here.</string>
     <string name="tour_tracking_extra">Your location and the departure time update live to tell you if you\'ll make it on foot.</string>
     <string name="tour_star_title">Star your lines</string>
     <string name="tour_star_body">Swipe a line right, or hold it, to favourite it.</string>
@@ -153,7 +154,6 @@
     <string name="toggle_favourite_cd">Toggle favourite</string>
     <string name="tracking_route_to_fmt">Tracking route to %1$s</string>
     <string name="show_on_map">Show on Map</string>
-    <string name="track_in_background">Track in the background</string>
     <string name="tracking_on_watch">Tracking on watch</string>
     <string name="track_on_watch">Track on watch</string>
     <string name="direction_to_station_cd">Direction to station</string>
@@ -235,8 +235,22 @@
     <string name="bg_off_warning_confirm">Turn off</string>
     <string name="notifications_blocked">Partly blocked</string>
     <string name="tour_background_title">Tracking keeps going</string>
-    <string name="tour_background_body">Leave the app and your train keeps counting down on the Lock Screen, with an alert when it\'s time to leave. TrainTime uses your location in the background to do it, only while you\'re tracking. Turn it off any time in Settings.</string>
+    <string name="tour_background_body">Go back to the board and your train keeps counting down, on the Lock Screen too, with an alert when it\'s time to leave. Stop ends it. TrainTime uses your location in the background to do it, only while you\'re tracking. Turn background tracking off any time in Settings.</string>
+    <string name="tour_mute_title">Quiet for this trip</string>
+    <string name="tour_mute_body">Tap sound or vibration to mute it for this trip. Hold to turn it off for every trip, or back on if it\'s already off.</string>
     <string name="garmin_tip_text">TrainTime runs on Garmin watches too. Track your train from your wrist.</string>
     <string name="garmin_tip_action">Get it from the Connect IQ Store</string>
     <string name="garmin_tip_dismiss">Hide</string>
+    <string name="action_map">Map</string>
+    <string name="action_watch_send">Send</string>
+    <string name="action_watch_on">On watch</string>
+    <string name="trip_mute_on">On</string>
+    <string name="trip_mute_this_trip">This trip</string>
+    <string name="trip_mute_off">Off</string>
+    <string name="trip_usually_on">Usually on</string>
+    <string name="trip_usually_off">Usually off</string>
+    <string name="trip_muted_hint">Muted for this trip. Hold to mute always.</string>
+    <string name="trip_on_hint">On for this trip.</string>
+    <string name="trip_mute_hold_label">Set for every trip</string>
+    <string name="trip_hold_hint">Hold to change for every trip</string>
 </resources>

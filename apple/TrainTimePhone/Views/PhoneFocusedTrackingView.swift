@@ -5,6 +5,7 @@ import UIKit
 struct PhoneFocusedTrackingView: View {
     @ObservedObject var viewModel: PhoneViewModel
     @State private var showMap = false
+    @State private var tripHint: String?
 
     var body: some View {
         let focused = viewModel.focusedTrain
@@ -136,70 +137,35 @@ struct PhoneFocusedTrackingView: View {
                             .padding(.top, 8)
                     }
 
-                    // Map button
-                    Button {
-                        showMap = true
-                    } label: {
-                        Label("Show on Map", systemImage: "map")
-                            .font(.subheadline)
-                            .frame(maxWidth: 200)
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.top, 4)
-
-                    // Leave the tracking screen for the board while the Live
-                    // Activity keeps the session going. No reminder, no prompt.
-                    Button {
-                        viewModel.trackCurrentInBackground()
-                    } label: {
-                        Label("Track in the background", systemImage: "rectangle.on.rectangle")
-                            .font(.subheadline)
-                            .frame(maxWidth: 200)
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.top, 4)
-
-                    // Watch button: a live primary watch takes an explicit send of this
-                    // train, a closed one the launch/re-sync path. Long-press (or tap
-                    // with several watches) opens a per-watch send menu. Colour tracks
-                    // liveness; a spinner shows during a Garmin open.
-                    if viewModel.primaryWatchLiveness != .hidden {
-                        Divider()
-                            .padding(.vertical, 4)
-
-                        Menu {
-                            ForEach(viewModel.connectedWatches) { watch in
-                                Button("Send to \(watch.name)") {
-                                    viewModel.sendToWatch(watch)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                WatchLivenessIndicator(
-                                    liveness: viewModel.primaryWatchLiveness,
-                                    isChecking: viewModel.watchChecking,
-                                    isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch,
-                                    size: 16
-                                )
-                                Text(viewModel.watchTrackingFocused ? String(localized: "Tracking on watch") : String(localized: "Track on watch"))
-                                    .font(.subheadline)
-                            }
-                            .frame(maxWidth: 200)
-                        } primaryAction: {
+                    TrackingActionRow(
+                        watch: watchAction,
+                        sound: viewModel.tripSoundState,
+                        buzz: viewModel.tripBuzzState,
+                        onMap: { showMap = true },
+                        onWatch: {
                             // The watch already tracks this departure; a re-send
                             // would only make it re-enter and buzz again.
                             if !viewModel.watchTrackingFocused {
                                 viewModel.sendToPrimaryOrOpen()
                             }
+                        },
+                        onSound: { showTripHint(viewModel.tapTripSound()) },
+                        onSoundHold: { viewModel.holdTripSound() },
+                        onBuzz: { showTripHint(viewModel.tapTripBuzz()) },
+                        onBuzzHold: { viewModel.holdTripBuzz() }
+                    ) {
+                        ForEach(viewModel.connectedWatches) { watch in
+                            Button("Send to \(watch.name)") {
+                                viewModel.sendToWatch(watch)
+                            }
                         }
-                        .buttonStyle(.bordered)
-                        .onAppear { viewModel.refreshConnectedWatches() }
+                    }
+                    .padding(.top, 8)
 
-                        if let status = viewModel.watchSendStatus {
-                            Text(status)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                    if watchAction != nil, let status = viewModel.watchSendStatus {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -207,27 +173,76 @@ struct PhoneFocusedTrackingView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            // Back button overlay
-            Button {
-                viewModel.exitToStationView()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .medium))
-                    Text("Back")
-                        .font(.body)
+            // Back leaves with the session still running (when background
+            // tracking is on), Stop ends it. Stop is labelled because an icon
+            // opposite Back would read as "close", which Back already does.
+            HStack {
+                Button {
+                    viewModel.leaveTracking()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("Back")
+                            .font(.body)
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
-                .foregroundStyle(.blue)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button {
+                    viewModel.stopTracking()
+                } label: {
+                    Text("Stop")
+                        .font(.body)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
+        .overlay(alignment: .bottom) {
+            if let tripHint {
+                Text(tripHint)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(.regularMaterial))
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: tripHint)
         .onAppear { viewModel.refreshConnectedWatches() }
         .sheet(isPresented: $showMap) {
             PhoneMapView(viewModel: viewModel)
         }
         // Prominent disclosure before the system Always-location prompt.
+    }
+
+    private var watchAction: TrackingWatchAction? {
+        guard viewModel.primaryWatchLiveness != .hidden else { return nil }
+        return TrackingWatchAction(
+            trackingHere: viewModel.watchTrackingFocused,
+            checking: viewModel.watchChecking,
+            liveness: viewModel.primaryWatchLiveness,
+            isAppleWatch: viewModel.resolvedPrimaryWatch == .appleWatch)
+    }
+
+    private func showTripHint(_ override: Bool?) {
+        guard let text = TripMute.tripHint(override) else { tripHint = nil; return }
+        tripHint = text
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            if tripHint == text { tripHint = nil }
+        }
     }
 
     private static func formatDepartureTime(_ timestamp: Int) -> String {
@@ -243,6 +258,308 @@ struct PhoneFocusedTrackingView: View {
         if focused.effectiveMinutesUntil < -0.5 { return .secondary }
         if minutesUntil < 2.0 { return AppColors.minutesNow }
         return AppColors.minutesSoon
+    }
+}
+
+/// What the Watch button shows. nil hides it (no watch paired).
+struct TrackingWatchAction {
+    let trackingHere: Bool
+    let checking: Bool
+    let liveness: WatchLiveness
+    let isAppleWatch: Bool
+}
+
+/// The tracking screen's one row of actions: Map, Watch, Sound and Buzz. Tap
+/// acts, hold does the longer form: the per-watch menu, or the setting for
+/// every trip.
+struct TrackingActionRow<WatchMenu: View>: View {
+    let watch: TrackingWatchAction?
+    let sound: TripMuteState
+    let buzz: TripMuteState
+    var onMap: () -> Void = {}
+    var onWatch: () -> Void = {}
+    var onSound: () -> Void = {}
+    var onSoundHold: () -> Void = {}
+    var onBuzz: () -> Void = {}
+    var onBuzzHold: () -> Void = {}
+    @ViewBuilder var watchMenu: () -> WatchMenu
+
+    var body: some View {
+        // Equal slots, so Sound and Buzz take two together and their hint the width of both.
+        TrackingSlots {
+            Button(action: onMap) {
+                TrackingActionLabel(caption: String(localized: "Map"), colour: AppColors.actionMap) { tint in
+                    Image(systemName: "map").foregroundStyle(tint)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Show on Map"))
+            .frame(maxWidth: .infinity)
+
+            if let watch {
+                Menu {
+                    watchMenu()
+                } label: {
+                    TrackingActionLabel(
+                        caption: watch.trackingHere ? String(localized: "On watch") : String(localized: "Send"),
+                        colour: AppColors.lineRegional
+                    ) { tint in
+                        if watch.checking {
+                            ProgressView().controlSize(.small).tint(tint)
+                        } else {
+                            Image(systemName: watch.isAppleWatch ? "applewatch" : "watch.analog")
+                                .foregroundStyle(tint)
+                                .overlay(alignment: .topTrailing) {
+                                    Circle()
+                                        .fill(Self.livenessColour(watch.liveness))
+                                        .frame(width: 9, height: 9)
+                                        .overlay(Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5))
+                                        .offset(x: 5, y: -4)
+                                }
+                        }
+                    }
+                } primaryAction: {
+                    onWatch()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(watch.trackingHere ? "Tracking on watch" : "Track on watch"))
+                .frame(maxWidth: .infinity)
+            }
+
+            TrackingHoldBracket {
+                TrackingMuteButton(
+                    name: String(localized: "Alert sounds"),
+                    symbol: "bell", colour: AppColors.actionSound,
+                    state: sound, onTap: onSound, onHold: onSoundHold)
+                    .frame(maxWidth: .infinity)
+
+                TrackingMuteButton(
+                    name: String(localized: "Vibration"),
+                    symbol: "iphone.radiowaves.left.and.right", colour: AppColors.lineTram,
+                    state: buzz, onTap: onBuzz, onHold: onBuzzHold)
+                    .frame(maxWidth: .infinity)
+            }
+            .layoutValue(key: TrackingSlotSpan.self, value: 2)
+        }
+        .frame(maxWidth: 400)
+    }
+
+    private static func livenessColour(_ liveness: WatchLiveness) -> Color {
+        switch liveness {
+        case .green: return WatchLivenessIndicator.green
+        case .amber: return WatchLivenessIndicator.amber
+        case .grey, .hidden: return WatchLivenessIndicator.grey
+        }
+    }
+}
+
+private struct TrackingSlotSpan: LayoutValueKey {
+    static let defaultValue = 1
+}
+
+/// Lays its children side by side in equal slots, a child taking as many as
+/// its span, each top aligned.
+private struct TrackingSlots: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let slots = CGFloat(subviews.reduce(0) { $0 + $1[TrackingSlotSpan.self] })
+        guard slots > 0 else { return .zero }
+        let unit = proposal.width.map { $0 / slots }
+            ?? subviews.map { $0.sizeThatFits(.unspecified).width / CGFloat($0[TrackingSlotSpan.self]) }.max() ?? 0
+        let height = subviews.map {
+            $0.sizeThatFits(ProposedViewSize(width: unit * CGFloat($0[TrackingSlotSpan.self]), height: nil)).height
+        }.max() ?? 0
+        return CGSize(width: unit * slots, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let slots = CGFloat(subviews.reduce(0) { $0 + $1[TrackingSlotSpan.self] })
+        guard slots > 0 else { return }
+        let unit = bounds.width / slots
+        var x = bounds.minX
+        for subview in subviews {
+            let width = unit * CGFloat(subview[TrackingSlotSpan.self])
+            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: width, height: nil))
+            x += width
+        }
+    }
+}
+
+/// Sound and Buzz under one bracket with one line saying what a hold does, so
+/// the gesture is found without trying it. The bracket and hint are hidden
+/// from accessibility: the buttons' hold actions already say it. A large font
+/// wraps the hint to a second line rather than clip it.
+private struct TrackingHoldBracket<Buttons: View>: View {
+    @ViewBuilder let buttons: () -> Buttons
+
+    var body: some View {
+        let ink = Color(uiColor: .secondaryLabel)
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 0) { buttons() }
+            Canvas { context, size in
+                let stroke: CGFloat = 1
+                let left = stroke / 2
+                let right = size.width - stroke / 2
+                let bottom = size.height - stroke / 2
+                var path = Path()
+                path.move(to: CGPoint(x: left, y: 0))
+                path.addLine(to: CGPoint(x: left, y: bottom))
+                path.addLine(to: CGPoint(x: right, y: bottom))
+                path.addLine(to: CGPoint(x: right, y: 0))
+                context.stroke(path, with: .color(ink.opacity(0.5)), lineWidth: stroke)
+            }
+            .frame(height: 6)
+            .padding(.horizontal, 20)
+            .accessibilityHidden(true)
+            Text("Hold to change for every trip")
+                .font(.system(size: 11))
+                .foregroundStyle(ink.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 3)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Tap decides for this trip, hold for every trip. Plain gestures, not a
+/// Button, so a hold never also fires the tap.
+private struct TrackingMuteButton: View {
+    let name: String
+    let symbol: String
+    let colour: Color
+    let state: TripMuteState
+    let onTap: () -> Void
+    let onHold: () -> Void
+
+    var body: some View {
+        let caption = Self.caption(state.look)
+        let usual = TripMute.usualCaption(state)
+        TrackingActionLabel(caption: caption, colour: colour, look: state.look, detail: usual) { tint in
+            Image(systemName: symbol)
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+                .overlay {
+                    if strikes > 0 {
+                        // The halo matches what sits behind the icon: the solid
+                        // disc when off, the screen through the ring when muted
+                        // for this trip.
+                        TrackingStrikes(
+                            count: strikes, colour: tint,
+                            halo: state.look == .off ? colour : Color(uiColor: .systemBackground))
+                    }
+                }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .onLongPressGesture(minimumDuration: 0.5, perform: onHold)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(name), \(caption), \(usual)"))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, onTap)
+        .accessibilityAction(named: Text("Set for every trip"), onHold)
+    }
+
+    private var strikes: Int {
+        switch state.look {
+        case .on: return 0
+        case .thisTrip: return 1
+        case .off: return 2
+        }
+    }
+
+    private static func caption(_ look: TripMuteLook) -> String {
+        switch look {
+        case .on: return String(localized: "On")
+        case .thisTrip: return String(localized: "This trip")
+        case .off: return String(localized: "Off")
+        }
+    }
+}
+
+/// Diagonal strikes through the icon, the mark the system uses for a muted
+/// bell, drawn so the vibration icon can carry it too. One strike is this
+/// trip, two are every trip. A halo cuts the icon either side of each strike
+/// so a pair reads as two lines, not one thick one.
+private struct TrackingStrikes: View {
+    let count: Int
+    let colour: Color
+    let halo: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let gap: CGFloat = 3
+            let stroke: CGFloat = 2
+            // Offset each line along the perpendicular so a pair sits either side of the diagonal.
+            let lines: [Path] = (0..<count).map { i in
+                let shift = (CGFloat(i) - CGFloat(count - 1) / 2) * gap
+                var path = Path()
+                path.move(to: CGPoint(x: size.width * 0.12 + shift, y: size.height * 0.12 - shift))
+                path.addLine(to: CGPoint(x: size.width * 0.88 + shift, y: size.height * 0.88 - shift))
+                return path
+            }
+            for line in lines {
+                context.stroke(line, with: .color(halo), style: StrokeStyle(lineWidth: stroke * 2.2, lineCap: .round))
+            }
+            for line in lines {
+                context.stroke(line, with: .color(colour), style: StrokeStyle(lineWidth: stroke, lineCap: .round))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// Each button carries its own colour. Three looks: on is a tinted disc, muted
+/// for this trip an outlined ring, off in Settings a solid disc, so the two
+/// muted states read apart at a glance.
+private struct TrackingActionLabel<Icon: View>: View {
+    let caption: String
+    let colour: Color
+    var look: TripMuteLook = .on
+    var detail: String? = nil
+    @ViewBuilder let icon: (Color) -> Icon
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Circle().fill(fill)
+                if look == .thisTrip {
+                    Circle().strokeBorder(colour, lineWidth: 1.5)
+                }
+                icon(tint).font(.system(size: 20))
+            }
+            .frame(width: 48, height: 48)
+            Text(caption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .padding(.top, 4)
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color(uiColor: .secondaryLabel).opacity(0.75))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var fill: Color {
+        switch look {
+        case .on: return colour.opacity(0.18)
+        case .thisTrip: return .clear
+        case .off: return colour
+        }
+    }
+
+    private var tint: Color {
+        switch look {
+        case .on, .thisTrip: return colour
+        case .off: return Color(uiColor: .systemBackground)
+        }
     }
 }
 

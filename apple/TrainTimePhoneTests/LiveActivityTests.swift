@@ -31,4 +31,25 @@ final class LiveActivityTests: XCTestCase {
         XCTAssertTrue(TrackingStopRequest.take(defaults))
         XCTAssertFalse(TrackingStopRequest.take(defaults))
     }
+
+    func testBackKeepsTheSessionWithBackgroundTrackingOn() {
+        XCTAssertEqual(TrackingSessionLogic.back(backgroundTracking: true), .park)
+    }
+
+    // With background tracking off no Live Activity runs, so there is nothing to keep.
+    func testBackEndsTheSessionWithBackgroundTrackingOff() {
+        XCTAssertEqual(TrackingSessionLogic.back(backgroundTracking: false), .end)
+    }
+
+    func testStopOnTheTrackingScreenEndsTheImmersiveSession() {
+        XCTAssertEqual(TrackingSessionLogic.stop(immersive: true, parked: false), .endImmersive)
+    }
+
+    func testStopFromTheBoardEndsTheParkedSession() {
+        XCTAssertEqual(TrackingSessionLogic.stop(immersive: false, parked: true), .endParked)
+    }
+
+    func testStopWithNoSessionDoesNothing() {
+        XCTAssertEqual(TrackingSessionLogic.stop(immersive: false, parked: false), .nothing)
+    }
 }

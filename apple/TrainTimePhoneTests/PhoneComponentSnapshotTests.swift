@@ -60,6 +60,63 @@ final class PhoneComponentSnapshotTests: XCTestCase {
         assertLightDark(AnyView(bars), "phone_tracking")
     }
 
+    private func trackingActions() -> some View {
+        let watch = TrackingWatchAction(trackingHere: false, checking: false, liveness: .green, isAppleWatch: false)
+        let onWatch = TrackingWatchAction(trackingHere: true, checking: false, liveness: .amber, isAppleWatch: true)
+        let view = VStack(spacing: 8) {
+            TrackingActionRow(
+                watch: watch,
+                sound: TripMuteState(look: .on, usuallyOn: true),
+                buzz: TripMuteState(look: .thisTrip, usuallyOn: true)
+            ) { EmptyView() }
+            TrackingActionRow(
+                watch: onWatch,
+                sound: TripMuteState(look: .off, usuallyOn: false),
+                buzz: TripMuteState(look: .on, usuallyOn: false)
+            ) { EmptyView() }
+            TrackingActionRow(
+                watch: nil,
+                sound: TripMuteState(look: .on, usuallyOn: true),
+                buzz: TripMuteState(look: .off, usuallyOn: false)
+            ) { EmptyView() }
+        }
+        return view
+            .padding(.horizontal, 12)
+            .frame(width: 360)
+            .background(Color(uiColor: .systemBackground))
+    }
+
+    func testTrackingActions() {
+        assertLightDark(AnyView(trackingActions()), "phone_tracking_actions")
+    }
+
+    // German has the longest hold hint.
+    func testTrackingActionsGerman() {
+        assertSnapshot(
+            of: AnyView(trackingActions().environment(\.locale, Locale(identifier: "de"))),
+            as: .image(precision: 0.99, perceptualPrecision: 0.98,
+                       layout: .sizeThatFits, traits: .init(userInterfaceStyle: .light)),
+            named: "phone_tracking_actions_de"
+        )
+    }
+
+    // Scenario: all four actions in the 336pt row the snapshots use, narrower than any iOS 17 iPhone gives it.
+    // Expected behaviour: the hold hint under Sound and Buzz sits on one line in every language.
+    func testHoldHintFitsOneLine() throws {
+        let key = "Hold to change for every trip"
+        let room = 336.0 / 4 * 2
+        let font = UIFont.systemFont(ofSize: 11)
+        for language in ["en", "de", "fr", "it"] {
+            let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"), language)
+            let hint = try XCTUnwrap(Bundle(path: path)).localizedString(forKey: key, value: nil, table: nil)
+            if language != "en" {
+                XCTAssertNotEqual(hint, key, "\(language) has no translation")
+            }
+            let width = (hint as NSString).size(withAttributes: [.font: font]).width
+            XCTAssertLessThanOrEqual(width, room, "\(language) hint needs \(width)pt, has \(room)pt")
+        }
+    }
+
     func testFormation() {
         let formation = Formation(
             track: "3", sectors: ["A", "B", "C"],

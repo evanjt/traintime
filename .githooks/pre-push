@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Enforce the unified version model before a version tag leaves the machine.
 # A strict X.Y.Z tag must match every platform's version string, and the
-# Apple/Android store build numbers must exceed the previous tag's.
+# Apple/Android (phone and Wear) store build numbers must exceed the previous tag's.
 # Bypass in emergencies with: git push --no-verify
 
 PBXPROJ="apple/TrainTimeWatch.xcodeproj/project.pbxproj"
 GRADLE="android/app/build.gradle.kts"
+WEAR_GRADLE="android/wear/build.gradle.kts"
 MANIFEST="garmin/TrainTime/manifest.xml"
 VERSION_MC="garmin/TrainTime/source/Version.mc"
 
@@ -14,12 +15,13 @@ record() { errors+=("$1"); }
 is_int() { case "$1" in ''|*[!0-9]*) return 1 ;; *) return 0 ;; esac; }
 
 # Extractors: read a single value from a path at a given commit.
+# The Android extractors take the Gradle file as $2, so phone and Wear share them.
 android_version_name() {
-    git show "$1:$GRADLE" 2>/dev/null | grep -E 'versionName *= *"' | head -1 \
+    git show "$1:$2" 2>/dev/null | grep -E 'versionName *= *"' | head -1 \
         | sed -E 's/.*versionName *= *"([^"]*)".*/\1/'
 }
 android_version_code() {
-    git show "$1:$GRADLE" 2>/dev/null | grep -E 'versionCode *= *[0-9]' | head -1 \
+    git show "$1:$2" 2>/dev/null | grep -E 'versionCode *= *[0-9]' | head -1 \
         | sed -E 's/.*versionCode *= *([0-9]+).*/\1/'
 }
 apple_marketing_lines() {
@@ -50,7 +52,8 @@ validate_tag() {
     fi
 
     # --- Check A: every platform's version string equals the tag ---
-    a_vn="$(android_version_name "$commit")"
+    a_vn="$(android_version_name "$commit" "$GRADLE")"
+    w_vn="$(android_version_name "$commit" "$WEAR_GRADLE")"
     g_man="$(garmin_manifest_version "$commit")"
     g_mc="$(garmin_mc_version "$commit")"
 
@@ -63,6 +66,7 @@ validate_tag() {
     fi
 
     [ "$a_vn" = "$tag" ]  || record "android versionName is '${a_vn:-<empty>}' but tag is '$tag' ($GRADLE)"
+    [ "$w_vn" = "$tag" ]  || record "android wear versionName is '${w_vn:-<empty>}' but tag is '$tag' ($WEAR_GRADLE)"
     [ "$mv" = "$tag" ]    || record "apple MARKETING_VERSION is '${mv:-<empty>}' but tag is '$tag' ($PBXPROJ)"
     [ "$g_man" = "$tag" ] || record "garmin manifest version is '${g_man:-<empty>}' but tag is '$tag' ($MANIFEST)"
     [ "$g_mc" = "$tag" ]  || record "garmin Version.mc is '${g_mc:-<empty>}' but tag is '$tag' ($VERSION_MC)"
@@ -77,8 +81,10 @@ validate_tag() {
 
     cur_cpv="$(apple_build_lines "$commit" | sort -u | head -1)"
     prev_cpv="$(apple_build_lines "$prev_commit" | sort -u | head -1)"
-    cur_vc="$(android_version_code "$commit")"
-    prev_vc="$(android_version_code "$prev_commit")"
+    cur_vc="$(android_version_code "$commit" "$GRADLE")"
+    prev_vc="$(android_version_code "$prev_commit" "$GRADLE")"
+    cur_wvc="$(android_version_code "$commit" "$WEAR_GRADLE")"
+    prev_wvc="$(android_version_code "$prev_commit" "$WEAR_GRADLE")"
 
     if is_int "$cur_cpv" && is_int "$prev_cpv"; then
         [ "$cur_cpv" -gt "$prev_cpv" ] || record "apple CURRENT_PROJECT_VERSION must increase: $prev=$prev_cpv -> $tag=$cur_cpv ($PBXPROJ)"
@@ -89,6 +95,12 @@ validate_tag() {
         [ "$cur_vc" -gt "$prev_vc" ] || record "android versionCode must increase: $prev=$prev_vc -> $tag=$cur_vc ($GRADLE)"
     else
         record "android versionCode unreadable (cur='$cur_vc' prev='$prev_vc')"
+    fi
+    # Play rejects a reused code on the Wear APK just as on the phone's.
+    if is_int "$cur_wvc" && is_int "$prev_wvc"; then
+        [ "$cur_wvc" -gt "$prev_wvc" ] || record "android wear versionCode must increase: $prev=$prev_wvc -> $tag=$cur_wvc ($WEAR_GRADLE)"
+    else
+        record "android wear versionCode unreadable (cur='$cur_wvc' prev='$prev_wvc')"
     fi
 }
 
@@ -118,7 +130,7 @@ if [ "${#errors[@]}" -gt 0 ]; then
         echo "pre-push: version tag checks failed:"
         for e in "${errors[@]}"; do echo "  - $e"; done
         echo ""
-        echo "All platforms must equal the tag, and Apple/Android build numbers must increase."
+        echo "All platforms must equal the tag, and Apple/Android (phone and Wear) build numbers must increase."
         echo "Bypass with: git push --no-verify"
     } >&2
     exit 1

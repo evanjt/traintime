@@ -26,14 +26,16 @@ import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
+import com.evanjt.traintime.session.MuteLook
+import com.evanjt.traintime.session.MuteState
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 // Visual regression for the tracking bar (ahead/behind/on-time/no-GPS), the
-// formation diagram (1st/2nd class, sectors, features) and the Paused screen,
-// in light and dark.
+// action row with its hold bracket, the formation diagram (1st/2nd class,
+// sectors, features) and the Paused screen, in light and dark.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -110,6 +112,26 @@ class ComponentSnapshotTest {
         }
     }
 
+    @Composable
+    private fun actions() {
+        Column(Modifier.width(360.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            TrackingActionRow(
+                showMap = true,
+                watch = WatchAction(trackingHere = false, checking = false, liveness = WatchLiveness.OPEN),
+                sound = MuteState(MuteLook.ON, usuallyOn = true),
+                buzz = MuteState(MuteLook.MUTED_THIS_TRIP, usuallyOn = true),
+                onMap = {}, onWatch = {}, onWatchHold = {}, onSound = {}, onSoundHold = {}, onBuzz = {}, onBuzzHold = {},
+            )
+            TrackingActionRow(
+                showMap = true,
+                watch = WatchAction(trackingHere = true, checking = false, liveness = WatchLiveness.CLOSED),
+                sound = MuteState(MuteLook.OFF, usuallyOn = false),
+                buzz = MuteState(MuteLook.ON, usuallyOn = false),
+                onMap = {}, onWatch = {}, onWatchHold = {}, onSound = {}, onSoundHold = {}, onBuzz = {}, onBuzzHold = {},
+            )
+        }
+    }
+
     private fun capture(name: String, dark: Boolean, content: @Composable () -> Unit) {
         composeRule.setContent {
             CompositionLocalProvider(LocalAppPalette provides if (dark) DarkPalette else LightPalette) {
@@ -131,6 +153,17 @@ class ComponentSnapshotTest {
     @Test fun trackingLight() = capture("tracking_light", dark = false) { tracking() }
 
     @Test fun trackingDark() = capture("tracking_dark", dark = true) { tracking() }
+
+    // The action rows on a 360dp phone, the narrowest the hold hint is fitted to.
+    @Test @Config(qualifiers = "w360dp-h800dp")
+    fun trackingActionsLight() = capture("tracking_actions_light", dark = false) { actions() }
+
+    @Test @Config(qualifiers = "w360dp-h800dp")
+    fun trackingActionsDark() = capture("tracking_actions_dark", dark = true) { actions() }
+
+    // German has the longest hold hint.
+    @Test @Config(qualifiers = "de-w360dp-h800dp")
+    fun trackingActionsGerman() = capture("tracking_actions_de", dark = false) { actions() }
 
     @Test fun formationLight() = capture("formation_light", dark = false) {
         Box(Modifier.width(360.dp).padding(16.dp)) { FormationDiagram(doubleUnit) }

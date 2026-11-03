@@ -300,7 +300,7 @@ fun StationScreen(
                                     mode = viewModel.currentMode,
                                     nowEpochSeconds = System.currentTimeMillis() / 1000,
                                     onResume = { viewModel.resumeBackgroundTracking() },
-                                    onStop = { viewModel.stopBackgroundTracking() },
+                                    onStop = { viewModel.stopSession() },
                                 )
                             }
                         }

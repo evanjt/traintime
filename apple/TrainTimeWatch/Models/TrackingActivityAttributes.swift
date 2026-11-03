@@ -77,6 +77,26 @@ enum TrackingStopRequest {
     }
 }
 
+/// What Back and Stop do to a phone tracking session. Back leaves the tracking
+/// screen and keeps the session on the board card when background tracking is
+/// on. With it off no Live Activity runs, so Back ends the session. Stop always
+/// ends whichever session exists, from every surface that offers it.
+enum TrackingSessionLogic {
+    enum BackAction: Equatable { case park, end }
+    enum StopAction: Equatable { case endImmersive, endParked, nothing }
+
+    static func back(backgroundTracking: Bool) -> BackAction {
+        backgroundTracking ? .park : .end
+    }
+
+    /// Only one session exists at a time: entering tracking retires a parked one.
+    static func stop(immersive: Bool, parked: Bool) -> StopAction {
+        if immersive { return .endImmersive }
+        if parked { return .endParked }
+        return .nothing
+    }
+}
+
 enum LiveActivityTiming {
     /// How long one payload stays current while the app keeps updating it.
     static let freshFor: TimeInterval = 900

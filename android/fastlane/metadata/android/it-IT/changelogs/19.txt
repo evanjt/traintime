@@ -1,4 +1,5 @@
-- Nuova opzione «Suoni degli avvisi» nelle Impostazioni. Disattivata, gli avvisi compaiono e vibrano comunque, solo senza suono.
-- Nuova opzione «Vibrazione» su telefono e orologio, per disattivare le vibrazioni mentre l'app è aperta.
+- Nuova opzione «Suoni degli avvisi». Disattivata, gli avvisi vibrano comunque, senza suono.
+- Nuova opzione «Vibrazione» su telefono e orologio, mentre l'app è aperta.
 - Nuova opzione «Avvisami del cambio di binario», accanto all'avviso prima della partenza.
-- L'app non riproduce più un suono di avviso quando la metti in background.
+- Nessun suono di avviso quando l'app va in background.
+- Tracciamento: una riga Mappa, Orologio, Suono e Vibrazione. Tocca per disattivare in questo viaggio, tieni premuto per ogni viaggio. Indietro continua, Interrompi termina.

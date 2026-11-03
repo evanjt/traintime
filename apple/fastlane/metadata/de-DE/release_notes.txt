@@ -1,3 +1,4 @@
 - Neuer Schalter «Hinweistöne» in den Einstellungen. Ausgeschaltet erscheinen und vibrieren Hinweise weiterhin, nur ohne Ton.
 - Neuer Schalter «Vibration» auf iPhone und Apple Watch, um die Vibrationen bei offener App auszuschalten.
 - Neuer Schalter «Bei Gleiswechsel benachrichtigen», neben dem Hinweis vor Abfahrt.
+- Verfolgung: eine Zeile für Karte, Uhr, Ton und Vibration. Tippen schaltet für diese Fahrt stumm, Halten für jede Fahrt. Zurück verfolgt weiter, Beenden stoppt.

@@ -188,6 +188,10 @@ class PhoneViewModel: ObservableObject {
         // orphans.
         _ = TrackingStopRequest.take()
         endStrayLiveActivities()
+        PhoneHapticService.tripOverride = { [weak self] in
+            guard let self, self.appState == 2 else { return nil }
+            return self.currentTripMutes.buzz
+        }
 
         // The Live Activity's Stop button (a LiveActivityIntent running in-process)
         // posts here — the analog of Android's notification Stop → stopRequests.
@@ -610,6 +614,7 @@ class PhoneViewModel: ObservableObject {
     /// goes, a parked background session goes with it, and background location
     /// stops. Tracking then only runs while the app is open.
     func disableBackgroundTracking() {
+        if appState != 2 { endTripMutes() }
         backgroundTracked = nil
         backgroundTrackedStation = nil
         PendingRouteNotifier.cancelApproachAlert()
@@ -921,6 +926,7 @@ class PhoneViewModel: ObservableObject {
         // the train has gone. Without it the card sits at "0 min" and the Live
         // Activity survives to ActivityKit's own cap.
         if appState != 2, let parked = backgroundTracked, hasDeparted(parked) {
+            endTripMutes()
             backgroundTracked = nil
             backgroundTrackedStation = nil
             PendingRouteNotifier.cancelApproachAlert()
@@ -1066,6 +1072,8 @@ class PhoneViewModel: ObservableObject {
             backgroundTrackedStation = nil
             PendingRouteNotifier.cancelApproachAlert()
         }
+        // Reopening the parked trip keeps its Sound and Buzz, any other starts clean.
+        if tripMutes.departureTimestamp != focused.departureTimestamp { endTripMutes() }
         focusedTrain = focused
         appState = 2
         location.setTrackingAccuracy(true)
@@ -1101,6 +1109,7 @@ class PhoneViewModel: ObservableObject {
     func enterInactiveState() {
         onTrackingEnded(appState == 2 ? focusedTrain?.departureTimestamp : nil)
         if appState == 2 {
+            endTripMutes()
             // Departed auto-exit keeps a final "Departed" card up briefly;
             // a plain timeout dismisses straight away.
             endLiveActivity(departed: focusedTrain.map(hasDeparted) ?? false)
@@ -1197,21 +1206,95 @@ class PhoneViewModel: ObservableObject {
         return favouritesStore.isFavourite(stationId: stationId, lineNumber: departure.lineNumber, destination: departure.destination)
     }
 
+    // MARK: - Trip Sound and Buzz
+
+    /// The one owner of this trip's Sound and Buzz choices. Parking the session
+    /// keeps them for the board card and its "Time to leave", ending it clears them.
+    @Published private(set) var tripMutes = TripMutes()
+
+    private var tripSessionDeparture: Int? {
+        appState == 2 ? focusedTrain?.departureTimestamp : backgroundTracked?.departureTimestamp
+    }
+
+    /// Scoped to the live session, so a choice can't outlive the trip it was made for.
+    private var currentTripMutes: TripMutes { tripMutes.scoped(to: tripSessionDeparture) }
+
+    var tripSoundState: TripMuteState {
+        TripMute.state(global: AlertSound.isEnabled(), session: currentTripMutes.sound)
+    }
+
+    var tripBuzzState: TripMuteState {
+        TripMute.state(global: PhoneHapticService.isEnabled(), session: currentTripMutes.buzz)
+    }
+
+    /// Returns the trip's new override, nil when it now follows Settings.
+    @discardableResult
+    func tapTripSound() -> Bool? {
+        guard let dep = tripSessionDeparture else { return nil }
+        let next = TripMute.tapped(global: AlertSound.isEnabled(), session: currentTripMutes.sound)
+        tripMutes.set(\.sound, next, for: dep)
+        return next
+    }
+
+    func holdTripSound() {
+        guard let dep = tripSessionDeparture else { return }
+        let hold = TripMute.held(global: AlertSound.isEnabled(), session: currentTripMutes.sound)
+        UserDefaults.standard.set(hold.global, forKey: AlertSound.key)
+        tripMutes.set(\.sound, hold.session, for: dep)
+    }
+
+    @discardableResult
+    func tapTripBuzz() -> Bool? {
+        guard let dep = tripSessionDeparture else { return nil }
+        let next = TripMute.tapped(global: PhoneHapticService.isEnabled(), session: currentTripMutes.buzz)
+        tripMutes.set(\.buzz, next, for: dep)
+        return next
+    }
+
+    func holdTripBuzz() {
+        guard let dep = tripSessionDeparture else { return }
+        let hold = TripMute.held(global: PhoneHapticService.isEnabled(), session: currentTripMutes.buzz)
+        UserDefaults.standard.set(hold.global, forKey: PhoneHapticService.key)
+        tripMutes.set(\.buzz, hold.session, for: dep)
+    }
+
+    private func endTripMutes() {
+        tripMutes = TripMutes()
+    }
+
     /// Stop requested from the Live Activity button (see `StopTrackingIntent`).
-    /// An immersive session drops to the board; a background-card session tears down.
     func handleStopFromLiveActivity() {
         _ = TrackingStopRequest.take()
-        if appState == 2 {
-            exitToStationView()
-        } else if backgroundTracked != nil {
-            stopBackgroundTracking()
+        stopTracking()
+    }
+
+    /// The one stop path, shared by the tracking screen, the board card and the
+    /// Live Activity. An immersive session drops to the board, a parked one tears
+    /// down. The watch is left alone, as after Back.
+    func stopTracking() {
+        switch TrackingSessionLogic.stop(immersive: appState == 2, parked: backgroundTracked != nil) {
+        case .endImmersive: exitToStationView()
+        case .endParked: stopBackgroundTracking()
+        case .nothing: break
+        }
+    }
+
+    /// Back on the tracking screen. Keeps the session on the board card when
+    /// background tracking is on, ends it when off.
+    func leaveTracking() {
+        switch TrackingSessionLogic.back(backgroundTracking: backgroundTrackingEnabled) {
+        case .park: trackCurrentInBackground()
+        case .end: exitToStationView()
         }
     }
 
     func exitToStationView() {
         let wasTracking = appState == 2
         onTrackingEnded(wasTracking ? focusedTrain?.departureTimestamp : nil)
-        if wasTracking { endLiveActivity(departed: false) }
+        if wasTracking {
+            endTripMutes()
+            endLiveActivity(departed: false)
+        }
         // A queued "track on watch" intent dies with the tracking session.
         pendingWatchTrackSend = false
         lastInteractionTime = Date()
@@ -1571,7 +1654,7 @@ class PhoneViewModel: ObservableObject {
             ? AlertConfiguration(
                 title: "Platform changed",
                 body: "\(focused.lineNumber) \(String(localized: "Platform \(focused.platform)"))",
-                sound: AlertSound.liveActivitySound())
+                sound: AlertSound.liveActivitySound(AlertSound.choice(session: currentTripMutes.sound)))
             : nil
         Task { await activity.update(content, alertConfiguration: alert) }
     }
@@ -2361,19 +2444,18 @@ class PhoneViewModel: ObservableObject {
     }
 
     /// A live session that keeps running in the background (the Live Activity)
-    /// while the board is shown. Non-nil = "Track in the background" is active:
+    /// while the board is shown. Non-nil = Back left a session running:
     /// the board pins it at the top, tapping it re-opens full tracking. Peer of
     /// MainViewModel.backgroundTracked.
     @Published var backgroundTracked: FocusedDeparture?
     @Published var backgroundTrackedStation: String?
 
-    /// Tracking-screen "Track in the background": leave the immersive tracking
-    /// screen for the board but keep the Live Activity running. No reminder, no
-    /// disclosure prompt — the Live Activity already covers the closed-app case.
-    func trackCurrentInBackground() {
+    /// Back with background tracking on: leave the immersive tracking screen for
+    /// the board but keep the Live Activity running. No reminder, no disclosure
+    /// prompt, the Live Activity already covers the closed-app case.
+    private func trackCurrentInBackground() {
         lastInteractionTime = Date()
-        guard backgroundTrackingEnabled else { return }
-        guard let focused = focusedTrain else { return }
+        guard let focused = focusedTrain else { exitToStationView(); return }
         backgroundTracked = focused
         backgroundTrackedStation = currentStation?.name
         parkLiveActivity(focused)
@@ -2400,7 +2482,9 @@ class PhoneViewModel: ObservableObject {
         let walkSec = distanceAware
             ? (lastWalkTime.map { Int($0) } ?? Int(GeoUtils.walkMinutes(distanceMeters: lastWalkDist) * 60))
             : 0
-        PendingRouteNotifier.scheduleApproachAlert(focused, walkSeconds: walkSec, now: Int(Date().timeIntervalSince1970))
+        PendingRouteNotifier.scheduleApproachAlert(
+            focused, walkSeconds: walkSec, now: Int(Date().timeIntervalSince1970),
+            sound: AlertSound.choice(session: tripMutes.scoped(to: focused.departureTimestamp).sound))
     }
 
     /// Board "now tracking" card tapped: re-open the full tracking screen for the
@@ -2417,8 +2501,9 @@ class PhoneViewModel: ObservableObject {
     /// Live Activity without re-opening the tracking screen. When a shared route
     /// backs the session, X clears the whole journey (route + reminder), matching
     /// the old chip's discard — the card is now the single surface for it.
-    func stopBackgroundTracking() {
+    private func stopBackgroundTracking() {
         let wasRoute = pendingRouteStore.pending != nil
+        endTripMutes()
         backgroundTracked = nil
         backgroundTrackedStation = nil
         PendingRouteNotifier.cancelApproachAlert()

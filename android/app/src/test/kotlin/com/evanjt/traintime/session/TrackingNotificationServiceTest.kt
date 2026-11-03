@@ -7,6 +7,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.evanjt.traintime.data.model.FocusedDeparture
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -108,5 +109,29 @@ class TrackingNotificationServiceTest {
         assertTrue(shadowOf(controller.get()).isStoppedBySelf)
         assertNull(card())
         controller.destroy()
+    }
+
+    @Test
+    fun `the start intent carries the session mutes`() {
+        val snap = snapshot(secondsFromNow = 3 * 60 * 60).let {
+            it.copy(mutes = SessionMutes(it.focused.departureTimestamp, sound = false, buzz = true))
+        }
+        val decoded = TrackingNotificationService.decodeSnapshot(TrackingNotificationService.startIntent(context, snap))
+        assertEquals(snap.mutes, decoded?.mutes)
+    }
+
+    @Test
+    fun `a redelivered start restores the session mutes`() {
+        TrackingSessionBus.endSession(null)
+        val snap = snapshot(secondsFromNow = 3 * 60 * 60).let {
+            it.copy(mutes = SessionMutes(it.focused.departureTimestamp, sound = false))
+        }
+        val controller = Robolectric.buildService(
+            TrackingNotificationService::class.java,
+            TrackingNotificationService.startIntent(context, snap),
+        ).create().startCommand(0, 1)
+        assertEquals(false, TrackingSessionBus.mutesFor(snap.focused.departureTimestamp).sound)
+        controller.destroy()
+        assertNull(TrackingSessionBus.mutesFor(snap.focused.departureTimestamp).sound)
     }
 }

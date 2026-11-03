@@ -53,6 +53,7 @@ import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
+import com.evanjt.traintime.session.SessionMute
 import com.evanjt.traintime.session.TrackingSnapshot
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
@@ -119,8 +120,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val pendingRouteStore = PendingRouteStore(application)
     val location = LocationService(application, prefs)
     // Cached so a buzz never waits on DataStore. Default on until the first read.
-    private val hapticsOn = prefs.haptics.stateIn(viewModelScope, SharingStarted.Eagerly, true)
-    val haptics = HapticService(application) { hapticsOn.value }
+    val hapticsOn = prefs.haptics.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val alertSoundsOn = prefs.alertSounds.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    // The tracking screen's Buzz choice for this trip overrides the setting
+    // while that trip is on screen. Board taps follow the setting alone.
+    val haptics = HapticService(application) {
+        SessionMute.hapticsOn(
+            hapticsOn.value,
+            TrackingSessionBus.mutes.value,
+            focusedTrain?.departureTimestamp?.takeIf { appState == 2 },
+        )
+    }
     private val api = TrainApi.shared
     private val wearSync = WearStateSync.get(application)
     val garminService = GarminConnectIQService(application)
@@ -420,10 +430,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // The tracking notification's "Stop tracking" action, so a reopened app
         // doesn't resurrect a session the user ended from the shade.
         viewModelScope.launch {
-            TrackingSessionBus.stopRequests.collect {
-                if (appState == 2) exitToStationView() else clearBackgroundTracking()
-                markSessionStopped()
-            }
+            TrackingSessionBus.stopRequests.collect { stopSession(discardRoute = false) }
         }
 
         viewModelScope.launch { backgroundTrackingEnabled = prefs.backgroundReminderTracking.first() }
@@ -960,6 +967,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // a track the watch already owns — re-sending it would make the watch
     // re-enter (and re-vibrate) its own tracking.
     private fun beginTracking(focused: FocusedDeparture, mirror: Boolean = true) {
+        TrackingSessionBus.beginSession(focused.departureTimestamp)
         focusedTrain = focused
         appState = 2
         // The immersive screen owns the session from here. Without this the
@@ -1027,6 +1035,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stationLon = currentStation?.lon,
             walkDistMeters = if (gpsOk) lastWalkDist else null,
             gpsOk = gpsOk,
+            mutes = TrackingSessionBus.mutesFor(focused.departureTimestamp),
         )
     }
 
@@ -1063,6 +1072,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun enterInactiveState() {
         onTrackingEnded(if (appState == 2) focusedTrain?.departureTimestamp else null)
+        if (appState == 2) TrackingSessionBus.endSession(focusedTrain?.departureTimestamp)
         if (appState == 2) TrackingNotificationService.stop(getApplication())
         appState = 3
         // Hand ownership back to the service's loop, which a surviving
@@ -1245,6 +1255,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setHaptics(value: Boolean) {
         viewModelScope.launch { prefs.setHaptics(value) }
+    }
+
+    // Tracking-screen Sound and Buzz. A tap decides for this trip and returns
+    // the trip's new override (null when it now follows Settings). A hold
+    // writes Settings and drops the override.
+    fun tapTripSound(): Boolean? {
+        val dep = focusedTrain?.departureTimestamp ?: return null
+        val next = SessionMute.tapped(alertSoundsOn.value, TrackingSessionBus.mutesFor(dep).sound)
+        TrackingSessionBus.setSound(dep, next)
+        onTripMutesChanged()
+        return next
+    }
+
+    fun holdTripSound() {
+        val dep = focusedTrain?.departureTimestamp ?: return
+        setAlertSounds(SessionMute.held(alertSoundsOn.value, TrackingSessionBus.mutesFor(dep).sound))
+        TrackingSessionBus.setSound(dep, null)
+        onTripMutesChanged()
+    }
+
+    fun tapTripBuzz(): Boolean? {
+        val dep = focusedTrain?.departureTimestamp ?: return null
+        val next = SessionMute.tapped(hapticsOn.value, TrackingSessionBus.mutesFor(dep).buzz)
+        TrackingSessionBus.setBuzz(dep, next)
+        onTripMutesChanged()
+        return next
+    }
+
+    fun holdTripBuzz() {
+        val dep = focusedTrain?.departureTimestamp ?: return
+        setHaptics(SessionMute.held(hapticsOn.value, TrackingSessionBus.mutesFor(dep).buzz))
+        TrackingSessionBus.setBuzz(dep, null)
+        onTripMutesChanged()
+    }
+
+    // The service reads the bus at alert time, but a redelivered start intent
+    // is all that survives a process death, so it is re-issued with the change.
+    private fun onTripMutesChanged() {
+        if (appState != 2 || !backgroundTrackingEnabled) return
+        val focused = focusedTrain ?: return
+        TrackingNotificationService.start(getApplication(), buildTrackingSnapshot(focused), suppressApproachAlert = true)
     }
 
     fun setBackgroundReminderTracking(value: Boolean) {
@@ -1893,6 +1944,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun exitToStationView() {
         val wasTracking = appState == 2
         onTrackingEnded(if (wasTracking) focusedTrain?.departureTimestamp else null)
+        if (wasTracking) TrackingSessionBus.endSession(focusedTrain?.departureTimestamp)
         if (wasTracking) TrackingNotificationService.stop(getApplication())
         // A queued "track on watch" intent dies with the tracking session.
         pendingWatchTrackSend = false
@@ -2455,13 +2507,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var backgroundTrackedStation by mutableStateOf<String?>(null)
         private set
 
-    // Tracking-screen "Track in the background": leave the immersive tracking
-    // screen for the board but keep the notification tracking. No reminder, no
-    // background-location prompt — the foreground service covers it.
-    fun trackCurrentInBackground() {
+    // Tracking-screen Back, system or top bar. With a background service the
+    // session carries on in the notification and the board's live card,
+    // otherwise nothing outlives this screen and Back ends the session.
+    fun leaveTracking() {
         lastInteractionTime = now()
-        val focused = focusedTrain ?: return
-        if (!backgroundTrackingEnabled) return
+        val focused = focusedTrain
+        if (focused == null || !TrackingLogic.backKeepsSession(backgroundTrackingEnabled, appState == 2)) {
+            exitToStationView()
+            return
+        }
         backgroundTracked = focused
         backgroundTrackedStation = currentStation?.name
         // Hand the notification to the service's own loop (the VM is no longer
@@ -2488,6 +2543,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun clearBackgroundTracking() {
+        backgroundTracked?.let { TrackingSessionBus.endSession(it.departureTimestamp) }
         backgroundTracked = null
         backgroundTrackedStation = null
     }
@@ -2504,15 +2560,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun stoppedLegKey(routeId: String, cursor: Int) = "$routeId:$cursor"
 
-    // Board "now tracking" card stop: end the background session and its
-    // notification without re-opening the tracking screen. When a shared route
-    // backs the session, X clears the whole journey (route + reminder), matching
-    // the old chip's discard — the card is now the single surface for it.
-    fun stopBackgroundTracking() {
-        clearBackgroundTracking()
+    // The one Stop: the tracking screen, the board's live card and the
+    // notification all end the session here, whether it is on screen or running
+    // behind the card. The watch is left alone, as after Back. The in-app Stops
+    // also clear a shared route backing the session (route + reminder). The
+    // notification only marks the leg stopped, so the route stays as the backstop.
+    fun stopSession(discardRoute: Boolean = true) {
+        if (appState == 2) exitToStationView() else clearBackgroundTracking()
         TrackingNotificationService.stop(getApplication())
-        viewModelScope.launch {
-            if (pendingRouteStore.current() != null) dismissPendingRoute()
+        markSessionStopped()
+        if (discardRoute) {
+            viewModelScope.launch {
+                if (pendingRouteStore.current() != null) dismissPendingRoute()
+            }
         }
     }
 
@@ -2536,6 +2596,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             platformChanged = false,
             routeDestination = routeDestination,
         )
+        TrackingSessionBus.beginSession(focused.departureTimestamp)
         backgroundTracked = focused
         backgroundTrackedStation = station
         // Drive the notification from the service's own loop; the VM isn't on the
@@ -2549,6 +2610,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stationLon = leg.originLon,
             walkDistMeters = null,
             gpsOk = false,
+            mutes = TrackingSessionBus.mutesFor(focused.departureTimestamp),
         )
         TrackingNotificationService.start(getApplication(), snapshot)
         notificationPermissionRequest = true

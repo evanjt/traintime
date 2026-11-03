@@ -110,6 +110,9 @@ class TrackingNotificationService : Service() {
                         approachDueWhenBackgrounded = null
                     }
                     snapshot = it
+                    // After a process death the bus is empty and this intent is
+                    // the only record of the trip's Sound and Buzz choices.
+                    TrackingSessionBus.restore(it.mutes)
                 }
                 val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
@@ -366,7 +369,7 @@ class TrackingNotificationService : Service() {
     private suspend fun alertApproach(snap: TrackingSnapshot) {
         val ctx = localised()
         ensureChannels(ctx)
-        val channel = AlertChannels.forAlert(this)
+        val channel = alertChannel(snap)
         // Scheduled time plus a separate "+N", the same way the board reads it.
         val time = HHMM.format(
             Instant.ofEpochSecond(snap.focused.departureTimestamp).atZone(ZoneId.systemDefault()),
@@ -737,7 +740,7 @@ class TrackingNotificationService : Service() {
     private suspend fun alertPlatformChange(snap: TrackingSnapshot) {
         val ctx = localised()
         ensureChannels(ctx)
-        val channel = AlertChannels.forAlert(this)
+        val channel = alertChannel(snap)
         val body = ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination) +
             " · " + ctx.getString(R.string.platform_full_fmt, snap.focused.platform)
         val notification = NotificationCompat.Builder(this, channel)
@@ -750,6 +753,13 @@ class TrackingNotificationService : Service() {
             .build()
         gate.open { getSystemService(NotificationManager::class.java).notify(ALERT_NOTIF_ID, notification) }
     }
+
+    // The trip's Sound choice over the Alert sounds setting. Read from the bus
+    // rather than the snapshot so a tap applies before the next push.
+    private suspend fun alertChannel(snap: TrackingSnapshot): String = SessionMute.alertChannel(
+        AppPrefs(this).alertSounds.first(),
+        TrackingSessionBus.mutesFor(snap.focused.departureTimestamp).sound,
+    )
 
     // How long a one-shot alert stays useful: until the train leaves, plus the
     // session's own grace. onDestroy clears them on every ordinary teardown, but
@@ -780,6 +790,7 @@ class TrackingNotificationService : Service() {
             }
         }
         applyLocationMode(TrackingLogic.LocationMode.OFF)
+        TrackingSessionBus.endSession(snapshot?.focused?.departureTimestamp)
         scope.cancel()
         super.onDestroy()
     }
@@ -814,23 +825,6 @@ class TrackingNotificationService : Service() {
             )
         }
         AlertChannels.create(this, ctx)
-    }
-
-    private fun decodeSnapshot(intent: Intent): TrackingSnapshot? {
-        val json = intent.getStringExtra(EXTRA_CMD) ?: return null
-        val cmd = runCatching { WearSync.json.decodeFromString<TrackCommand>(json) }.getOrNull() ?: return null
-        val lat = intent.getDoubleExtra(EXTRA_STATION_LAT, Double.NaN)
-        val lon = intent.getDoubleExtra(EXTRA_STATION_LON, Double.NaN)
-        val walk = intent.getDoubleExtra(EXTRA_WALK_DIST, Double.NaN)
-        return TrackingSnapshot(
-            focused = cmd.toFocusedDeparture(),
-            stationId = cmd.stationId,
-            stationName = intent.getStringExtra(EXTRA_STATION_NAME),
-            stationLat = lat.takeIf { !it.isNaN() },
-            stationLon = lon.takeIf { !it.isNaN() },
-            walkDistMeters = walk.takeIf { !it.isNaN() },
-            gpsOk = intent.getBooleanExtra(EXTRA_GPS_OK, false),
-        )
     }
 
     companion object {
@@ -869,6 +863,8 @@ class TrackingNotificationService : Service() {
         private const val EXTRA_WALK_DIST = "walkDist"
         private const val EXTRA_GPS_OK = "gpsOk"
         private const val EXTRA_SUPPRESS_ALERT = "suppress_alert"
+        private const val EXTRA_MUTE_SOUND = "muteSound"
+        private const val EXTRA_MUTE_BUZZ = "muteBuzz"
 
         fun start(context: Context, snapshot: TrackingSnapshot, suppressApproachAlert: Boolean = false) {
             runCatching { ContextCompat.startForegroundService(context, startIntent(context, snapshot, suppressApproachAlert)) }
@@ -883,8 +879,37 @@ class TrackingNotificationService : Service() {
             snapshot.stationLat?.let { intent.putExtra(EXTRA_STATION_LAT, it) }
             snapshot.stationLon?.let { intent.putExtra(EXTRA_STATION_LON, it) }
             snapshot.walkDistMeters?.let { intent.putExtra(EXTRA_WALK_DIST, it) }
+            snapshot.mutes.takeIf { it.departureTimestamp == snapshot.focused.departureTimestamp }?.let { mutes ->
+                mutes.sound?.let { intent.putExtra(EXTRA_MUTE_SOUND, it) }
+                mutes.buzz?.let { intent.putExtra(EXTRA_MUTE_BUZZ, it) }
+            }
             return intent
         }
+
+        internal fun decodeSnapshot(intent: Intent): TrackingSnapshot? {
+            val json = intent.getStringExtra(EXTRA_CMD) ?: return null
+            val cmd = runCatching { WearSync.json.decodeFromString<TrackCommand>(json) }.getOrNull() ?: return null
+            val lat = intent.getDoubleExtra(EXTRA_STATION_LAT, Double.NaN)
+            val lon = intent.getDoubleExtra(EXTRA_STATION_LON, Double.NaN)
+            val walk = intent.getDoubleExtra(EXTRA_WALK_DIST, Double.NaN)
+            return TrackingSnapshot(
+                focused = cmd.toFocusedDeparture(),
+                stationId = cmd.stationId,
+                stationName = intent.getStringExtra(EXTRA_STATION_NAME),
+                stationLat = lat.takeIf { !it.isNaN() },
+                stationLon = lon.takeIf { !it.isNaN() },
+                walkDistMeters = walk.takeIf { !it.isNaN() },
+                gpsOk = intent.getBooleanExtra(EXTRA_GPS_OK, false),
+                mutes = SessionMutes(
+                    departureTimestamp = cmd.departureTimestamp,
+                    sound = intent.optionalBoolean(EXTRA_MUTE_SOUND),
+                    buzz = intent.optionalBoolean(EXTRA_MUTE_BUZZ),
+                ),
+            )
+        }
+
+        private fun Intent.optionalBoolean(key: String): Boolean? =
+            if (hasExtra(key)) getBooleanExtra(key, false) else null
 
         fun stop(context: Context) {
             runCatching { context.stopService(Intent(context, TrackingNotificationService::class.java)) }

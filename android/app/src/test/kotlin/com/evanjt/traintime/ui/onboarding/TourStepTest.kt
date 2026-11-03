@@ -83,20 +83,32 @@ class TourStepTest {
         assertTrue(stepsToShow(futureSteps, effectiveSeen = nextVersion, current = nextVersion).isEmpty())
     }
 
-    // v2 re-introduced the watch step (Wear OS released) and v3 added the
-    // background-tracking disclosure, so a v1 finisher catches up on both.
+    // v2 re-introduced the watch step (Wear OS released), v3 added the
+    // background-tracking disclosure and v4 the tracking row's Sound and Buzz,
+    // so a v1 finisher catches up on all three.
     @Test
-    fun v1FinisherSeesTheWatchAndBackgroundSteps() {
+    fun v1FinisherSeesTheWatchBackgroundAndMuteSteps() {
         val shown = stepsToShow(tourSteps, effectiveSeen = 1, current = CURRENT_TOUR_VERSION)
-        assertEquals(listOf(TourStage.BACKGROUND, TourStage.WATCH), shown.map { it.stage })
+        assertEquals(listOf(TourStage.BACKGROUND, TourStage.MUTE, TourStage.WATCH), shown.map { it.stage })
     }
 
-    // The background disclosure has to reach existing users on first open after
-    // the update, which is what makes it the release's disclosure surface.
     @Test
-    fun v2FinisherSeesOnlyTheBackgroundStep() {
+    fun v2FinisherSeesTheBackgroundAndMuteSteps() {
         val shown = stepsToShow(tourSteps, effectiveSeen = 2, current = CURRENT_TOUR_VERSION)
-        assertEquals(listOf(TourStage.BACKGROUND), shown.map { it.stage })
+        assertEquals(listOf(TourStage.BACKGROUND, TourStage.MUTE), shown.map { it.stage })
+    }
+
+    @Test
+    fun v3FinisherSeesOnlyTheMuteStep() {
+        val shown = stepsToShow(tourSteps, effectiveSeen = 3, current = CURRENT_TOUR_VERSION)
+        assertEquals(listOf(TourStage.MUTE), shown.map { it.stage })
+    }
+
+    @Test
+    fun newInstallSeesTheMuteStepRightAfterBackground() {
+        val shown = stepsToShow(tourSteps, effectiveSeen = 0, current = CURRENT_TOUR_VERSION).map { it.stage }
+        assertEquals(tourSteps.map { it.stage }, shown)
+        assertEquals(shown.indexOf(TourStage.BACKGROUND) + 1, shown.indexOf(TourStage.MUTE))
     }
 
     @Test

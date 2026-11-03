@@ -4,7 +4,7 @@ import Foundation
 // feature with an anchored callout. Stages are the surfaces; several steps share a surface.
 // Peer of the Android ui/onboarding/TourStep.kt.
 enum TourStage {
-    case nearby, mode, track, background, favourite, pin, settings, share, route, watch, widget
+    case nearby, mode, track, background, mute, favourite, pin, settings, share, route, watch, widget
 }
 
 struct TourStep: Identifiable {
@@ -20,7 +20,8 @@ struct TourStep: Identifiable {
 // Bump whenever steps are added (new steps get introducedIn = this value).
 // v2: tracking survives backgrounding, so the background-location disclosure
 // reaches existing users as a one-step delta tour on first open after updating.
-let currentTourVersion = 2
+// v3: the tracking screen's Sound and Buzz, tap for this trip, hold for every trip.
+let currentTourVersion = 3
 
 // The version an updater effectively last saw. A stored version wins; otherwise a
 // legacy user who finished the old (pre-versioning) tour counts as v1, and a user
@@ -49,8 +50,12 @@ let tourSteps: [TourStep] = [
     // Straight after .track: the user has just learned what tracking is, which is
     // the only place the background disclosure makes sense.
     TourStep(stage: .background, title: String(localized: "Tracking keeps going"),
-             body: String(localized: "Leave the app and your train keeps counting down on the Lock Screen, with an alert when it's time to leave. TrainTime uses your location in the background to do it, only while you're tracking. Turn it off any time in Settings."),
+             body: String(localized: "Go back to the board and your train keeps counting down, on the Lock Screen too, with an alert when it's time to leave. Stop ends it. TrainTime uses your location in the background to do it, only while you're tracking. Turn background tracking off any time in Settings."),
              introducedIn: 2),
+    // Same tracking surface, now pointing at the row's Sound and Buzz.
+    TourStep(stage: .mute, title: String(localized: "Quiet for this trip"),
+             body: String(localized: "Tap sound or vibration to mute it for this trip. Hold to turn it off for every trip, or back on if it's already off."),
+             introducedIn: 3),
     TourStep(stage: .favourite, title: String(localized: "Star your lines"),
              body: String(localized: "Swipe a line right, or hold it, to favourite it.")),
     TourStep(stage: .pin, title: String(localized: "Pin a station"),

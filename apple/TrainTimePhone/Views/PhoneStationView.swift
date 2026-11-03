@@ -203,7 +203,7 @@ struct PhoneStationView: View {
             Text(focused.destination).lineLimit(1)
             Spacer()
             Text("\(minutes) min").fontWeight(.semibold).monospacedDigit()
-            Button { viewModel.stopBackgroundTracking() } label: {
+            Button { viewModel.stopTracking() } label: {
                 Image(systemName: "xmark").font(.footnote).foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)

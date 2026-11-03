@@ -128,6 +128,12 @@ object TrackingLogic {
     // A late train has not left. Measure the grace from the effective departure
     // (schedule + delay), or a +3 session would tear itself down while the user
     // is still standing on the platform waiting for it.
+    // Back leaves a running session to the board's live card only when a
+    // background service carries it. With background tracking off the session
+    // lives only as long as the tracking screen, so Back ends it.
+    fun backKeepsSession(backgroundTracking: Boolean, tracking: Boolean): Boolean =
+        backgroundTracking && tracking
+
     fun departed(focused: FocusedDeparture, nowEpochSeconds: Long): Boolean =
         focused.secondsUntil(nowEpochSeconds) + focused.delay * 60L < -DEPARTED_GRACE_SEC
 
