@@ -378,3 +378,13 @@ function testReadoutRingEndAngleStaysInRange(logger) {
     }
     return true;
 }
+
+(:test)
+function testHapticsGateFollowsSettingAndWatch(logger) {
+    // An absent setting means on, and the watch's own vibration switch always wins
+    return Haptics.isEnabled(null, true)
+        && Haptics.isEnabled(true, true)
+        && !Haptics.isEnabled(false, true)
+        && !Haptics.isEnabled(null, false)
+        && !Haptics.isEnabled(true, false);
+}

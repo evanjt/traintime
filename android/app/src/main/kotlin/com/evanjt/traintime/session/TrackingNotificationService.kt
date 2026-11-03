@@ -35,6 +35,7 @@ import com.evanjt.traintime.core.sync.TrackCommand
 import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.notify.AlertChannels
 import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.evanjt.traintime.domain.Fix
 import com.evanjt.traintime.domain.GeoUtils
@@ -106,6 +107,7 @@ class TrackingNotificationService : Service() {
                     if (it.focused.departureTimestamp != snapshot?.focused?.departureTimestamp) {
                         approachAlerted = intent?.getBooleanExtra(EXTRA_SUPPRESS_ALERT, false) == true
                         approachFired = false
+                        approachDueWhenBackgrounded = null
                     }
                     snapshot = it
                 }
@@ -164,9 +166,11 @@ class TrackingNotificationService : Service() {
                 if (!foreground) snapshot?.let { snap ->
                     // Leaving the immersive screen: lift the start-time suppression so a
                     // backgrounded session still gets its one "time to leave" heads-up,
-                    // unless it already fired this session.
+                    // unless it already fired this session. A window already open on
+                    // leaving spends it silently, since leaving never makes a sound.
                     if (!approachFired) approachAlerted = false
                     val now = System.currentTimeMillis() / 1000
+                    approachDueWhenBackgrounded = approachWindowOpen(snap, now)
                     applyLocationMode(TrackingLogic.pollTier(effectiveMinutes(snap, now)).location)
                 }
             }
@@ -265,7 +269,8 @@ class TrackingNotificationService : Service() {
         )
         snapshot = updated
 
-        if (focused.platform != previousPlatform && focused.platformChanged) {
+        val alertsOn = AppPrefs(this).platformChangeAlert.first()
+        if (TrackingLogic.platformChangeAlertFires(previousPlatform, focused, alertsOn)) {
             alertPlatformChange(updated)
         }
         pushNotification(updated)
@@ -321,8 +326,11 @@ class TrackingNotificationService : Service() {
     // Fired at most once per session: the distance-aware "time to leave" heads-up.
     // `approachAlerted` also carries the immersive-start suppression, which is lifted
     // on backgrounding; `approachFired` records an actual fire so it isn't re-shown.
+    // `approachDueWhenBackgrounded` is the window's state on leaving the app, null
+    // until sampled, in which case the first background check samples it.
     @Volatile private var approachAlerted = false
     @Volatile private var approachFired = false
+    @Volatile private var approachDueWhenBackgrounded: Boolean? = null
 
     // The one-shot leave alert. Distance-aware by default: due once the effective
     // departure is within walk time plus the reminder-lead buffer. Fixed-lead
@@ -334,22 +342,31 @@ class TrackingNotificationService : Service() {
         // A queued shared route already owns the "leave soon" heads-up through its
         // own reminder (which also survives reboot), so don't double up.
         if (PendingRouteStore(this).current() != null) return
+        if (!AppPrefs(this).alertBeforeDeparture.first()) return
+        val dueNow = approachWindowOpen(snap, nowEpochSeconds)
+        val dueWhenBackgrounded = approachDueWhenBackgrounded ?: dueNow.also { approachDueWhenBackgrounded = it }
+        if (TrackingLogic.approachAlertFires(dueWhenBackgrounded, dueNow)) {
+            approachFired = true
+            alertApproach(snap)
+        }
+        // Inside the window either way: fired now, or already open on leaving the
+        // app, which spends the alert silently.
+        if (dueNow) approachAlerted = true
+    }
+
+    private suspend fun approachWindowOpen(snap: TrackingSnapshot, nowEpochSeconds: Long): Boolean {
         val prefs = AppPrefs(this)
-        if (!prefs.alertBeforeDeparture.first()) return
         val bufferLead = prefs.routeReminderLeadMinutes.first()
         val distanceAware = prefs.distanceAwareReminder.first()
         val walkMin = snap.walkDistMeters?.let { GeoUtils.walkMinutes(it) }
         val walkArg = if (distanceAware) (walkMin ?: 0.0) else 0.0
-        if (TrackingLogic.approachDue(snap.focused, walkArg, bufferLead, nowEpochSeconds)) {
-            approachAlerted = true
-            approachFired = true
-            alertApproach(snap)
-        }
+        return TrackingLogic.approachDue(snap.focused, walkArg, bufferLead, nowEpochSeconds)
     }
 
-    private fun alertApproach(snap: TrackingSnapshot) {
+    private suspend fun alertApproach(snap: TrackingSnapshot) {
         val ctx = localised()
         ensureChannels(ctx)
+        val channel = AlertChannels.forAlert(this)
         // Scheduled time plus a separate "+N", the same way the board reads it.
         val time = HHMM.format(
             Instant.ofEpochSecond(snap.focused.departureTimestamp).atZone(ZoneId.systemDefault()),
@@ -361,7 +378,7 @@ class TrackingNotificationService : Service() {
         }
         val body = ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination) +
             " · " + time + delay
-        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, channel)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(ctx.getString(R.string.approach_alert_title))
             .setContentText(body)
@@ -717,12 +734,13 @@ class TrackingNotificationService : Service() {
 
     // One-shot heads-up on the alert channel, mirroring the in-app double
     // pulse when the platform changes mid-session.
-    private fun alertPlatformChange(snap: TrackingSnapshot) {
+    private suspend fun alertPlatformChange(snap: TrackingSnapshot) {
         val ctx = localised()
         ensureChannels(ctx)
+        val channel = AlertChannels.forAlert(this)
         val body = ctx.getString(CoreR.string.leg_places_fmt, snap.focused.lineNumber, snap.focused.destination) +
             " · " + ctx.getString(R.string.platform_full_fmt, snap.focused.platform)
-        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, channel)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(ctx.getString(R.string.platform_change_title))
             .setContentText(body)
@@ -795,13 +813,7 @@ class TrackingNotificationService : Service() {
                 ),
             )
         }
-        manager.createNotificationChannel(
-            NotificationChannel(
-                ALERT_CHANNEL_ID,
-                ctx.getString(R.string.tracking_alert_channel),
-                NotificationManager.IMPORTANCE_HIGH,
-            ),
-        )
+        AlertChannels.create(this, ctx)
     }
 
     private fun decodeSnapshot(intent: Intent): TrackingSnapshot? {
@@ -835,10 +847,9 @@ class TrackingNotificationService : Service() {
 
         private const val CHANNEL_ID = "live_tracking"
         private const val CHIP_CHANNEL_ID = "live_tracking_chip"
-        private const val ALERT_CHANNEL_ID = "tracking_alerts"
 
         // Settings reports a per-channel mute, which the app-level grant hides.
-        val CHANNEL_IDS = listOf(CHANNEL_ID, CHIP_CHANNEL_ID, ALERT_CHANNEL_ID)
+        val CHANNEL_IDS = listOf(CHANNEL_ID, CHIP_CHANNEL_ID, AlertChannels.TRACKING, AlertChannels.TRACKING_QUIET)
         internal const val NOTIF_ID = 3
         private const val ALERT_NOTIF_ID = 4
         private const val APPROACH_NOTIF_ID = 5

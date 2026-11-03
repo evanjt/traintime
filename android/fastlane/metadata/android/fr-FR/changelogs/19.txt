@@ -1,0 +1,4 @@
+- Nouveau réglage « Sons des alertes ». Désactivé, les alertes s'affichent et vibrent toujours, simplement sans son.
+- Nouveau réglage « Vibrations » sur le téléphone et la montre, pour couper les vibrations quand l'app est ouverte.
+- Nouveau réglage « M'avertir d'un changement de quai », à côté de l'alerte avant le départ.
+- L'app ne joue plus de son d'alerte quand vous la mettez en arrière-plan.

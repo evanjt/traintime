@@ -2,18 +2,23 @@ import WatchKit
 
 enum HapticService {
     static func shortPulse() {
-        WKInterfaceDevice.current().play(.click)
+        play(.click)
     }
 
     static func doublePulse() {
-        WKInterfaceDevice.current().play(.notification)
+        play(.notification)
     }
 
     static func heartbeat() {
-        WKInterfaceDevice.current().play(.retry)
+        play(.retry)
     }
 
     static func platformChange() {
-        WKInterfaceDevice.current().play(.directionUp)
+        play(.directionUp)
+    }
+
+    private static func play(_ type: WKHapticType) {
+        guard HapticsPreference.isEnabled() else { return }
+        WKInterfaceDevice.current().play(type)
     }
 }

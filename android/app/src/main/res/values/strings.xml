@@ -28,6 +28,15 @@
     <string name="update_background_desc">Tracking keeps running when you leave the app</string>
     <string name="alert_before_departure">Alert me before departure</string>
     <string name="alert_before_departure_desc">A one-off heads-up when it\'s time to leave while tracking</string>
+    <string name="platform_change_alert">Alert me on a platform change</string>
+    <string name="platform_change_alert_desc">A one-off heads-up when the tracked train moves platform</string>
+    <string name="alert_sounds">Alert sounds</string>
+    <string name="alert_sounds_desc">Alerts still show and vibrate.</string>
+    <string name="vibration">Vibration</string>
+    <string name="vibration_desc">Buzzes while the app is open</string>
+    <string name="alert_channel_settings">Sound and vibration in system settings</string>
+    <string name="tracking_alert_channel_silent">Tracking alerts (silent)</string>
+    <string name="channel_saved_routes_silent">Saved route reminders (silent)</string>
     <string name="help_title">How tracking works</string>
     <string name="help_countdown_h">The countdown keeps running</string>
     <string name="help_countdown_b">It stays live even with the app closed or your phone asleep.</string>

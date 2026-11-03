@@ -1456,8 +1456,8 @@ class PhoneViewModel: ObservableObject {
         focused.delay = best.delay
         focusedTrain = focused
         // A platform switch banners the Live Activity, the double pulse's
-        // lock-screen analog.
-        updateLiveActivity(alertPlatformChange: platformSwitched)
+        // lock-screen analog, unless the user turned that alert off.
+        updateLiveActivity(alertPlatformChange: PlatformChangeAlert.fires(switched: platformSwitched))
     }
 
     // MARK: - Tracking Calculations
@@ -1571,7 +1571,7 @@ class PhoneViewModel: ObservableObject {
             ? AlertConfiguration(
                 title: "Platform changed",
                 body: "\(focused.lineNumber) \(String(localized: "Platform \(focused.platform)"))",
-                sound: .default)
+                sound: AlertSound.liveActivitySound())
             : nil
         Task { await activity.update(content, alertConfiguration: alert) }
     }

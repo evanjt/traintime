@@ -1,0 +1,1 @@
+- Nuova opzione «Vibrazione» nelle impostazioni, per disattivare le vibrazioni dell'orologio mentre l'app è aperta.

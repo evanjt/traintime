@@ -103,6 +103,10 @@
 		P0A100000000000000000003 /* PhoneViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000003 /* PhoneViewModel.swift */; };
 		P0A100000000000000000004 /* PhoneLocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000004 /* PhoneLocationService.swift */; };
 		P0A100000000000000000005 /* PhoneHapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000005 /* PhoneHapticService.swift */; };
+		A15D0A000000000000000001 /* AlertSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000001 /* AlertSound.swift */; };
+		PC0A00000000000000000001 /* PlatformChangeAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = PC0F00000000000000000001 /* PlatformChangeAlert.swift */; };
+		A15D0A000000000000000002 /* silence.caf in Resources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000002 /* silence.caf */; };
+		A15D0A000000000000000003 /* AlertSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000003 /* AlertSettingsTests.swift */; };
 		P0A100000000000000000006 /* PhoneStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000006 /* PhoneStationView.swift */; };
 		P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */; };
 		P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000008 /* PhoneDepartureRowView.swift */; };
@@ -142,6 +146,9 @@
 		RG0A00000000000000000001 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
 		RG0A00000000000000000002 /* ReviewGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000001 /* ReviewGate.swift */; };
 		RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RG0F00000000000000000002 /* ReviewGateTests.swift */; };
+		HP0A00000000000000000001 /* HapticsPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0F00000000000000000001 /* HapticsPreference.swift */; };
+		HP0A00000000000000000002 /* HapticsPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0F00000000000000000001 /* HapticsPreference.swift */; };
+		HP0A00000000000000000003 /* HapticsPreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = HP0F00000000000000000002 /* HapticsPreferenceTests.swift */; };
 		LT0A00000000000000000001 /* LiveActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT0F00000000000000000001 /* LiveActivityTests.swift */; };
 		S0A100000000000000000001 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
 		S0A100000000000000000002 /* SharedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0F100000000000000000001 /* SharedRoute.swift */; };
@@ -310,6 +317,10 @@
 		P0F100000000000000000003 /* PhoneViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneViewModel.swift; sourceTree = "<group>"; };
 		P0F100000000000000000004 /* PhoneLocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLocationService.swift; sourceTree = "<group>"; };
 		P0F100000000000000000005 /* PhoneHapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHapticService.swift; sourceTree = "<group>"; };
+		A15D0F000000000000000001 /* AlertSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertSound.swift; sourceTree = "<group>"; };
+		PC0F00000000000000000001 /* PlatformChangeAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformChangeAlert.swift; sourceTree = "<group>"; };
+		A15D0F000000000000000002 /* silence.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = silence.caf; sourceTree = "<group>"; };
+		A15D0F000000000000000003 /* AlertSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertSettingsTests.swift; sourceTree = "<group>"; };
 		P0F100000000000000000006 /* PhoneStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFocusedTrackingView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000008 /* PhoneDepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDepartureRowView.swift; sourceTree = "<group>"; };
@@ -334,6 +345,8 @@
 		P0P100000000000000000001 /* TrainTimePhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainTimePhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		RG0F00000000000000000001 /* ReviewGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGate.swift; sourceTree = "<group>"; };
 		RG0F00000000000000000002 /* ReviewGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewGateTests.swift; sourceTree = "<group>"; };
+		HP0F00000000000000000001 /* HapticsPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsPreference.swift; sourceTree = "<group>"; };
+		HP0F00000000000000000002 /* HapticsPreferenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsPreferenceTests.swift; sourceTree = "<group>"; };
 		LT0F00000000000000000001 /* LiveActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityTests.swift; sourceTree = "<group>"; };
 		S0F100000000000000000001 /* SharedRoute.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedRoute.swift; sourceTree = "<group>"; };
 		S0F100000000000000000002 /* SBBShare.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SBBShare.swift; sourceTree = "<group>"; };
@@ -535,6 +548,7 @@
 				F0F100000000000000000001 /* Formation.swift */,
 				FA0F00000000000000000001 /* Favourite.swift */,
 				RG0F00000000000000000001 /* ReviewGate.swift */,
+				HP0F00000000000000000001 /* HapticsPreference.swift */,
 				S0F100000000000000000001 /* SharedRoute.swift */,
 				20205D496647508E81646995 /* ApiHost.swift */,
 				6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */,
@@ -555,6 +569,8 @@
 				9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */,
 				EED5FAB58AD7A36A727159EA /* PhoneComponentSnapshotTests.swift */,
 				RG0F00000000000000000002 /* ReviewGateTests.swift */,
+				HP0F00000000000000000002 /* HapticsPreferenceTests.swift */,
+				A15D0F000000000000000003 /* AlertSettingsTests.swift */,
 				LT0F00000000000000000001 /* LiveActivityTests.swift */,
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
@@ -630,6 +646,9 @@
 				S0F100000000000000000003 /* PendingRouteNotifier.swift */,
 				P0F100000000000000000004 /* PhoneLocationService.swift */,
 				P0F100000000000000000005 /* PhoneHapticService.swift */,
+				A15D0F000000000000000001 /* AlertSound.swift */,
+				PC0F00000000000000000001 /* PlatformChangeAlert.swift */,
+				A15D0F000000000000000002 /* silence.caf */,
 				P0F10000000000000000000D /* PhoneWatchService.swift */,
 				P0F10000000000000000000E /* WatchConnectivityService.swift */,
 				P0F10000000000000000000F /* GarminConnectIQService.swift */,
@@ -882,6 +901,7 @@
 				P0A10000000000000000000B /* Assets.xcassets in Resources */,
 				CA7A10C0F11E0000000000B1 /* Localizable.xcstrings in Resources */,
 				CA7A10F0F11E0000000000B2 /* InfoPlist.xcstrings in Resources */,
+				A15D0A000000000000000002 /* silence.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -927,6 +947,7 @@
 				117B8C9D0E1F2A3B4C5D6E7F /* FocusedDeparture.swift in Sources */,
 				FA0A00000000000000000001 /* Favourite.swift in Sources */,
 				RG0A00000000000000000001 /* ReviewGate.swift in Sources */,
+				HP0A00000000000000000001 /* HapticsPreference.swift in Sources */,
 				FA0A00000000000000000002 /* FavouritesStore.swift in Sources */,
 				339D0E1F2A3B4C5D6E7F8091 /* TrainTimeViewModel.swift in Sources */,
 				55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */,
@@ -993,6 +1014,8 @@
 				73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */,
 				C71D5AD83F433527CADD0101 /* PhoneComponentSnapshotTests.swift in Sources */,
 				RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */,
+				HP0A00000000000000000003 /* HapticsPreferenceTests.swift in Sources */,
+				A15D0A000000000000000003 /* AlertSettingsTests.swift in Sources */,
 				LT0A00000000000000000001 /* LiveActivityTests.swift in Sources */,
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
@@ -1015,6 +1038,8 @@
 				P0A100000000000000000003 /* PhoneViewModel.swift in Sources */,
 				P0A100000000000000000004 /* PhoneLocationService.swift in Sources */,
 				P0A100000000000000000005 /* PhoneHapticService.swift in Sources */,
+				A15D0A000000000000000001 /* AlertSound.swift in Sources */,
+				PC0A00000000000000000001 /* PlatformChangeAlert.swift in Sources */,
 				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
 				P0A100000000000000000050 /* SwissOutline.swift in Sources */,
 				P0A100000000000000000051 /* PhoneAttributionView.swift in Sources */,
@@ -1038,6 +1063,7 @@
 				P0A100000000000000000106 /* TrainAPIService.swift in Sources */,
 				P0A100000000000000000201 /* Favourite.swift in Sources */,
 				RG0A00000000000000000002 /* ReviewGate.swift in Sources */,
+				HP0A00000000000000000002 /* HapticsPreference.swift in Sources */,
 				P0A100000000000000000202 /* FavouritesStore.swift in Sources */,
 				P0A100000000000000000203 /* WidgetEntry.swift in Sources */,
 				P0A100000000000000000107 /* GeoUtils.swift in Sources */,
@@ -1162,7 +1188,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1171,7 +1197,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1279,7 +1305,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				INFOPLIST_FILE = TrainTimeWatch/Info.plist;
 				INFOPLIST_KEY_WKApplication_PrefersDefaultFocusSystem = true;
@@ -1288,7 +1314,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1309,7 +1335,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1319,7 +1345,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1340,7 +1366,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimePhone/TrainTimePhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimePhone/Info.plist;
@@ -1350,7 +1376,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1368,7 +1394,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1380,7 +1406,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1397,7 +1423,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TrainTimeShareExtension/TrainTimeShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeShareExtension/Info.plist;
@@ -1409,7 +1435,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1427,7 +1453,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
@@ -1439,7 +1465,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1457,7 +1483,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TrainTimeWidget/TrainTimeWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				DEVELOPMENT_TEAM = 2YFGZ5STW8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TrainTimeWidget/Info.plist;
@@ -1469,7 +1495,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.8.0;
+				MARKETING_VERSION = 0.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evanjt.traintime.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

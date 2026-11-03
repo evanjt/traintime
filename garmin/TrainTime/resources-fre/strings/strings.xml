@@ -69,6 +69,7 @@
     <string id="PinStation">Épingler la gare</string>
     <string id="UnpinStation">Détacher la gare</string>
     <string id="DefaultMode">Mode par défaut</string>
+    <string id="Vibration">Vibration</string>
     <string id="QuickLaunch">Lancement rapide</string>
     <string id="PinnedCountFmt">$1$ épinglées</string>
     <string id="Favourites">Favoris</string>

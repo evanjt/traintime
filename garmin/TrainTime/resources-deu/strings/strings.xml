@@ -69,6 +69,7 @@
     <string id="PinStation">Station anpinnen</string>
     <string id="UnpinStation">Station lösen</string>
     <string id="DefaultMode">Standardmodus</string>
+    <string id="Vibration">Vibration</string>
     <string id="QuickLaunch">Schnellstart</string>
     <string id="PinnedCountFmt">$1$ angepinnt</string>
     <string id="Favourites">Favoriten</string>

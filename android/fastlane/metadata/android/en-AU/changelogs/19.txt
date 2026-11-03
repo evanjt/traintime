@@ -1,0 +1,4 @@
+- New Alert sounds switch in Settings. Turn it off and alerts still show and vibrate, just without a sound.
+- New Vibration switch on phone and watch, to turn off the buzzes while the app is open.
+- New "Alert me on a platform change" switch, beside the alert before departure.
+- Sending the app to the background no longer plays an alert sound.

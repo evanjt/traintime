@@ -68,6 +68,14 @@ module SettingsMenu {
             {}
         ));
 
+        menu.addItem(new WatchUi.ToggleMenuItem(
+            Txt.t(Rez.Strings.Vibration),
+            null,
+            :vibration,
+            Storage.getValue(Haptics.STORAGE_KEY) != false,
+            {}
+        ));
+
         // Quick launch: pinned stations and favourite trains.
         if (MyStationsManager.getCount() > 0 || FavouritesManager.getTotalCount() > 0) {
             menu.addItem(new WatchUi.MenuItem(
@@ -184,6 +192,8 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             Storage.setValue("defaultMode", current);
             item.setSubLabel(SettingsMenu.modeLabel(current));
             PhoneSync.sendDefaultMode(current);
+        } else if (item.getId() == :vibration) {
+            Storage.setValue(Haptics.STORAGE_KEY, (item as WatchUi.ToggleMenuItem).isEnabled());
         } else if (item.getId() == :quickLaunch) {
             SettingsMenu.openQuickLaunch(mView);
         } else if (item.getId() == :favourites) {

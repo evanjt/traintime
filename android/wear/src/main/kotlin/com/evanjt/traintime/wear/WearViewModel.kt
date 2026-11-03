@@ -69,7 +69,12 @@ class WearViewModel(
     val favouritesStore = FavouritesStore(application)
     val myStationsStore = MyStationsStore(application)
     val location = LocationService(application, prefs)
-    val haptics = HapticService(application)
+    // The watch's own Vibration switch, per device and never synced. Held here
+    // so a buzz never waits on DataStore and a flip applies at once. Default on
+    // until the first read.
+    var hapticsEnabled by mutableStateOf(true)
+        private set
+    val haptics = HapticService(application) { hapticsEnabled }
     private val api = TrainApi.shared
     private val pendingRouteStore = PendingRouteStore(application)
 
@@ -200,6 +205,7 @@ class WearViewModel(
     init {
         wearSync.isWatch = true
         viewModelScope.launch { prefs.appLanguage.collect { appLanguageTag = it } }
+        viewModelScope.launch { prefs.haptics.collect { hapticsEnabled = it } }
         viewModelScope.launch { prefs.ensureFirstLaunchTimestamp() }
         viewModelScope.launch {
             defaultMode = prefs.defaultModeNow()
@@ -872,6 +878,11 @@ class WearViewModel(
     fun updateDefaultMode(mode: TransportMode) {
         defaultMode = mode
         viewModelScope.launch { prefs.setDefaultMode(mode) }
+    }
+
+    fun setHaptics(value: Boolean) {
+        hapticsEnabled = value
+        viewModelScope.launch { prefs.setHaptics(value) }
     }
 
     // Companion to AppCompatDelegate.setApplicationLocales: TrackingService

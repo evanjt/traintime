@@ -15,6 +15,9 @@ struct PhoneSettingsView: View {
     @AppStorage("distanceAwareReminder") private var distanceAwareReminder = true
     @AppStorage("backgroundReminderTracking") private var backgroundReminderTracking = true
     @AppStorage("alertBeforeDeparture") private var alertBeforeDeparture = true
+    @AppStorage(PlatformChangeAlert.key) private var platformChangeAlert = true
+    @AppStorage(AlertSound.key) private var alertSounds = true
+    @AppStorage(PhoneHapticService.key) private var haptics = true
     @State private var notificationsAuthorized: Bool?
     @State private var confirmBackgroundOff = false
     @State private var apiHostDraft = ""
@@ -159,6 +162,15 @@ struct PhoneSettingsView: View {
                         }
                     }
 
+                    Toggle(isOn: $platformChangeAlert) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Alert me on a platform change")
+                            Text("A one-off heads-up when the tracked train moves platform")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     Text(reminderSummary)
                         .font(.footnote)
                         .foregroundStyle(AppColors.platform)
@@ -174,6 +186,13 @@ struct PhoneSettingsView: View {
                     Text(distanceAwareReminder
                         ? String(localized: "The lead becomes your walk time to the station plus the minutes above. Background tracking keeps it accurate as you move.")
                         : String(localized: "The connection lead is used once you're already on the way."))
+                }
+
+                Section {
+                    Toggle("Alert sounds", isOn: $alertSounds)
+                    Toggle("Vibration", isOn: $haptics)
+                } footer: {
+                    Text("With alert sounds off, alerts still show and vibrate. Vibration covers the buzzes while the app is open.")
                 }
 
                 if !favouritesStore.favourites.isEmpty {

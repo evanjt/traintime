@@ -1,3 +1,3 @@
-- La composition du train numérote maintenant chaque voiture, montre les équipements et marque d'une barre rouge les endroits sans passage entre les voitures. Sur l'Apple Watch, la Digital Crown parcourt les voitures une à une.
-- Plus de trains affichent maintenant leur composition, avec chaque voiture et son propre numéro.
-- L'activité en direct se ferme maintenant toujours quand vous l'arrêtez, même app fermée, et affiche « Parti » une fois votre bus ou train parti.
+- Nouveau réglage « Sons des alertes ». Désactivé, les alertes s'affichent et vibrent toujours, simplement sans son.
+- Nouveau réglage « Vibration » sur iPhone et Apple Watch, pour couper les vibrations quand l'app est ouverte.
+- Nouveau réglage « M'avertir d'un changement de quai », à côté de l'alerte avant le départ.

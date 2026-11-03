@@ -25,6 +25,9 @@ class AppPrefsTest {
         assertEquals("system", prefs.appearanceMode.first())
         assertEquals(0, prefs.reviewTrackCount.first())
         assertEquals("", prefs.reviewPromptedVersion.first())
+        assertTrue(prefs.alertSounds.first())
+        assertTrue(prefs.haptics.first())
+        assertTrue(prefs.platformChangeAlert.first())
 
         prefs.markOnboardingSeen()
         assertTrue(prefs.hasSeenOnboarding.first())
@@ -38,5 +41,14 @@ class AppPrefsTest {
 
         prefs.setReviewPromptedVersion("0.5.0")
         assertEquals("0.5.0", prefs.reviewPromptedVersion.first())
+
+        prefs.setAlertSounds(false)
+        assertFalse(prefs.alertSounds.first())
+
+        prefs.setHaptics(false)
+        assertFalse(prefs.haptics.first())
+
+        prefs.setPlatformChangeAlert(false)
+        assertFalse(prefs.platformChangeAlert.first())
     }
 }

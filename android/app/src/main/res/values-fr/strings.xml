@@ -28,6 +28,15 @@
     <string name="update_background_desc">Le suivi continue quand vous quittez l\'app</string>
     <string name="alert_before_departure">M\'avertir avant le départ</string>
     <string name="alert_before_departure_desc">Un rappel unique quand il est temps de partir pendant le suivi</string>
+    <string name="platform_change_alert">M\'avertir d\'un changement de quai</string>
+    <string name="platform_change_alert_desc">Un avis unique quand le train suivi change de quai</string>
+    <string name="alert_sounds">Sons des alertes</string>
+    <string name="alert_sounds_desc">Les alertes s\'affichent et vibrent toujours.</string>
+    <string name="vibration">Vibrations</string>
+    <string name="vibration_desc">Vibre quand l\'app est ouverte</string>
+    <string name="alert_channel_settings">Son et vibration dans les réglages système</string>
+    <string name="tracking_alert_channel_silent">Alertes de suivi (silencieux)</string>
+    <string name="channel_saved_routes_silent">Rappels d\'itinéraire (silencieux)</string>
     <string name="help_title">Comment fonctionne le suivi</string>
     <string name="help_countdown_h">Le compte à rebours continue</string>
     <string name="help_countdown_b">Il reste actif même app fermée ou téléphone en veille.</string>

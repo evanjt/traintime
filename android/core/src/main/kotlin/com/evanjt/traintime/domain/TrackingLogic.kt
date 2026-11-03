@@ -66,6 +66,17 @@ object TrackingLogic {
         return untilEffective <= walkMinutes + bufferLeadMinutes && !departed(focused, nowEpochSeconds)
     }
 
+    // The leave alert fires only on crossing into the window. A session already
+    // inside it when it goes to the background posts nothing, because leaving the
+    // app must never make a sound. The caller marks the alert spent once due.
+    fun approachAlertFires(dueWhenBackgrounded: Boolean, dueNow: Boolean): Boolean =
+        dueNow && !dueWhenBackgrounded
+
+    // Only a platform the feed flags as changed, and new since the last tick,
+    // so a session posts once per move and never for the planned platform.
+    fun platformChangeAlertFires(previousPlatform: String?, focused: FocusedDeparture, enabled: Boolean): Boolean =
+        enabled && focused.platformChanged && focused.platform != previousPlatform
+
     // Pick the live board row for the tracked departure. Match by train number
     // when there is one (a protected shared-route leg carries it), so live
     // platform/delay are adopted even though the leg's destName is the alight

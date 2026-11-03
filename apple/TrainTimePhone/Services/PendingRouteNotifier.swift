@@ -151,7 +151,7 @@ enum PendingRouteNotifier {
         let displayLine = line.isEmpty ? String(localized: "Train") : line
         content.title = String(localized: "\(displayLine) to \(route.finalDestination)")
         content.body = String(localized: "Departs \(depTime) from \(leg.originName)")
-        content.sound = .default
+        content.sound = AlertSound.notificationSound()
         content.userInfo = ["deepLink": "traintime://resumeroute"]
         // Offer "Send to Watch" only when a Garmin has actually connected here at
         // least once (sticky, cached on watch refresh). The handler re-checks the
@@ -180,7 +180,7 @@ enum PendingRouteNotifier {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        content.sound = .default
+        content.sound = AlertSound.notificationSound()
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
         let request = UNNotificationRequest(
             identifier: "\(identifier)-test", content: content, trigger: trigger)
@@ -224,7 +224,7 @@ enum PendingRouteNotifier {
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Time to leave")
         content.body = "\(line) \(focused.destination) · \(time)"
-        content.sound = .default
+        content.sound = AlertSound.notificationSound()
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(fireIn), repeats: false)
         let request = UNNotificationRequest(identifier: approachIdentifier, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)

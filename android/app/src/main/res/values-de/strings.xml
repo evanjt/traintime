@@ -28,6 +28,15 @@
     <string name="update_background_desc">Die Verfolgung läuft weiter, wenn du die App verlässt</string>
     <string name="alert_before_departure">Vor Abfahrt benachrichtigen</string>
     <string name="alert_before_departure_desc">Ein einmaliger Hinweis, wenn es Zeit zu gehen ist, während der Verfolgung</string>
+    <string name="platform_change_alert">Bei Gleiswechsel benachrichtigen</string>
+    <string name="platform_change_alert_desc">Ein einmaliger Hinweis, wenn der verfolgte Zug das Gleis wechselt</string>
+    <string name="alert_sounds">Hinweistöne</string>
+    <string name="alert_sounds_desc">Hinweise erscheinen und vibrieren weiterhin.</string>
+    <string name="vibration">Vibration</string>
+    <string name="vibration_desc">Vibriert, solange die App offen ist</string>
+    <string name="alert_channel_settings">Ton und Vibration in den Systemeinstellungen</string>
+    <string name="tracking_alert_channel_silent">Verfolgungs-Hinweise (lautlos)</string>
+    <string name="channel_saved_routes_silent">Routen-Erinnerungen (lautlos)</string>
     <string name="help_title">So funktioniert die Verfolgung</string>
     <string name="help_countdown_h">Der Countdown läuft weiter</string>
     <string name="help_countdown_b">Er bleibt aktiv, auch bei geschlossener App oder wenn das Telefon schläft.</string>

@@ -111,6 +111,19 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                     colors = ToggleChipDefaults.toggleChipColors(),
                 )
             }
+            // The watch's own buzzes. Per device: the phone's switch never reaches it.
+            item {
+                ToggleChip(
+                    checked = vm.hapticsEnabled,
+                    onCheckedChange = { vm.setHaptics(it) },
+                    label = { Text(stringResource(R.string.vibration)) },
+                    toggleControl = {
+                        androidx.wear.compose.material.Switch(checked = vm.hapticsEnabled)
+                    },
+                    colors = ToggleChipDefaults.toggleChipColors(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+            }
             // Self-hosted API origin, set on the phone and synced here. No
             // keyboard on the watch, so read-only.
             item {

@@ -73,6 +73,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -116,7 +118,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val myStationsStore = MyStationsStore(application)
     val pendingRouteStore = PendingRouteStore(application)
     val location = LocationService(application, prefs)
-    val haptics = HapticService(application)
+    // Cached so a buzz never waits on DataStore. Default on until the first read.
+    private val hapticsOn = prefs.haptics.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val haptics = HapticService(application) { hapticsOn.value }
     private val api = TrainApi.shared
     private val wearSync = WearStateSync.get(application)
     val garminService = GarminConnectIQService(application)
@@ -1229,6 +1233,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setAlertBeforeDeparture(value: Boolean) {
         viewModelScope.launch { prefs.setAlertBeforeDeparture(value) }
+    }
+
+    fun setPlatformChangeAlert(value: Boolean) {
+        viewModelScope.launch { prefs.setPlatformChangeAlert(value) }
+    }
+
+    fun setAlertSounds(value: Boolean) {
+        viewModelScope.launch { prefs.setAlertSounds(value) }
+    }
+
+    fun setHaptics(value: Boolean) {
+        viewModelScope.launch { prefs.setHaptics(value) }
     }
 
     fun setBackgroundReminderTracking(value: Boolean) {

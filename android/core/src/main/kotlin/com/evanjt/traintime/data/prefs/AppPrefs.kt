@@ -236,6 +236,33 @@ class AppPrefs(context: Context) {
         dataStore.edit { it[KEY_ALERT_BEFORE_DEPARTURE] = value }
     }
 
+    // While tracking in the background, a one-off heads-up when the tracked
+    // train moves platform. Off, the card still shows the new platform.
+    val platformChangeAlert: Flow<Boolean> =
+        dataStore.data.map { it[KEY_PLATFORM_CHANGE_ALERT] ?: true }
+
+    suspend fun setPlatformChangeAlert(value: Boolean) {
+        dataStore.edit { it[KEY_PLATFORM_CHANGE_ALERT] = value }
+    }
+
+    // Off posts every alert on its quiet twin channel: it still pops up and
+    // vibrates, only the sound goes. Per device, never synced.
+    val alertSounds: Flow<Boolean> =
+        dataStore.data.map { it[KEY_ALERT_SOUNDS] ?: true }
+
+    suspend fun setAlertSounds(value: Boolean) {
+        dataStore.edit { it[KEY_ALERT_SOUNDS] = value }
+    }
+
+    // The app's own buzzes while it runs. Notification vibration belongs to
+    // the channel, so this never touches it. Per device, never synced.
+    val haptics: Flow<Boolean> =
+        dataStore.data.map { it[KEY_HAPTICS] ?: true }
+
+    suspend fun setHaptics(value: Boolean) {
+        dataStore.edit { it[KEY_HAPTICS] = value }
+    }
+
     // Garmin liveness bookkeeping across launches. Drives the foreground ping
     // gate: only a watch believed still open (alive after bye, recent) is pinged,
     // because a phone message can wake a closed Garmin watch-app.
@@ -319,6 +346,9 @@ class AppPrefs(context: Context) {
         val KEY_DISTANCE_AWARE_REMINDER = booleanPreferencesKey("distanceAwareReminder")
         val KEY_BACKGROUND_REMINDER_TRACKING = booleanPreferencesKey("backgroundReminderTracking")
         val KEY_ALERT_BEFORE_DEPARTURE = booleanPreferencesKey("alertBeforeDeparture")
+        val KEY_PLATFORM_CHANGE_ALERT = booleanPreferencesKey("platformChangeAlert")
+        val KEY_ALERT_SOUNDS = booleanPreferencesKey("alertSounds")
+        val KEY_HAPTICS = booleanPreferencesKey("haptics")
         val KEY_STOPPED_SESSION_LEG = stringPreferencesKey("stoppedSessionLeg")
         val KEY_LAST_LAT = doublePreferencesKey("lastLat")
         val KEY_LAST_LON = doublePreferencesKey("lastLon")

@@ -255,4 +255,48 @@ class TrackingLogicTest {
     fun approach_not_due_once_departed() {
         assertFalse(TrackingLogic.approachDue(focused(dep = now - 5 * 60), 5.0, 3, now))
     }
+    // Polls a backgrounded session every 30 s for 15 min, the way the service
+    // latches the alert, and counts the "time to leave" posts.
+    private fun leaveAlertsAfterBackgrounding(dep: Long, leadMinutes: Int): Int {
+        val dueWhenBackgrounded = TrackingLogic.approachDue(focused(dep = dep), 0.0, leadMinutes, now)
+        var spent = false
+        var posts = 0
+        for (t in now..now + 15 * 60 step 30) {
+            if (spent) continue
+            val dueNow = TrackingLogic.approachDue(focused(dep = dep), 0.0, leadMinutes, t)
+            if (TrackingLogic.approachAlertFires(dueWhenBackgrounded, dueNow)) posts++
+            if (dueNow) spent = true
+        }
+        return posts
+    }
+
+    @Test
+    fun backgrounding_inside_the_leave_window_posts_no_alert() {
+        assertEquals(0, leaveAlertsAfterBackgrounding(dep = now + 4 * 60, leadMinutes = 5))
+    }
+
+    @Test
+    fun backgrounding_before_the_leave_window_posts_once_on_entering_it() {
+        assertEquals(1, leaveAlertsAfterBackgrounding(dep = now + 10 * 60, leadMinutes = 5))
+    }
+
+    @Test
+    fun leave_alert_fires_only_on_the_transition_into_the_window() {
+        assertFalse(TrackingLogic.approachAlertFires(dueWhenBackgrounded = true, dueNow = true))
+        assertFalse(TrackingLogic.approachAlertFires(dueWhenBackgrounded = false, dueNow = false))
+        assertTrue(TrackingLogic.approachAlertFires(dueWhenBackgrounded = false, dueNow = true))
+    }
+
+    @Test
+    fun platform_change_alerts_only_when_switched_on() {
+        val moved = focused().copy(platform = "9", platformChanged = true)
+        assertTrue(TrackingLogic.platformChangeAlertFires("7", moved, enabled = true))
+        assertFalse(TrackingLogic.platformChangeAlertFires("7", moved, enabled = false))
+    }
+
+    @Test
+    fun platform_change_alerts_only_on_a_new_changed_platform() {
+        assertFalse(TrackingLogic.platformChangeAlertFires("9", focused().copy(platform = "9", platformChanged = true), enabled = true))
+        assertFalse(TrackingLogic.platformChangeAlertFires("7", focused().copy(platform = "9", platformChanged = false), enabled = true))
+    }
 }

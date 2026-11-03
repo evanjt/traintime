@@ -1,0 +1,1 @@
+- New Vibration switch in Settings, to turn off the watch's buzzes while the app is open.

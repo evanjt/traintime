@@ -1,0 +1,4 @@
+- Neuer Schalter «Hinweistöne» in den Einstellungen. Ausgeschaltet erscheinen und vibrieren Hinweise weiterhin, nur ohne Ton.
+- Neuer Schalter «Vibration» auf Telefon und Uhr, um die Vibrationen bei offener App auszuschalten.
+- Neuer Schalter «Bei Gleiswechsel benachrichtigen», neben dem Hinweis vor Abfahrt.
+- Die App spielt keinen Hinweiston mehr, wenn du sie in den Hintergrund schickst.

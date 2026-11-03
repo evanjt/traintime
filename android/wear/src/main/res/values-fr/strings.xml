@@ -6,6 +6,7 @@
     <string name="quick_launch">Lancement rapide</string>
     <string name="phone_label">Téléphone</string>
     <string name="language">Langue</string>
+    <string name="vibration">Vibrations</string>
     <string name="favourites_n_fmt">Favoris (%1$d)</string>
     <string name="hold_fav_remove">Maintenez un favori pour le retirer.</string>
     <string name="rate_traintime">Évaluer TrainTime</string>

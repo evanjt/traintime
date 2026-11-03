@@ -28,6 +28,15 @@
     <string name="update_background_desc">Il tracciamento continua quando esci dall\'app</string>
     <string name="alert_before_departure">Avvisami prima della partenza</string>
     <string name="alert_before_departure_desc">Un avviso una tantum quando è ora di partire durante il monitoraggio</string>
+    <string name="platform_change_alert">Avvisami del cambio di binario</string>
+    <string name="platform_change_alert_desc">Un avviso una tantum quando il treno monitorato cambia binario</string>
+    <string name="alert_sounds">Suoni degli avvisi</string>
+    <string name="alert_sounds_desc">Gli avvisi compaiono e vibrano comunque.</string>
+    <string name="vibration">Vibrazione</string>
+    <string name="vibration_desc">Vibra mentre l\'app è aperta</string>
+    <string name="alert_channel_settings">Suono e vibrazione nelle impostazioni di sistema</string>
+    <string name="tracking_alert_channel_silent">Avvisi di monitoraggio (silenzioso)</string>
+    <string name="channel_saved_routes_silent">Promemoria percorso (silenzioso)</string>
     <string name="help_title">Come funziona il monitoraggio</string>
     <string name="help_countdown_h">Il conto alla rovescia continua</string>
     <string name="help_countdown_b">Resta attivo anche ad app chiusa o con il telefono in standby.</string>

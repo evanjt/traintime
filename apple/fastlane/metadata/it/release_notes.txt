@@ -1,3 +1,3 @@
-- La composizione del treno ora numera ogni carrozza, mostra i servizi e segna con una barra rossa dove non si può passare da una carrozza all'altra. Su Apple Watch, la Digital Crown scorre le carrozze una alla volta.
-- Più treni mostrano ora la loro composizione, con ogni carrozza e il suo numero.
-- L'attività live ora si chiude sempre quando la fermi, anche ad app chiusa, e mostra «Partito» quando il bus o il treno è partito.
+- Nuova opzione «Suoni degli avvisi» nelle Impostazioni. Disattivata, gli avvisi compaiono e vibrano comunque, solo senza suono.
+- Nuova opzione «Vibrazione» su iPhone e Apple Watch, per disattivare le vibrazioni mentre l'app è aperta.
+- Nuova opzione «Avvisami del cambio di binario», accanto all'avviso prima della partenza.

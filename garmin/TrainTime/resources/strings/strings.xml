@@ -69,6 +69,7 @@
     <string id="PinStation">Pin station</string>
     <string id="UnpinStation">Unpin station</string>
     <string id="DefaultMode">Default Mode</string>
+    <string id="Vibration">Vibration</string>
     <string id="QuickLaunch">Quick launch</string>
     <string id="PinnedCountFmt">$1$ pinned</string>
     <string id="Favourites">Favourites</string>

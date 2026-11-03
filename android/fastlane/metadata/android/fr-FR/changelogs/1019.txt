@@ -1,0 +1,1 @@
+- Nouveau réglage « Vibrations » pour couper les vibrations de la montre quand l'app est ouverte.

@@ -69,6 +69,7 @@
     <string id="PinStation">Fissa stazione</string>
     <string id="UnpinStation">Sblocca stazione</string>
     <string id="DefaultMode">Modo predefinito</string>
+    <string id="Vibration">Vibrazione</string>
     <string id="QuickLaunch">Avvio rapido</string>
     <string id="PinnedCountFmt">$1$ fissate</string>
     <string id="Favourites">Preferiti</string>

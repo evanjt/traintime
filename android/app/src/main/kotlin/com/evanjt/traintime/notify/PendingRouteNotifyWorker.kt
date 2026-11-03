@@ -57,8 +57,8 @@ class PendingRouteNotifyWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        PendingRouteNotifier.ensureChannel(applicationContext)
-        val builder = NotificationCompat.Builder(applicationContext, PendingRouteNotifier.CHANNEL_ID)
+        AlertChannels.ensure(applicationContext)
+        val builder = NotificationCompat.Builder(applicationContext, AlertChannels.forReminder(applicationContext))
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(ctx.getString(CoreR.string.leg_places_fmt, line, normalized.finalDestination))
             .setContentText(ctx.getString(R.string.notif_departs_fmt, time, leg.originName))

@@ -353,6 +353,28 @@
         }
       }
     },
+    "A one-off heads-up when the tracked train moves platform": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein einmaliger Hinweis, wenn der verfolgte Zug das Gleis wechselt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avis unique quand le train suivi change de quai"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un avviso una tantum quando il treno monitorato cambia binario"
+          }
+        }
+      }
+    },
     "A quick rating helps other commuters find the app.": {
       "localizations": {
         "de": {
@@ -503,6 +525,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avvisami prima della partenza"
+          }
+        }
+      }
+    },
+    "Alert me on a platform change": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bei Gleiswechsel benachrichtigen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "M'avertir d'un changement de quai"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisami del cambio di binario"
+          }
+        }
+      }
+    },
+    "Alert sounds": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinweistöne"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sons des alertes"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suoni degli avvisi"
           }
         }
       }
@@ -4737,6 +4803,28 @@
         }
       }
     },
+    "Vibration": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vibration"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vibration"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vibrazione"
+          }
+        }
+      }
+    },
     "Walk": {
       "localizations": {
         "de": {
@@ -4827,6 +4915,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mentre segui una partenza, TrainTime usa la tua posizione in background per mantenere corretti il tempo a piedi e l'ora in cui uscire, e per calibrare il promemoria di un percorso salvato. Si ferma quando smetti di seguire. Puoi disattivarlo nelle impostazioni: TrainTime userà l'ultima posizione nota."
+          }
+        }
+      }
+    },
+    "With alert sounds off, alerts still show and vibrate. Vibration covers the buzzes while the app is open.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Hinweistöne werden Hinweise weiterhin angezeigt und vibrieren. Vibration betrifft die Vibrationen, solange die App geöffnet ist."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans les sons, les alertes s'affichent et vibrent toujours. Vibration concerne les vibrations lorsque l'app est ouverte."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senza suoni, gli avvisi vengono comunque mostrati e vibrano. Vibrazione riguarda le vibrazioni mentre l'app è aperta."
           }
         }
       }

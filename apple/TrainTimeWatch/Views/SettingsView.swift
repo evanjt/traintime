@@ -4,6 +4,7 @@ import WatchConnectivity
 struct SettingsView: View {
     @ObservedObject var viewModel: TrainTimeViewModel
     @Environment(\.dismiss) var dismiss
+    @AppStorage(HapticsPreference.key) private var haptics = true
 
     // Phone link status, the peer of the Garmin and Wear settings rows.
     private var phoneReachable: Bool {
@@ -80,6 +81,10 @@ struct SettingsView: View {
                         toRemove.forEach { viewModel.favouritesStore.remove($0) }
                     }
                 }
+            }
+
+            Section {
+                Toggle("Vibration", isOn: $haptics)
             }
 
             Section {

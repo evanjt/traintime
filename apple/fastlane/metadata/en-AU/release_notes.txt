@@ -1,3 +1,3 @@
-- The train formation now numbers every car, shows amenities and marks with a red bar where you can't walk between cars. On Apple Watch, turn the Digital Crown to step through the cars.
-- More trains now show their formation, with every car and its own number.
-- The Live Activity now always closes when you stop it, even if the app was closed, and reads Departed once your bus or train has left.
+- New Alert sounds switch in Settings. Turn it off and alerts still show and vibrate, just without a sound.
+- New Vibration switch on iPhone and Apple Watch, to turn off the buzzes while the app is open.
+- New "Alert me on a platform change" switch, beside the alert before departure.

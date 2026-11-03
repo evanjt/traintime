@@ -1,25 +1,21 @@
 package com.evanjt.traintime.notify
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.PendingRoute
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.PendingRouteStore
 import com.evanjt.traintime.data.sbb.SharedRoute
 import com.evanjt.traintime.domain.GeoUtils
-import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.PendingRouteLogic
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 // The scheduled reminder split into its parts, for the in-app readout. walkMin
 // is null outside distance-aware mode (nothing to break out); bufferMin is the
@@ -35,28 +31,8 @@ data class NotifyPlan(
 // WorkManager rather than an exact alarm: it persists across process death
 // and reboot, and inexact timing is fine for a 15-minute lead.
 object PendingRouteNotifier {
-    const val CHANNEL_ID = "pending_route"
     const val NOTIF_ID = 2
     private const val WORK_NAME = "pending-route-notify"
-
-    // Notifications render outside any activity, so the per-app language override
-    // (AppCompatDelegate) may not reach here on pre-33 devices. Resolve strings
-    // through a context wrapped in the stored language tag.
-    private fun localised(context: Context): Context {
-        val tag = runBlocking { AppPrefs(context).appLanguage.first() }
-        return LocaleUtil.localised(context, tag)
-    }
-
-    fun ensureChannel(context: Context) {
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_ID,
-                localised(context).getString(R.string.channel_saved_routes),
-                NotificationManager.IMPORTANCE_HIGH,
-            ),
-        )
-    }
 
     // Persist a synthesised route as a saved reminder and schedule it, without a
     // running ViewModel. Used by the watch's remind-on-phone path, which can
@@ -147,9 +123,9 @@ object PendingRouteNotifier {
     // waiting for a real departure. Same channel as the real reminder.
     // Posts an immediate notification in the reminder channel. Used by the test
     // buttons (plain + distance readout).
-    fun notifyNow(context: Context, title: String, body: String) {
-        ensureChannel(context)
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+    suspend fun notifyNow(context: Context, title: String, body: String) {
+        AlertChannels.ensure(context)
+        val notification = NotificationCompat.Builder(context, AlertChannels.forReminder(context))
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(title)
             .setContentText(body)

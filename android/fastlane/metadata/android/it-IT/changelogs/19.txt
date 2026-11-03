@@ -1,0 +1,4 @@
+- Nuova opzione «Suoni degli avvisi» nelle Impostazioni. Disattivata, gli avvisi compaiono e vibrano comunque, solo senza suono.
+- Nuova opzione «Vibrazione» su telefono e orologio, per disattivare le vibrazioni mentre l'app è aperta.
+- Nuova opzione «Avvisami del cambio di binario», accanto all'avviso prima della partenza.
+- L'app non riproduce più un suono di avviso quando la metti in background.

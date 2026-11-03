@@ -6,18 +6,23 @@ import com.evanjt.traintime.core.sync.WearCommandBus
 import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.core.sync.WearSyncPort
 import com.evanjt.traintime.data.model.TransportMode
+import android.content.Context
+import android.os.Vibrator
+import android.os.VibratorManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 // Liveness announcements and the phone-mirror command contract, driven through
@@ -111,5 +116,27 @@ class WearViewModelTest {
 
         vm.exitToStationView()
         assertEquals(0, vm.appState)
+    }
+
+    private fun systemVibrator(): Vibrator {
+        val manager = RuntimeEnvironment.getApplication()
+            .getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        return manager.defaultVibrator
+    }
+
+    @Test
+    fun vibrationSwitchOffSilencesTheWatch() {
+        val vm = viewModel(RecordingSync())
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.hapticsEnabled)
+
+        vm.setHaptics(false)
+        assertFalse(vm.hapticsEnabled)
+        vm.haptics.shortPulse()
+        assertFalse(shadowOf(systemVibrator()).isVibrating)
+
+        vm.setHaptics(true)
+        vm.haptics.shortPulse()
+        assertTrue(shadowOf(systemVibrator()).isVibrating)
     }
 }

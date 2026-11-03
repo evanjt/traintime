@@ -1,0 +1,1 @@
+- Neuer Schalter «Vibration» in den Einstellungen, um die Vibrationen der Uhr bei offener App auszuschalten.

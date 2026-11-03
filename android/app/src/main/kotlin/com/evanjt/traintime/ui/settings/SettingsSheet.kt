@@ -44,6 +44,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +62,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.os.LocaleListCompat
 import com.evanjt.traintime.BuildConfig
+import com.evanjt.traintime.notify.AlertChannels
+import kotlinx.coroutines.launch
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
@@ -367,6 +370,10 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
     val distanceAware by viewModel.prefs.distanceAwareReminder.collectAsState(initial = true)
     val backgroundTracking by viewModel.prefs.backgroundReminderTracking.collectAsState(initial = true)
     val alertBeforeDeparture by viewModel.prefs.alertBeforeDeparture.collectAsState(initial = true)
+    val platformChangeAlert by viewModel.prefs.platformChangeAlert.collectAsState(initial = true)
+    val alertSounds by viewModel.prefs.alertSounds.collectAsState(initial = true)
+    val haptics by viewModel.prefs.haptics.collectAsState(initial = true)
+    val scope = rememberCoroutineScope()
 
     var confirmBgOff by remember { mutableStateOf(false) }
 
@@ -507,6 +514,56 @@ private fun ReminderSettings(viewModel: MainViewModel, modifier: Modifier = Modi
             Switch(checked = alertBeforeDeparture, onCheckedChange = { viewModel.setAlertBeforeDeparture(it) })
         }
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.platform_change_alert), color = onSurface)
+                Text(stringResource(R.string.platform_change_alert_desc), color = secondary, fontSize = 12.sp)
+            }
+            Switch(checked = platformChangeAlert, onCheckedChange = { viewModel.setPlatformChangeAlert(it) })
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.alert_sounds), color = onSurface)
+                Text(stringResource(R.string.alert_sounds_desc), color = secondary, fontSize = 12.sp)
+            }
+            Switch(checked = alertSounds, onCheckedChange = { viewModel.setAlertSounds(it) })
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.vibration), color = onSurface)
+                Text(stringResource(R.string.vibration_desc), color = secondary, fontSize = 12.sp)
+            }
+            Switch(checked = haptics, onCheckedChange = { viewModel.setHaptics(it) })
+        }
+
+        // A channel's own sound and vibration belong to the user, so the way
+        // to stop the buzz too is the system page for the channel in use.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    scope.launch {
+                        AlertChannels.ensure(context)
+                        openChannelSettings(context, AlertChannels.forAlert(alertSounds))
+                    }
+                }
+                .padding(top = 12.dp),
+        ) {
+            Text(stringResource(R.string.alert_channel_settings), color = palette.platform, fontSize = 14.sp)
+        }
+
         if (distanceAware) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -540,6 +597,14 @@ private fun trackingChannelsEnabled(context: android.content.Context): Boolean {
         val channel = manager.getNotificationChannel(id)
         channel == null || channel.importance != android.app.NotificationManager.IMPORTANCE_NONE
     }
+}
+
+private fun openChannelSettings(context: android.content.Context, channelId: String) {
+    context.startActivity(
+        android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, channelId),
+    )
 }
 
 private fun openNotificationSettings(context: android.content.Context) {
