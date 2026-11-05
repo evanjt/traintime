@@ -223,6 +223,28 @@ final class PendingRouteLogicTests: XCTestCase {
         let saved = route([ride(dep: now + 3600)])
         XCTAssertEqual(PendingRouteLogic.advancedAfterTracking(saved, endedDepTs: now + 3600, now: now), saved)
     }
+
+    func testFocusingAnotherDepartureEndsTheTrackedLegLikeStoppingIt() {
+        let legA = now + 3600
+        let r = route([ride(dep: legA)], status: PendingRoute.statusTracking)
+        let ended = PendingRouteLogic.endedByFocus(trackedDepTs: legA, nextDepTs: now + 600)!
+        XCTAssertEqual(
+            PendingRouteLogic.advancedAfterTracking(r, endedDepTs: ended, now: now),
+            PendingRouteLogic.advancedAfterTracking(r, endedDepTs: legA, now: now)
+        )
+    }
+
+    func testFocusingAfterADepartedLegAdvancesTheRouteLikeStoppingIt() {
+        let legA = now - 120
+        let r = route([ride(dep: legA, train: "1"), ride(dep: now + 3600, train: "2")], status: PendingRoute.statusTracking)
+        let ended = PendingRouteLogic.endedByFocus(trackedDepTs: legA, nextDepTs: now + 600)!
+        XCTAssertEqual(PendingRouteLogic.advancedAfterTracking(r, endedDepTs: ended, now: now)?.cursor, 1)
+    }
+
+    func testRefocusingTheTrackedDepartureOrFocusingFromTheBoardEndsNothing() {
+        XCTAssertNil(PendingRouteLogic.endedByFocus(trackedDepTs: now + 60, nextDepTs: now + 60))
+        XCTAssertNil(PendingRouteLogic.endedByFocus(trackedDepTs: nil, nextDepTs: now + 60))
+    }
 }
 
 // The tier table has to stay identical to Android's TrackingLogic.pollTier, so

@@ -3963,6 +3963,28 @@
         }
       }
     },
+    "Tap a departure on the left to track it here.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe links auf eine Abfahrt, um ihr hier zu folgen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez un départ à gauche pour le suivre ici."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca una partenza a sinistra per seguirla qui."
+          }
+        }
+      }
+    },
     "Tap a departure to follow it.": {
       "localizations": {
         "de": {

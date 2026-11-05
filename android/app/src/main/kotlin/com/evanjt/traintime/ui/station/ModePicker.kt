@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -41,10 +42,11 @@ fun ModePicker(
     currentMode: TransportMode,
     onSelect: (TransportMode) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(modifier = modifier) {
+    Row(modifier = modifier.alpha(if (enabled) 1f else 0.4f)) {
         TransportMode.entries.forEach { mode ->
             val isAvailable = mode in availableModes
             val isSelected = mode == currentMode && isAvailable
@@ -61,7 +63,7 @@ fun ModePicker(
                     .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isSelected) accent.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable(enabled = isAvailable) { onSelect(mode) },
+                    .clickable(enabled = enabled && isAvailable) { onSelect(mode) },
             ) {
                 val label = stringResource(mode.labelRes)
                 Icon(mode.icon, contentDescription = label, tint = tint)

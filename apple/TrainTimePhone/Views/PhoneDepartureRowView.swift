@@ -4,6 +4,7 @@ struct PhoneDepartureRowView: View {
     let departure: Departure
     var isFavourite: Bool = false
     var mode: TransportMode = .train
+    var isSelected: Bool = false
     var onTap: (() -> Void)? = nil
 
     var body: some View {
@@ -65,6 +66,7 @@ struct PhoneDepartureRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var minutesColor: Color {

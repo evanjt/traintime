@@ -245,6 +245,15 @@ enum PendingRouteLogic {
         return "\(train)|\(leg.depTs)"
     }
 
+    /// The departure whose tracking ends when the focus moves to `nextDepTs`.
+    /// Switching trains ends the one on screen exactly as stopping it would, so
+    /// a route tracking it advances or reverts the same way. Re-focusing the
+    /// tracked train, or focusing with nothing tracked, ends nothing.
+    static func endedByFocus(trackedDepTs: Int?, nextDepTs: Int) -> Int? {
+        guard let trackedDepTs, trackedDepTs != nextDepTs else { return nil }
+        return trackedDepTs
+    }
+
     /// Tracking for `endedDepTs` finished (departed, or user exited). Only a
     /// route that was tracking that exact leg reacts: after departure the
     /// cursor moves on, an early manual exit reverts to saved on the same

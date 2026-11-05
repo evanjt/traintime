@@ -5,6 +5,9 @@ struct PhoneStationView: View {
     @Environment(\.openURL) private var openURL
     @State private var showSettings = false
 
+    // Only reachable on a split window, where the board stays beside tracking.
+    private var pickersLocked: Bool { boardPickersLocked(appState: viewModel.appState) }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header: Mode picker + GPS + Settings
@@ -14,6 +17,8 @@ struct PhoneStationView: View {
                     currentMode: viewModel.currentMode,
                     onSelect: { viewModel.selectMode($0) }
                 )
+                .disabled(pickersLocked)
+                .opacity(pickersLocked ? 0.4 : 1)
                 Spacer()
                 // Watch link indicator, tap launches/​re-syncs the primary watch (Garmin
                 // launches remotely; Apple Watch re-syncs when reachable, else shows guidance).
@@ -59,7 +64,7 @@ struct PhoneStationView: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    if viewModel.stations.count > 1 {
+                    if viewModel.stations.count > 1 && !pickersLocked {
                         Image(systemName: "chevron.down")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -67,6 +72,7 @@ struct PhoneStationView: View {
                 }
             }
             .buttonStyle(.plain)
+            .disabled(pickersLocked)
             .padding(.top, 10)
 
             // Walk info
@@ -132,8 +138,13 @@ struct PhoneStationView: View {
                         Section {
                             // IDs namespaced so a favourite that also appears in the regular
                             // section below doesn't collide on identity within the List.
-                            ForEach(viewModel.favouriteDepartures.map(FavRow.init)) { row in
-                                departureRow(row.departure, isFavourite: true) {
+                            let trackedFavourite = trackedRowIndex(viewModel.favouriteDepartures,
+                                                                   appState: viewModel.appState,
+                                                                   focused: viewModel.focusedTrain)
+                            ForEach(Array(viewModel.favouriteDepartures.map(FavRow.init).enumerated()),
+                                    id: \.element.id) { index, row in
+                                departureRow(row.departure, isFavourite: true,
+                                             isSelected: index == trackedFavourite) {
                                     viewModel.selectFavouriteDeparture(row.departure)
                                 }
                                 .listRowSeparator(.hidden)
@@ -149,8 +160,12 @@ struct PhoneStationView: View {
                         }
                     }
                     Section {
+                        let trackedDeparture = trackedRowIndex(viewModel.departures,
+                                                               appState: viewModel.appState,
+                                                               focused: viewModel.focusedTrain)
                         ForEach(Array(viewModel.departures.enumerated()), id: \.element.stableId) { index, departure in
-                            departureRow(departure, isFavourite: viewModel.isDepartureFavourite(departure)) {
+                            departureRow(departure, isFavourite: viewModel.isDepartureFavourite(departure),
+                                         isSelected: index == trackedDeparture) {
                                 viewModel.selectDeparture(index: index)
                             }
                         }
@@ -186,7 +201,6 @@ struct PhoneStationView: View {
         init(_ departure: Departure) { self.departure = departure }
     }
 
-    @ViewBuilder
     // The live background session as a distinct green card at the top of the
     // board: green dot, line pill, destination, minutes; tap re-opens tracking,
     // X stops it.
@@ -252,10 +266,12 @@ struct PhoneStationView: View {
         .padding(.top, 10)
     }
 
-    private func departureRow(_ departure: Departure, isFavourite: Bool, onTap: @escaping () -> Void) -> some View {
-        PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, mode: viewModel.currentMode, onTap: onTap)
+    private func departureRow(_ departure: Departure, isFavourite: Bool, isSelected: Bool = false,
+                              onTap: @escaping () -> Void) -> some View {
+        PhoneDepartureRowView(departure: departure, isFavourite: isFavourite, mode: viewModel.currentMode,
+                              isSelected: isSelected, onTap: onTap)
             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-            .listRowBackground(isFavourite ? AppColors.favouriteBackground : nil)
+            .listRowBackground(boardRowFill(isSelected: isSelected, isFavourite: isFavourite))
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 Button {
                     viewModel.toggleFavourite(departure: departure)

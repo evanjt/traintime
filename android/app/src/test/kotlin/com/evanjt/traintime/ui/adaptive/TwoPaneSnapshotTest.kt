@@ -12,6 +12,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.text.font.FontWeight
@@ -36,8 +41,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-// The expanded-window split: board on the left, tracking or the hint on the
-// right, at an unfolded-foldable size.
+// The split: board on the left, tracking or the hint on the right, on an
+// expanded window and on an unfolded book-style foldable.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w840dp-h900dp")
@@ -68,13 +73,27 @@ class TwoPaneSnapshotTest {
         ),
     )
 
+    private val rows = listOf(
+        dep("IR15", "Luzern", 6),
+        dep("IC8", "Romanshorn", 8, delay = 1),
+        dep("S7", "Worb Dorf", 11),
+        dep("RE90", "Biel/Bienne", 14),
+    )
+
+    // The tracking pane shows the IC8, so its row is the one marked.
+    private val trackedIc8 = 1
+
     @Composable
-    private fun board() {
+    private fun board(tracked: Int?) {
         Column {
-            DepartureRow(dep("IR15", "Luzern", 6), isFavourite = false, mode = TransportMode.TRAIN)
-            DepartureRow(dep("IC8", "Romanshorn", 8, delay = 1), isFavourite = false, mode = TransportMode.TRAIN)
-            DepartureRow(dep("S7", "Worb Dorf", 11), isFavourite = true, mode = TransportMode.TRAIN)
-            DepartureRow(dep("RE90", "Biel/Bienne", 14), isFavourite = false, mode = TransportMode.TRAIN)
+            rows.forEachIndexed { index, row ->
+                DepartureRow(
+                    row,
+                    isFavourite = row.lineNumber == "S7",
+                    mode = TransportMode.TRAIN,
+                    selected = index == tracked,
+                )
+            }
         }
     }
 
@@ -88,11 +107,17 @@ class TwoPaneSnapshotTest {
         }
     }
 
-    private fun capture(name: String, dark: Boolean, detail: @Composable () -> Unit) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+        fold: VerticalFold? = null,
+        tracked: Int? = trackedIc8,
+        detail: @Composable () -> Unit,
+    ) {
         composeRule.setContent {
             CompositionLocalProvider(LocalAppPalette provides if (dark) DarkPalette else LightPalette) {
                 MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
-                    Surface(Modifier.fillMaxSize()) { TwoPane(board = { board() }, detail = detail) }
+                    Surface(Modifier.fillMaxSize()) { TwoPane(board = { board(tracked) }, detail = detail, fold = fold) }
                 }
             }
         }
@@ -110,5 +135,29 @@ class TwoPaneSnapshotTest {
 
     @Test fun splitTrackingDark() = capture("split_tracking_dark", dark = true) { tracking() }
 
-    @Test fun splitHintLight() = capture("split_hint_light", dark = false) { TrackingPaneHint() }
+    // The inner display of a book-style foldable unfolded and held upright.
+    @Config(sdk = [34], qualifiers = "w674dp-h841dp")
+    @Test fun unfoldedBookTrackingLight() = capture("split_unfolded_book_tracking_light", dark = false) { tracking() }
+
+    // A two-screen device whose hinge hides a strip of the window: the board
+    // ends at the hinge, tracking starts after it, nothing is drawn under it.
+    @Test fun occludingFoldTrackingLight() =
+        capture("split_occluding_fold_tracking_light", dark = false, fold = VerticalFold(410f, 430f)) { tracking() }
+
+    // A book-style foldable half-open: the panes meet at the crease.
+    @Config(sdk = [34], qualifiers = "w674dp-h841dp")
+    @Test fun halfOpenBookTrackingLight() =
+        capture("split_half_open_book_tracking_light", dark = false, fold = VerticalFold(337f, 337f)) { tracking() }
+
+    @Test fun theTrackedRowReadsAsSelected() {
+        composeRule.setContent {
+            CompositionLocalProvider(LocalAppPalette provides LightPalette) {
+                MaterialTheme(colorScheme = lightColorScheme()) { board(trackedIc8) }
+            }
+        }
+        composeRule.onAllNodes(isSelected()).assertCountEquals(1)
+        composeRule.onNode(isSelected()).assert(hasAnyDescendant(hasText("Romanshorn")))
+    }
+
+    @Test fun splitHintLight() = capture("split_hint_light", dark = false, tracked = null) { TrackingPaneHint() }
 }

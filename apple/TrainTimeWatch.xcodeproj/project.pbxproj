@@ -108,6 +108,8 @@
 		A15D0A000000000000000002 /* silence.caf in Resources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000002 /* silence.caf */; };
 		A15D0A000000000000000003 /* AlertSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000003 /* AlertSettingsTests.swift */; };
 		P0A100000000000000000006 /* PhoneStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000006 /* PhoneStationView.swift */; };
+		TP0A00000000000000000001 /* TwoPaneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP0F00000000000000000001 /* TwoPaneLayout.swift */; };
+		TP0A00000000000000000002 /* PaneLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP0F00000000000000000002 /* PaneLayoutTests.swift */; };
 		P0A100000000000000000007 /* PhoneFocusedTrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */; };
 		P0A100000000000000000008 /* PhoneDepartureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000008 /* PhoneDepartureRowView.swift */; };
 		P0A100000000000000000009 /* PhoneModePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000009 /* PhoneModePickerView.swift */; };
@@ -322,6 +324,8 @@
 		A15D0F000000000000000002 /* silence.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = silence.caf; sourceTree = "<group>"; };
 		A15D0F000000000000000003 /* AlertSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertSettingsTests.swift; sourceTree = "<group>"; };
 		P0F100000000000000000006 /* PhoneStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationView.swift; sourceTree = "<group>"; };
+		TP0F00000000000000000001 /* TwoPaneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwoPaneLayout.swift; sourceTree = "<group>"; };
+		TP0F00000000000000000002 /* PaneLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutTests.swift; sourceTree = "<group>"; };
 		P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFocusedTrackingView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000008 /* PhoneDepartureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDepartureRowView.swift; sourceTree = "<group>"; };
 		P0F100000000000000000009 /* PhoneModePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModePickerView.swift; sourceTree = "<group>"; };
@@ -575,6 +579,7 @@
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
 				DEB891C37F7C829DDEDCD181 /* GarminTipTests.swift */,
+				TP0F00000000000000000002 /* PaneLayoutTests.swift */,
 				1390CCE9520A0974DF8E6440 /* FormationStripTests.swift */,
 			);
 			name = TrainTimePhoneTests;
@@ -626,6 +631,7 @@
 				S0F100000000000000000004 /* PendingRouteChip.swift */,
 				S0F1000000000000000000A0 /* RouteDetailView.swift */,
 				P0F100000000000000000006 /* PhoneStationView.swift */,
+				TP0F00000000000000000001 /* TwoPaneLayout.swift */,
 				P0F100000000000000000050 /* SwissOutline.swift */,
 				P0F100000000000000000051 /* PhoneAttributionView.swift */,
 				P0F100000000000000000007 /* PhoneFocusedTrackingView.swift */,
@@ -1020,6 +1026,7 @@
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
 				6E03C2DF1D256F38D8F085A1 /* GarminTipTests.swift in Sources */,
+				TP0A00000000000000000002 /* PaneLayoutTests.swift in Sources */,
 				6BDDE5C711B74D2BFDF3B88B /* FormationStripTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1041,6 +1048,7 @@
 				A15D0A000000000000000001 /* AlertSound.swift in Sources */,
 				PC0A00000000000000000001 /* PlatformChangeAlert.swift in Sources */,
 				P0A100000000000000000006 /* PhoneStationView.swift in Sources */,
+				TP0A00000000000000000001 /* TwoPaneLayout.swift in Sources */,
 				P0A100000000000000000050 /* SwissOutline.swift in Sources */,
 				P0A100000000000000000051 /* PhoneAttributionView.swift in Sources */,
 				P0A100000000000000000301 /* WatchLivenessIndicator.swift in Sources */,

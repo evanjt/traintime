@@ -2,8 +2,8 @@
 """Departure-board store screenshots: captioned device composites per palette.
 
 Renders an HTML template per shot with headless Chromium at exact store sizes:
-Play phone (1080x2160), App Store 6.9" (1320x2868), App Store iPhone Duo
-(2007x2853), the App Store header (3840x1646) and search results (3840x2560)
+Play phone (1080x2160), Play large screen (2560x1440), App Store 6.9"
+(1320x2868), App Store iPhone Duo (2007x2853), the App Store header (3840x1646) and search results (3840x2560)
 stills and videos, the Play feature graphic (1024x500) and the Connect IQ hero
 (1440x720), tiles and cover (500x500).
 
@@ -16,7 +16,8 @@ Layout of store/:
   out/       renders before install (gitignored)
 Store renders are mirrored into the fastlane upload trees by install(); the
 Duo set renders from the inner-display captures in captures/iphone-duo and
-ships only from DUO_FROM on.
+ships only from DUO_FROM on. The Play large-screen set renders from an unfolded
+foldable's captures in captures/android-fold and ships only from LARGE_FROM on.
 
 Usage: board.py [--palette board|swiss|signal] [--install] [--video] [locale ...]
 --install mirrors the existing renders without re-rendering; --video also
@@ -372,6 +373,11 @@ def shots(locale, strings, out_subdir):
         track = os.path.join(duo, "02-focused-tracking-inner-raw.png")
         fav = os.path.join(duo, "04-station-favourites-inner-raw.png")
         widget = os.path.join(duo, "04-widget-inner-raw.png")
+    elif out_subdir == "play-large":
+        fold = os.path.join(CAPTURES, "android-fold")
+        track = os.path.join(fold, "01-tracking.png")
+        fav = os.path.join(fold, "02-station-fav.png")
+        widget = os.path.join(fold, "03-widget.png")
     elif out_subdir == "play":
         track = os.path.join(CAPTURES, "android", "01-tracking.png")
         fav = os.path.join(CAPTURES, "android", "02-station-fav.png")
@@ -389,7 +395,8 @@ def shots(locale, strings, out_subdir):
 
 def shot_device(out_subdir):
     """The device art a set's phone shots sit in."""
-    return {"play": "android", "appstore-duo": "iphone-duo-inner"}.get(out_subdir, "iphone")
+    return {"play": "android", "play-large": "android-fold",
+            "appstore-duo": "iphone-duo-inner"}.get(out_subdir, "iphone")
 
 
 def duo_missing():
@@ -539,6 +546,136 @@ def build_locale(locale, strings, target, out_subdir, palette):
         caption=strings["watch_cap"], sub_text=watch_sub, items=items,
     )
     render(html, width, height, os.path.join(STORE, out_subdir, locale, f"{SHOT_COUNT:02d}.png"))
+
+
+# Landscape: the copy keeps a column on the left and the device stands on the
+# right, so a near-square unfolded screen fills the height instead of floating
+# in a tall canvas.
+LARGE_HTML = """<!doctype html>
+<html><head><meta charset="utf-8"><style>
+{css}
+:root {{
+  --pad: {pad}px; --cap: {cap}px; --sub: {sub}px; --rule: {rule}px; --seg: {seg}; --segw: {segw}; --headh: {headh}px;
+  --glow: {glow}px;
+}}
+.canvas {{ flex-direction: row; gap: {gap}px; }}
+.copy {{ width: {copyw}px; flex: none; padding-top: {copytop}px; }}
+.side {{ flex: 1; position: relative; }}
+.side .device {{
+  left: auto; right: 0; top: 50%; transform: translateY(-50%);
+  width: auto; height: {devh}px;
+}}
+.pair {{
+  height: 100%;
+  display: flex; flex-direction: row;
+  justify-content: space-evenly; align-items: center;
+}}
+.watch {{ display: flex; flex-direction: column; align-items: center; gap: {wgap}px; }}
+.watch img {{ height: {watchh}px; filter: drop-shadow(0 {shadow}px {blur}px rgba(0, 0, 0, 0.5)); }}
+.label {{
+  font-family: 'Board', sans-serif;
+  font-weight: 600;
+  font-size: {label}px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: {grey};
+}}
+</style></head>
+<body>
+  <div class="canvas">
+    <div class="copy">
+      <div class="head">
+        <div class="caption">{caption}</div>
+        <div class="sub">{sub_text}</div>
+      </div>
+      <div class="rule"></div>
+    </div>
+    <div class="side">
+      {side}
+    </div>
+  </div>
+</body></html>
+"""
+
+# Play's large-screen listing, 16:9 landscape. The same set fills both tablet
+# slots: Play shows a foldable or tablet whichever slot matches its size.
+LARGE = (2560, 1440)
+TABLET_SLOTS = ("sevenInchScreenshots", "tenInchScreenshots")
+
+# The first release that splits board and tracking on a book-style foldable
+# held upright. The set shows that split, so it ships only with a build that
+# draws it.
+LARGE_FROM = "0.10.0"
+
+
+def tablet_problems(size, mode, nbytes):
+    """Why Play would refuse a tablet screenshot: 16:9 or 9:16, each side
+    1080 to 7680 px, no alpha, at most 8 MB. Empty when it would accept it."""
+    w, h = size
+    problems = []
+    if w * 9 != h * 16 and w * 16 != h * 9:
+        problems.append(f"{w}x{h} is not 16:9 or 9:16")
+    if not (1080 <= min(w, h) and max(w, h) <= 7680):
+        problems.append(f"{w}x{h} has a side outside 1080 to 7680 px")
+    if mode != "RGB":
+        problems.append(f"mode {mode}, Play wants 24-bit RGB")
+    if nbytes > 8 * 1024 * 1024:
+        problems.append(f"{nbytes} bytes is over 8 MB")
+    return problems
+
+
+def build_large(locale, strings, palette):
+    p = PALETTES[palette]
+    width, height = LARGE
+    pad = int(height * 0.06)
+    cap = int(height * 0.072)
+    sub = int(cap * 0.42)
+    segs, segw = seg_positions(SHOT_COUNT)
+    devh = height - 2 * pad
+    gap = int(width * 0.03)
+    # The device art is near square, so the copy column takes what it leaves.
+    device = shot_device("play-large")
+    copyw = width - 2 * pad - gap - int(devh * 2204 / 2274)
+    sizes = dict(
+        css=make_css(p), pad=pad, cap=cap, sub=sub, rule=max(4, height // 270),
+        glow=int(height * 0.16), segw=segw, gap=gap, copyw=copyw, copytop=int(height * 0.1),
+        # Three subcaption lines: the column is narrower than a phone canvas.
+        headh=round(2 * cap * 1.04 + cap * 0.34 + 3 * sub * 1.2),
+        devh=devh, wgap=int(height * 0.025), watchh=int(height * 0.4),
+        shadow=int(height * 0.018), blur=int(height * 0.06), label=int(height * 0.03),
+        grey=p["sub"],
+    )
+    out = os.path.join(STORE, "play-large", locale)
+    pages = []
+    for i, (stem, screen, caption, sub_text) in enumerate(shots(locale, strings, "play-large")):
+        path, _, _ = framed(device, screen)
+        side = f'<img class="device" src="file://{path}">'
+        pages.append((f"{stem}.png", caption, sub_text, segs[i], side))
+    garmin = os.path.join(FRAMED, "garmin", "03-focused-tracking-framed.png")
+    side = '<div class="pair">' + "".join(
+        f'<div class="watch"><img src="file://{src}"><div class="label">{label}</div></div>'
+        for src, label in [(WEAR_FRAMED, "Wear OS"), (garmin, "Garmin")]
+    ) + "</div>"
+    pages.append((f"{SHOT_COUNT:02d}.png", strings["watch_cap"], strings["watch_sub_play"], segs[-1], side))
+    for name, caption, sub_text, seg, side in pages:
+        dest = os.path.join(out, name)
+        render(LARGE_HTML.format(caption=caption, sub_text=sub_text, seg=seg, side=side, **sizes),
+               width, height, dest)
+        # Chromium writes RGBA; Play takes 24-bit PNG only.
+        frame.Image.open(dest).convert("RGB").save(dest)
+
+
+def large_enabled(version):
+    return version_tuple(version) >= version_tuple(LARGE_FROM)
+
+
+def play_large_set(locale, version):
+    """(source, (slot, file name)) for one Play locale's tablet slots, empty
+    before LARGE_FROM."""
+    if not large_enabled(version):
+        return []
+    return [(os.path.join(STORE, "play-large", locale, f"{i:02d}.png"), (slot, f"{i:02d}.png"))
+            for slot in TABLET_SLOTS for i in range(1, SHOT_COUNT + 1)]
 
 
 GARMIN_TILE_HTML = """<!doctype html>
@@ -994,6 +1131,12 @@ def install(locales):
             os.path.join(images, "featureGraphic.png"),
         )
 
+        for slot in TABLET_SLOTS:
+            shutil.rmtree(os.path.join(images, slot), ignore_errors=True)
+        for src, (slot, name) in play_large_set(source, version):
+            os.makedirs(os.path.join(images, slot), exist_ok=True)
+            shutil.copy(src, os.path.join(images, slot, name))
+
         # Wear raws carry alpha from the capture pipeline; Play rejects it.
         wear = os.path.join(images, "wearScreenshots")
         shutil.rmtree(wear, ignore_errors=True)
@@ -1040,6 +1183,8 @@ if __name__ == "__main__":
         strings = STRINGS[locale]
         print(f"[{locale}/{palette}] Play phone 1080x2160")
         build_locale(locale, strings, (1080, 2160), "play", palette)
+        print(f"[{locale}/{palette}] Play large screen {LARGE[0]}x{LARGE[1]}")
+        build_large(locale, strings, palette)
         print(f"[{locale}/{palette}] App Store 1320x2868")
         build_locale(locale, strings, (1320, 2868), "appstore", palette)
         if duo_missing():

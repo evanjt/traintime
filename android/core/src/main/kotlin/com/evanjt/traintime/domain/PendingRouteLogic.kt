@@ -96,6 +96,13 @@ object PendingRouteLogic {
         return "${leg.trainNumber ?: "${leg.category}${leg.lineNumber}"}|${leg.depTs}"
     }
 
+    // The departure whose tracking ends when the focus moves to `nextDepTs`.
+    // Switching trains ends the one on screen exactly as stopping it would, so
+    // a route tracking it advances or reverts the same way. Re-focusing the
+    // tracked train, or focusing with nothing tracked, ends nothing.
+    fun endedByFocus(trackedDepTs: Long?, nextDepTs: Long): Long? =
+        trackedDepTs?.takeIf { it != nextDepTs }
+
     // Tracking for `endedDepTs` finished (departed, or user exited). Only a
     // route that was tracking that exact leg reacts: after departure the
     // cursor moves on (normalize does the actual advancing), an early manual

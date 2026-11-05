@@ -30,6 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.activity.compose.LocalActivity
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
@@ -43,8 +46,10 @@ import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.adaptive.PaneLayout
 import com.evanjt.traintime.ui.adaptive.TrackingPaneHint
 import com.evanjt.traintime.ui.adaptive.TwoPane
+import com.evanjt.traintime.ui.adaptive.WindowShape
 import com.evanjt.traintime.ui.adaptive.paneLayout
-import com.evanjt.traintime.ui.adaptive.widthClassOf
+import com.evanjt.traintime.ui.adaptive.rememberFoldingFeatures
+import com.evanjt.traintime.ui.adaptive.verticalFoldOf
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.OnboardingTour
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
@@ -252,24 +257,27 @@ private fun RootView(
                     onDismiss = { viewModel.dismissPendingRoute() },
                 )
             }
-            BoxWithConstraints(Modifier.weight(1f)) {
+            var paneLeftPx by remember { mutableStateOf(0f) }
+            BoxWithConstraints(Modifier.weight(1f).onGloballyPositioned { paneLeftPx = it.positionInWindow().x }) {
                 val openSettings = { focusWatch: Boolean ->
                     settingsFocusWatch = focusWatch
                     showSettings = true
                 }
                 val board = @Composable { StationScreen(viewModel, onOpenSettings = openSettings) }
-                val width = widthClassOf(maxWidth.value)
+                val folds = rememberFoldingFeatures()
+                val shape = WindowShape(maxWidth.value, maxHeight.value, hasFold = folds.isNotEmpty())
                 // Keep the last board visible, darkened, with Resume floating
                 // on top rather than blanking it. On a split window the scrim
                 // covers both panes.
                 Box(Modifier.fillMaxSize()) {
                     // One TwoPane for both split cases, so switching the right
                     // pane keeps the board's scroll position.
-                    when (val layout = paneLayout(width, viewModel.appState)) {
+                    when (val layout = paneLayout(shape, viewModel.appState)) {
                         PaneLayout.TRACKING -> TrackingScreen(viewModel)
                         PaneLayout.BOARD -> board()
                         PaneLayout.SPLIT_TRACKING, PaneLayout.SPLIT_HINT -> TwoPane(
                             board = board,
+                            fold = verticalFoldOf(folds, paneLeftPx, LocalDensity.current.density),
                             detail = {
                                 if (layout == PaneLayout.SPLIT_TRACKING) TrackingScreen(viewModel) else TrackingPaneHint()
                             },

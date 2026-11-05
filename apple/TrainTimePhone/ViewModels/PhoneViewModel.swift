@@ -715,11 +715,15 @@ class PhoneViewModel: ObservableObject {
         // Fetch fresh for the origin (no useful pre-existing cache), refetching as
         // the user moves, exactly as tracking does for the focused station.
         if routing.shouldRefetch(stationId: originId, currentCoord: coord, currentHaversine: haversine) {
+            let routing = routing
+            let routeId = route.id
+            // The inner capture list copies the weak reference, since a captured
+            // `weak var` cannot be shared with the main-actor closure.
             Task { [weak self] in
-                await self?.routing.fetchRoute(
+                await routing.fetchRoute(
                     from: coord, to: origin, stationId: originId, currentHaversine: haversine)
-                await MainActor.run {
-                    self?.commitPendingWalk(routeId: route.id, originId: originId, haversine: haversine)
+                await MainActor.run { [weak self] in
+                    self?.commitPendingWalk(routeId: routeId, originId: originId, haversine: haversine)
                 }
             }
         }
@@ -1031,6 +1035,9 @@ class PhoneViewModel: ObservableObject {
 
     private func selectDepartureImpl(_ dep: Departure, routeDestination: String? = nil) {
         guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
+        // Another row on a split board switches what is tracked through
+        // beginTracking. The tracked row itself is a no-op.
+        if isAlreadyTracked(dep, appState: appState, focused: focusedTrain) { return }
         beginTracking(FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
@@ -1074,6 +1081,12 @@ class PhoneViewModel: ObservableObject {
     /// a track the watch already owns — re-sending it would make the watch
     /// re-enter (and re-buzz) its own tracking.
     private func beginTracking(_ focused: FocusedDeparture, mirror mirrorToWatches: Bool = true) {
+        // The split view lets a tap replace the tracked train without leaving
+        // tracking, which ends it for a shared route exactly as Stop would.
+        onTrackingEnded(PendingRouteLogic.endedByFocus(
+            trackedDepTs: appState == 2 ? focusedTrain?.departureTimestamp : nil,
+            nextDepTs: focused.departureTimestamp
+        ))
         // Only one session exists at a time. Tracking something new retires any
         // parked background session, otherwise the board keeps a card for a
         // train whose Live Activity startLiveActivity is about to replace, and

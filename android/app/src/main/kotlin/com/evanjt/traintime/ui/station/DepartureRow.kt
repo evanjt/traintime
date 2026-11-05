@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +40,7 @@ fun DepartureRow(
     isFavourite: Boolean,
     mode: TransportMode,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
 ) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
@@ -51,7 +54,15 @@ fun DepartureRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(if (isFavourite) palette.favouriteBackground else Color.Transparent)
+            .semantics { this.selected = selected }
+            .background(
+                when {
+                    // The board's selected treatment, as on the mode picker.
+                    selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    isFavourite -> palette.favouriteBackground
+                    else -> Color.Transparent
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
         Text(

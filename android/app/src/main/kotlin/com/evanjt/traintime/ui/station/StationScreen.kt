@@ -71,6 +71,8 @@ import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.ConnectIqStore
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
+import com.evanjt.traintime.ui.adaptive.boardPickersLocked
+import com.evanjt.traintime.ui.adaptive.trackedRowIndex
 import com.evanjt.traintime.ui.theme.tint
 import kotlinx.coroutines.launch
 
@@ -86,6 +88,7 @@ fun StationScreen(
     var refreshing by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val garminStoreUrl = ConnectIqStore.url(LocalConfiguration.current.locales[0].language)
+    val pickersLocked = boardPickersLocked(viewModel.appState)
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Header: mode picker + GPS + settings
@@ -100,6 +103,7 @@ fun StationScreen(
                 availableModes = viewModel.availableModes,
                 currentMode = viewModel.currentMode,
                 onSelect = { viewModel.selectMode(it) },
+                enabled = !pickersLocked,
             )
             Spacer(Modifier.weight(1f))
             // Watch link indicator, shown when a watch is known. For Garmin, the colour
@@ -179,7 +183,7 @@ fun StationScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { viewModel.showStationPicker = true }
+                .clickable(enabled = !pickersLocked) { viewModel.showStationPicker = true }
                 .padding(top = 10.dp),
         ) {
             Text(
@@ -190,7 +194,7 @@ fun StationScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (viewModel.stations.size > 1) {
+            if (viewModel.stations.size > 1 && !pickersLocked) {
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
                     contentDescription = stringResource(R.string.pick_station_cd),
@@ -305,13 +309,16 @@ fun StationScreen(
                             }
                         }
                         // Favourite departures at top
-                        items(
+                        val trackedFavourite = trackedRowIndex(viewModel.favouriteDepartures, viewModel.appState, viewModel.focusedTrain)
+                        val trackedDeparture = trackedRowIndex(viewModel.departures, viewModel.appState, viewModel.focusedTrain)
+                        itemsIndexed(
                             viewModel.favouriteDepartures,
-                            key = { "fav-${it.stableId}" },
-                        ) { departure ->
+                            key = { _, dep -> "fav-${dep.stableId}" },
+                        ) { index, departure ->
                             DepartureListItem(
                                 departure = departure,
                                 isFavourite = true,
+                                selected = index == trackedFavourite,
                                 mode = viewModel.currentMode,
                                 onSelect = { viewModel.selectFavouriteDeparture(departure) },
                                 onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
@@ -338,6 +345,7 @@ fun StationScreen(
                             DepartureListItem(
                                 departure = departure,
                                 isFavourite = viewModel.isDepartureFavourite(departure),
+                                selected = index == trackedDeparture,
                                 mode = viewModel.currentMode,
                                 onSelect = { viewModel.selectDeparture(index) },
                                 onToggleFavourite = { viewModel.toggleFavouriteDeparture(departure) },
@@ -417,6 +425,7 @@ private fun DepartureListItem(
     onSelect: () -> Unit,
     onToggleFavourite: () -> Unit,
     onSaveAsReminder: () -> Unit,
+    selected: Boolean = false,
 ) {
     val palette = LocalAppPalette.current
     val dismissState = rememberSwipeToDismissBoxState()
@@ -494,7 +503,7 @@ private fun DepartureListItem(
                     onLongClick = onToggleFavourite,
                 ),
         ) {
-            DepartureRow(departure = departure, isFavourite = isFavourite, mode = mode)
+            DepartureRow(departure = departure, isFavourite = isFavourite, mode = mode, selected = selected)
         }
     }
 }

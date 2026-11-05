@@ -251,4 +251,32 @@ class PendingRouteLogicTest {
         val saved = route(ride(now + 3600))
         assertEquals(saved, PendingRouteLogic.advancedAfterTracking(saved, endedDepTs = now + 3600, now = now))
     }
+
+    @Test
+    fun `focusing another departure ends the tracked leg like stopping it`() {
+        val legA = now + 3600
+        val r = route(ride(legA), status = PendingRoute.STATUS_TRACKING)
+        val ended = PendingRouteLogic.endedByFocus(trackedDepTs = legA, nextDepTs = now + 600)!!
+        assertEquals(
+            PendingRouteLogic.advancedAfterTracking(r, endedDepTs = legA, now = now),
+            PendingRouteLogic.advancedAfterTracking(r, endedDepTs = ended, now = now),
+        )
+    }
+
+    @Test
+    fun `focusing after a departed leg advances the route like stopping it`() {
+        val legA = now - 120
+        val r = route(
+            ride(legA, train = "1"), ride(now + 3600, train = "2"),
+            status = PendingRoute.STATUS_TRACKING,
+        )
+        val ended = PendingRouteLogic.endedByFocus(trackedDepTs = legA, nextDepTs = now + 600)!!
+        assertEquals(1, PendingRouteLogic.advancedAfterTracking(r, endedDepTs = ended, now = now)!!.cursor)
+    }
+
+    @Test
+    fun `refocusing the tracked departure or focusing from the board ends nothing`() {
+        assertNull(PendingRouteLogic.endedByFocus(trackedDepTs = now + 60, nextDepTs = now + 60))
+        assertNull(PendingRouteLogic.endedByFocus(trackedDepTs = null, nextDepTs = now + 60))
+    }
 }

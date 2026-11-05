@@ -5,6 +5,7 @@ struct ContentView: View {
     @ObservedObject private var pendingRouteStore = PendingRouteStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("seenOnboardingVersion") private var seenOnboardingVersion = 0
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
@@ -29,31 +30,47 @@ struct ContentView: View {
         ZStack {
             Color(uiColor: .systemBackground).ignoresSafeArea()
 
-            switch viewModel.appState {
-            case 2:
-                PhoneFocusedTrackingView(viewModel: viewModel)
-            case 3:
-                // Keep the last board visible, darkened, with Resume floating on
-                // top rather than blanking it. The scrim also swallows taps to the
-                // frozen header/list, so Resume is the only live control.
-                PhoneStationView(viewModel: viewModel)
-                    .overlay {
-                        ZStack {
-                            Color.black.opacity(0.5)
-                                .ignoresSafeArea()
-                                .contentShape(Rectangle())
-                                .onTapGesture {}
-                            Button {
-                                viewModel.resumeToStationView()
-                            } label: {
-                                Label("Resume", systemImage: "arrow.clockwise")
-                                    .font(.subheadline.weight(.medium))
-                            }
-                            .buttonStyle(.borderedProminent)
+            let layout = paneLayout(horizontalSizeClass, appState: viewModel.appState)
+            Group {
+                switch layout {
+                case .tracking:
+                    PhoneFocusedTrackingView(viewModel: viewModel)
+                case .board:
+                    PhoneStationView(viewModel: viewModel)
+                case .splitTracking, .splitHint:
+                    // One split for both cases, so switching the right pane keeps
+                    // the board and its scroll position.
+                    TwoPaneLayout {
+                        PhoneStationView(viewModel: viewModel)
+                    } detail: {
+                        if layout == .splitTracking {
+                            PhoneFocusedTrackingView(viewModel: viewModel)
+                        } else {
+                            TrackingPaneHint()
                         }
                     }
-            default:
-                PhoneStationView(viewModel: viewModel)
+                }
+            }
+            // Keep the last board visible, darkened, with Resume floating on
+            // top rather than blanking it. The scrim also swallows taps to the
+            // frozen header/list, so Resume is the only live control. On a split
+            // window it covers both panes.
+            .overlay {
+                if viewModel.appState == 3 {
+                    ZStack {
+                        Color.black.opacity(0.5)
+                            .ignoresSafeArea()
+                            .contentShape(Rectangle())
+                            .onTapGesture {}
+                        Button {
+                            viewModel.resumeToStationView()
+                        } label: {
+                            Label("Resume", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
             }
         }
         // Queued shared route rides above the station/inactive screens and hides

@@ -111,6 +111,7 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
     implementation(libs.work.runtime.ktx)
+    implementation(libs.androidx.window)
     implementation(libs.datastore.preferences)
     implementation(libs.datastore)
     implementation(libs.okhttp)

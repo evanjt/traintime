@@ -55,6 +55,7 @@ import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
 import com.evanjt.traintime.session.SessionMute
 import com.evanjt.traintime.session.TrackingSnapshot
+import com.evanjt.traintime.ui.adaptive.isAlreadyTracked
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
 import com.evanjt.traintime.data.prefs.FavouritesStore
@@ -921,6 +922,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun selectDepartureImpl(dep: Departure, routeDestination: String? = null) {
         val depTs = dep.departureTimestamp ?: return
         if (dep.isGone) return
+        // Another row on a split board switches what is tracked. The tracked
+        // row itself is a no-op.
+        if (isAlreadyTracked(dep, appState, focusedTrain)) return
         beginTracking(
             FocusedDeparture(
                 destination = dep.destination,
@@ -967,6 +971,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // a track the watch already owns — re-sending it would make the watch
     // re-enter (and re-vibrate) its own tracking.
     private fun beginTracking(focused: FocusedDeparture, mirror: Boolean = true) {
+        // The split view lets a tap replace the tracked train without leaving
+        // tracking, which ends it for a shared route exactly as Stop would.
+        onTrackingEnded(
+            PendingRouteLogic.endedByFocus(
+                focusedTrain?.departureTimestamp?.takeIf { appState == 2 },
+                focused.departureTimestamp,
+            )
+        )
         TrackingSessionBus.beginSession(focused.departureTimestamp)
         focusedTrain = focused
         appState = 2
@@ -2895,13 +2907,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun onTrackingEnded(endedDepTs: Long?) {
         if (endedDepTs == null) return
         viewModelScope.launch {
-            val current = pendingRouteStore.current() ?: return@launch
-            val next = PendingRouteLogic.advancedAfterTracking(current, endedDepTs, nowSeconds())
+            // Read and write inside one store edit, so a route-leg Track saving
+            // its own leg in the same tap is never overwritten by a stale read.
+            var changed = false
+            var advanced: PendingRoute? = null
+            pendingRouteStore.update { current ->
+                PendingRouteLogic.advancedAfterTracking(current, endedDepTs, nowSeconds())
+                    .also { advanced = it; changed = it != current }
+            }
+            if (!changed) return@launch
+            val next = advanced
             if (next == null) {
-                pendingRouteStore.clear()
                 PendingRouteNotifier.cancel(getApplication())
-            } else if (next != current) {
-                pendingRouteStore.save(next)
+            } else {
                 PendingRouteNotifier.schedule(getApplication(), next, nowSeconds())
             }
         }

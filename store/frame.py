@@ -27,6 +27,10 @@ DEVICES = {
                     screen=(60, 65, 1080, 2340)),
     "android-qhd": dict(back="google-pixel-7-pro-back.webp", over="google-pixel-7-pro-mask.webp",
                         screen=(48, 66, 1440, 3120)),
+    # Unfolded book-style foldable held upright, the fold down the middle.
+    "android-fold": dict(back="google-pixel-9-pro-fold-back.webp",
+                         over="google-pixel-9-pro-fold-mask.webp",
+                         screen=(62, 62, 2076, 2152)),
     "wear-os": dict(back="google-watch-round-back.png", fore="google-watch-round-fore.png",
                     mask="google-watch-round-mask.png", screen=(25, 26, 320, 320)),
 }
