@@ -132,11 +132,6 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             currentMode = savedMode
         }
 
-        // If we loaded a cached coordinate, mark it
-        if location.coordinate != nil && location.horizontalAccuracy == -1 {
-            loadedFromCache = true
-        }
-
         locationCancellable = location.$coordinate
             .receive(on: DispatchQueue.main)
             .sink { [weak self] coord in
@@ -493,8 +488,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         // If loaded from stale cache and now have a live GPS fix, refresh in place
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
-            loadedFromCache = false
-            if !requestInFlight {
+            let moved = lastSearchCoordinate.map { location.hasMovedSignificantly(from: $0) }
+            switch LocationFix.cachedBoardOnLiveFix(requestInFlight: requestInFlight, movedFromSearch: moved) {
+            case .waitForRequest:
+                break
+            case .keep:
+                loadedFromCache = false
+            case .refetch:
+                loadedFromCache = false
                 if stations.isEmpty { status = String(localized: "Updating stations...") }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
@@ -502,9 +503,17 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
 
         if stations.isEmpty && !requestInFlight {
+            loadedFromCache = location.loadedFromCache
             status = String(localized: "Finding stations...")
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
+    }
+
+    /// A live fix that landed while the search from a cached position was in flight
+    /// is acted on once that search finishes, not on the next 5 s tick.
+    private func resolveCachedBoard() {
+        guard loadedFromCache, !location.loadedFromCache, let coord = location.coordinate else { return }
+        onLocationUpdate(coord)
     }
 
     // MARK: - Timer Tick
@@ -610,6 +619,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             } else if !stations.isEmpty {
                 // No valid station selected
             } else if SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+                loadedFromCache = location.loadedFromCache
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             } else {
                 // Out of Switzerland with no stations. Ask the phone for its location.
@@ -864,12 +874,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                     if stations.isEmpty {
                         status = String(localized: "No stations nearby")
                     }
+                    resolveCachedBoard()
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
                     handleError(error, context: String(localized: "Stations"))
+                    resolveCachedBoard()
                 }
             }
         }

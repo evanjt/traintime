@@ -50,6 +50,8 @@ class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
             } else {
                 horizontalAccuracy = -1
             }
+        } else if coordinate == nil {
+            loadLastKnownCoordinate()
         }
         manager.startUpdatingLocation()
     }
@@ -98,8 +100,14 @@ class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
         // Validate coordinates
         guard abs(coord.latitude) <= 90, abs(coord.longitude) <= 180 else { return }
 
+        let verdict = LocationFix.verdict(
+            age: -location.timestamp.timeIntervalSinceNow,
+            horizontalAccuracy: location.horizontalAccuracy,
+            holdingCoordinate: coordinate != nil)
+        if verdict == .ignore { return }
+
         coordinate = coord
-        horizontalAccuracy = location.horizontalAccuracy
+        horizontalAccuracy = verdict == .live ? location.horizontalAccuracy : -1
         speed = location.speed
 
         // Only update heading when moving (>0.5 m/s) to avoid jitter

@@ -52,6 +52,8 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
             } else {
                 horizontalAccuracy = -1
             }
+        } else if coordinate == nil {
+            loadLastKnownCoordinate()
         }
         manager.startUpdatingLocation()
     }
@@ -131,8 +133,14 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
         let coord = location.coordinate
         guard abs(coord.latitude) <= 90, abs(coord.longitude) <= 180 else { return }
 
+        let verdict = LocationFix.verdict(
+            age: -location.timestamp.timeIntervalSinceNow,
+            horizontalAccuracy: location.horizontalAccuracy,
+            holdingCoordinate: coordinate != nil)
+        if verdict == .ignore { return }
+
         coordinate = coord
-        horizontalAccuracy = location.horizontalAccuracy
+        horizontalAccuracy = verdict == .live ? location.horizontalAccuracy : -1
         speed = location.speed
 
         if location.speed > 0.5, location.course >= 0 {

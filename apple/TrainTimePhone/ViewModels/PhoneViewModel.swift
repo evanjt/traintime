@@ -200,10 +200,6 @@ class PhoneViewModel: ObservableObject {
             Task { @MainActor in self?.handleStopFromLiveActivity() }
         }
 
-        if location.coordinate != nil && location.horizontalAccuracy == -1 {
-            loadedFromCache = true
-        }
-
         locationCancellable = location.$coordinate
             .receive(on: DispatchQueue.main)
             .sink { [weak self] coord in
@@ -862,8 +858,14 @@ class PhoneViewModel: ObservableObject {
         if appState >= 2 { return }
 
         if loadedFromCache, location.gpsQuality == .good || location.gpsQuality == .poor {
-            loadedFromCache = false
-            if !requestInFlight {
+            let moved = lastSearchCoordinate.map { location.hasMovedSignificantly(from: $0) }
+            switch LocationFix.cachedBoardOnLiveFix(requestInFlight: requestInFlight, movedFromSearch: moved) {
+            case .waitForRequest:
+                break
+            case .keep:
+                loadedFromCache = false
+            case .refetch:
+                loadedFromCache = false
                 if stations.isEmpty { status = String(localized: "Updating stations...") }
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
@@ -871,9 +873,17 @@ class PhoneViewModel: ObservableObject {
         }
 
         if stations.isEmpty && !requestInFlight {
+            loadedFromCache = location.loadedFromCache
             status = String(localized: "Finding stations...")
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
+    }
+
+    /// A live fix that landed while the search from a cached position was in flight
+    /// is acted on once that search finishes, not on the next 5 s tick.
+    private func resolveCachedBoard() {
+        guard loadedFromCache, !location.loadedFromCache, let coord = location.coordinate else { return }
+        onLocationUpdate(coord)
     }
 
     // MARK: - Timer Tick
@@ -994,6 +1004,7 @@ class PhoneViewModel: ObservableObject {
                 fetchDepartures(stationId: id)
             } else if stations.isEmpty,
                       SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+                loadedFromCache = location.loadedFromCache
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
         }
@@ -1741,12 +1752,14 @@ class PhoneViewModel: ObservableObject {
                     if stations.isEmpty {
                         status = String(localized: "No stations nearby")
                     }
+                    resolveCachedBoard()
                 }
             } catch {
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
                     handleError(error, context: String(localized: "Stations"))
+                    resolveCachedBoard()
                 }
             }
         }
