@@ -1,4 +1,1 @@
-- New Alert sounds switch in Settings. Turn it off and alerts still show and vibrate, just without a sound.
-- New Vibration switch on iPhone and Apple Watch, to turn off the buzzes while the app is open.
-- New "Alert me on a platform change" switch, beside the alert before departure.
-- Tracking screen: one row for Map, Watch, Sound and Buzz. Tap to mute for this trip, hold for every trip. Back keeps tracking, Stop ends it.
+- Faster startup: nearby departures show sooner when you open the app.

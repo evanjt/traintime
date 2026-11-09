@@ -1,4 +1,1 @@
-- Nuova opzione «Suoni degli avvisi» nelle Impostazioni. Disattivata, gli avvisi compaiono e vibrano comunque, solo senza suono.
-- Nuova opzione «Vibrazione» su iPhone e Apple Watch, per disattivare le vibrazioni mentre l'app è aperta.
-- Nuova opzione «Avvisami del cambio di binario», accanto all'avviso prima della partenza.
-- Tracciamento: una riga Mappa, Orologio, Suono e Vibrazione. Tocca per disattivare in questo viaggio, tieni premuto per ogni viaggio. Indietro continua, Interrompi termina.
+- Avvio più rapido: le partenze vicine appaiono prima quando apri l'app.
