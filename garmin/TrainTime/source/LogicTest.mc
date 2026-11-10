@@ -46,6 +46,29 @@ function testParseDepartureArray(logger) {
     return d["dest"].equals("Brig") && d["line"].equals("IC8") && d["depTs"] == 1718000600 && d["delay"] == 2;
 }
 
+// Scenario: the API flags a cancelled row and omits the flag otherwise.
+// Expected behaviour: the parsed row carries it, and a cancelled train is never
+// selectable for tracking even while it is still in the future.
+(:test)
+function testParseCancelledDeparture(logger) {
+    var deps = [
+        { "to" => "Thun", "category" => "IC", "number" => "IC61", "departure" => 1718000600, "platform" => "4", "cancelled" => true },
+        { "to" => "Thun", "category" => "IC", "number" => "IC61", "departure" => 1718002400, "platform" => "4" },
+    ];
+    var parsed = ApiHandler.parseDepartureArray(deps);
+    return parsed.size() == 2
+        && DepartureLogic.isCancelled(parsed[0]) && !DepartureLogic.isCancelled(parsed[1]);
+}
+
+(:test)
+function testCancelledTrainIsNotSelectable(logger) {
+    var cancelled = { "min" => 5, "delay" => 0, "cnc" => true };
+    var running = { "min" => 5, "delay" => 0 };
+    var gone = { "min" => -2, "delay" => 0 };
+    return !DepartureLogic.isSelectable(cancelled) && DepartureLogic.isSelectable(running)
+        && !DepartureLogic.isSelectable(gone);
+}
+
 // OJP publishes some trains twice under twin train numbers (e.g. 23153/93153).
 // parseDepartureArray collapses them, keeping the twin carrying the delay in
 // the first-seen slot.
@@ -343,6 +366,32 @@ function testFormationLabelStepWidensTowardTheEnds(logger) {
     var side = FormationArc.stepAt(0.5, 1);
     return bottom > 5.99 && bottom < 6.01 && side > bottom
         && FormationArc.stepAt(Math.PI / 2, 2) > 10.99;
+}
+
+(:test)
+function testFormationClosedCarsMapToClosedArray(logger) {
+    var f = ApiHandler.parseFormation({"wagons" => [
+        {"class" => 2, "number" => 7, "sector" => "C", "features" => ["bike"]},
+        {"class" => 1, "number" => 8, "sector" => "D", "closed" => true},
+        {"class" => 2, "number" => 9, "sector" => "D", "closed" => false}
+    ]});
+    var closed = f[:closed];
+    return closed.size() == 3 && closed[0] == false && closed[1] == true && closed[2] == false
+        && f[:numbers][1] == 8 && f[:classes][1] == 1;
+}
+
+(:test)
+function testFormationWithoutWagonsParsesToNull(logger) {
+    return ApiHandler.parseFormation(null) == null
+        && ApiHandler.parseFormation({"wagons" => []}) == null
+        && ApiHandler.parseFormation({"error" => "x"}) == null;
+}
+
+(:test)
+function testFormationClosedCarsCarryNoLabel(logger) {
+    var shown = FormationArc.shownNumbers([1, 2, 3, null], [false, true, false, true]);
+    return shown[0] == 1 && shown[1] == null && shown[2] == 3 && shown[3] == null
+        && FormationArc.shownNumbers([4, 5], null)[1] == 5;
 }
 
 (:test)

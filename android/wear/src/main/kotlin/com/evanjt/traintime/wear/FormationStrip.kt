@@ -1,6 +1,7 @@
 package com.evanjt.traintime.wear
 
 import androidx.compose.ui.graphics.Color
+import com.evanjt.traintime.data.model.FormationWagon
 
 // Watch amenities in the order their lines and readout swatches run. Hues shared with
 // the other watches, distinct for normal, deutan and protan vision.
@@ -13,6 +14,13 @@ enum class Amenity(val feature: String, val colour: Color) {
 
 fun amenities(features: List<String>): List<Amenity> =
     Amenity.entries.filter { it.feature in features }
+
+// A closed car is shown dimmed with no amenity line and no number
+fun carAmenities(wagon: FormationWagon): List<Amenity> =
+    if (wagon.closed) emptyList() else amenities(wagon.features)
+
+fun labelNumbers(wagons: List<FormationWagon>): List<Int?> =
+    wagons.map { if (it.closed) null else it.number }
 
 // Car positions across a strip of the given width, front first from the left after the
 // nose. Cars shrink to fit, a break takes a wider slot instead of the usual gap.

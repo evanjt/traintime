@@ -309,6 +309,28 @@
         }
       }
     },
+    "Cancelled": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fällt aus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soppresso"
+          }
+        }
+      }
+    },
     "Change at %@": {
       "localizations": {
         "de": {
@@ -327,6 +349,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cambio a %@"
+          }
+        }
+      }
+    },
+    "Closed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geschlossen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermée"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiusa"
           }
         }
       }

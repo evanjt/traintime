@@ -71,16 +71,7 @@ struct RefreshIntent: AppIntent {
                 // timeline-build time; merging only re-inserts any server favourite that
                 // departs beyond the regular list horizon.
                 let allDeps = FavouritesStore.shared.merging(favourites: result.favourites, into: result.departures)
-                let deps = allDeps.map { dep in
-                    WidgetDeparture(
-                        destination: dep.destination,
-                        departureTimestamp: dep.departureTimestamp ?? 0,
-                        delay: dep.delay,
-                        platform: dep.platform,
-                        platformChanged: dep.platformChanged,
-                        lineNumber: dep.lineNumber
-                    )
-                }
+                let deps = allDeps.widgetDepartures
                 let updated = WidgetStation(id: station.id, name: station.name, departures: deps)
                 switch selectedMode {
                 case .train: trainStations[stationIdx] = updated
@@ -108,16 +99,7 @@ struct RefreshIntent: AppIntent {
             guard let id = station.id, let name = station.name else { return nil }
             let deps: [WidgetDeparture]
             if let embedded = station.embeddedDepartures, !embedded.isEmpty {
-                deps = embedded.map { dep in
-                    WidgetDeparture(
-                        destination: dep.destination,
-                        departureTimestamp: dep.departureTimestamp ?? 0,
-                        delay: dep.delay,
-                        platform: dep.platform,
-                        platformChanged: dep.platformChanged,
-                        lineNumber: dep.lineNumber
-                    )
-                }
+                deps = embedded.widgetDepartures
             } else {
                 deps = []
             }

@@ -10,6 +10,17 @@ module DepartureLogic {
         return minutesUntil + nz(delay) < 0;
     }
 
+    // The API sends the flag only on a cancelled row, and the parsed row keeps
+    // the key only when set, to spare memory on small watches.
+    function isCancelled(row as Lang.Dictionary) as Lang.Boolean {
+        return row["cnc"] == true;
+    }
+
+    // A row that can be tracked: still to come and actually running.
+    function isSelectable(row as Lang.Dictionary) as Lang.Boolean {
+        return !isGone(row["min"] as Lang.Number, row["delay"] as Lang.Number?) && !isCancelled(row);
+    }
+
     // Board row still worth matching against the tracked departure.
     function isMatchable(minutesUntil as Lang.Number, delay as Lang.Number?) as Lang.Boolean {
         return minutesUntil + nz(delay) >= -1;

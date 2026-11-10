@@ -538,7 +538,10 @@ module Renderer {
         var platformChanged = train["platChg"];
         var destination = train["dest"];
         var lineNumber = train["line"];
-        var isGone = DepartureLogic.isGone(minutesUntil, delay);
+        // A cancelled train draws dimmed like a gone one, with its time and
+        // destination struck through: the row has no room for a label.
+        var cancelled = DepartureLogic.isCancelled(train);
+        var isGone = cancelled || DepartureLogic.isGone(minutesUntil, delay);
 
         // Vertical alignment: FONT_TINY for minutes, FONT_XTINY for rest
         var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
@@ -582,7 +585,10 @@ module Renderer {
 
         // Minutes column (right-aligned, FONT_TINY)
         var minText;
-        if (isGone) {
+        if (cancelled) {
+            dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
+            minText = minutesUntil > 0 ? minutesUntil + "'" : Txt.t(Rez.Strings.RowNow);
+        } else if (isGone) {
             dc.setColor(goneTint, Graphics.COLOR_TRANSPARENT);
             minText = Txt.t(Rez.Strings.RowGone);
         } else if (minutesUntil <= 0) {
@@ -598,6 +604,10 @@ module Renderer {
         }
         dc.drawText(minRightX, y, Graphics.FONT_TINY,
             minText, Graphics.TEXT_JUSTIFY_RIGHT);
+        if (cancelled) {
+            strike(dc, minRightX - dc.getTextWidthInPixels(minText, Graphics.FONT_TINY), minRightX,
+                y + tinyH / 2, width);
+        }
 
         // Delay column (superscript, orange)
         if (delay > 0 && !isGone) {
@@ -623,6 +633,18 @@ module Renderer {
         var destText = DrawUtils.truncateToFit(dc, destination, Graphics.FONT_XTINY, maxDestW);
         dc.drawText(destX, xtinyY, Graphics.FONT_XTINY,
             destText, Graphics.TEXT_JUSTIFY_LEFT);
+        if (cancelled) {
+            strike(dc, destX, destX + dc.getTextWidthInPixels(destText, Graphics.FONT_XTINY),
+                xtinyY + xtinyH / 2, width);
+        }
+    }
+
+    // Strike-through in the delay orange, so it reads on the dimmed text.
+    function strike(dc, x1, x2, y, width) {
+        dc.setColor(0xFF7700, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(DrawUtils.px(2, width));
+        dc.drawLine(x1, y, x2, y);
+        dc.setPenWidth(1);
     }
 
     // --- Focused Mode (State 2) ---
@@ -890,7 +912,8 @@ module Renderer {
             dc.drawText(width / 2, walkY, Graphics.FONT_XTINY, walk, Graphics.TEXT_JUSTIFY_CENTER);
         }
         var sp = FormationArc.spans(g, breaks);
-        var labels = FormationArc.numberLabels(view.mFormationNumbers, view.mFormationClasses, breaks,
+        var labels = FormationArc.numberLabels(
+            FormationArc.shownNumbers(view.mFormationNumbers, view.mFormationClosed), view.mFormationClasses, breaks,
             sp, g[:rm], g[:k]);
         FormationArc.draw(dc, g, view, cursor, sp, labels);
     }
@@ -1063,10 +1086,11 @@ module Renderer {
         // Draw wagon contents (yellow stripes + numbers)
         for (var i = 0; i < count; i++) {
             var cls = view.mFormationClasses[i];
-            var num = view.mFormationNumbers[i];
+            var closed = FormationArc.isClosed(view, i);
+            var num = closed ? null : view.mFormationNumbers[i];
 
             // 1st class: yellow stripe at top
-            if (cls == 1) {
+            if (cls == 1 && !closed) {
                 dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
                 dc.fillRectangle(x, formY + 1, wagonW, 3);
             }

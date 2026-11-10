@@ -85,6 +85,10 @@
     <string name="review_body">A quick rating helps other commuters find the app.</string>
     <string name="replace_route_title">Replace queued route?</string>
     <string name="replace_route_body_fmt">You already have a route saved. Replace it with the trip to %1$s?</string>
+    <string name="switch_tracking_title_fmt">Track %1$s to %2$s instead?</string>
+    <string name="switch_tracking_body">This ends the trip you are tracking now.</string>
+    <string name="switch_tracking_confirm">Track instead</string>
+    <string name="switch_tracking_cancel">Cancel</string>
     <string name="replace">Replace</string>
     <string name="keep_existing">Keep existing</string>
 

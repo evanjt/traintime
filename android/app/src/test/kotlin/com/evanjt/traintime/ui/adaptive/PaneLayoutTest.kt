@@ -106,6 +106,38 @@ class PaneLayoutTest {
 
     private val trackedTrain = tracked.copy(trainNumber = "18234")
 
+    @Test fun aBoardTapTracksWhenNothingIsTracked() {
+        val dep = row("Hilltop", 1_800_000_600L, "18236")
+        assertEquals(BoardTap.TRACK, boardTap(dep, appState = 0, focused = null))
+        assertEquals(BoardTap.TRACK, boardTap(dep, appState = 3, focused = trackedTrain))
+    }
+
+    @Test fun aBoardTapOnTheTrackedRowKeepsTheSession() {
+        assertEquals(BoardTap.KEEP, boardTap(row("Lakeside", 1_800_000_000L, "18234"), appState = 2, focused = trackedTrain))
+    }
+
+    @Test fun aBoardTapOnATwinOfTheTrackedTrainAsks() {
+        assertEquals(BoardTap.ASK, boardTap(row("Lakeside", 1_800_000_000L, "98234"), appState = 2, focused = trackedTrain))
+    }
+
+    @Test fun aBoardTapOnAnotherRowAsks() {
+        assertEquals(BoardTap.ASK, boardTap(row("Lakeside", 1_800_000_600L, "18236"), appState = 2, focused = trackedTrain))
+    }
+
+    @Test fun aConfirmedSwitchEndsTheTrackedSessionFirst() {
+        val plan = confirmedSwitch(row("Lakeside", 1_800_000_600L, "18236"), appState = 2, focused = trackedTrain)
+        assertEquals(SwitchPlan(endDepTs = 1_800_000_000L), plan)
+    }
+
+    @Test fun aSwitchConfirmedAfterTheSessionEndedOnlyTracks() {
+        val plan = confirmedSwitch(row("Lakeside", 1_800_000_600L, "18236"), appState = 0, focused = null)
+        assertEquals(SwitchPlan(endDepTs = null), plan)
+    }
+
+    @Test fun aSwitchToTheNowTrackedRowDoesNothing() {
+        assertEquals(null, confirmedSwitch(row("Lakeside", 1_800_000_000L, "18234"), appState = 2, focused = trackedTrain))
+    }
+
     @Test fun theTrackedRowIsMarkedWhileTracking() {
         val rows = listOf(
             row("Hilltop", 1_800_000_000L, "18111"),

@@ -457,6 +457,9 @@ module ApiHandler {
                 "trainNum" => trainNumber,
                 "opRef" => operatorRef
             };
+            if (dep.hasKey("cancelled") && dep["cancelled"] == true) {
+                entry["cnc"] = true;
+            }
 
             // OJP can publish the same physical train twice under twin train
             // numbers (e.g. 23153/93153). Same time, line, destination and
@@ -593,46 +596,49 @@ module ApiHandler {
         return w.hasKey("number") ? w["number"] : null;
     }
 
-    function handleFormationResponse(view, responseCode, data) {
-        if (responseCode != 200 || data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) {
-            view.mFormationClasses = null;
-            view.mFormationNumbers = null;
-            view.mFormationSectors = null;
-            WatchUi.requestUpdate();
-            return;
-        }
-
+    // Per-car arrays from a formation reply, front first, or null when it has no cars
+    function parseFormation(data) {
+        if (data == null || !(data instanceof Lang.Dictionary) || !data.hasKey("wagons")) { return null; }
         var wagons = data["wagons"];
-        if (wagons == null || wagons.size() == 0) {
-            view.mFormationClasses = null;
-            view.mFormationNumbers = null;
-            view.mFormationSectors = null;
-            WatchUi.requestUpdate();
-            return;
-        }
+        if (wagons == null || !(wagons instanceof Lang.Array) || wagons.size() == 0) { return null; }
 
-        var classes = new [wagons.size()];
-        var numbers = new [wagons.size()];
-        var sectors = new [wagons.size()];
-        var breaks = new [wagons.size()];
-        var amenities = new [wagons.size()];
-        var mixed = new [wagons.size()];
-        for (var i = 0; i < wagons.size(); i++) {
+        var n = wagons.size();
+        var classes = new [n];
+        var numbers = new [n];
+        var sectors = new [n];
+        var breaks = new [n];
+        var amenities = new [n];
+        var mixed = new [n];
+        var closed = new [n];
+        for (var i = 0; i < n; i++) {
             var w = wagons[i];
             classes[i] = w.hasKey("class") ? w["class"] : 2;
             numbers[i] = wagonNumber(w);
             sectors[i] = (w.hasKey("sector") && w["sector"] != null) ? w["sector"] : "";
             breaks[i] = w.hasKey("noPassageAfter") && w["noPassageAfter"] == true;
             mixed[i] = w.hasKey("mixedClass") && w["mixedClass"] == true;
+            closed[i] = w.hasKey("closed") && w["closed"] == true;
             amenities[i] = amenityBits(w.hasKey("features") ? w["features"] : null);
         }
+        return {
+            :classes => classes, :numbers => numbers, :sectors => sectors, :breaks => breaks,
+            :amenities => amenities, :mixed => mixed, :closed => closed
+        };
+    }
 
-        view.mFormationClasses = classes;
-        view.mFormationNumbers = numbers;
-        view.mFormationSectors = sectors;
-        view.mFormationBreaks = breaks;
-        view.mFormationAmenities = amenities;
-        view.mFormationMixed = mixed;
+    function handleFormationResponse(view, responseCode, data) {
+        var f = responseCode == 200 ? parseFormation(data) : null;
+        if (f == null) {
+            view.clearFormation();
+        } else {
+            view.mFormationClasses = f[:classes];
+            view.mFormationNumbers = f[:numbers];
+            view.mFormationSectors = f[:sectors];
+            view.mFormationBreaks = f[:breaks];
+            view.mFormationAmenities = f[:amenities];
+            view.mFormationMixed = f[:mixed];
+            view.mFormationClosed = f[:closed];
+        }
         WatchUi.requestUpdate();
     }
 

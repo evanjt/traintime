@@ -21,16 +21,7 @@ struct SwitchStationIntent: AppIntent {
             let favParam = FavouritesStore.shared.favouritesParam(forStation: stations[nextIdx].id)
             if let fetched = try? await TrainAPIService.fetchDepartures(stationId: stations[nextIdx].id, favourites: favParam) {
                 let merged = FavouritesStore.shared.merging(favourites: fetched.favourites, into: fetched.departures)
-                let deps = merged.map { dep in
-                    WidgetDeparture(
-                        destination: dep.destination,
-                        departureTimestamp: dep.departureTimestamp ?? 0,
-                        delay: dep.delay,
-                        platform: dep.platform,
-                        platformChanged: dep.platformChanged,
-                        lineNumber: dep.lineNumber
-                    )
-                }
+                let deps = merged.widgetDepartures
                 let updated = WidgetStation(id: stations[nextIdx].id, name: stations[nextIdx].name, departures: deps)
                 result = WidgetStorage.updateStation(result, mode: mode, index: nextIdx, station: updated)
             }

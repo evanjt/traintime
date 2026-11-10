@@ -56,6 +56,7 @@ class TrainTimeView extends WatchUi.View {
     var mFormationBreaks;   // Array of Boolean: no passage to the next car
     var mFormationAmenities; // Array of Number: FormationArc.AMEN_* bits
     var mFormationMixed;    // Array of Boolean: first and second class in one car
+    var mFormationClosed;   // Array of Boolean: locked, not open to passengers
     var mFormationCursor = null;     // Highlighted car while Up/Down steps through them
     var mFormationCursorTime = 0;
     var mFavouriteData; // favourite departures from API (separate from mTrainData)
@@ -117,13 +118,7 @@ class TrainTimeView extends WatchUi.View {
         mScrollOffset = 0;
         mMapActive = false;
         mLastInteractionTime = 0;
-        mFormationClasses = null;
-        mFormationNumbers = null;
-        mFormationSectors = null;
-        mFormationBreaks = null;
-        mFormationAmenities = null;
-        mFormationMixed = null;
-        mFormationCursor = null;
+        clearFormation();
         mFavouriteData = null;
         mToast = null;
         mToastTick = null;
@@ -384,6 +379,7 @@ class TrainTimeView extends WatchUi.View {
         var total = getSelectableCount();
         if (total == 0 || mCursorIndex < 0 || mCursorIndex >= total) { return; }
         var t = getSelectableItem(mCursorIndex);
+        if (!DepartureLogic.isSelectable(t)) { return; }
         mFocusedTrain = {
             "dest" => t["dest"],
             "min" => t["min"],
@@ -459,14 +455,19 @@ class TrainTimeView extends WatchUi.View {
     // Reset any previous formation and fetch the new one for rail departures.
     // Shared by every tracking entry: local selection, pending favourite and
     // phone-pushed track. Non-rail or missing fields just leave it cleared.
-    function maybeFetchFormation(t) {
+    function clearFormation() {
         mFormationClasses = null;
         mFormationNumbers = null;
         mFormationSectors = null;
         mFormationBreaks = null;
         mFormationAmenities = null;
         mFormationMixed = null;
+        mFormationClosed = null;
         mFormationCursor = null;
+    }
+
+    function maybeFetchFormation(t) {
+        clearFormation();
         var trainNum = t["trainNum"];
         var cat = t["cat"];
         if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
@@ -508,13 +509,7 @@ class TrainTimeView extends WatchUi.View {
         mCursorIndex = 0;
         mScrollOffset = 0;
         mFocusedTrain = null;
-        mFormationClasses = null;
-        mFormationNumbers = null;
-        mFormationSectors = null;
-        mFormationBreaks = null;
-        mFormationAmenities = null;
-        mFormationMixed = null;
-        mFormationCursor = null;
+        clearFormation();
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -540,13 +535,7 @@ class TrainTimeView extends WatchUi.View {
         }
         mAppState = 3;
         mFocusedTrain = null;
-        mFormationClasses = null;
-        mFormationNumbers = null;
-        mFormationSectors = null;
-        mFormationBreaks = null;
-        mFormationAmenities = null;
-        mFormationMixed = null;
-        mFormationCursor = null;
+        clearFormation();
         mConsecutiveErrors = 0;
         // Restore normal timer rate
         if (mTimer != null) {
@@ -1110,7 +1099,8 @@ class TrainTimeView extends WatchUi.View {
         for (var i = 0; i < mTrainData.size(); i++) {
             var t = mTrainData[i];
             if (t["line"] != null && t["line"].equals(line)
-                    && t["dest"] != null && t["dest"].equals(dest)) {
+                    && t["dest"] != null && t["dest"].equals(dest)
+                    && DepartureLogic.isSelectable(t)) {
                 match = t;
                 break;
             }

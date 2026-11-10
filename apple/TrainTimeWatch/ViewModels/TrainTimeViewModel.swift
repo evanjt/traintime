@@ -640,7 +640,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     private func selectDepartureImpl(_ dep: Departure) {
-        guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
+        guard let depTs = dep.departureTimestamp, dep.isSelectable else { return }
         beginTracking(FocusedDeparture(
             destination: dep.destination,
             departureTimestamp: depTs,
@@ -955,7 +955,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         guard let pending = pendingFavTrack else { return }
         pendingFavTrack = nil
         guard let index = departures.firstIndex(where: {
-            $0.lineNumber == pending.line && $0.destination == pending.dest && !$0.isGone
+            $0.lineNumber == pending.line && $0.destination == pending.dest && $0.isSelectable
         }) else { return }
         selectDeparture(index: index)
     }

@@ -12,6 +12,8 @@ struct Departure: Identifiable {
     let category: String
     let trainNumber: String?
     let operatorRef: String?
+    /// The feed omits the field unless the journey or this stop is cancelled.
+    var cancelled: Bool = false
 
     /// Parse a single departure entry from the API JSON
     static func from(json: [String: Any]) -> Departure {
@@ -48,7 +50,8 @@ struct Departure: Identifiable {
             lineNumber: lineNumber,
             category: category,
             trainNumber: trainNumber,
-            operatorRef: operatorRef
+            operatorRef: operatorRef,
+            cancelled: json["cancelled"] as? Bool ?? false
         )
     }
 
@@ -56,6 +59,10 @@ struct Departure: Identifiable {
     /// still coming after its scheduled minute, and OJP keeps listing it until the
     /// estimate passes, so the board must too.
     var isGone: Bool { minutesUntil + delay < 0 }
+
+    /// A row that can be tracked, reminded or picked as the next departure. A cancelled
+    /// train stays on the board, labelled, but never runs.
+    var isSelectable: Bool { !isGone && !cancelled }
 
     /// Identity stable across fetches (unlike `id`, a fresh UUID each parse). Includes
     /// trainNumber because OJP can list distinct journeys in the same minute; excludes

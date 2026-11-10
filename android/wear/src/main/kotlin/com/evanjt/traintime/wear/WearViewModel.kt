@@ -359,7 +359,7 @@ class WearViewModel(
         val (line, dest) = pendingFavTrack ?: return
         pendingFavTrack = null
         val match = departures.firstOrNull {
-            it.lineNumber == line && it.destination == dest && !it.isGone
+            it.lineNumber == line && it.destination == dest && it.isSelectable
         } ?: return
         selectDepartureImpl(match)
     }
@@ -784,7 +784,7 @@ class WearViewModel(
 
     private fun selectDepartureImpl(dep: Departure) {
         val depTs = dep.departureTimestamp ?: return
-        if (dep.isGone) return
+        if (!dep.isSelectable) return
 
         beginTracking(
             FocusedDeparture(

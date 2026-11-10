@@ -36,7 +36,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +47,7 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.evanjt.traintime.Thresholds
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
@@ -118,8 +122,13 @@ fun WearDepartureRow(
 ) {
     val palette = LocalWearPalette.current
     val secondary = MaterialTheme.colors.onSurfaceVariant
+    // No room for a label on the watch row: a cancelled train is dimmed and
+    // struck through, and announced as cancelled to a screen reader.
+    val dimmed = !departure.isSelectable
+    val struck = if (departure.cancelled) TextDecoration.LineThrough else null
+    val cancelledLabel = stringResource(CoreR.string.row_cancelled)
     val minutesColor = when {
-        departure.isGone -> secondary
+        dimmed -> secondary
         departure.minutesUntil <= 2 -> palette.minutesNow
         else -> palette.minutesSoon
     }
@@ -131,6 +140,7 @@ fun WearDepartureRow(
             .clip(RoundedCornerShape(6.dp))
             .background(if (isFavourite) palette.favouriteBackground else Color.Transparent)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .then(if (departure.cancelled) Modifier.semantics { stateDescription = cancelledLabel } else Modifier)
             .padding(horizontal = 4.dp, vertical = 4.dp),
     ) {
         Text(
@@ -138,12 +148,13 @@ fun WearDepartureRow(
             color = minutesColor,
             fontSize = if (departure.isGone) 11.sp else 14.sp,
             fontWeight = FontWeight.Bold,
+            textDecoration = struck,
             maxLines = 1,
             textAlign = TextAlign.End,
             modifier = Modifier.width(34.dp),
         )
         Text(
-            if (departure.delay > 0 && !departure.isGone) "+${departure.delay}" else "",
+            if (departure.delay > 0 && !dimmed) "+${departure.delay}" else "",
             color = palette.delay,
             fontSize = 8.sp,
             fontWeight = FontWeight.Medium,
@@ -152,7 +163,7 @@ fun WearDepartureRow(
         )
         Text(
             departure.lineNumber,
-            color = if (departure.isGone) secondary else palette.platform,
+            color = if (dimmed) secondary else palette.platform,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -161,8 +172,9 @@ fun WearDepartureRow(
         Spacer(Modifier.width(3.dp))
         Text(
             departure.destination,
-            color = if (departure.isGone) secondary else MaterialTheme.colors.onSurface,
+            color = if (dimmed) secondary else MaterialTheme.colors.onSurface,
             fontSize = 12.sp,
+            textDecoration = struck,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),

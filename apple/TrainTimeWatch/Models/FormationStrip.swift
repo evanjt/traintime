@@ -32,8 +32,10 @@ enum FormationAmenity: CaseIterable {
         }
     }
 
+    // A closed car is shown dimmed with no amenity line and no number
     static func of(_ wagon: FormationWagon) -> [FormationAmenity] {
-        allCases.filter { wagon.features.contains($0.feature) }
+        guard !wagon.closed else { return [] }
+        return allCases.filter { wagon.features.contains($0.feature) }
     }
 }
 
@@ -87,6 +89,10 @@ struct FormationStrip {
     // Every numbered car's own number when all fit, otherwise a range per run of same-class
     // cars, extended over the next run until it fits, so every numbered car is covered. No
     // label crosses a break or a car the feed does not number.
+    static func labelNumbers(_ wagons: [FormationWagon]) -> [Int?] {
+        wagons.map { $0.closed ? nil : $0.number }
+    }
+
     func numberLabels(numbers: [Int?], classes: [Int], breaks: [Bool]) -> [FormationNumberLabel] {
         let n = numbers.count
         let numbered = (0..<n).filter { numbers[$0] != nil }

@@ -18,6 +18,8 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
+    /// The board row waiting on "Track instead", shown as a confirmation.
+    @Published var pendingSwitch: Departure?
     @Published var showReviewPrompt = false // timed review ask (Yes / Not now / Don't ask again)
     @Published var openWriteReviewTick = 0 // a watch asked to rate; the view opens the write-review page
     @Published var status: String = String(localized: "GPS: Searching...")
@@ -1025,16 +1027,49 @@ class PhoneViewModel: ObservableObject {
     // MARK: - Departure Selection & Tracking
 
     func selectFavouriteDeparture(_ dep: Departure) {
-        selectDepartureImpl(dep)
+        tapBoardRow(dep)
     }
 
     func selectDeparture(index: Int) {
         guard index >= 0, index < departures.count else { return }
-        selectDepartureImpl(departures[index])
+        tapBoardRow(departures[index])
+    }
+
+    private func tapBoardRow(_ dep: Departure) {
+        guard dep.departureTimestamp != nil, !dep.isGone else { return }
+        switch boardTap(dep, appState: appState, focused: focusedTrain) {
+        case .track: selectDepartureImpl(dep)
+        case .keep: break
+        case .ask: pendingSwitch = dep
+        }
+    }
+
+    func confirmSwitch() {
+        guard let dep = pendingSwitch else { return }
+        pendingSwitch = nil
+        guard let plan = confirmedSwitch(dep, appState: appState, focused: focusedTrain) else { return }
+        if let ended = plan.endDepTs { endSessionForSwitch(ended) }
+        selectDepartureImpl(dep)
+    }
+
+    func cancelSwitch() {
+        pendingSwitch = nil
+    }
+
+    /// Ends the tracked session as Stop does, short of leaving the board, so the
+    /// next one starts on the same station. A queued shared route advances past
+    /// the ended leg as on any focus switch.
+    private func endSessionForSwitch(_ depTs: Int) {
+        onTrackingEnded(depTs)
+        endTripMutes()
+        endLiveActivity(departed: false)
+        pendingWatchTrackSend = false
+        focusedTrain = nil
+        formation = nil
     }
 
     private func selectDepartureImpl(_ dep: Departure, routeDestination: String? = nil) {
-        guard let depTs = dep.departureTimestamp, !dep.isGone else { return }
+        guard let depTs = dep.departureTimestamp, dep.isSelectable else { return }
         // Another row on a split board switches what is tracked through
         // beginTracking. The tracked row itself is a no-op.
         if isAlreadyTracked(dep, appState: appState, focused: focusedTrain) { return }
@@ -2166,19 +2201,8 @@ class PhoneViewModel: ObservableObject {
             } else {
                 deps = station.embeddedDepartures ?? []
             }
-            return WidgetStation(id: id, name: name, departures: deps.map(widgetDeparture))
+            return WidgetStation(id: id, name: name, departures: deps.widgetDepartures)
         }
-    }
-
-    private func widgetDeparture(_ dep: Departure) -> WidgetDeparture {
-        WidgetDeparture(
-            destination: dep.destination,
-            departureTimestamp: dep.departureTimestamp ?? 0,
-            delay: dep.delay,
-            platform: dep.platform,
-            platformChanged: dep.platformChanged,
-            lineNumber: dep.lineNumber
-        )
     }
 
     // MARK: - Deep Link
@@ -2234,7 +2258,7 @@ class PhoneViewModel: ObservableObject {
         if let index = departures.firstIndex(where: {
             $0.destination == destination && $0.departureTimestamp == timestamp
         }) {
-            selectDeparture(index: index)
+            selectDepartureImpl(departures[index])
         }
     }
 
@@ -2457,7 +2481,7 @@ class PhoneViewModel: ObservableObject {
     /// Peer of MainViewModel.saveDepartureAsPending.
     func saveDepartureAsPending(_ departure: Departure) {
         lastInteractionTime = Date()
-        guard let station = currentStation, departure.departureTimestamp != nil else {
+        guard let station = currentStation, departure.departureTimestamp != nil, !departure.cancelled else {
             shareStatus = String(localized: "Couldn't save this departure")
             return
         }

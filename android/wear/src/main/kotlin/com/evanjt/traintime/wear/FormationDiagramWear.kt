@@ -171,7 +171,7 @@ fun FormationStripWear(formation: Formation, strip: FormationStrip, cursor: Int?
     val wagons = formation.wagons
     val labels = remember(formation, strip, scale) {
         numberLabels(
-            wagons.map { it.number },
+            labelNumbers(wagons),
             wagons.map { it.wagonClass },
             wagons.map { it.noPassageAfter },
         ) { label, a, b -> strip.fits(measurer.measure(label, labelStyle).size.width / scale, a, b) }
@@ -193,7 +193,7 @@ fun FormationStripWear(formation: Formation, strip: FormationStrip, cursor: Int?
                 val stripe = if (wagon.mixedClass) w / 2 else w
                 drawRect(firstClassColour, Offset(left, CAR_TOP * u), Size(stripe, 2.5f * u), alpha = alpha)
             }
-            val found = if (wagon.closed) emptyList() else amenities(wagon.features)
+            val found = carAmenities(wagon)
             if (found.isNotEmpty()) {
                 val seg = (w - 2f * u * (found.size - 1)) / found.size
                 found.forEachIndexed { q, amenity ->
@@ -263,18 +263,24 @@ private fun DrawScope.drawNose(strip: FormationStrip, u: Float) {
 // until the readout clears.
 @Composable
 fun FormationReadoutWear(wagon: FormationWagon, left: Float, modifier: Modifier = Modifier) {
-    val description = wagon.number?.let { stringResource(R.string.formation_car_fmt, it, wagon.sector) }
+    val closedLabel = stringResource(R.string.formation_closed)
+    val number = if (wagon.closed) null else wagon.number
+    val place = number?.let { stringResource(R.string.formation_car_fmt, it, wagon.sector) }
         ?: stringResource(R.string.formation_sector_fmt, wagon.sector)
+    val description = if (wagon.closed) "$place, $closedLabel" else place
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         modifier = modifier.semantics { contentDescription = description },
     ) {
-        wagon.number?.let { Text("$it", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        number?.let { Text("$it", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         if (wagon.sector.isNotEmpty()) {
-            Text(wagon.sector, color = sectorColour, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(wagon.sector, color = if (wagon.closed) bodyColour else sectorColour, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
-        for (amenity in amenities(wagon.features)) {
+        if (wagon.closed) {
+            Text(closedLabel, color = bodyColour, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        for (amenity in carAmenities(wagon)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Box(Modifier.size(7.dp, 3.dp).background(amenity.colour))
                 Icon(amenity.icon(), contentDescription = amenity.label(), tint = Color.White, modifier = Modifier.size(13.dp))

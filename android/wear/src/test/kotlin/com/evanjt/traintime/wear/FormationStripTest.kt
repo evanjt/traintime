@@ -1,6 +1,7 @@
 package com.evanjt.traintime.wear
 
 import com.evanjt.traintime.data.model.Formation
+import com.evanjt.traintime.data.model.FormationWagon
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -128,5 +129,14 @@ class FormationStripTest {
             amenities(listOf("bike", "low_floor", "wheelchair", "business", "restaurant")),
         )
         assertEquals(emptyList<Amenity>(), amenities(listOf("kw")))
+    }
+
+    @Test
+    fun aClosedCarCarriesNoNumberAndNoAmenities() {
+        val open = FormationWagon(1, 7, 2, "C", listOf("bike"), false)
+        val closed = FormationWagon(2, 8, 1, "D", listOf("restaurant", "wheelchair"), true)
+        assertEquals(listOf(7, null), labelNumbers(listOf(open, closed)))
+        assertEquals(listOf(Amenity.BIKE), carAmenities(open))
+        assertEquals(emptyList<Amenity>(), carAmenities(closed))
     }
 }

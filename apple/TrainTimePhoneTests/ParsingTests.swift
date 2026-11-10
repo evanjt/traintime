@@ -38,6 +38,22 @@ final class ParsingTests: XCTestCase {
         XCTAssertEqual(dep.delay, 0)
     }
 
+    // Scenario: the API flags a cancelled row and omits the flag otherwise.
+    // Expected behaviour: the row decodes as cancelled and is never selectable, even
+    // before it would leave, so the next selectable departure is the following train.
+    func testCancelledDepartureDecodesAndIsNotSelectable() {
+        let soon = Int(Date().timeIntervalSince1970) + 300
+        let cancelled = Departure.from(json: ["to": "Thun", "number": "IC61", "departure": soon, "cancelled": true])
+        let running = Departure.from(json: ["to": "Thun", "number": "IC61", "departure": soon + 1800])
+        XCTAssertTrue(cancelled.cancelled)
+        XCTAssertFalse(cancelled.isGone)
+        XCTAssertFalse(cancelled.isSelectable)
+        XCTAssertFalse(running.cancelled)
+        XCTAssertTrue(running.isSelectable)
+        XCTAssertEqual([cancelled, running].first(where: \.isSelectable)?.departureTimestamp, soon + 1800)
+        XCTAssertEqual([cancelled, running].widgetDepartures.map(\.departureTimestamp), [soon + 1800])
+    }
+
     private func coppetDep(trainNumber: String?, delay: Int? = nil, platform: String = "2", departure: Int = 1_783_171_320) -> Departure {
         var json: [String: Any] = ["to": "Coppet", "category": "R", "number": "RL4", "departure": departure, "platform": platform]
         if let trainNumber { json["trainNumber"] = trainNumber }

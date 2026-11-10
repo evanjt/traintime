@@ -74,6 +74,29 @@ fun isTrackedJourney(dep: Departure, focused: FocusedDeparture): Boolean {
 fun isAlreadyTracked(dep: Departure, appState: Int, focused: FocusedDeparture?): Boolean =
     appState == 2 && focused != null && isTrackedJourney(dep, focused)
 
+enum class BoardTap { TRACK, KEEP, ASK }
+
+// A board tap tracks when nothing is tracked and leaves the tracked row alone.
+// Any other row would replace a running session, its alerts and its queued
+// route, so the board asks first.
+fun boardTap(dep: Departure, appState: Int, focused: FocusedDeparture?): BoardTap = when {
+    appState != 2 || focused == null -> BoardTap.TRACK
+    isTrackedJourney(dep, focused) -> BoardTap.KEEP
+    else -> BoardTap.ASK
+}
+
+// A confirmed switch ends the tracked session before the asked row starts.
+// The session may have ended while the dialog was up, then nothing is ended.
+// null when the asked row has become the tracked one meanwhile.
+data class SwitchPlan(val endDepTs: Long?)
+
+fun confirmedSwitch(dep: Departure, appState: Int, focused: FocusedDeparture?): SwitchPlan? =
+    when (boardTap(dep, appState, focused)) {
+        BoardTap.TRACK -> SwitchPlan(endDepTs = null)
+        BoardTap.KEEP -> null
+        BoardTap.ASK -> SwitchPlan(endDepTs = focused?.departureTimestamp)
+    }
+
 // The row the board marks as tracked. Only state 2 has a session, and only a
 // split window shows the board beside it.
 fun trackedRowIndex(rows: List<Departure>, appState: Int, focused: FocusedDeparture?): Int? =

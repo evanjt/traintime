@@ -282,7 +282,7 @@ struct PhoneStationView: View {
                 .tint(AppColors.favouriteStar)
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                if !departure.isGone {
+                if departure.isSelectable {
                     Button {
                         viewModel.saveDepartureAsPending(departure)
                     } label: {
@@ -298,7 +298,7 @@ struct PhoneStationView: View {
                     Label(isFavourite ? String(localized: "Remove Favourite") : String(localized: "Add Favourite"),
                           systemImage: isFavourite ? "star.slash" : "star")
                 }
-                if !departure.isGone {
+                if departure.isSelectable {
                     Button {
                         viewModel.saveDepartureAsPending(departure)
                     } label: {

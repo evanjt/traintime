@@ -85,6 +85,10 @@
     <string name="review_body">Une petite évaluation aide d\'autres pendulaires à trouver l\'app.</string>
     <string name="replace_route_title">Remplacer l\'itinéraire enregistré ?</string>
     <string name="replace_route_body_fmt">Vous avez déjà un itinéraire enregistré. Le remplacer par le trajet vers %1$s ?</string>
+    <string name="switch_tracking_title_fmt">Suivre plutôt %1$s vers %2$s ?</string>
+    <string name="switch_tracking_body">Le trajet suivi en ce moment prend fin.</string>
+    <string name="switch_tracking_confirm">Suivre plutôt</string>
+    <string name="switch_tracking_cancel">Annuler</string>
     <string name="replace">Remplacer</string>
     <string name="keep_existing">Garder l\'actuel</string>
 

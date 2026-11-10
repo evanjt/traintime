@@ -446,8 +446,8 @@ private fun DepartureListItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        // Can't remind about a train that has already left.
-        enableDismissFromEndToStart = !departure.isGone,
+        // Can't remind about a train that has already left or will not run.
+        enableDismissFromEndToStart = departure.isSelectable,
         backgroundContent = {
             if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                 Row(
@@ -499,7 +499,7 @@ private fun DepartureListItem(
             Modifier
                 .background(MaterialTheme.colorScheme.surfaceContainer)
                 .combinedClickable(
-                    onClick = { if (!departure.isGone) onSelect() },
+                    onClick = { if (departure.isSelectable) onSelect() },
                     onLongClick = onToggleFavourite,
                 ),
         ) {

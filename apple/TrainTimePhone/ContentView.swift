@@ -140,6 +140,18 @@ struct ContentView: View {
         .onChange(of: viewModel.openWriteReviewTick) { _, _ in
             openURL(PhoneViewModel.writeReviewURL)
         }
+        .alert(
+            "Track \(viewModel.pendingSwitch?.lineNumber ?? "") to \(viewModel.pendingSwitch?.destination ?? "") instead?",
+            isPresented: Binding(
+                get: { viewModel.pendingSwitch != nil },
+                set: { if !$0 { viewModel.cancelSwitch() } }
+            )
+        ) {
+            Button("Track instead") { viewModel.confirmSwitch() }
+            Button("Cancel", role: .cancel) { viewModel.cancelSwitch() }
+        } message: {
+            Text("This ends the trip you are tracking now.")
+        }
         // Shared-route intake feedback + replace confirmation.
         .alert("Replace queued route?", isPresented: Binding(
             get: { viewModel.shareReplaceOffer != nil },

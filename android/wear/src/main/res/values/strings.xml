@@ -28,4 +28,5 @@
     <string name="formation_bike">Bike hooks</string>
     <string name="formation_car_fmt">Car %1$d, sector %2$s</string>
     <string name="formation_sector_fmt">Sector %1$s</string>
+    <string name="formation_closed">Closed</string>
 </resources>

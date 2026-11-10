@@ -8,18 +8,33 @@ struct PhoneDepartureRowView: View {
     var onTap: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: { if !departure.isGone { onTap?() } }) {
+        Button(action: { if departure.isSelectable { onTap?() } }) {
             HStack(spacing: 8) {
-                // Minutes
-                Text(departure.minutesText)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .minimumScaleFactor(0.8)
-                    .lineLimit(1)
-                    .foregroundStyle(minutesColor)
-                    .frame(width: 50, alignment: .trailing)
+                // A cancelled train will never run: the label takes the minutes and
+                // delay slots, and the rest of the row is dimmed with the destination struck.
+                if departure.cancelled {
+                    Text("Cancelled")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(AppColors.delay))
+                        .frame(width: 94, alignment: .trailing)
+                } else {
+                    // Minutes
+                    Text(departure.minutesText)
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
+                        .foregroundStyle(minutesColor)
+                        .frame(width: 50, alignment: .trailing)
+                }
 
                 // Delay
-                if departure.delay > 0 && !departure.isGone {
+                if departure.cancelled {
+                    EmptyView()
+                } else if departure.delay > 0 && !departure.isGone {
                     Text("+\(departure.delay)")
                         .font(.system(.caption, design: .rounded, weight: .medium))
                         .foregroundStyle(.white)
@@ -42,7 +57,8 @@ struct PhoneDepartureRowView: View {
                 // Destination
                 Text(departure.destination)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(departure.isGone ? .secondary : .primary)
+                    .foregroundStyle(departure.isSelectable ? .primary : .secondary)
+                    .strikethrough(departure.cancelled)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -56,7 +72,7 @@ struct PhoneDepartureRowView: View {
                 }
 
                 // Chevron
-                if !departure.isGone {
+                if departure.isSelectable {
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
@@ -77,7 +93,7 @@ struct PhoneDepartureRowView: View {
 
     @ViewBuilder
     private var lineBadge: some View {
-        if departure.isGone {
+        if !departure.isSelectable {
             Text(departure.lineNumber)
                 .font(.system(.caption, weight: .medium))
                 .foregroundStyle(.secondary)

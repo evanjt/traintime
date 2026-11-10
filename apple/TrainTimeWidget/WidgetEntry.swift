@@ -36,6 +36,25 @@ struct WidgetDeparture: Codable {
     var favKey: String { "\(lineNumber)|\(destination)" }
 }
 
+extension WidgetDeparture {
+    init(_ dep: Departure) {
+        self.init(
+            destination: dep.destination,
+            departureTimestamp: dep.departureTimestamp ?? 0,
+            delay: dep.delay,
+            platform: dep.platform,
+            platformChanged: dep.platformChanged,
+            lineNumber: dep.lineNumber
+        )
+    }
+}
+
+extension Array where Element == Departure {
+    /// The widget only lists departures that will run: it is the next-departure pick,
+    /// and a cancelled row there would read as a train to catch.
+    var widgetDepartures: [WidgetDeparture] { filter { !$0.cancelled }.map(WidgetDeparture.init) }
+}
+
 struct WidgetStation: Codable {
     let id: String
     let name: String

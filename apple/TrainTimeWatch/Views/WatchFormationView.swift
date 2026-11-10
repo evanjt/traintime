@@ -21,7 +21,7 @@ struct WatchFormationView: View {
             let wagons = formation.wagons
             let breaks = wagons.map(\.noPassageAfter)
             let strip = FormationStrip(width: geo.size.width, breaks: breaks)
-            let labels = strip.numberLabels(numbers: wagons.map(\.number), classes: wagons.map(\.wagonClass), breaks: breaks)
+            let labels = strip.numberLabels(numbers: FormationStrip.labelNumbers(wagons), classes: wagons.map(\.wagonClass), breaks: breaks)
 
             ZStack(alignment: .topLeading) {
                 WatchLocoView(width: FormationStrip.noseWidth, height: Self.carHeight)
@@ -129,7 +129,7 @@ struct WatchCarReadoutRow: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            if let number = wagon.number {
+            if !wagon.closed, let number = wagon.number {
                 Text("\(number)")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
@@ -137,7 +137,12 @@ struct WatchCarReadoutRow: View {
             if !wagon.sector.isEmpty {
                 Text(wagon.sector)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(wagon.closed ? .tertiary : .secondary)
+            }
+            if wagon.closed {
+                Text("Closed")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
             ForEach(FormationAmenity.of(wagon), id: \.self) { a in
                 HStack(spacing: 2) {

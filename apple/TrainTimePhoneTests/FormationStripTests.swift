@@ -107,6 +107,15 @@ final class FormationStripTests: XCTestCase {
         XCTAssertEqual(FormationAmenity.of(wagon), [.restaurant, .wheelchair, .bike])
     }
 
+    func testClosedCarCarriesNoNumberAndNoAmenities() {
+        let open = FormationWagon(position: 1, number: 7, wagonClass: 2, sector: "C", features: ["bike"], closed: false)
+        let closed = FormationWagon(position: 2, number: 8, wagonClass: 1, sector: "D",
+                                    features: ["restaurant", "wheelchair"], closed: true)
+        XCTAssertEqual(FormationStrip.labelNumbers([open, closed]), [7, nil])
+        XCTAssertEqual(FormationAmenity.of(open), [.bike])
+        XCTAssertEqual(FormationAmenity.of(closed), [])
+    }
+
     func testReadoutRingDrains() {
         XCTAssertEqual(FormationReadout.left(elapsed: 0), 1)
         XCTAssertEqual(FormationReadout.left(elapsed: 2.5), 0.5, accuracy: 0.001)

@@ -24,12 +24,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.LocalAppPalette
+import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.linePill
@@ -44,8 +47,11 @@ fun DepartureRow(
 ) {
     val palette = LocalAppPalette.current
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    // A cancelled train will never run: the label takes the minutes and delay
+    // slots, and the rest of the row is dimmed with the destination struck.
+    val dimmed = !departure.isSelectable
     val minutesColor = when {
-        departure.isGone -> secondary
+        dimmed -> secondary
         departure.minutesUntil <= 2 -> palette.minutesNow
         else -> palette.minutesSoon
     }
@@ -65,29 +71,44 @@ fun DepartureRow(
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
-        Text(
-            departure.minutesLabel(LocalContext.current),
-            color = minutesColor,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(50.dp),
-        )
-
-        Spacer(Modifier.width(8.dp))
-
-        Box(Modifier.width(34.dp)) {
-            if (departure.delay > 0 && !departure.isGone) {
+        if (departure.cancelled) {
+            Box(Modifier.width(92.dp), contentAlignment = Alignment.CenterEnd) {
                 Text(
-                    "+${departure.delay}",
+                    stringResource(CoreR.string.row_cancelled),
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 1,
                     modifier = Modifier
-                        .background(palette.delay, CircleShape)
-                        .padding(horizontal = 5.dp, vertical = 2.dp),
+                        .background(palette.delay, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
                 )
+            }
+        } else {
+            Text(
+                departure.minutesLabel(LocalContext.current),
+                color = minutesColor,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                textAlign = TextAlign.End,
+                modifier = Modifier.width(50.dp),
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            Box(Modifier.width(34.dp)) {
+                if (departure.delay > 0 && !dimmed) {
+                    Text(
+                        "+${departure.delay}",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .background(palette.delay, CircleShape)
+                            .padding(horizontal = 5.dp, vertical = 2.dp),
+                    )
+                }
             }
         }
 
@@ -99,14 +120,14 @@ fun DepartureRow(
             if (departure.lineNumber.isNotEmpty()) {
                 Text(
                     departure.lineNumber,
-                    color = if (departure.isGone) secondary else Color.White,
+                    color = if (dimmed) secondary else Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(
-                            if (departure.isGone) {
+                            if (dimmed) {
                                 MaterialTheme.colorScheme.surfaceVariant
                             } else {
                                 palette.linePill(departure.lineNumber, mode)
@@ -121,8 +142,9 @@ fun DepartureRow(
 
         Text(
             departure.destination,
-            color = if (departure.isGone) secondary else MaterialTheme.colorScheme.onSurface,
+            color = if (dimmed) secondary else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
+            textDecoration = if (departure.cancelled) TextDecoration.LineThrough else null,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -137,7 +159,7 @@ fun DepartureRow(
             )
         }
 
-        if (!departure.isGone) {
+        if (departure.isSelectable) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,

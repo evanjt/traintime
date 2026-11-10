@@ -28,6 +28,10 @@ internal fun Departure.toWidgetDeparture() = WidgetDeparture(
     lineNumber = lineNumber,
 )
 
+// The widget only lists departures that will run: it is the next-departure
+// pick, and a cancelled row there would read as a train to catch.
+internal fun List<Departure>.toWidgetDepartures() = filterNot { it.cancelled }.map { it.toWidgetDeparture() }
+
 // Favourites first, then the full list, same order as the iOS widget.
 internal suspend fun fetchStationDepartures(context: Context, station: WidgetStation): WidgetStation? {
     val favourites = FavouritesStore(context)
@@ -36,7 +40,7 @@ internal suspend fun fetchStationDepartures(context: Context, station: WidgetSta
     val favDeps = result.favourites.ifEmpty {
         favourites.extractFavourites(result.departures, station.id)
     }
-    val deps = (favDeps + result.departures).map { it.toWidgetDeparture() }
+    val deps = (favDeps + result.departures).toWidgetDepartures()
     return WidgetStation(id = station.id, name = station.name, departures = deps)
 }
 

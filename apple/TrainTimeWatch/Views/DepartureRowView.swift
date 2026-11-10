@@ -14,11 +14,12 @@ struct DepartureRowView: View {
                         ? .system(.caption, design: .rounded, weight: .bold)
                         : .system(.callout, design: .rounded, weight: .bold))
                     .foregroundStyle(minutesColor)
+                    .strikethrough(departure.cancelled)
                     .lineLimit(1)
                     .frame(width: 34, alignment: .trailing)
 
                 // Delay (fixed width, always reserved)
-                Text(departure.delay > 0 && !departure.isGone ? "+\(departure.delay)" : "")
+                Text(departure.delay > 0 && departure.isSelectable ? "+\(departure.delay)" : "")
                     .font(.system(size: 8, weight: .medium, design: .rounded))
                     .foregroundStyle(AppColors.delay)
                     .baselineOffset(4)
@@ -35,7 +36,8 @@ struct DepartureRowView: View {
                 // Destination
                 Text(departure.destination)
                     .font(.caption)
-                    .foregroundStyle(departure.isGone ? .secondary : .primary)
+                    .foregroundStyle(departure.isSelectable ? .primary : .secondary)
+                    .strikethrough(departure.cancelled)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -47,10 +49,13 @@ struct DepartureRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // No room for a label on the watch row: a cancelled train is dimmed and
+        // struck through, and announced as cancelled to VoiceOver.
+        .accessibilityValue(departure.cancelled ? Text("Cancelled") : Text(""))
     }
 
     private var minutesColor: Color {
-        if departure.isGone { return .secondary }
+        if !departure.isSelectable { return .secondary }
         if departure.minutesUntil <= 2 { return AppColors.minutesNow }
         return AppColors.minutesSoon
     }
@@ -59,7 +64,7 @@ struct DepartureRowView: View {
     private var lineBadge: some View {
         Text(departure.lineNumber)
             .font(.system(.caption2, weight: .medium))
-            .foregroundStyle(departure.isGone ? .secondary : AppColors.platform)
+            .foregroundStyle(departure.isSelectable ? AppColors.platform : .secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
     }

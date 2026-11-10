@@ -39,6 +39,11 @@ object FormationFixtures {
         ),
     )
 
+    // The same train late in the evening with the rear unit locked
+    val ic708ClosedRear = ic708.copy(
+        wagons = ic708.wagons.mapIndexed { i, w -> if (i >= 8) w.copy(closed = true) else w },
+    )
+
     // A short unit of five ahead of a unit of seven, reversed at the boarding stop
     val ic977 = Formation(
         track = "8",

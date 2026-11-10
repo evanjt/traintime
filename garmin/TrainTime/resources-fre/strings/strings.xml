@@ -43,6 +43,7 @@
     <string id="NoConnection">Pas de connexion</string>
     <string id="ConnectionError">Erreur de connexion</string>
     <string id="ErrorFmt">Erreur : $1$</string>
+    <string id="FormationClosed">Fermée</string>
 
     <!-- Toasts -->
     <string id="SendingToPhone">Envoi...</string>

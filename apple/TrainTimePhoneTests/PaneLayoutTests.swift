@@ -57,6 +57,43 @@ final class PaneLayoutTests: XCTestCase {
         XCTAssertFalse(isAlreadyTracked(row("Luzern", 1_718_000_360, train: nil), appState: 0, focused: tracked))
     }
 
+    func testABoardTapTracksWhenNothingIsTracked() {
+        let dep = row("Basel SBB", 1_718_000_960, train: "2517")
+        XCTAssertEqual(boardTap(dep, appState: 0, focused: nil), .track)
+        XCTAssertEqual(boardTap(dep, appState: 3, focused: focused("Luzern", train: "2515")), .track)
+    }
+
+    func testABoardTapOnTheTrackedRowKeepsTheSession() {
+        let tracked = focused("Luzern", train: "2515")
+        XCTAssertEqual(boardTap(row("Luzern", 1_718_000_360, train: "2515"), appState: 2, focused: tracked), .keep)
+    }
+
+    func testABoardTapOnATwinOfTheTrackedTrainAsks() {
+        let tracked = focused("Luzern", train: "2515")
+        XCTAssertEqual(boardTap(row("Luzern", 1_718_000_360, train: "92515"), appState: 2, focused: tracked), .ask)
+    }
+
+    func testABoardTapOnAnotherRowAsks() {
+        let tracked = focused("Luzern", train: "2515")
+        XCTAssertEqual(boardTap(row("Luzern", 1_718_000_960, train: "2517"), appState: 2, focused: tracked), .ask)
+    }
+
+    func testAConfirmedSwitchEndsTheTrackedSessionFirst() {
+        let tracked = focused("Luzern", train: "2515")
+        let plan = confirmedSwitch(row("Luzern", 1_718_000_960, train: "2517"), appState: 2, focused: tracked)
+        XCTAssertEqual(plan, SwitchPlan(endDepTs: 1_718_000_360))
+    }
+
+    func testASwitchConfirmedAfterTheSessionEndedOnlyTracks() {
+        let plan = confirmedSwitch(row("Luzern", 1_718_000_960, train: "2517"), appState: 0, focused: nil)
+        XCTAssertEqual(plan, SwitchPlan(endDepTs: nil))
+    }
+
+    func testASwitchToTheNowTrackedRowDoesNothing() {
+        let tracked = focused("Luzern", train: "2515")
+        XCTAssertNil(confirmedSwitch(row("Luzern", 1_718_000_360, train: "2515"), appState: 2, focused: tracked))
+    }
+
     func testTheTrackedRowIsMarkedWhileTracking() {
         let rows = [
             row("Basel SBB", 1_718_000_360, train: "2511"),

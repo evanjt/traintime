@@ -843,6 +843,28 @@
         }
       }
     },
+    "Cancelled": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fällt aus"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soppresso"
+          }
+        }
+      }
+    },
     "Change at %@": {
       "localizations": {
         "de": {
@@ -5487,6 +5509,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tocca suono o vibrazione per disattivarli in questo viaggio. Tieni premuto per disattivarli in ogni viaggio, o riattivarli se sono già disattivati."
+          }
+        }
+      }
+    },
+    "Track %@ to %@ instead?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stattdessen %1$@ nach %2$@ verfolgen?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivre plutôt %1$@ vers %2$@ ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguire invece %1$@ per %2$@?"
+          }
+        }
+      }
+    },
+    "This ends the trip you are tracking now.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Damit endet die Fahrt, die du gerade verfolgst."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le trajet suivi en ce moment prend fin."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il viaggio che stai seguendo termina."
+          }
+        }
+      }
+    },
+    "Track instead": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stattdessen verfolgen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivre plutôt"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segui invece"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annuler"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }

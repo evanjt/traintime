@@ -18,6 +18,8 @@ module FormationArc {
     const AMEN_GLYPHS = ["r", "w", "f", "b"];
 
     const COLOUR_BODY = 0x555555;
+    // A closed car keeps only a dim outline: no number, roof band or amenity line
+    const COLOUR_CLOSED = 0x555555;
     // Cars are outlined, not filled, so the roof band, lines and numbers keep their contrast
     const COLOUR_OUTLINE = 0xAAAAAA;
     const COLOUR_FIRST = 0xFFFF00;
@@ -122,6 +124,18 @@ module FormationArc {
     function labelFits(label, sp, rm, k, a, b) {
         var mid = (sp[a][0] + sp[b][1]) / 2;
         return label.length() * stepAt(mid, k) - 1 <= (sp[a][0] - sp[b][1]) * rm - 2;
+    }
+
+    // Car numbers to label, null for a closed car so no label covers it
+    function shownNumbers(numbers, closed) {
+        if (closed == null) { return numbers; }
+        var out = new [numbers.size()];
+        for (var i = 0; i < out.size(); i++) { out[i] = closed[i] ? null : numbers[i]; }
+        return out;
+    }
+
+    function isClosed(view, i) {
+        return view.mFormationClosed != null && view.mFormationClosed[i];
     }
 
     function rangeLabel(numbers, a, b) {
@@ -278,17 +292,19 @@ module FormationArc {
             var a1 = sp[i][0];
             var a2 = sp[i][1];
             var highlighted = cursor != null && cursor == i;
+            var closed = isClosed(view, i);
+            var edge = closed ? COLOUR_CLOSED : COLOUR_OUTLINE;
             dc.setPenWidth(highlighted ? 2 : 1);
-            dc.setColor(highlighted ? Graphics.COLOR_WHITE : COLOUR_OUTLINE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(highlighted ? Graphics.COLOR_WHITE : edge, Graphics.COLOR_TRANSPARENT);
             outline(dc, annulusPoints(g, g[:ri], g[:ro], a1, a2));
             dc.setPenWidth(1);
-            if (classes[i] == 1) {
+            if (classes[i] == 1 && !closed) {
                 dc.setColor(COLOUR_FIRST, Graphics.COLOR_TRANSPARENT);
                 var end = (mixed != null && mixed[i]) ? (a1 + a2) / 2 : a2 + 1 / rm;
                 fillAnnulus(dc, g, g[:ri] + 1, g[:ri] + 1 + 3 * k, a1 - 1 / rm, end);
             }
             // Amenity line on black just outside the car, one segment per amenity
-            var bits = amen != null ? amen[i] : 0;
+            var bits = (amen != null && !closed) ? amen[i] : 0;
             var count = 0;
             for (var b = 0; b < AMEN_BITS.size(); b++) { if ((bits & AMEN_BITS[b]) != 0) { count++; } }
             if (count > 0) {
@@ -341,9 +357,10 @@ module FormationArc {
     function drawReadout(dc, g, view, cursor, y, rowH, elapsed) {
         var k = g[:k];
         var f = font(k);
-        var num = view.mFormationNumbers[cursor];
+        var closed = isClosed(view, cursor);
+        var num = closed ? null : view.mFormationNumbers[cursor];
         var sector = view.mFormationSectors[cursor];
-        var bits = view.mFormationAmenities != null ? view.mFormationAmenities[cursor] : 0;
+        var bits = (view.mFormationAmenities != null && !closed) ? view.mFormationAmenities[cursor] : 0;
         var gap = 5 * k;
         var item = 7 * k + 3 + 11 * k + 4 * k;
         var total = dc.getTextWidthInPixels(sector, f) + gap;
@@ -351,6 +368,9 @@ module FormationArc {
             num = num.toString();
             total += dc.getTextWidthInPixels(num, f) + gap;
         }
+        // The pixel font has no lower-case letters, so the word is set in the system font
+        var word = closed ? Txt.t(Rez.Strings.FormationClosed) : null;
+        if (word != null) { total += dc.getTextWidthInPixels(word, Graphics.FONT_XTINY) + gap; }
         for (var b = 0; b < AMEN_BITS.size(); b++) { if ((bits & AMEN_BITS[b]) != 0) { total += item; } }
         var ringR = 4 * k + 1;
         total += 2 * ringR + gap;
@@ -361,9 +381,13 @@ module FormationArc {
             dc.drawText(x, cy, f, num, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
             x += dc.getTextWidthInPixels(num, f) + gap;
         }
-        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(closed ? COLOUR_CLOSED : 0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, cy, f, sector, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         x += dc.getTextWidthInPixels(sector, f) + gap;
+        if (word != null) {
+            dc.drawText(x, cy, Graphics.FONT_XTINY, word, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            x += dc.getTextWidthInPixels(word, Graphics.FONT_XTINY) + gap;
+        }
         for (var b = 0; b < AMEN_BITS.size(); b++) {
             if ((bits & AMEN_BITS[b]) == 0) { continue; }
             dc.setColor(AMEN_COLOURS[b], Graphics.COLOR_TRANSPARENT);

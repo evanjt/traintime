@@ -67,6 +67,8 @@ class FormationSnapshotTest {
 
     @Test fun longTrainLargeRound() = capture("formation_708_large", FormationFixtures.ic708, 227.dp, cursor = 12)
 
+    @Test fun closedRearUnitSmallRound() = capture("formation_708_closed_small", FormationFixtures.ic708ClosedRear, 192.dp, cursor = 12)
+
     @Test fun unnumberedTrainSmallRound() = capture("formation_15185_small", FormationFixtures.s15185, 192.dp, cursor = 1)
 
     @Test fun reversedTrainSmallRound() = capture("formation_977_small", FormationFixtures.ic977, 192.dp, cursor = 0)

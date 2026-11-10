@@ -24,6 +24,7 @@ data class DepartureDto(
     val platformChanged: Boolean? = null,
     val trainNumber: String? = null,
     val operatorRef: String? = null,
+    val cancelled: Boolean? = null,
 ) {
     fun toDeparture(nowEpochSeconds: Long): Departure {
         val minutesUntil = departure?.let { ((it - nowEpochSeconds) / 60).toInt() } ?: -1
@@ -38,6 +39,7 @@ data class DepartureDto(
             category = category ?: "",
             trainNumber = trainNumber,
             operatorRef = operatorRef,
+            cancelled = cancelled ?: false,
         )
     }
 }

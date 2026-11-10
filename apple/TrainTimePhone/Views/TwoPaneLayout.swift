@@ -40,6 +40,29 @@ func isAlreadyTracked(_ dep: Departure, appState: Int, focused: FocusedDeparture
     return isTrackedJourney(dep, focused: focused)
 }
 
+enum BoardTap: Equatable { case track, keep, ask }
+
+// A board tap tracks when nothing is tracked and leaves the tracked row alone.
+// Any other row would replace a running session, its alerts and its queued
+// route, so the board asks first.
+func boardTap(_ dep: Departure, appState: Int, focused: FocusedDeparture?) -> BoardTap {
+    guard appState == 2, let focused else { return .track }
+    return isTrackedJourney(dep, focused: focused) ? .keep : .ask
+}
+
+// A confirmed switch ends the tracked session before the asked row starts.
+// The session may have ended while the dialog was up, then nothing is ended.
+// Nil when the asked row has become the tracked one meanwhile.
+struct SwitchPlan: Equatable { let endDepTs: Int? }
+
+func confirmedSwitch(_ dep: Departure, appState: Int, focused: FocusedDeparture?) -> SwitchPlan? {
+    switch boardTap(dep, appState: appState, focused: focused) {
+    case .track: return SwitchPlan(endDepTs: nil)
+    case .keep: return nil
+    case .ask: return SwitchPlan(endDepTs: focused?.departureTimestamp)
+    }
+}
+
 // The row the board marks as tracked. Only state 2 has a session, and only a
 // split window shows the board beside it.
 func trackedRowIndex(_ rows: [Departure], appState: Int, focused: FocusedDeparture?) -> Int? {

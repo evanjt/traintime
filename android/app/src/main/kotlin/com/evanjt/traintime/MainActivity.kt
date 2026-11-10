@@ -43,6 +43,7 @@ import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
 import com.evanjt.traintime.ui.BackgroundLocationIntroDialog
 import com.evanjt.traintime.ui.BatteryNoticeDialog
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.SwitchTrackingDialog
 import com.evanjt.traintime.ui.adaptive.PaneLayout
 import com.evanjt.traintime.ui.adaptive.TrackingPaneHint
 import com.evanjt.traintime.ui.adaptive.TwoPane
@@ -354,6 +355,15 @@ private fun RootView(
     }
     if (showAttribution) {
         AttributionSheet(onDismiss = { showAttribution = false })
+    }
+
+    viewModel.pendingSwitch?.let { dep ->
+        SwitchTrackingDialog(
+            line = dep.lineNumber,
+            destination = dep.destination,
+            onConfirm = { viewModel.confirmSwitch() },
+            onDismiss = { viewModel.cancelSwitch() },
+        )
     }
 
     // Shared-route intake feedback + replace confirmation.

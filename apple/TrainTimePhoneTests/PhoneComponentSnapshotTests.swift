@@ -12,12 +12,13 @@ import XCTest
 final class PhoneComponentSnapshotTests: XCTestCase {
     private let nowTs = 1_718_000_000
 
-    private func dep(_ line: String, _ dest: String, min: Int, delay: Int = 0, gone: Bool = false) -> Departure {
+    private func dep(_ line: String, _ dest: String, min: Int, delay: Int = 0, gone: Bool = false,
+                     cancelled: Bool = false) -> Departure {
         Departure(
             destination: dest, minutesUntil: gone ? -1 : min,
             departureTimestamp: nowTs + min * 60, delay: delay,
             platform: "3", platformChanged: false, lineNumber: line,
-            category: "IC", trainNumber: nil, operatorRef: nil
+            category: "IC", trainNumber: nil, operatorRef: nil, cancelled: cancelled
         )
     }
 
@@ -40,6 +41,7 @@ final class PhoneComponentSnapshotTests: XCTestCase {
             PhoneDepartureRowView(departure: dep("S7", "Worb Dorf", min: 6), isFavourite: true, mode: .train)
             PhoneDepartureRowView(departure: dep("12", "Sion", min: 4), mode: .bus)
             PhoneDepartureRowView(departure: dep("IR95", "Genève", min: -1, gone: true), mode: .train)
+            PhoneDepartureRowView(departure: dep("IC61", "Interlaken Ost", min: 9, cancelled: true), mode: .train)
         }
         .padding(.horizontal, 12)
         .frame(width: 360)
@@ -159,6 +161,30 @@ final class PhoneComponentSnapshotTests: XCTestCase {
             as: .image(precision: 0.99, perceptualPrecision: 0.98, layout: .sizeThatFits,
                        traits: .init(userInterfaceStyle: .dark)),
             named: "watch_formation_40mm"
+        )
+    }
+
+    // Two units late in the evening with the rear one locked: dimmed, no numbers, no lines
+    func testWatchFormationClosedRearUnit() {
+        let wagons = (0..<10).map { i in
+            FormationWagon(position: i + 1, number: i + 1, wagonClass: i < 2 || i == 5 ? 1 : 2,
+                           sector: ["A", "A", "B", "B", "C", "C", "D", "D", "E", "E"][i],
+                           features: i % 3 == 0 ? ["bike"] : ["restaurant"],
+                           closed: i >= 5, noPassageAfter: i == 4)
+        }
+        let formation = Formation(track: "6", sectors: ["A", "B", "C", "D", "E"], wagons: wagons)
+        let view = VStack(spacing: 6) {
+            WatchFormationView(formation: formation, cursor: 7)
+            WatchCarReadoutRow(wagon: wagons[7], left: 0.6)
+        }
+        .frame(width: 158)
+        .padding(4)
+        .background(Color.black)
+        assertSnapshot(
+            of: AnyView(view),
+            as: .image(precision: 0.99, perceptualPrecision: 0.98, layout: .sizeThatFits,
+                       traits: .init(userInterfaceStyle: .dark)),
+            named: "watch_formation_closed"
         )
     }
 

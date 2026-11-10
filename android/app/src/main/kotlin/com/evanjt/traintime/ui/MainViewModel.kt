@@ -55,6 +55,9 @@ import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
 import com.evanjt.traintime.session.SessionMute
 import com.evanjt.traintime.session.TrackingSnapshot
+import com.evanjt.traintime.ui.adaptive.BoardTap
+import com.evanjt.traintime.ui.adaptive.boardTap
+import com.evanjt.traintime.ui.adaptive.confirmedSwitch
 import com.evanjt.traintime.ui.adaptive.isAlreadyTracked
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
@@ -69,6 +72,7 @@ import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.notify.NotifyPlan
 import com.evanjt.traintime.notify.PendingRouteNotifier
 import com.evanjt.traintime.notify.RouteDistanceTracker
+import com.evanjt.traintime.widget.actions.toWidgetDepartures
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
@@ -912,16 +916,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Departure selection & tracking
 
     fun selectFavouriteDeparture(dep: Departure) {
-        selectDepartureImpl(dep)
+        tapBoardRow(dep)
     }
 
     fun selectDeparture(index: Int) {
-        departures.getOrNull(index)?.let { selectDepartureImpl(it) }
+        departures.getOrNull(index)?.let { tapBoardRow(it) }
+    }
+
+    // The board row waiting on "Track instead", shown as a confirmation.
+    var pendingSwitch by mutableStateOf<Departure?>(null)
+        private set
+
+    private fun tapBoardRow(dep: Departure) {
+        if (dep.departureTimestamp == null || dep.isGone) return
+        when (boardTap(dep, appState, focusedTrain)) {
+            BoardTap.TRACK -> selectDepartureImpl(dep)
+            BoardTap.KEEP -> Unit
+            BoardTap.ASK -> pendingSwitch = dep
+        }
+    }
+
+    fun confirmSwitch() {
+        val dep = pendingSwitch ?: return
+        pendingSwitch = null
+        val plan = confirmedSwitch(dep, appState, focusedTrain) ?: return
+        plan.endDepTs?.let { endSessionForSwitch(it) }
+        selectDepartureImpl(dep)
+    }
+
+    fun cancelSwitch() {
+        pendingSwitch = null
+    }
+
+    // Ends the tracked session as Stop does, short of leaving the board, so the
+    // next one starts on the same station. A queued shared route advances past
+    // the ended leg as on any focus switch. With background tracking on, the
+    // next start intent replaces the service's session, so the service is left
+    // running rather than raced against its own restart.
+    private fun endSessionForSwitch(depTs: Long) {
+        onTrackingEnded(depTs)
+        TrackingSessionBus.endSession(depTs)
+        if (!backgroundTrackingEnabled) TrackingNotificationService.stop(getApplication())
+        pendingWatchTrackSend = false
+        focusedTrain = null
+        formation = null
     }
 
     private fun selectDepartureImpl(dep: Departure, routeDestination: String? = null) {
         val depTs = dep.departureTimestamp ?: return
-        if (dep.isGone) return
+        if (!dep.isSelectable) return
         // Another row on a split board switches what is tracked. The tracked
         // row itself is a no-op.
         if (isAlreadyTracked(dep, appState, focusedTrain)) return
@@ -2373,16 +2416,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             com.evanjt.traintime.widget.WidgetStation(
                 id = station.id,
                 name = name,
-                departures = deps.map {
-                    com.evanjt.traintime.widget.WidgetDeparture(
-                        destination = it.destination,
-                        departureTimestamp = it.departureTimestamp ?: 0,
-                        delay = it.delay,
-                        platform = it.platform,
-                        platformChanged = it.platformChanged,
-                        lineNumber = it.lineNumber,
-                    )
-                },
+                departures = deps.toWidgetDepartures(),
             )
         }
 
@@ -2430,7 +2464,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = departures.indexOfFirst {
             it.destination == destination && it.departureTimestamp == timestamp
         }
-        if (index >= 0) selectDeparture(index)
+        if (index >= 0) selectDepartureImpl(departures[index])
     }
 
     // Shared SBB trip intake (share sheet / sbbshare deep link)
@@ -2498,7 +2532,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveDepartureAsPending(departure: Departure) {
         lastInteractionTime = now()
         val station = currentStation
-        if (station == null || departure.departureTimestamp == null) {
+        if (station == null || departure.departureTimestamp == null || departure.cancelled) {
             showShareStatus(str(R.string.cant_save_departure))
             return
         }

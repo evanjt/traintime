@@ -27,7 +27,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 // Visual regression for the departure rows: line pills (long-distance red,
-// regional blue, bus grey-blue), delay capsule, favourite gold row, gone row,
+// regional blue, bus grey-blue), delay capsule, favourite gold row, gone row, cancelled row,
 // in light and dark. Renders on the JVM via Robolectric, no emulator.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -36,7 +36,7 @@ class DepartureRowSnapshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun dep(line: String, dest: String, min: Int, delay: Int = 0) = Departure(
+    private fun dep(line: String, dest: String, min: Int, delay: Int = 0, cancelled: Boolean = false) = Departure(
         destination = dest,
         minutesUntil = min,
         departureTimestamp = 1000L,
@@ -47,6 +47,7 @@ class DepartureRowSnapshotTest {
         category = "IC",
         trainNumber = null,
         operatorRef = null,
+        cancelled = cancelled,
     )
 
     @Composable
@@ -57,6 +58,7 @@ class DepartureRowSnapshotTest {
             DepartureRow(dep("S7", "Worb Dorf", 6), isFavourite = true, mode = TransportMode.TRAIN)
             DepartureRow(dep("12", "Sion", 4), isFavourite = false, mode = TransportMode.BUS)
             DepartureRow(dep("IR95", "Genève", -1), isFavourite = false, mode = TransportMode.TRAIN)
+            DepartureRow(dep("IC61", "Interlaken Ost", 9, cancelled = true), isFavourite = false, mode = TransportMode.TRAIN)
         }
     }
 

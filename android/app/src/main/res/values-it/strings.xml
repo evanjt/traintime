@@ -85,6 +85,10 @@
     <string name="review_body">Una breve recensione aiuta altri pendolari a trovare l\'app.</string>
     <string name="replace_route_title">Sostituire il percorso salvato?</string>
     <string name="replace_route_body_fmt">Hai già un percorso salvato. Sostituirlo con il viaggio per %1$s?</string>
+    <string name="switch_tracking_title_fmt">Seguire invece %1$s per %2$s?</string>
+    <string name="switch_tracking_body">Il viaggio che stai seguendo termina.</string>
+    <string name="switch_tracking_confirm">Segui invece</string>
+    <string name="switch_tracking_cancel">Annulla</string>
     <string name="replace">Sostituisci</string>
     <string name="keep_existing">Tieni quello attuale</string>
 

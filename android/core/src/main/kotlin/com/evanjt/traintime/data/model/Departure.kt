@@ -17,11 +17,17 @@ data class Departure(
     val category: String,
     val trainNumber: String?,
     val operatorRef: String?,
+    // The feed omits the field unless the journey or this stop is cancelled.
+    val cancelled: Boolean = false,
 ) {
     // Gone once the effective time (schedule plus delay) has passed. A late
     // train is still coming after its scheduled minute, and OJP keeps listing
     // it until the estimate passes, so the board must too.
     val isGone: Boolean get() = minutesUntil + delay < 0
+
+    // A row that can be tracked, reminded or picked as the next departure. A
+    // cancelled train stays on the board, labelled, but never runs.
+    val isSelectable: Boolean get() = !isGone && !cancelled
 
     // Identity stable across fetches, so Compose list keys don't churn when a
     // fresh fetch replaces the list. Includes trainNumber because OJP can list

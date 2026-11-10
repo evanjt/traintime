@@ -85,6 +85,10 @@
     <string name="review_body">Eine kurze Bewertung hilft anderen Pendlern, die App zu finden.</string>
     <string name="replace_route_title">Gespeicherte Route ersetzen?</string>
     <string name="replace_route_body_fmt">Du hast schon eine Route gespeichert. Durch die Reise nach %1$s ersetzen?</string>
+    <string name="switch_tracking_title_fmt">Stattdessen %1$s nach %2$s verfolgen?</string>
+    <string name="switch_tracking_body">Damit endet die Fahrt, die du gerade verfolgst.</string>
+    <string name="switch_tracking_confirm">Stattdessen verfolgen</string>
+    <string name="switch_tracking_cancel">Abbrechen</string>
     <string name="replace">Ersetzen</string>
     <string name="keep_existing">Behalten</string>
 

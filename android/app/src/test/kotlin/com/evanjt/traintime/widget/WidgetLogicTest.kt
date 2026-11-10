@@ -1,6 +1,8 @@
 package com.evanjt.traintime.widget
 
+import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.widget.actions.toWidgetDepartures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -21,6 +23,17 @@ class WidgetLogicTest {
 
     private fun station(id: String, vararg deps: WidgetDeparture) =
         WidgetStation(id = id, name = id, departures = deps.toList())
+
+    @Test
+    fun `a cancelled departure never reaches the widget`() {
+        fun board(ts: Long, cancelled: Boolean) = Departure(
+            destination = "Thun", minutesUntil = 5, departureTimestamp = ts, delay = 0, platform = "4",
+            platformChanged = false, lineNumber = "IC61", category = "IC", trainNumber = null,
+            operatorRef = null, cancelled = cancelled,
+        )
+        val widget = listOf(board(now + 300, cancelled = true), board(now + 1800, cancelled = false)).toWidgetDepartures()
+        assertEquals(listOf(now + 1800), widget.map { it.departureTimestamp })
+    }
 
     @Test
     fun `minutes until covers gone, now and future`() {

@@ -18,7 +18,7 @@ import com.evanjt.traintime.widget.WidgetFetchResult
 import com.evanjt.traintime.widget.WidgetStateDefinition
 import com.evanjt.traintime.widget.WidgetStation
 import com.evanjt.traintime.widget.actions.fetchStationDepartures
-import com.evanjt.traintime.widget.actions.toWidgetDeparture
+import com.evanjt.traintime.widget.actions.toWidgetDepartures
 import com.google.android.gms.location.LocationServices
 import java.time.Duration
 import kotlinx.coroutines.tasks.await
@@ -121,7 +121,7 @@ object WidgetRefresher {
             WidgetStation(
                 id = station.id,
                 name = name,
-                departures = station.embeddedDepartures?.map { it.toWidgetDeparture() } ?: emptyList(),
+                departures = station.embeddedDepartures?.toWidgetDepartures() ?: emptyList(),
             )
         }
 }

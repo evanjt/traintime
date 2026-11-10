@@ -59,6 +59,7 @@
     <string name="resume">Resume</string>
     <string name="row_gone">gone</string>
     <string name="row_now">now</string>
+    <string name="row_cancelled">Cancelled</string>
     <string name="walk_under_min">&lt;1 min</string>
     <string name="walk_info_fmt">%1$s walk - %2$dm</string>
     <string name="settings_advanced">Advanced</string>

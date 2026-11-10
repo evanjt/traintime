@@ -28,4 +28,5 @@
     <string name="formation_bike">Crochets à vélos</string>
     <string name="formation_car_fmt">Voiture %1$d, secteur %2$s</string>
     <string name="formation_sector_fmt">Secteur %1$s</string>
+    <string name="formation_closed">Fermée</string>
 </resources>
