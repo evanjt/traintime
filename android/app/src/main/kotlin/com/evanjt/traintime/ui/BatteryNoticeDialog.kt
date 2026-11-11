@@ -9,10 +9,10 @@ import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 
 // One-shot heads-up shown when a tracking session starts on a battery-aggressive
-// OEM (OnePlus, Xiaomi, Samsung, ...) that hasn't exempted the app. Those
+// OEM that hasn't exempted the app. Those
 // devices kill the tracking foreground service in the background, so the
 // notification silently vanishes. "Open settings" jumps to app settings where
-// the user can allow unrestricted battery. Never shown on Pixel/stock or when
+// the user can allow unrestricted battery. Never shown on stock Android or when
 // already exempted, and never again once seen.
 @Composable
 fun BatteryNoticeDialog(

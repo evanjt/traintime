@@ -1,0 +1,4 @@
+- Ausfallende Züge zeigen jetzt «Fällt aus» und lassen sich weder verfolgen noch als Erinnerung setzen.
+- Tippst du beim Verfolgen auf eine andere Abfahrt, fragt die App, bevor sie wechselt.
+- Station und Modus bleiben beim Verfolgen fest. Tippe darauf, um die Verfolgung zu beenden und sie zu wechseln.
+- Auf Foldables und Tablets bleibt die Abfahrtstafel neben der Verfolgung, so wählst du eine andere Abfahrt, ohne sie zu verlassen.

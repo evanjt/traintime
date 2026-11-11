@@ -1,1 +1,5 @@
-- Démarrage plus rapide : les départs à proximité s'affichent plus tôt à l'ouverture de l'app.
+- Les trains supprimés affichent désormais « Supprimé » et ne peuvent plus être suivis ni servir de rappel.
+- Toucher un autre départ pendant le suivi demande confirmation avant de changer.
+- La gare et le mode restent fixes pendant le suivi. Touchez-les pour arrêter le suivi et les changer.
+- Déplié, le tableau reste à côté du suivi, pour choisir un autre départ sans le quitter.
+- Apple Watch : les voitures fermées apparaissent atténuées dans la composition du train.

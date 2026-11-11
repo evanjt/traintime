@@ -1,0 +1,4 @@
+- Cancelled trains now show as Cancelled, and can't be tracked or set as a reminder.
+- Tapping another departure while tracking asks before switching to it.
+- The station and mode stay put while tracking. Tap one to stop tracking and change it.
+- On a foldable or tablet, the board stays beside tracking, so you can pick another departure without leaving it.

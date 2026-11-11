@@ -1,0 +1,2 @@
+- Ausfallende Züge zeigen jetzt «Fällt aus» und lassen sich nicht mehr verfolgen.
+- Geschlossene Wagen erscheinen in der Zugformation abgedunkelt.

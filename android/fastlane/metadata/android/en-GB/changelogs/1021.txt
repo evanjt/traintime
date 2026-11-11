@@ -1,0 +1,2 @@
+- Cancelled trains now show as Cancelled, and can't be tracked.
+- Closed cars show dimmed in the train formation.

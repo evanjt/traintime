@@ -32,8 +32,8 @@ android {
         minSdk = 26
         // Play requires API 36 for phone apps from 31 Aug 2026.
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.9.1"
+        versionCode = 21
+        versionName = "0.10.0"
     }
 
     signingConfigs {

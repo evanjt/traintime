@@ -34,8 +34,8 @@ android {
         // there rather than take Android 16's predictive-back and edge-to-edge
         // changes on a surface that can't be tested as easily as the phone.
         targetSdk = 35
-        versionCode = 1020
-        versionName = "0.9.1"
+        versionCode = 1021
+        versionName = "0.10.0"
     }
 
     signingConfigs {

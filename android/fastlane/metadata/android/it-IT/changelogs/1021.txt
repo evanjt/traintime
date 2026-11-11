@@ -1,0 +1,2 @@
+- I treni soppressi ora mostrano «Soppresso» e non si possono più seguire.
+- Le carrozze chiuse appaiono attenuate nella composizione del treno.

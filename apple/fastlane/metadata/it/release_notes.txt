@@ -1,1 +1,5 @@
-- Avvio più rapido: le partenze vicine appaiono prima quando apri l'app.
+- I treni soppressi ora mostrano «Soppresso» e non si possono più seguire né usare per un promemoria.
+- Toccando un'altra partenza durante il monitoraggio, l'app chiede prima di cambiare.
+- Stazione e modo restano fissi durante il monitoraggio. Toccali per interromperlo e cambiarli.
+- Da aperto, il tabellone resta accanto al monitoraggio, così scegli un'altra partenza senza lasciarlo.
+- Apple Watch: le carrozze chiuse appaiono attenuate nella composizione del treno.

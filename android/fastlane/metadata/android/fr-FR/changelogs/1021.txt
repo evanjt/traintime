@@ -1,0 +1,2 @@
+- Les trains supprimés affichent désormais « Supprimé » et ne peuvent plus être suivis.
+- Les voitures fermées apparaissent atténuées dans la composition du train.

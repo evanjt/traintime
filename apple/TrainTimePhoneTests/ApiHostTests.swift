@@ -4,7 +4,7 @@ import XCTest
 final class ApiHostTests: XCTestCase {
     func testValidHttpsOriginIsKept() {
         XCTAssertEqual(ApiHost.normalise("https://api.example.ch"), "https://api.example.ch")
-        XCTAssertEqual(ApiHost.normalise("https://10.0.0.5:8443"), "https://10.0.0.5:8443")
+        XCTAssertEqual(ApiHost.normalise("https://192.0.2.10:8443"), "https://192.0.2.10:8443")
     }
 
     func testTrailingSlashAndWhitespaceAreStripped() {

@@ -445,9 +445,9 @@ class TrackingNotificationService : Service() {
             status == TrackingStatus.ON_TIME -> "🟡 "
             else -> ""
         }
-        // The verdict is the first thing on the card. OnePlus Fluid Cloud
-        // drops contentText but renders subText, so the verdict lives there
-        // alongside the timetable facts. contentText carries the walk only.
+        // The verdict is the first thing on the card. Some vendor status
+        // surfaces drop contentText but render subText, so the verdict lives
+        // there alongside the timetable facts. contentText carries the walk only.
         val sub = mutableListOf<String>()
         if (awaitingProximity) {
             sub += ctx.getString(R.string.tracking_far)

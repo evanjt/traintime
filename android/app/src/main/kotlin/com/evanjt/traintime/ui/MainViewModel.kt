@@ -105,7 +105,7 @@ data class ConnectedWatch(val id: String, val name: String, val type: PhoneWatch
 data class WatchLink(val name: String, val type: PhoneWatchType, val connected: Boolean)
 
 // OEMs whose battery managers kill foreground services in the background
-// unless the app is exempted (the dontkillmyapp.com offenders).
+// unless the app is exempted.
 private val AGGRESSIVE_OEMS = setOf(
     "oneplus", "oppo", "realme", "xiaomi", "redmi", "poco", "vivo", "iqoo",
     "huawei", "honor", "samsung", "meizu", "asus", "tecno", "infinix", "blackview",
@@ -1252,11 +1252,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         syncReminderTracking()
     }
 
-    // Battery-optimisation heads-up. Aggressive OEMs (OnePlus, Xiaomi, Samsung
-    // and friends) kill the tracking foreground service once the app is
+    // Battery-optimisation heads-up. Aggressive OEMs kill the tracking
+    // foreground service once the app is
     // backgrounded unless it's exempted, so the notification silently vanishes.
-    // Shown once, only on those OEMs and only while not yet exempted; Pixel/
-    // stock and already-exempted users never see it.
+    // Shown once, only on those OEMs and only while not yet exempted. Stock
+    // Android and already-exempted users never see it.
     var batteryNotice by mutableStateOf(false)
         private set
 
@@ -2861,7 +2861,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             pendingRouteStore.save(normalized)
             PendingRouteNotifier.schedule(getApplication(), normalized, nowSeconds())
         }
-        // A process kill (OnePlus reaps background apps aggressively) drops the
+        // A process kill (some OEMs reap background apps aggressively) drops the
         // in-memory session while the route persists, so on reopen the board
         // would fall back to the old chip. Re-establish the live session here so
         // the green now-tracking card is the single top surface; the tiered
