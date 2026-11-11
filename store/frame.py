@@ -20,6 +20,8 @@ FRAMES = os.path.join(SCRIPT_DIR, "frames")
 DEVICES = {
     "iphone": dict(art="apple-iphone-17-pro-max.png"),
     "iphone-duo-inner": dict(art="apple-iphone-duo-inner.png"),
+    # Opened like a book the inner display is landscape, the fold down the middle.
+    "iphone-duo-inner-landscape": dict(art="apple-iphone-duo-inner.png", rotate=True),
     "iphone-duo-outer": dict(art="apple-iphone-duo-outer.png"),
     "apple-watch": dict(art="apple-watch-s11-46mm.png"),
     # The Pixel's "mask" is drawn over the screen (rounded corners, camera).
@@ -43,10 +45,15 @@ def screen_rect(device):
         return spec["screen"]
     # Flood the transparent hole from the art's centre; islands inside it (the
     # Dynamic Island) stay out of the flood but inside its bounding box.
-    art = Image.open(os.path.join(FRAMES, spec["art"]))
+    art = _art(spec)
     hole = art.getchannel("A").point(lambda a: 255 if a < 128 else 0)
     ImageDraw.floodfill(hole, (art.width // 2, art.height // 2), 128)
     return _bbox(hole)
+
+
+def _art(spec):
+    art = Image.open(os.path.join(FRAMES, spec["art"]))
+    return art.transpose(Image.ROTATE_90) if spec.get("rotate") else art
 
 
 def _bbox(hole):
@@ -65,7 +72,7 @@ def frame_device(device, capture):
         shot = shot.crop((0, 0, shot.width, round(shot.width * h / w)))
     shot = shot.resize((w, h), Image.LANCZOS)
     if "art" in spec:
-        art = Image.open(os.path.join(FRAMES, spec["art"])).convert("RGBA")
+        art = _art(spec).convert("RGBA")
         out = Image.new("RGBA", art.size, (0, 0, 0, 0))
         out.paste(shot, (x, y))
         out.alpha_composite(art)
@@ -123,6 +130,21 @@ def frame_iphone():
                     os.path.join(FRAMED, "iphone", f"{name}.png"), 440)
 
 
+def frame_iphone_unfolded():
+    """The opened Duo in landscape, board beside tracking, for the website's
+    iPhone band. As tall as the phone shots so it reads as wider, not bigger."""
+    framed = frame_device("iphone-duo-inner-landscape",
+                          os.path.join(CAPTURES, "iphone-duo", "02-focused-tracking-inner-raw.png"))
+    framed = framed.crop(framed.getbbox())
+    height = Image.open(os.path.join(FRAMED, "iphone", "01-station-view.png")).height
+    framed = framed.resize((round(framed.width * height / framed.height), height), Image.LANCZOS)
+    # Palette PNG keeps the site image well under its size budget.
+    framed = framed.quantize(256, method=Image.FASTOCTREE, dither=Image.NONE)
+    dest = os.path.join(FRAMED, "iphone", "04-unfolded.png")
+    framed.save(dest, optimize=True)
+    print(f"  Framed: {os.path.relpath(dest, SCRIPT_DIR)}")
+
+
 def frame_garmin():
     """Frame Garmin screenshots using existing framed image as template."""
     # Display position within the 403x558 framed image
@@ -172,6 +194,7 @@ if __name__ == "__main__":
     frame_garmin()
     print("Framing iPhone screenshots...")
     frame_iphone()
+    frame_iphone_unfolded()
     print("Framing Wear OS screenshots...")
     frame_wear_os()
     print("Done!")

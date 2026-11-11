@@ -887,6 +887,50 @@
         }
       }
     },
+    "Collapse": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkleinern"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réduire"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riduci"
+          }
+        }
+      }
+    },
+    "Collapsed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verkleinert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réduite"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ridotta"
+          }
+        }
+      }
+    },
     "Continue": {
       "localizations": {
         "de": {
@@ -1349,6 +1393,28 @@
         }
       }
     },
+    "Expand": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erweitern"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrandir"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espandi"
+          }
+        }
+      }
+    },
     "Failed to send": {
       "localizations": {
         "de": {
@@ -1481,6 +1547,28 @@
         }
       }
     },
+    "Full screen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vollbild"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plein écran"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schermo intero"
+          }
+        }
+      }
+    },
     "GPS: Searching...": {
       "localizations": {
         "de": {
@@ -1543,6 +1631,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scaricala dal Connect IQ Store"
+          }
+        }
+      }
+    },
+    "Half open": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halb geöffnet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À moitié ouverte"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aperta a metà"
           }
         }
       }
@@ -2743,6 +2853,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open source & terze parti"
+          }
+        }
+      }
+    },
+    "Opens tracking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffnet die Verfolgung"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvre le suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre il tracciamento"
           }
         }
       }
@@ -4459,6 +4591,28 @@
         }
       }
     },
+    "Tracking card": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolgungskarte"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carte de suivi"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheda di tracciamento"
+          }
+        }
+      }
+    },
     "Tracking keeps going": {
       "localizations": {
         "en": {
@@ -5597,6 +5751,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Annulla"
+          }
+        }
+      }
+    },
+    "Stop tracking to change station?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolgung beenden, um die Station zu wechseln?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le suivi pour changer de gare ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompere il monitoraggio per cambiare stazione?"
+          }
+        }
+      }
+    },
+    "Stop tracking to change mode?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolgung beenden, um den Modus zu wechseln?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter le suivi pour changer de mode ?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompere il monitoraggio per cambiare modo?"
           }
         }
       }

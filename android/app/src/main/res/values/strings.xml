@@ -89,6 +89,8 @@
     <string name="switch_tracking_body">This ends the trip you are tracking now.</string>
     <string name="switch_tracking_confirm">Track instead</string>
     <string name="switch_tracking_cancel">Cancel</string>
+    <string name="stop_to_change_station_title">Stop tracking to change station?</string>
+    <string name="stop_to_change_mode_title">Stop tracking to change mode?</string>
     <string name="replace">Replace</string>
     <string name="keep_existing">Keep existing</string>
 
@@ -104,6 +106,9 @@
     <string name="tour_track_title">Track a departure</string>
     <string name="tour_track_body">Tap a departure to follow it.</string>
     <string name="split_pane_hint">Tap a departure on the left to track it here.</string>
+    <string name="card_handle_cd">Tracking card handle</string>
+    <string name="card_expand">Expand tracking</string>
+    <string name="card_collapse">Collapse tracking</string>
     <string name="tour_tracking_extra">Your location and the departure time update live to tell you if you\'ll make it on foot.</string>
     <string name="tour_star_title">Star your lines</string>
     <string name="tour_star_body">Swipe a line right, or hold it, to favourite it.</string>

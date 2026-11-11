@@ -79,8 +79,14 @@ private val departureTimeFormat = DateTimeFormatter.ofPattern("HH:mm")
 private fun formatDepartureTime(timestamp: Long): String =
     departureTimeFormat.format(Instant.ofEpochSecond(timestamp).atZone(ZoneId.systemDefault()))
 
+// onBack runs for system Back, so a card can close a stop before the screen is
+// left. showStop is false where the pane carries its own x.
 @Composable
-fun TrackingScreen(viewModel: MainViewModel) {
+fun TrackingScreen(
+    viewModel: MainViewModel,
+    onBack: () -> Unit = { viewModel.leaveTracking() },
+    showStop: Boolean = true,
+) {
     val focused = viewModel.focusedTrain
     val context = LocalContext.current
     val palette = LocalAppPalette.current
@@ -93,7 +99,7 @@ fun TrackingScreen(viewModel: MainViewModel) {
         onDispose { view.keepScreenOn = false }
     }
 
-    BackHandler { viewModel.leaveTracking() }
+    BackHandler(onBack = onBack)
 
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -369,11 +375,13 @@ fun TrackingScreen(viewModel: MainViewModel) {
             )
             Text(stringResource(CoreR.string.back), color = palette.platform, modifier = Modifier.padding(start = 4.dp))
         }
-        TextButton(
-            onClick = { viewModel.stopSession() },
-            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-        ) {
-            Text(stringResource(R.string.stop_short), color = palette.platform)
+        if (showStop) {
+            TextButton(
+                onClick = { viewModel.stopSession() },
+                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+            ) {
+                Text(stringResource(R.string.stop_short), color = palette.platform)
+            }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))
     }

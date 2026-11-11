@@ -384,6 +384,21 @@
         filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
       }
 
+      /* The opened Duo keeps the phones' height, so it reads as wider, not bigger. */
+      .watch-device.iphone.unfolded img {
+        width: auto;
+        height: calc(160px * 898 / 440);
+      }
+
+      .gallery-note {
+        margin-top: 32px;
+        padding: 0 20px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+      }
+
       .watch-label {
         margin-top: 16px;
         font-size: 13px;
@@ -660,6 +675,11 @@
           width: 130px;
         }
 
+        .watch-device.iphone.unfolded img {
+          width: auto;
+          height: calc(130px * 898 / 440);
+        }
+
         .features {
           padding: 60px 20px 80px;
         }
@@ -711,6 +731,11 @@
 
         .watch-device.iphone img {
           width: 100px;
+        }
+
+        .watch-device.iphone.unfolded img {
+          width: auto;
+          height: calc(100px * 898 / 440);
         }
       }
     </style>
@@ -826,9 +851,14 @@
               <div class="watch-img-wrap"><img src="img/iphone/03-station-picker.png" alt="iPhone station picker showing nearby stations" /></div>
               <div class="watch-label">Stations</div>
             </div>
+            <div class="watch-device iphone unfolded">
+              <div class="watch-img-wrap"><img src="img/iphone/04-unfolded.png" alt="iPhone Duo opened in landscape, departures beside the tracking card" /></div>
+              <div class="watch-label">Unfolded</div>
+            </div>
           </div>
         </div>
       </div>
+      <p class="gallery-note">Also adapts to iPhone Duo and Android foldables</p>
     </section>
 
     <section class="data-section">

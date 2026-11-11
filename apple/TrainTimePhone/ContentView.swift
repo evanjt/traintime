@@ -5,12 +5,12 @@ struct ContentView: View {
     @ObservedObject private var pendingRouteStore = PendingRouteStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("seenOnboardingVersion") private var seenOnboardingVersion = 0
     @AppStorage("appAppearance") private var appAppearance = AppAppearance.system.rawValue
     @State private var showTourHint = false
     @State private var showRouteDetail = false
+    @State private var cardChoice = CardStopChoice()
 
     // New install → full tour; updater → only steps added since they last
     // finished; up-to-date → nothing.
@@ -30,27 +30,31 @@ struct ContentView: View {
         ZStack {
             Color(uiColor: .systemBackground).ignoresSafeArea()
 
-            let layout = paneLayout(horizontalSizeClass, appState: viewModel.appState)
-            Group {
-                switch layout {
-                case .tracking:
-                    PhoneFocusedTrackingView(viewModel: viewModel)
-                case .board:
+            GeometryReader { geo in
+                let layout = cardChoice.layout(width: geo.size.width, height: geo.size.height, appState: viewModel.appState)
+                AdaptivePanes(
+                    layout: layout,
+                    showsTracking: viewModel.appState == 2,
+                    onStop: { viewModel.stopTracking() },
+                    onChoose: { cardChoice.choose($0) }
+                ) {
                     PhoneStationView(viewModel: viewModel)
-                case .splitTracking, .splitHint:
-                    // One split for both cases, so switching the right pane keeps
-                    // the board and its scroll position.
-                    TwoPaneLayout {
-                        PhoneStationView(viewModel: viewModel)
-                    } detail: {
-                        if layout == .splitTracking {
-                            PhoneFocusedTrackingView(viewModel: viewModel)
-                        } else {
-                            TrackingPaneHint()
-                        }
+                } tracking: {
+                    PhoneFocusedTrackingView(viewModel: viewModel, showsNavigation: layout.mode == .tracking)
+                } summary: {
+                    if let f = viewModel.focusedTrain {
+                        TrackingPeekSummary(
+                            lineNumber: f.lineNumber,
+                            lineColour: AppColors.linePill(f.lineNumber, mode: viewModel.currentMode),
+                            destination: f.destination,
+                            countdown: f.countdownText,
+                            countdownColour: trackingCountdownColour(f))
                     }
+                } hint: {
+                    TrackingPaneHint()
                 }
             }
+            .onChange(of: viewModel.appState) { _, state in cardChoice.appStateChanged(state) }
             // Keep the last board visible, darkened, with Resume floating on
             // top rather than blanking it. The scrim also swallows taps to the
             // frozen header/list, so Resume is the only live control. On a split
@@ -151,6 +155,18 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) { viewModel.cancelSwitch() }
         } message: {
             Text("This ends the trip you are tracking now.")
+        }
+        .alert(
+            viewModel.pendingPicker == .station
+                ? LocalizedStringKey("Stop tracking to change station?")
+                : LocalizedStringKey("Stop tracking to change mode?"),
+            isPresented: Binding(
+                get: { viewModel.pendingPicker != nil },
+                set: { if !$0 { viewModel.cancelPicker() } }
+            )
+        ) {
+            Button("Stop tracking") { viewModel.confirmPicker() }
+            Button("Cancel", role: .cancel) { viewModel.cancelPicker() }
         }
         // Shared-route intake feedback + replace confirmation.
         .alert("Replace queued route?", isPresented: Binding(

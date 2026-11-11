@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,11 +44,13 @@ import com.evanjt.traintime.ui.BackgroundLocationDisclosureDialog
 import com.evanjt.traintime.ui.BackgroundLocationIntroDialog
 import com.evanjt.traintime.ui.BatteryNoticeDialog
 import com.evanjt.traintime.ui.MainViewModel
+import com.evanjt.traintime.ui.StopToChangeDialog
 import com.evanjt.traintime.ui.SwitchTrackingDialog
-import com.evanjt.traintime.ui.adaptive.PaneLayout
+import com.evanjt.traintime.ui.adaptive.AdaptivePanes
 import com.evanjt.traintime.ui.adaptive.TrackingPaneHint
-import com.evanjt.traintime.ui.adaptive.TwoPane
-import com.evanjt.traintime.ui.adaptive.WindowShape
+import com.evanjt.traintime.ui.adaptive.CardStop
+import com.evanjt.traintime.ui.adaptive.cardStopAfterBack
+import com.evanjt.traintime.ui.adaptive.cardStopFor
 import com.evanjt.traintime.ui.adaptive.paneLayout
 import com.evanjt.traintime.ui.adaptive.rememberFoldingFeatures
 import com.evanjt.traintime.ui.adaptive.verticalFoldOf
@@ -66,6 +69,7 @@ import com.evanjt.traintime.ui.station.InactiveScreen
 import com.evanjt.traintime.ui.station.StationPickerSheet
 import com.evanjt.traintime.ui.station.StationScreen
 import com.evanjt.traintime.ui.theme.TrainTimeTheme
+import com.evanjt.traintime.ui.tracking.TrackingPeek
 import com.evanjt.traintime.ui.tracking.TrackingScreen
 import kotlinx.coroutines.launch
 
@@ -259,6 +263,8 @@ private fun RootView(
                 )
             }
             var paneLeftPx by remember { mutableStateOf(0f) }
+            // Saved so a fold, unfold or rotation keeps the card where it was.
+            var cardStop by rememberSaveable { mutableStateOf(CardStop.HALF) }
             BoxWithConstraints(Modifier.weight(1f).onGloballyPositioned { paneLeftPx = it.positionInWindow().x }) {
                 val openSettings = { focusWatch: Boolean ->
                     settingsFocusWatch = focusWatch
@@ -266,24 +272,35 @@ private fun RootView(
                 }
                 val board = @Composable { StationScreen(viewModel, onOpenSettings = openSettings) }
                 val folds = rememberFoldingFeatures()
-                val shape = WindowShape(maxWidth.value, maxHeight.value, hasFold = folds.isNotEmpty())
+                val fold = verticalFoldOf(folds, paneLeftPx, LocalDensity.current.density)
+                val tracking = viewModel.appState == 2
+                LaunchedEffect(tracking) { cardStop = cardStopFor(tracking, cardStop) }
+                val widthDp = maxWidth.value
+                val heightDp = maxHeight.value
+                val layout = paneLayout(widthDp, heightDp, fold, viewModel.appState, cardStop)
+                val onTrackingBack = {
+                    val closed = cardStopAfterBack(layout)
+                    if (closed != null) cardStop = closed else viewModel.leaveTracking()
+                }
                 // Keep the last board visible, darkened, with Resume floating
                 // on top rather than blanking it. On a split window the scrim
                 // covers both panes.
                 Box(Modifier.fillMaxSize()) {
-                    // One TwoPane for both split cases, so switching the right
-                    // pane keeps the board's scroll position.
-                    when (val layout = paneLayout(shape, viewModel.appState)) {
-                        PaneLayout.TRACKING -> TrackingScreen(viewModel)
-                        PaneLayout.BOARD -> board()
-                        PaneLayout.SPLIT_TRACKING, PaneLayout.SPLIT_HINT -> TwoPane(
-                            board = board,
-                            fold = verticalFoldOf(folds, paneLeftPx, LocalDensity.current.density),
-                            detail = {
-                                if (layout == PaneLayout.SPLIT_TRACKING) TrackingScreen(viewModel) else TrackingPaneHint()
-                            },
-                        )
-                    }
+                    AdaptivePanes(
+                        widthDp = widthDp,
+                        heightDp = heightDp,
+                        fold = fold,
+                        appState = viewModel.appState,
+                        stop = cardStop,
+                        onStopChange = { cardStop = it },
+                        onStopTracking = { viewModel.stopSession() },
+                        board = board,
+                        tracking = { carriesStop ->
+                            TrackingScreen(viewModel, onBack = onTrackingBack, showStop = !carriesStop)
+                        },
+                        peek = { TrackingPeek(viewModel, onBack = onTrackingBack) },
+                        hint = { TrackingPaneHint() },
+                    )
                     if (viewModel.appState == 3) {
                         InactiveScreen(onResume = { viewModel.resumeToStationView() })
                     }
@@ -363,6 +380,14 @@ private fun RootView(
             destination = dep.destination,
             onConfirm = { viewModel.confirmSwitch() },
             onDismiss = { viewModel.cancelSwitch() },
+        )
+    }
+
+    viewModel.pendingPicker?.let { picker ->
+        StopToChangeDialog(
+            picker = picker,
+            onConfirm = { viewModel.confirmPicker() },
+            onDismiss = { viewModel.cancelPicker() },
         )
     }
 

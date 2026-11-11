@@ -71,6 +71,7 @@ import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.ConnectIqStore
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
+import com.evanjt.traintime.ui.adaptive.BoardPicker
 import com.evanjt.traintime.ui.adaptive.boardPickersLocked
 import com.evanjt.traintime.ui.adaptive.trackedRowIndex
 import com.evanjt.traintime.ui.theme.tint
@@ -102,8 +103,8 @@ fun StationScreen(
             ModePicker(
                 availableModes = viewModel.availableModes,
                 currentMode = viewModel.currentMode,
-                onSelect = { viewModel.selectMode(it) },
-                enabled = !pickersLocked,
+                onSelect = { viewModel.tapPicker(BoardPicker.Mode(it)) },
+                dimmed = pickersLocked,
             )
             Spacer(Modifier.weight(1f))
             // Watch link indicator, shown when a watch is known. For Garmin, the colour
@@ -183,7 +184,7 @@ fun StationScreen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !pickersLocked) { viewModel.showStationPicker = true }
+                .clickable { viewModel.tapPicker(BoardPicker.Station) }
                 .padding(top = 10.dp),
         ) {
             Text(

@@ -89,6 +89,8 @@
     <string name="switch_tracking_body">Il viaggio che stai seguendo termina.</string>
     <string name="switch_tracking_confirm">Segui invece</string>
     <string name="switch_tracking_cancel">Annulla</string>
+    <string name="stop_to_change_station_title">Interrompere il monitoraggio per cambiare stazione?</string>
+    <string name="stop_to_change_mode_title">Interrompere il monitoraggio per cambiare modo?</string>
     <string name="replace">Sostituisci</string>
     <string name="keep_existing">Tieni quello attuale</string>
 
@@ -104,6 +106,9 @@
     <string name="tour_track_title">Segui una partenza</string>
     <string name="tour_track_body">Tocca una partenza per seguirla.</string>
     <string name="split_pane_hint">Tocca una partenza a sinistra per seguirla qui.</string>
+    <string name="card_handle_cd">Maniglia della scheda di monitoraggio</string>
+    <string name="card_expand">Espandi il monitoraggio</string>
+    <string name="card_collapse">Riduci il monitoraggio</string>
     <string name="tour_tracking_extra">La tua posizione e l\'orario di partenza si aggiornano live e ti dicono se ce la fai a piedi.</string>
     <string name="tour_star_title">Le tue linee con la stella</string>
     <string name="tour_star_body">Scorri una linea a destra, o tienila premuta, per salvarla nei preferiti.</string>

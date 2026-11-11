@@ -240,7 +240,8 @@ platform :ios do
       screenshots_path: File.expand_path("screenshots", __dir__),
       # Screenshots ship from fastlane/screenshots/<locale>/, mirrored there by
       # store/board.py --install. deliver reads the device class from
-      # each PNG's resolution (6.9" iPhone + Apple Watch) and replaces the set.
+      # each PNG's resolution (6.9" iPhone, the four iPhone Duo sizes, Apple
+      # Watch) and replaces the set.
       overwrite_screenshots: true,
       force: true,
       run_precheck_before_submit: false

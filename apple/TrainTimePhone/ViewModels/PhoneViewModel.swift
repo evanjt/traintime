@@ -20,6 +20,8 @@ class PhoneViewModel: ObservableObject {
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
     /// The board row waiting on "Track instead", shown as a confirmation.
     @Published var pendingSwitch: Departure?
+    /// The board picker waiting on "Stop tracking", shown as a confirmation.
+    @Published var pendingPicker: BoardPicker?
     @Published var showReviewPrompt = false // timed review ask (Yes / Not now / Don't ask again)
     @Published var openWriteReviewTick = 0 // a watch asked to rate; the view opens the write-review page
     @Published var status: String = String(localized: "GPS: Searching...")
@@ -1381,6 +1383,33 @@ class PhoneViewModel: ObservableObject {
         if let idx = availableModes.firstIndex(of: currentMode) {
             let nextIdx = (idx + 1) % availableModes.count
             selectMode(availableModes[nextIdx])
+        }
+    }
+
+    func tapPicker(_ picker: BoardPicker) {
+        switch pickerTap(picker, appState: appState, currentMode: currentMode) {
+        case .open: openPicker(picker)
+        case .keep: break
+        case .ask: pendingPicker = picker
+        }
+    }
+
+    func confirmPicker() {
+        guard let picker = pendingPicker else { return }
+        pendingPicker = nil
+        if confirmedPickerTap(appState: appState).endSession { stopTracking() }
+        // The station sheet waits a run loop so it does not race the closing alert.
+        DispatchQueue.main.async { self.openPicker(picker) }
+    }
+
+    func cancelPicker() {
+        pendingPicker = nil
+    }
+
+    private func openPicker(_ picker: BoardPicker) {
+        switch picker {
+        case .station: showStationPicker = true
+        case .mode(let mode): selectMode(mode)
         }
     }
 

@@ -55,9 +55,13 @@ import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
 import com.evanjt.traintime.session.SessionMute
 import com.evanjt.traintime.session.TrackingSnapshot
+import com.evanjt.traintime.ui.adaptive.BoardPicker
 import com.evanjt.traintime.ui.adaptive.BoardTap
+import com.evanjt.traintime.ui.adaptive.PickerTap
 import com.evanjt.traintime.ui.adaptive.boardTap
+import com.evanjt.traintime.ui.adaptive.confirmedPickerTap
 import com.evanjt.traintime.ui.adaptive.confirmedSwitch
+import com.evanjt.traintime.ui.adaptive.pickerTap
 import com.evanjt.traintime.ui.adaptive.isAlreadyTracked
 import com.evanjt.traintime.ui.onboarding.CURRENT_TOUR_VERSION
 import com.evanjt.traintime.ui.onboarding.effectiveSeenVersion
@@ -2030,6 +2034,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         adoptEmbeddedOrFetch()
         mirrorToGarminDebounced { WearSync.garminModePayload(mode.raw) }
         mirrorToWearDebounced { WearCommand("mode", mode = mode.raw) }
+    }
+
+    // The board picker waiting on "Stop tracking", shown as a confirmation.
+    var pendingPicker by mutableStateOf<BoardPicker?>(null)
+        private set
+
+    fun tapPicker(picker: BoardPicker) {
+        when (pickerTap(picker, appState, currentMode)) {
+            PickerTap.OPEN -> openPicker(picker)
+            PickerTap.KEEP -> Unit
+            PickerTap.ASK -> pendingPicker = picker
+        }
+    }
+
+    fun confirmPicker() {
+        val picker = pendingPicker ?: return
+        pendingPicker = null
+        if (confirmedPickerTap(appState).endSession) stopSession()
+        openPicker(picker)
+    }
+
+    fun cancelPicker() {
+        pendingPicker = null
+    }
+
+    private fun openPicker(picker: BoardPicker) {
+        when (picker) {
+            BoardPicker.Station -> showStationPicker = true
+            is BoardPicker.Mode -> selectMode(picker.mode)
+        }
     }
 
     fun selectStation(index: Int) {

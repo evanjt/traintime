@@ -2,70 +2,121 @@ package com.evanjt.traintime.ui.adaptive
 
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.FocusedDeparture
+import com.evanjt.traintime.data.model.TransportMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PaneLayoutTest {
-    private val tall = WindowShape(widthDp = 700f, heightDp = 1000f, hasFold = false)
-    private val wide = WindowShape(widthDp = 800f, heightDp = 640f, hasFold = false)
-    private val unfoldedBook = WindowShape(widthDp = 674f, heightDp = 841f, hasFold = true)
+    private fun layout(w: Float, h: Float, appState: Int, fold: VerticalFold? = null, stop: CardStop? = null) =
+        paneLayout(widthDp = w, heightDp = h, fold = fold, appState = appState, stop = stop)
 
-    @Test fun widthClassFollowsMaterialBreakpoints() {
-        assertEquals(WidthClass.COMPACT, widthClassOf(411f))
-        assertEquals(WidthClass.COMPACT, widthClassOf(599.9f))
-        assertEquals(WidthClass.MEDIUM, widthClassOf(600f))
-        assertEquals(WidthClass.MEDIUM, widthClassOf(839.9f))
-        assertEquals(WidthClass.EXPANDED, widthClassOf(840f))
-        assertEquals(WidthClass.EXPANDED, widthClassOf(1280f))
+    private val bookCrease = VerticalFold(337f, 337f)
+
+    @Test fun aCompactPhoneShowsTheBoardThenTrackingFullScreen() {
+        assertEquals(PaneMode.BOARD, layout(393f, 852f, appState = 0).mode)
+        assertEquals(PaneMode.BOARD, layout(393f, 852f, appState = 3).mode)
+        assertEquals(PaneMode.TRACKING, layout(393f, 852f, appState = 2).mode)
     }
 
-    @Test fun expandedTrackingSplitsBoardAndTracking() {
-        val shape = WindowShape(widthDp = 900f, heightDp = 1200f, hasFold = false)
-        assertEquals(PaneLayout.SPLIT_TRACKING, paneLayout(shape, appState = 2))
-    }
-
-    @Test fun expandedIdleSplitsBoardAndHint() {
-        val shape = WindowShape(widthDp = 1280f, heightDp = 800f, hasFold = false)
-        assertEquals(PaneLayout.SPLIT_HINT, paneLayout(shape, appState = 0))
-        assertEquals(PaneLayout.SPLIT_HINT, paneLayout(shape, appState = 3))
-    }
-
-    @Test fun mediumLandscapeWindowSplits() {
-        assertEquals(PaneLayout.SPLIT_TRACKING, paneLayout(wide, appState = 2))
-        assertEquals(PaneLayout.SPLIT_HINT, paneLayout(wide, appState = 0))
-    }
-
-    @Test fun mediumSquareWindowSplits() {
-        val square = WindowShape(widthDp = 720f, heightDp = 720f, hasFold = false)
-        assertEquals(PaneLayout.SPLIT_TRACKING, paneLayout(square, appState = 2))
-    }
-
-    @Test fun mediumPortraitWindowWithAFoldSplits() {
-        assertEquals(PaneLayout.SPLIT_TRACKING, paneLayout(unfoldedBook, appState = 2))
-        assertEquals(PaneLayout.SPLIT_HINT, paneLayout(unfoldedBook, appState = 3))
-    }
-
-    @Test fun mediumPortraitWindowWithoutAFoldKeepsTheSingleScreenFlow() {
-        assertEquals(PaneLayout.TRACKING, paneLayout(tall, appState = 2))
-        assertEquals(PaneLayout.BOARD, paneLayout(tall, appState = 0))
-        assertEquals(PaneLayout.BOARD, paneLayout(tall, appState = 3))
-    }
-
-    @Test fun compactKeepsTheSingleScreenFlowEvenWithAFold() {
-        val folded = WindowShape(widthDp = 360f, heightDp = 879f, hasFold = true)
-        val compactLandscape = WindowShape(widthDp = 590f, heightDp = 360f, hasFold = false)
-        for (shape in listOf(folded, compactLandscape)) {
-            assertEquals(PaneLayout.TRACKING, paneLayout(shape, appState = 2))
-            assertEquals(PaneLayout.BOARD, paneLayout(shape, appState = 0))
+    @Test fun aCompactHeightWindowNeverSplitsOrShowsTheCard() {
+        for ((w, h) in listOf(678f to 466f, 956f to 440f)) {
+            assertEquals(PaneMode.BOARD, layout(w, h, appState = 0).mode)
+            assertEquals(PaneMode.TRACKING, layout(w, h, appState = 2).mode)
         }
+    }
+
+    @Test fun twoPhoneWidthPanesSitSideBySideSplitAtTheMiddle() {
+        for (appState in listOf(0, 2)) {
+            val duo = layout(951f, 669f, appState)
+            assertEquals(PaneMode.SIDE_BY_SIDE, duo.mode)
+            assertEquals(475f, duo.boardDp)
+            assertEquals(475f, 951f - duo.detailStartDp)
+        }
+        val tablet = layout(1280f, 800f, appState = 2)
+        assertEquals(PaneMode.SIDE_BY_SIDE, tablet.mode)
+        assertTrue(tablet.boardDp >= BOARD_WIDTH_DP && 1280f - tablet.detailStartDp >= BOARD_WIDTH_DP)
+    }
+
+    @Test fun sideBySideSplitsOnAReportedFold() {
+        val split = layout(1280f, 800f, appState = 2, fold = VerticalFold(630f, 650f))
+        assertEquals(PaneLayout(PaneMode.SIDE_BY_SIDE, null, 630f, 650f, onFold = true), split)
+    }
+
+    @Test fun aNarrowerWideWindowRestsTheCardAtPeekWhileIdle() {
+        for ((w, h) in listOf(669f to 951f, 674f to 841f)) {
+            for (fold in listOf(null, bookCrease)) {
+                for (appState in listOf(0, 3)) {
+                    val peek = layout(w, h, appState, fold, stop = CardStop.HALF)
+                    assertEquals(PaneMode.CARD, peek.mode)
+                    assertEquals(CardStop.PEEK, peek.stop)
+                    assertTrue(peek.boardDp >= BOARD_WIDTH_DP && peek.boardDp <= 466f)
+                    assertTrue(w - peek.detailStartDp >= 200f)
+                }
+            }
+        }
+    }
+
+    @Test fun startingTrackingOpensTheCardAtHalf() {
+        for ((w, h) in listOf(669f to 951f, 674f to 841f)) {
+            for (fold in listOf(null, bookCrease)) {
+                val half = layout(w, h, appState = 2, fold = fold)
+                assertEquals(PaneMode.CARD, half.mode)
+                assertEquals(CardStop.HALF, half.stop)
+                assertTrue(w - half.detailStartDp >= 360f)
+                assertEquals(half.detailStartDp, half.boardDp)
+            }
+        }
+    }
+
+    @Test fun theDuoTurnedKeepsTheBoardReadableAtPeek() {
+        assertEquals(466f, layout(669f, 951f, appState = 0).boardDp)
+    }
+
+    @Test fun theCardTakesTheWholeWindowAtFull() {
+        val full = layout(674f, 841f, appState = 2, stop = CardStop.FULL)
+        assertEquals(PaneLayout(PaneMode.CARD, CardStop.FULL, 0f, 0f, onFold = false), full)
+    }
+
+    @Test fun aCardEdgeNeverRestsInsideAnOccludedStrip() {
+        val strip = VerticalFold(300f, 330f)
+        val half = layout(674f, 841f, appState = 2, fold = strip)
+        assertEquals(300f, half.detailStartDp)
+        val peekStrip = VerticalFold(460f, 480f)
+        assertEquals(460f, layout(674f, 841f, appState = 0, fold = peekStrip).detailStartDp)
     }
 
     @Test fun boardPickersLockOnlyWhileTracking() {
         assertTrue(boardPickersLocked(appState = 2))
         assertFalse(boardPickersLocked(appState = 0))
         assertFalse(boardPickersLocked(appState = 3))
+    }
+
+    @Test fun aPickerTapWhileTrackingAsksToStop() {
+        assertEquals(PickerTap.ASK, pickerTap(BoardPicker.Station, appState = 2, currentMode = TransportMode.TRAIN))
+        assertEquals(PickerTap.ASK, pickerTap(BoardPicker.Mode(TransportMode.BUS), appState = 2, currentMode = TransportMode.TRAIN))
+    }
+
+    @Test fun aPickerTapWhenIdleOpens() {
+        for (appState in listOf(0, 3)) {
+            assertEquals(PickerTap.OPEN, pickerTap(BoardPicker.Station, appState, currentMode = TransportMode.TRAIN))
+            assertEquals(PickerTap.OPEN, pickerTap(BoardPicker.Mode(TransportMode.BUS), appState, currentMode = TransportMode.TRAIN))
+        }
+    }
+
+    @Test fun aTapOnTheShownModeChangesNothing() {
+        for (appState in listOf(0, 2)) {
+            assertEquals(PickerTap.KEEP, pickerTap(BoardPicker.Mode(TransportMode.TRAIN), appState, currentMode = TransportMode.TRAIN))
+        }
+    }
+
+    @Test fun aConfirmedPickerTapEndsTheSessionBeforeThePickerOpens() {
+        assertEquals(PickerPlan(endSession = true), confirmedPickerTap(appState = 2))
+    }
+
+    @Test fun aPickerTapConfirmedAfterTheSessionEndedOnlyOpens() {
+        assertEquals(PickerPlan(endSession = false), confirmedPickerTap(appState = 0))
     }
 
     private val tracked = FocusedDeparture(

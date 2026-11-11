@@ -3,7 +3,8 @@
 
 Renders an HTML template per shot with headless Chromium at exact store sizes:
 Play phone (1080x2160), Play large screen (2560x1440), App Store 6.9"
-(1320x2868), App Store iPhone Duo (2007x2853), the App Store header (3840x1646) and search results (3840x2560)
+(1320x2868), App Store iPhone Duo (inner 2853x2007 and 2007x2853, outer
+1398x2034), the App Store header (3840x1646) and search results (3840x2560)
 stills and videos, the Play feature graphic (1024x500) and the Connect IQ hero
 (1440x720), tiles and cover (500x500).
 
@@ -15,7 +16,7 @@ Layout of store/:
              listing text, hero, tiles and cover
   out/       renders before install (gitignored)
 Store renders are mirrored into the fastlane upload trees by install(); the
-Duo set renders from the inner-display captures in captures/iphone-duo and
+Duo set renders from inner and outer captures in captures/iphone-duo and
 ships only from DUO_FROM on. The Play large-screen set renders from an unfolded
 foldable's captures in captures/android-fold and ships only from LARGE_FROM on.
 
@@ -221,7 +222,7 @@ WATCHES_HTML = """<!doctype html>
 }}
 .trio {{
   flex: 1;
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: {direction};
   justify-content: space-evenly;
   align-items: center;
 }}
@@ -369,11 +370,8 @@ def frame_wear():
 # App Store gets the iOS ones.
 def shots(locale, strings, out_subdir):
     if out_subdir == "appstore-duo":
-        duo = os.path.join(CAPTURES, "iphone-duo")
-        track = os.path.join(duo, "02-focused-tracking-inner-raw.png")
-        fav = os.path.join(duo, "04-station-favourites-inner-raw.png")
-        widget = os.path.join(duo, "04-widget-inner-raw.png")
-    elif out_subdir == "play-large":
+        return [shot[:4] for shot in duo_shots(strings)]
+    if out_subdir == "play-large":
         fold = os.path.join(CAPTURES, "android-fold")
         track = os.path.join(fold, "01-tracking.png")
         fav = os.path.join(fold, "02-station-fav.png")
@@ -393,14 +391,30 @@ def shots(locale, strings, out_subdir):
     ]
 
 
+def duo_shots(strings):
+    """The Duo set, one shot per posture: (stem, capture, caption, subcaption,
+    device, canvas). Held open like a book it shows board and tracking side by
+    side, turned upright the tracking card over the board, folded the outer
+    display as on any phone."""
+    duo = os.path.join(CAPTURES, "iphone-duo")
+    return [
+        ("01", os.path.join(duo, "02-focused-tracking-inner-raw.png"),
+         strings["track_cap"], strings["track_sub"], "iphone-duo-inner-landscape", (2853, 2007)),
+        ("02", os.path.join(duo, "02-tracking-card-inner-portrait-raw.png"),
+         strings["fav_cap"], strings["fav_sub"], "iphone-duo-inner", (2007, 2853)),
+        ("03", os.path.join(duo, "04-widget-outer-raw.png"),
+         strings["widget_cap"], strings["widget_sub"], "iphone-duo-outer", (1398, 2034)),
+    ]
+
+
 def shot_device(out_subdir):
     """The device art a set's phone shots sit in."""
     return {"play": "android", "play-large": "android-fold",
-            "appstore-duo": "iphone-duo-inner"}.get(out_subdir, "iphone")
+            "appstore-duo": "iphone-duo-inner-landscape"}.get(out_subdir, "iphone")
 
 
 def duo_missing():
-    """Inner-display captures the Duo set still lacks."""
+    """Captures the Duo set still lacks."""
     return [capture for _, capture, _, _ in shots("en-AU", STRINGS["en-AU"], "appstore-duo")
             if not os.path.exists(capture)]
 
@@ -487,34 +501,70 @@ STRINGS = {
 }
 
 
+def phone_layout(target, art_size, screen_w):
+    """Type, caption block and device size for a captioned phone shot.
+
+    Tall portrait canvases scale type and device from the 6.9" proportions,
+    the device running off the bottom edge. A landscape canvas (the Duo held
+    open) keeps the caption on one line. Landscape and squat portrait canvases
+    (the Duo's displays upright) size the device to the height left below the
+    caption, so it fills the canvas instead of being cut off or floating."""
+    width, height = target
+    landscape = width > height
+    fit = height < 1.8 * width
+    base = int(height * 0.62) if landscape else width
+    pad = int(base * 0.078)
+    cap = int(base * 0.082)
+    sub = int(cap * 0.42)
+    rule = max(4, base // 270)
+    headh = (round(cap * 1.04 + cap * 0.34 + 2 * sub * 1.2) if landscape
+             else head_height(cap, sub))
+    # Matches the CSS: the rule sits 0.52 cap below the head, the stage 0.62 cap below it.
+    stage_top = pad + headh + round(cap * 0.52) + rule + round(cap * 0.62)
+    aw, ah = art_size
+    if fit:
+        devh = height - stage_top - pad
+        devw = int(devh * aw / ah)
+        if devw > width - 2 * pad:
+            devw = width - 2 * pad
+        devh = int(devw * ah / aw)
+    else:
+        # The screen keeps the width it had in the drawn bezel; the art's own
+        # body adds the rest.
+        devw = int(base * 0.79 * aw / screen_w)
+        devh = int(devw * ah / aw)
+    return dict(base=base, pad=pad, cap=cap, sub=sub, rule=rule, headh=headh,
+                stage_top=stage_top, devw=devw, devh=devh, landscape=landscape)
+
+
 def build_locale(locale, strings, target, out_subdir, palette):
     p = PALETTES[palette]
     css = make_css(p)
     width, height = target
-    # Type and device scale from the 6.9" proportions, so a wider canvas (the
-    # Duo inner display) keeps the same board and gains side margin instead of
-    # a phone too tall for the frame.
-    base = width if width <= height * 0.55 else int(height * 0.46)
-    pad = int(base * 0.078)
-    cap = int(base * 0.082)
     # One rule position per shot: the bright segment travels with the swipe.
     segs, segw = seg_positions(SHOT_COUNT)
-    sub = int(cap * 0.42)
-    headh = head_height(cap, sub)
-    sizes = dict(
-        css=css, pad=pad, cap=cap, sub=sub, rule=max(4, base // 270),
-        glow=int(base * 0.16), segw=segw, headh=headh,
-    )
-    device = shot_device(out_subdir)
-    for i, (stem, screen, caption, sub_text) in enumerate(shots(locale, strings, out_subdir)):
-        path, (aw, _), (_, _, sw, _) = framed(device, screen)
-        # The screen keeps the width it had in the drawn bezel; the art's own
-        # body adds the rest.
+    # The Duo set changes posture shot to shot, so each carries its own frame
+    # and canvas. The closing watch frame stays on the set's target canvas.
+    if out_subdir == "appstore-duo":
+        plan = duo_shots(strings)
+    else:
+        plan = [(*shot, shot_device(out_subdir), target) for shot in shots(locale, strings, out_subdir)]
+    layout = None
+    for i, (stem, screen, caption, sub_text, device, canvas) in enumerate(plan):
+        path, art_size, (_, _, sw, _) = framed(device, screen)
+        shot_layout = phone_layout(canvas, art_size, sw)
+        if canvas == target:
+            layout = shot_layout
+        if shot_layout["landscape"]:
+            caption = caption.replace("\n", " ")
         html = PHONE_HTML.format(
-            device=path, caption=caption, sub_text=sub_text, seg=segs[i],
-            devw=int(base * 0.79 * aw / sw), **sizes,
+            css=css, pad=shot_layout["pad"], cap=shot_layout["cap"], sub=shot_layout["sub"],
+            rule=shot_layout["rule"], glow=int(shot_layout["base"] * 0.16), segw=segw,
+            headh=shot_layout["headh"], device=path, caption=caption, sub_text=sub_text,
+            seg=segs[i], devw=shot_layout["devw"],
         )
-        render(html, width, height, os.path.join(STORE, out_subdir, locale, f"{stem}.png"))
+        render(html, *canvas, os.path.join(STORE, out_subdir, locale, f"{stem}.png"))
+    base, pad, cap, sub, headh = (layout[k] for k in ("base", "pad", "cap", "sub", "headh"))
 
     # Watch pairings differ per store: the iOS app links Apple Watch + Garmin,
     # the Android app links Wear OS + Garmin. Never show a watch the store's
@@ -538,12 +588,16 @@ def build_locale(locale, strings, target, out_subdir, palette):
         f'<div class="label">{label}</div></div>'
         for src, label in watches
     )
+    # Held open the watches stand side by side, as tall as the phone shots allow.
+    landscape = layout["landscape"]
     html = WATCHES_HTML.format(
         css=css, pad=pad, cap=cap, sub=sub, rule=max(4, base // 270),
         seg=segs[-1], segw=segw, headh=headh, grey=p["sub"], glow=int(base * 0.16),
         gap=int(base * 0.022), shadow=int(base * 0.016), blur=int(base * 0.055),
-        framedh=int(min(width * 0.46, height * 0.3)), label=int(base * 0.026),
-        caption=strings["watch_cap"], sub_text=watch_sub, items=items,
+        framedh=int(layout["devh"] * 0.8) if landscape else int(min(width * 0.46, height * 0.3)),
+        label=int(base * 0.026), direction="row" if landscape else "column",
+        caption=strings["watch_cap"].replace("\n", " ") if landscape else strings["watch_cap"],
+        sub_text=watch_sub, items=items,
     )
     render(html, width, height, os.path.join(STORE, out_subdir, locale, f"{SHOT_COUNT:02d}.png"))
 
@@ -1038,9 +1092,15 @@ def build_creative_video(locale, strings, palette):
         print(f"  {os.path.relpath(out, STORE)}")
 
 
-# iPhone Duo, inner display portrait. One display class covers inner and outer,
-# so the larger size serves both.
-DUO = (2007, 2853)
+# iPhone Duo. One display class covers both displays in both orientations, and
+# one slot takes these four sizes mixed. DUO is the set's main canvas, the inner
+# display in the landscape book posture, which the closing watch frame uses.
+DUO_SIZES = {(1398, 2034), (2034, 1398), (2007, 2853), (2853, 2007)}
+DUO = (2853, 2007)
+
+# The first deliver that maps all four Duo sizes to the Duo display type. An
+# older one rejects them as unsupported sizes.
+DELIVER_DUO_FROM = "2.241.1"
 
 # The first release whose IPA is built with the iOS 27.1 SDK. Uploading any Duo
 # screenshot badges the listing as optimised for the Duo, so the set ships only
@@ -1066,7 +1126,7 @@ def marketing_version():
 def apple_set(locale, version):
     """(source, file name) for one App Store locale. deliver sorts by file name
     within a device class and detects the class from resolution (1320x2868
-    iPhone 6.9", 2007x2853 iPhone Duo, 416x496 Apple Watch)."""
+    iPhone 6.9", any of DUO_SIZES iPhone Duo, 416x496 Apple Watch)."""
     files = [(os.path.join(STORE, "appstore", locale, f"{i:02d}.png"), f"{i:02d}.png")
              for i in range(1, SHOT_COUNT + 1)]
     files += [(os.path.join(CAPTURES, "apple-watch", f"store-{i:02d}.png"), f"watch-{i:02d}.png")
@@ -1188,9 +1248,9 @@ if __name__ == "__main__":
         print(f"[{locale}/{palette}] App Store 1320x2868")
         build_locale(locale, strings, (1320, 2868), "appstore", palette)
         if duo_missing():
-            print(f"[{locale}/{palette}] App Store iPhone Duo skipped, no inner-display captures")
+            print(f"[{locale}/{palette}] App Store iPhone Duo skipped, captures missing")
         else:
-            print(f"[{locale}/{palette}] App Store iPhone Duo {DUO[0]}x{DUO[1]}")
+            print(f"[{locale}/{palette}] App Store iPhone Duo, inner and outer")
             build_locale(locale, strings, DUO, "appstore-duo", palette)
         print(f"[{locale}/{palette}] App Store header and search results")
         build_creative(locale, strings, palette)

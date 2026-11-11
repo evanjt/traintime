@@ -4,6 +4,9 @@ import UIKit
 
 struct PhoneFocusedTrackingView: View {
     @ObservedObject var viewModel: PhoneViewModel
+    // A wide window draws its own x beside the board, so Back and Stop are
+    // only drawn when tracking takes the whole window.
+    var showsNavigation = true
     @State private var showMap = false
     @State private var tripHint: String?
 
@@ -176,34 +179,36 @@ struct PhoneFocusedTrackingView: View {
             // Back leaves with the session still running (when background
             // tracking is on), Stop ends it. Stop is labelled because an icon
             // opposite Back would read as "close", which Back already does.
-            HStack {
-                Button {
-                    viewModel.leaveTracking()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Back")
-                            .font(.body)
-                    }
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button {
-                    viewModel.stopTracking()
-                } label: {
-                    Text("Stop")
-                        .font(.body)
-                        .foregroundStyle(.red)
+            if showsNavigation {
+                HStack {
+                    Button {
+                        viewModel.leaveTracking()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Back")
+                                .font(.body)
+                        }
+                        .foregroundStyle(.blue)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    Button {
+                        viewModel.stopTracking()
+                    } label: {
+                        Text("Stop")
+                            .font(.body)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .overlay(alignment: .bottom) {
@@ -253,12 +258,15 @@ struct PhoneFocusedTrackingView: View {
     }
 
     private var countdownColor: Color {
-        guard let focused = viewModel.focusedTrain else { return .primary }
-        let minutesUntil = focused.minutesUntil
-        if focused.effectiveMinutesUntil < -0.5 { return .secondary }
-        if minutesUntil < 2.0 { return AppColors.minutesNow }
-        return AppColors.minutesSoon
+        viewModel.focusedTrain.map(trackingCountdownColour) ?? .primary
     }
+}
+
+// Shared by the tracking screen and the card's Peek summary.
+func trackingCountdownColour(_ focused: FocusedDeparture) -> Color {
+    if focused.effectiveMinutesUntil < -0.5 { return .secondary }
+    if focused.minutesUntil < 2.0 { return AppColors.minutesNow }
+    return AppColors.minutesSoon
 }
 
 /// What the Watch button shows. nil hides it (no watch paired).

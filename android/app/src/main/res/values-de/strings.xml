@@ -89,6 +89,8 @@
     <string name="switch_tracking_body">Damit endet die Fahrt, die du gerade verfolgst.</string>
     <string name="switch_tracking_confirm">Stattdessen verfolgen</string>
     <string name="switch_tracking_cancel">Abbrechen</string>
+    <string name="stop_to_change_station_title">Verfolgung beenden, um die Station zu wechseln?</string>
+    <string name="stop_to_change_mode_title">Verfolgung beenden, um den Modus zu wechseln?</string>
     <string name="replace">Ersetzen</string>
     <string name="keep_existing">Behalten</string>
 
@@ -104,6 +106,9 @@
     <string name="tour_track_title">Eine Abfahrt verfolgen</string>
     <string name="tour_track_body">Tippe auf eine Abfahrt, um ihr zu folgen.</string>
     <string name="split_pane_hint">Tippe links auf eine Abfahrt, um ihr hier zu folgen.</string>
+    <string name="card_handle_cd">Griff der Verfolgungskarte</string>
+    <string name="card_expand">Verfolgung vergrössern</string>
+    <string name="card_collapse">Verfolgung verkleinern</string>
     <string name="tour_tracking_extra">Dein Standort und die Abfahrtszeit aktualisieren sich live und zeigen, ob du es zu Fuss schaffst.</string>
     <string name="tour_star_title">Deine Linien markieren</string>
     <string name="tour_star_body">Wische eine Linie nach rechts oder halte sie, um sie zu favorisieren.</string>

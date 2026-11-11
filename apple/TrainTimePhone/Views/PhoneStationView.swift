@@ -15,9 +15,8 @@ struct PhoneStationView: View {
                 PhoneModePickerView(
                     availableModes: viewModel.availableModes,
                     currentMode: viewModel.currentMode,
-                    onSelect: { viewModel.selectMode($0) }
+                    onSelect: { viewModel.tapPicker(.mode($0)) }
                 )
-                .disabled(pickersLocked)
                 .opacity(pickersLocked ? 0.4 : 1)
                 Spacer()
                 // Watch link indicator, tap launches/​re-syncs the primary watch (Garmin
@@ -56,7 +55,7 @@ struct PhoneStationView: View {
 
             // Station name, tappable to open picker
             Button {
-                viewModel.showStationPicker = true
+                viewModel.tapPicker(.station)
             } label: {
                 HStack(spacing: 6) {
                     Text(viewModel.stationName)
@@ -72,7 +71,6 @@ struct PhoneStationView: View {
                 }
             }
             .buttonStyle(.plain)
-            .disabled(pickersLocked)
             .padding(.top, 10)
 
             // Walk info

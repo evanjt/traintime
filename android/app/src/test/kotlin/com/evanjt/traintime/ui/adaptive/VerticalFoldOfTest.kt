@@ -9,25 +9,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-class PaneSplitTest {
-    @Test fun noFoldKeepsTheReadableBoardWidth() {
-        assertEquals(PaneSplit(boardDp = 400f, detailStartDp = 400f, onFold = false), paneSplit(widthDp = 900f, fold = null))
-    }
-
-    @Test fun aHingeAt420GivesTheBoardEverythingLeftOfIt() {
-        assertEquals(PaneSplit(boardDp = 420f, detailStartDp = 420f, onFold = true), paneSplit(900f, VerticalFold(420f, 420f)))
-    }
-
-    @Test fun anOccludingFoldLeavesItsBoundsEmpty() {
-        assertEquals(PaneSplit(boardDp = 400f, detailStartDp = 420f, onFold = true), paneSplit(840f, VerticalFold(400f, 420f)))
-    }
-
-    @Test fun aFoldOutsideThePaneIsIgnored() {
-        assertEquals(paneSplit(900f, null), paneSplit(900f, VerticalFold(0f, 0f)))
-        assertEquals(paneSplit(900f, null), paneSplit(900f, VerticalFold(900f, 920f)))
-    }
-}
-
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class VerticalFoldOfTest {

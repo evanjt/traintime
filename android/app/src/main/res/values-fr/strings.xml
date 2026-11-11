@@ -89,6 +89,8 @@
     <string name="switch_tracking_body">Le trajet suivi en ce moment prend fin.</string>
     <string name="switch_tracking_confirm">Suivre plutôt</string>
     <string name="switch_tracking_cancel">Annuler</string>
+    <string name="stop_to_change_station_title">Arrêter le suivi pour changer de gare ?</string>
+    <string name="stop_to_change_mode_title">Arrêter le suivi pour changer de mode ?</string>
     <string name="replace">Remplacer</string>
     <string name="keep_existing">Garder l\'actuel</string>
 
@@ -104,6 +106,9 @@
     <string name="tour_track_title">Suivre un départ</string>
     <string name="tour_track_body">Touchez un départ pour le suivre.</string>
     <string name="split_pane_hint">Touchez un départ à gauche pour le suivre ici.</string>
+    <string name="card_handle_cd">Poignée de la carte de suivi</string>
+    <string name="card_expand">Agrandir le suivi</string>
+    <string name="card_collapse">Réduire le suivi</string>
     <string name="tour_tracking_extra">Votre position et l\'heure de départ se mettent à jour en direct et vous disent si vous l\'aurez à pied.</string>
     <string name="tour_star_title">Vos lignes en favori</string>
     <string name="tour_star_body">Glissez une ligne vers la droite, ou maintenez-la, pour la mettre en favori.</string>

@@ -42,11 +42,11 @@ fun ModePicker(
     currentMode: TransportMode,
     onSelect: (TransportMode) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
+    dimmed: Boolean = false,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(modifier = modifier.alpha(if (enabled) 1f else 0.4f)) {
+    Row(modifier = modifier.alpha(if (dimmed) 0.4f else 1f)) {
         TransportMode.entries.forEach { mode ->
             val isAvailable = mode in availableModes
             val isSelected = mode == currentMode && isAvailable
@@ -63,7 +63,7 @@ fun ModePicker(
                     .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isSelected) accent.copy(alpha = 0.15f) else Color.Transparent)
-                    .clickable(enabled = enabled && isAvailable) { onSelect(mode) },
+                    .clickable(enabled = isAvailable) { onSelect(mode) },
             ) {
                 val label = stringResource(mode.labelRes)
                 Icon(mode.icon, contentDescription = label, tint = tint)
