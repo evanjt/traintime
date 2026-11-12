@@ -8,7 +8,8 @@ screen mask and sometimes a foreground; the capture goes between. The Garmin
 frame is a product photo with its display blanked.
 """
 
-from PIL import Image, ImageDraw
+from functools import lru_cache
+from PIL import Image, ImageDraw, ImageFilter
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,6 +24,8 @@ DEVICES = {
     # Opened like a book the inner display is landscape, the fold down the middle.
     "iphone-duo-inner-landscape": dict(art="apple-iphone-duo-inner.png", rotate=True),
     "iphone-duo-outer": dict(art="apple-iphone-duo-outer.png"),
+    "ipad": dict(art="apple-ipad-pro-13.png"),
+    "ipad-landscape": dict(art="apple-ipad-pro-13.png", rotate=True),
     "apple-watch": dict(art="apple-watch-s11-46mm.png"),
     # The Pixel's "mask" is drawn over the screen (rounded corners, camera).
     "android": dict(back="google-pixel-5-back.webp", over="google-pixel-5-mask.webp",
@@ -43,12 +46,19 @@ def screen_rect(device):
     spec = DEVICES[device]
     if "screen" in spec:
         return spec["screen"]
-    # Flood the transparent hole from the art's centre; islands inside it (the
-    # Dynamic Island) stay out of the flood but inside its bounding box.
-    art = _art(spec)
+    # Islands inside the hole (the Dynamic Island) stay out of the flood but
+    # inside its bounding box.
+    return _bbox(_hole(device))
+
+
+@lru_cache(maxsize=None)
+def _hole(device):
+    """The art's transparent screen hole, flooded from its centre, as 128.
+    Cached: the flood takes seconds on the larger art."""
+    art = _art(DEVICES[device])
     hole = art.getchannel("A").point(lambda a: 255 if a < 128 else 0)
     ImageDraw.floodfill(hole, (art.width // 2, art.height // 2), 128)
-    return _bbox(hole)
+    return hole
 
 
 def _art(spec):
@@ -74,7 +84,10 @@ def frame_device(device, capture):
     if "art" in spec:
         art = _art(spec).convert("RGBA")
         out = Image.new("RGBA", art.size, (0, 0, 0, 0))
-        out.paste(shot, (x, y))
+        # The screen's rectangle reaches past the art's rounded corners. Clip it
+        # to the hole, grown a little to tuck under the bezel's soft inner edge.
+        inside = _hole(device).point(lambda v: 255 if v == 128 else 0).filter(ImageFilter.MaxFilter(5))
+        out.paste(shot, (x, y), inside.crop((x, y, x + w, y + h)))
         out.alpha_composite(art)
         return out
     out = Image.open(os.path.join(FRAMES, spec["back"])).convert("RGBA")
@@ -134,7 +147,7 @@ def frame_iphone_unfolded():
     """The opened Duo in landscape, board beside tracking, for the website's
     iPhone band. As tall as the phone shots so it reads as wider, not bigger."""
     framed = frame_device("iphone-duo-inner-landscape",
-                          os.path.join(CAPTURES, "iphone-duo", "02-focused-tracking-inner-raw.png"))
+                          os.path.join(CAPTURES, "iphone-duo", "01-tracking-inner-landscape-raw.png"))
     framed = framed.crop(framed.getbbox())
     height = Image.open(os.path.join(FRAMED, "iphone", "01-station-view.png")).height
     framed = framed.resize((round(framed.width * height / framed.height), height), Image.LANCZOS)
