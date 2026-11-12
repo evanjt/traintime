@@ -9,7 +9,16 @@ import XCTest
 // dark are forced via the trait collection, not just the SwiftUI environment.
 // Goldens are recorded on the build host and committed under __Snapshots__/; CI then verifies.
 
+// Goldens are recorded on an iPhone. Text metrics differ by device, so other idioms skip them.
+func skipUnlessReferenceIPhone() throws {
+    try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "snapshot goldens are recorded on an iPhone")
+}
+
 final class PhoneComponentSnapshotTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipUnlessReferenceIPhone()
+    }
+
     private let nowTs = 1_718_000_000
 
     private func dep(_ line: String, _ dest: String, min: Int, delay: Int = 0, gone: Bool = false,

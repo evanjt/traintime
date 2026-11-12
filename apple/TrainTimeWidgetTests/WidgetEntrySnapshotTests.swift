@@ -10,6 +10,11 @@ import XCTest
 // Roborazzi can't render, so the widget's visual lives here. Recorded on the build host, verified in CI.
 
 final class WidgetEntrySnapshotTests: XCTestCase {
+    // Goldens are recorded on an iPhone. Text metrics differ by device, so other idioms skip them.
+    override func setUpWithError() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .phone, "snapshot goldens are recorded on an iPhone")
+    }
+
     private let now = Date(timeIntervalSince1970: 1_718_000_000)
     private var nowTs: Int { Int(now.timeIntervalSince1970) }
 
@@ -61,4 +66,25 @@ final class WidgetEntrySnapshotTests: XCTestCase {
     func testLargeActive() { assertLightDark(widget(.systemLarge), "widget_large_active", 338, 354) }
     func testMediumDormant() { assertLightDark(widget(.systemMedium, dormant: true), "widget_medium_dormant", 338, 158) }
     func testAccessoryRectangular() { assertLightDark(widget(.accessoryRectangular), "widget_accessory_rect", 160, 72) }
+}
+
+final class WidgetRowMetricsTests: XCTestCase {
+    private func roundedBoldWidth(_ text: String, size: CGFloat) -> CGFloat {
+        let base = UIFont.systemFont(ofSize: size, weight: .bold)
+        let font = base.fontDescriptor.withDesign(.rounded).map { UIFont(descriptor: $0, size: size) } ?? base
+        return (text as NSString).size(withAttributes: [.font: font]).width
+    }
+
+    func testEveryMinutesLabelFitsItsColumnInEveryLanguage() {
+        // A label measured within 2pt of its column still truncated on the home screen.
+        let margin: CGFloat = 2
+        let labels = ["now", "jetzt", "part", "ora", "gone", "weg", "parti", "perso", "59'"]
+        for family in [WidgetFamily.systemSmall, .systemMedium, .systemLarge] {
+            let m = WidgetRowMetrics.of(family)
+            for label in labels {
+                let smallest = roundedBoldWidth(label, size: m.minutesSize) * m.minutesMinScale + margin
+                XCTAssertLessThanOrEqual(smallest, m.minutesWidth, "\(label) in \(family)")
+            }
+        }
+    }
 }

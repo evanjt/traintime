@@ -11,14 +11,9 @@ APPLE = os.path.join(ROOT, "apple", "fastlane", "metadata")
 PLAY = os.path.join(ROOT, "android", "fastlane", "metadata", "android")
 
 PLAY_LIMIT = 500
+APP_STORE_LIMIT = 4000
 
-# The tracking screen's icon row: the Map label, the tap and hold rule, and Stop.
-ROW_WORDS = {
-    "en": ["Map", "this trip", "every trip", "Stop"],
-    "de": ["Karte", "diese Fahrt", "jede Fahrt", "Beenden"],
-    "fr": ["Carte", "ce trajet", "tous les trajets", "Arrêter"],
-    "it": ["Mappa", "questo viaggio", "ogni viaggio", "Interrompi"],
-}
+LANGUAGES = {"en", "de", "fr", "it"}
 
 
 def version_code(module):
@@ -59,11 +54,14 @@ class PhoneNotes(unittest.TestCase):
         for locale in os.listdir(PLAY):
             yield locale, os.path.join(PLAY, locale, "changelogs", code + ".txt")
 
-    def test_phone_notes_describe_the_tracking_icon_row(self):
-        for locale, path in self.phone_notes():
-            text = read(path)
-            for word in ROW_WORDS[language(locale)]:
-                self.assertIn(word, text, path)
+    def test_phone_notes_cover_every_language_within_the_store_limit(self):
+        notes = list(self.phone_notes())
+        self.assertEqual({language(l) for l, _ in notes}, LANGUAGES)
+        for _, path in notes:
+            text = read(path).strip()
+            self.assertTrue(text, path)
+            limit = APP_STORE_LIMIT if path.startswith(APPLE) else PLAY_LIMIT
+            self.assertLessEqual(len(read(path)), limit, path)
 
     def test_no_em_dashes(self):
         for _, path in self.phone_notes():
@@ -75,6 +73,17 @@ class PhoneNotes(unittest.TestCase):
                          read(os.path.join(APPLE, "en-GB", "release_notes.txt")))
         self.assertEqual(read(os.path.join(PLAY, "en-AU", "changelogs", code + ".txt")),
                          read(os.path.join(PLAY, "en-GB", "changelogs", code + ".txt")))
+
+
+class AppStoreNotes(unittest.TestCase):
+    def test_every_locale_names_ipad_within_the_limit(self):
+        locales = sorted(l for l in os.listdir(APPLE)
+                         if os.path.isfile(os.path.join(APPLE, l, "release_notes.txt")))
+        self.assertEqual({language(l) for l in locales}, LANGUAGES)
+        for locale in locales:
+            text = read(os.path.join(APPLE, locale, "release_notes.txt"))
+            self.assertIn("iPad", text, locale)
+            self.assertLessEqual(len(text), APP_STORE_LIMIT, locale)
 
 
 if __name__ == "__main__":

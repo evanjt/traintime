@@ -1,5 +1,5 @@
 - Cancelled trains now show as Cancelled, and can't be tracked or set as a reminder.
 - Tapping another departure while tracking asks before switching to it.
 - The station and mode stay put while tracking. Tap one to stop tracking and change it.
-- Unfolded, the board stays beside tracking, so you can pick another departure without leaving it.
+- Now on iPad. On iPad or an unfolded iPhone, the board stays beside tracking, so you can pick another departure without leaving it.
 - Apple Watch: closed cars show dimmed in the train formation.

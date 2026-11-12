@@ -45,7 +45,7 @@ class UnfoldedGalleryTest(unittest.TestCase):
 
     def test_compatibility_note_under_the_gallery(self):
         gallery = re.search(r'<section class="gallery-section">(.*?)</section>', page(), re.S).group(1)
-        self.assertIn("Also adapts to iPhone Duo and Android foldables", gallery)
+        self.assertIn("Also adapts to iPad, iPhone Duo and Android foldables", gallery)
 
 
 if __name__ == "__main__":

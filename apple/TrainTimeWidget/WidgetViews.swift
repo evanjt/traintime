@@ -40,46 +40,7 @@ struct WidgetEntryView: View {
         }
     }
 
-    // MARK: - Row metrics (scaled per family, medium ≈ the phone's PhoneDepartureRowView)
-
-    private struct RowMetrics {
-        var minutesFont: Font
-        var clockFont: Font
-        var minutesWidth: CGFloat
-        var showDelay: Bool
-        var delayWidth: CGFloat
-        var lineFont: Font
-        var lineWidth: CGFloat
-        var destFont: Font
-        var starSize: CGFloat
-        var hSpacing: CGFloat
-    }
-
-    private var rowMetrics: RowMetrics {
-        switch family {
-        case .systemSmall:
-            return RowMetrics(
-                minutesFont: .system(size: 16, weight: .bold, design: .rounded),
-                clockFont: .system(size: 13, weight: .semibold, design: .rounded),
-                minutesWidth: 26, showDelay: false, delayWidth: 0,
-                lineFont: .system(size: 12, weight: .semibold), lineWidth: 34,
-                destFont: .subheadline, starSize: 9, hSpacing: 5)
-        case .systemLarge:
-            return RowMetrics(
-                minutesFont: .system(size: 19, weight: .bold, design: .rounded),
-                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
-                minutesWidth: 40, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
-                destFont: .body, starSize: 12, hSpacing: 8)
-        default: // medium
-            return RowMetrics(
-                minutesFont: .system(size: 20, weight: .bold, design: .rounded),
-                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
-                minutesWidth: 42, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
-                destFont: .body, starSize: 12, hSpacing: 8)
-        }
-    }
+    private var rowMetrics: WidgetRowMetrics { .of(family) }
 
     private var headerFont: Font {
         family == .systemSmall ? .subheadline.weight(.bold) : .headline
@@ -365,7 +326,7 @@ struct WidgetEntryView: View {
                 .font(m.minutesFont)
                 .foregroundStyle(minutesColor(dep))
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(m.minutesMinScale)
                 .frame(width: m.minutesWidth, alignment: .trailing)
 
             // Delay capsule, reserved column with an explicit spacer when on time, so the
@@ -448,6 +409,49 @@ struct WidgetEntryView: View {
         case .systemMedium: return 3
         case .systemLarge: return 7
         default: return 4
+        }
+    }
+}
+
+// Row metrics scaled per family, medium matching the phone's PhoneDepartureRowView.
+struct WidgetRowMetrics {
+    var minutesSize: CGFloat
+    var minutesMinScale: CGFloat
+    var clockFont: Font
+    var minutesWidth: CGFloat
+    var showDelay: Bool
+    var delayWidth: CGFloat
+    var lineFont: Font
+    var lineWidth: CGFloat
+    var destFont: Font
+    var starSize: CGFloat
+    var hSpacing: CGFloat
+
+    var minutesFont: Font { .system(size: minutesSize, weight: .bold, design: .rounded) }
+
+    static func of(_ family: WidgetFamily) -> WidgetRowMetrics {
+        switch family {
+        case .systemSmall:
+            return WidgetRowMetrics(
+                minutesSize: 16, minutesMinScale: 0.55,
+                clockFont: .system(size: 13, weight: .semibold, design: .rounded),
+                minutesWidth: 27, showDelay: false, delayWidth: 0,
+                lineFont: .system(size: 12, weight: .semibold), lineWidth: 34,
+                destFont: .subheadline, starSize: 9, hSpacing: 5)
+        case .systemLarge:
+            return WidgetRowMetrics(
+                minutesSize: 19, minutesMinScale: 0.7,
+                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
+                minutesWidth: 40, showDelay: true, delayWidth: 34,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
+                destFont: .body, starSize: 12, hSpacing: 8)
+        default:
+            return WidgetRowMetrics(
+                minutesSize: 20, minutesMinScale: 0.7,
+                clockFont: .system(size: 15, weight: .semibold, design: .rounded),
+                minutesWidth: 42, showDelay: true, delayWidth: 34,
+                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
+                destFont: .body, starSize: 12, hSpacing: 8)
         }
     }
 }

@@ -4,6 +4,8 @@ import UIKit
 import XCTest
 @testable import TrainTimePhone
 
+private let duoOpen = CGSize(width: 951, height: 669)
+
 final class PaneLayoutTests: XCTestCase {
     func testACompactPhoneShowsTheBoardThenTrackingFullScreen() {
         XCTAssertEqual(paneLayout(width: 393, height: 852, appState: 0).mode, .board)
@@ -29,6 +31,21 @@ final class PaneLayoutTests: XCTestCase {
         XCTAssertEqual(tablet.mode, .sideBySide)
         XCTAssertGreaterThanOrEqual(tablet.boardWidth, boardNormalWidth)
         XCTAssertGreaterThanOrEqual(1280 - tablet.detailStart, boardNormalWidth)
+    }
+
+    func testAFullScreenIPadShowsBothPanesExceptTheMiniUpright() {
+        for (w, h) in [(1032.0, 1376.0), (1376.0, 1032.0), (834.0, 1210.0), (1210.0, 834.0), (1133.0, 744.0)] {
+            XCTAssertEqual(paneLayout(width: w, height: h, appState: 2).mode, .sideBySide)
+        }
+        XCTAssertEqual(paneLayout(width: 744, height: 1133, appState: 2).mode, .card)
+    }
+
+    func testAHalfWidthIPadWindowShowsTheCardAndSlideOverShowsThePhoneLayout() {
+        XCTAssertEqual(paneLayout(width: 683, height: 1032, appState: 2).mode, .card)
+        for w in [320.0, 375.0] {
+            XCTAssertEqual(paneLayout(width: w, height: 1032, appState: 0).mode, .board)
+            XCTAssertEqual(paneLayout(width: w, height: 1032, appState: 2).mode, .tracking)
+        }
     }
 
     func testANarrowerWideWindowRestsTheCardAtPeekWhileIdle() {
@@ -65,7 +82,6 @@ final class PaneLayoutTests: XCTestCase {
     }
 
     private let duoTurned = CGSize(width: 669, height: 951)
-    private let duoOpen = CGSize(width: 951, height: 669)
 
     private func stop(_ choice: CardStopChoice, _ size: CGSize, appState: Int) -> CardStop? {
         choice.layout(width: size.width, height: size.height, appState: appState).stop
@@ -263,6 +279,12 @@ final class PaneLayoutTests: XCTestCase {
         XCTAssertNil(trackedRowIndex(rows, appState: 3, focused: tracked))
         XCTAssertNil(trackedRowIndex(rows, appState: 2, focused: nil))
         XCTAssertNil(trackedRowIndex([row("Luzern", 1_718_000_960, train: "2517")], appState: 2, focused: tracked))
+    }
+}
+
+final class PaneSnapshotTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipUnlessReferenceIPhone()
     }
 
     // The iPhone Duo inner display turned (2007x2853 px at 3x).
