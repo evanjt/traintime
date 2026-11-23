@@ -38,6 +38,15 @@ data class Departure(
     fun secondsUntil(nowEpochSeconds: Long): Long? =
         departureTimestamp?.let { it - nowEpochSeconds }
 
+    // The row as it reads at `nowEpochSeconds`, with the minute recounted the
+    // way the parser counts it. A board kept across a pause is aged before it
+    // shows or takes a tap, so a train that left meanwhile reads gone.
+    fun at(nowEpochSeconds: Long): Departure {
+        val ts = departureTimestamp ?: return this
+        val minutes = ((ts - nowEpochSeconds) / 60).toInt()
+        return if (minutes == minutesUntil) this else copy(minutesUntil = minutes)
+    }
+
     // Localised board label; the context decides the language ("gone"/"now"
     // are words, so they can't live on the pure model). The minute count is to
     // the schedule, with the delay badge beside it, so a late train reads
@@ -47,6 +56,12 @@ data class Departure(
         minutesUntil <= 0 -> context.getString(R.string.row_now)
         else -> "$minutesUntil'"
     }
+}
+
+// The board aged to `nowEpochSeconds`, the same list when no minute moved.
+fun List<Departure>.at(nowEpochSeconds: Long): List<Departure> {
+    val aged = map { it.at(nowEpochSeconds) }
+    return if (aged.indices.all { aged[it] === this[it] }) this else aged
 }
 
 // OJP can publish the same physical train twice under different journey numbers

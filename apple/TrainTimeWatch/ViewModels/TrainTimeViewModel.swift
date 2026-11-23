@@ -610,6 +610,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         // Skip API fetches in inactive state
         if appState == 3 { return }
+        ageBoard()
 
         // Fetch departures if cooldown elapsed
         if !requestInFlight,
@@ -639,7 +640,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         selectDepartureImpl(departures[index])
     }
 
-    private func selectDepartureImpl(_ dep: Departure) {
+    private func selectDepartureImpl(_ row: Departure) {
+        let dep = row.at(Int(Date().timeIntervalSince1970))
         guard let depTs = dep.departureTimestamp, dep.isSelectable else { return }
         beginTracking(FocusedDeparture(
             destination: dep.destination,
@@ -745,6 +747,15 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+        ageBoard()
+    }
+
+    /// Recounts the shown rows to the clock. Between fetches, and above all
+    /// after a pause, the board is older than it looks.
+    private func ageBoard() {
+        let now = Int(Date().timeIntervalSince1970)
+        if let aged = departures.aged(at: now) { departures = aged }
+        if let aged = favouriteDepartures.aged(at: now) { favouriteDepartures = aged }
     }
 
     /// Inactive-screen resume (terminal user action, no launch follows), so it
@@ -752,7 +763,13 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     /// returns to the user's real position instead of the remote origin board.
     func resumeToStationView() {
         resumeFromInactive()
-        returnToNearbyIfLaunched()
+        if launchedStationActive {
+            returnToNearbyIfLaunched()
+            return
+        }
+        // The board is as old as the pause, so refresh now rather than on the
+        // next tick. The list dims while the answer is on its way.
+        if let id = currentStation?.id { fetchDepartures(stationId: id) }
     }
 
     // MARK: - Review ask

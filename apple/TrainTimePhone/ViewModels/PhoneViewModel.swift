@@ -990,6 +990,7 @@ class PhoneViewModel: ObservableObject {
         }
 
         if appState == 3 { return }
+        ageBoard()
 
         // Fetch cadence + GPS scale with proximity while immersive-tracking (§A):
         // far out polls rarely (or not at all when paused, letting the Live
@@ -1038,7 +1039,8 @@ class PhoneViewModel: ObservableObject {
         tapBoardRow(departures[index])
     }
 
-    private func tapBoardRow(_ dep: Departure) {
+    private func tapBoardRow(_ row: Departure) {
+        let dep = row.at(Int(Date().timeIntervalSince1970))
         guard dep.departureTimestamp != nil, !dep.isGone else { return }
         switch boardTap(dep, appState: appState, focused: focusedTrain) {
         case .track: selectDepartureImpl(dep)
@@ -1188,6 +1190,15 @@ class PhoneViewModel: ObservableObject {
     func resumeFromInactive() {
         lastInteractionTime = Date()
         appState = 0
+        ageBoard()
+    }
+
+    /// Recounts the shown rows to the clock. Between fetches, and above all
+    /// after a pause, the board is older than it looks.
+    private func ageBoard() {
+        let now = Int(Date().timeIntervalSince1970)
+        if let aged = departures.aged(at: now) { departures = aged }
+        if let aged = favouriteDepartures.aged(at: now) { favouriteDepartures = aged }
     }
 
     /// Paused-screen resume (terminal user action, no launch follows), so it can
@@ -1195,7 +1206,13 @@ class PhoneViewModel: ObservableObject {
     /// the user's real location instead of the remote origin board.
     func resumeToStationView() {
         resumeFromInactive()
-        returnToNearbyIfLaunched()
+        if launchedStationActive {
+            returnToNearbyIfLaunched()
+            return
+        }
+        // The board is as old as the pause, so refresh now rather than on the
+        // next tick. The list dims while the answer is on its way.
+        if let id = currentStation?.id { fetchDepartures(stationId: id) }
     }
 
     func toggleRoutedDistance() {

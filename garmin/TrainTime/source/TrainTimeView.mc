@@ -379,6 +379,7 @@ class TrainTimeView extends WatchUi.View {
         var total = getSelectableCount();
         if (total == 0 || mCursorIndex < 0 || mCursorIndex >= total) { return; }
         var t = getSelectableItem(mCursorIndex);
+        DepartureLogic.ageRows([t], Time.now().value());
         if (!DepartureLogic.isSelectable(t)) { return; }
         mFocusedTrain = {
             "dest" => t["dest"],
@@ -501,6 +502,7 @@ class TrainTimeView extends WatchUi.View {
 
     function exitToStationView() {
         var wasTracking = (mAppState == 2);
+        var wasInactive = (mAppState == 3);
         if (mMapActive) {
             mMapActive = false;
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
@@ -523,7 +525,24 @@ class TrainTimeView extends WatchUi.View {
             PhoneSync.sendTrackEnded();
             ReviewPrompt.maybeShow();
         }
+        // The board is as old as the pause: recount it, then refresh now
+        // rather than on the next tick.
+        if (wasInactive) {
+            ageBoard();
+            if (mStationId != null && !mRequestInFlight) {
+                mLastFetchTime = Time.now().value();
+                mRequestInFlight = true;
+                mRequestStartTime = mLastFetchTime;
+                ApiHandler.fetchDepartures(self, mStationId);
+            }
+        }
         WatchUi.requestUpdate();
+    }
+
+    function ageBoard() as Void {
+        var nowSec = Time.now().value();
+        DepartureLogic.ageRows(mTrainData, nowSec);
+        DepartureLogic.ageRows(mFavouriteData, nowSec);
     }
 
     function enterInactiveState() {
@@ -1352,6 +1371,8 @@ class TrainTimeView extends WatchUi.View {
             WatchUi.requestUpdate();
             return;
         }
+
+        if (mAppState != 3) { ageBoard(); }
 
         if (mRequestInFlight) {
             WatchUi.requestUpdate();

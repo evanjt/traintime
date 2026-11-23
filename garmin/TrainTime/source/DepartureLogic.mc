@@ -31,6 +31,20 @@ module DepartureLogic {
         return minutesUntil + nz(delay) < -0.5;
     }
 
+    // Recounts each row's minute to `nowSec` the way the parser counts it. A
+    // board kept across a pause is aged before it shows or takes a press, so a
+    // train that left meanwhile reads gone. Rows are changed in place.
+    function ageRows(rows as Lang.Array?, nowSec as Lang.Number) as Void {
+        if (rows == null) { return; }
+        for (var i = 0; i < rows.size(); i++) {
+            var row = rows[i] as Lang.Dictionary;
+            var ts = row["depTs"];
+            if (ts != null) {
+                row["min"] = (ts - nowSec) / 60;
+            }
+        }
+    }
+
     function nz(delay as Lang.Number?) as Lang.Number {
         return delay == null ? 0 : delay;
     }

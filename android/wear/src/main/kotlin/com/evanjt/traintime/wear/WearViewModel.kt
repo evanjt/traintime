@@ -22,6 +22,7 @@ import com.evanjt.traintime.wear.R
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.data.model.at
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.Formation
@@ -746,6 +747,7 @@ class WearViewModel(
             return
         }
         if (appState == 3) return
+        ageBoard()
 
         // Tracking cadence follows the same proximity tiers as the phone, so a
         // watch battery isn't spent polling for a train hours away. The tier is
@@ -783,7 +785,8 @@ class WearViewModel(
     // Favourite rows in the top block carry a Departure directly.
     fun selectDeparture(departure: Departure) = selectDepartureImpl(departure)
 
-    private fun selectDepartureImpl(dep: Departure) {
+    private fun selectDepartureImpl(row: Departure) {
+        val dep = row.at(nowSeconds())
         val depTs = dep.departureTimestamp ?: return
         if (!dep.isSelectable) return
 
@@ -862,6 +865,15 @@ class WearViewModel(
     fun resumeFromInactive() {
         lastInteractionTime = now()
         appState = 0
+        ageBoard()
+    }
+
+    // Recounts the shown rows to the clock. Between fetches, and above all
+    // after a pause, the board is older than it looks.
+    private fun ageBoard() {
+        val nowS = nowSeconds()
+        departures = departures.at(nowS)
+        favouriteDepartures = favouriteDepartures.at(nowS)
     }
 
     // Paused-screen resume (terminal user action, no launch follows), so it can
@@ -869,7 +881,13 @@ class WearViewModel(
     // to the user's real location instead of the remote origin board.
     fun resumeToStationView() {
         resumeFromInactive()
-        returnToNearbyIfLaunched()
+        if (launchedStationActive) {
+            returnToNearbyIfLaunched()
+            return
+        }
+        // The board is as old as the pause, so refresh now rather than on the
+        // next tick. The list dims while the answer is on its way.
+        currentStation?.id?.let { fetchDepartures(it) }
     }
 
     fun noteInteraction() {

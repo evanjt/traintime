@@ -27,6 +27,7 @@ import com.evanjt.traintime.data.api.ApiHost
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
+import com.evanjt.traintime.data.model.at
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.Formation
@@ -900,6 +901,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (appState == 3) return
+        ageBoard()
 
         // Fetch departures if cooldown elapsed
         val cooldown = if (appState == 2) Timing.FETCH_COOLDOWN_TRACKING else Timing.FETCH_COOLDOWN_NORMAL
@@ -927,7 +929,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var pendingSwitch by mutableStateOf<Departure?>(null)
         private set
 
-    private fun tapBoardRow(dep: Departure) {
+    private fun tapBoardRow(row: Departure) {
+        val dep = row.at(nowSeconds())
         if (dep.departureTimestamp == null || dep.isGone) return
         when (boardTap(dep, appState, focusedTrain)) {
             BoardTap.TRACK -> selectDepartureImpl(dep)
@@ -1145,6 +1148,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resumeFromInactive() {
         lastInteractionTime = now()
         appState = 0
+        ageBoard()
+    }
+
+    // Recounts the shown rows to the clock. Between fetches, and above all
+    // after a pause, the board is older than it looks.
+    private fun ageBoard() {
+        val nowS = nowSeconds()
+        departures = departures.at(nowS)
+        favouriteDepartures = favouriteDepartures.at(nowS)
     }
 
     // The Paused-screen resume button. Unlike the wake-helper resumeFromInactive
@@ -1153,7 +1165,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // the user's real location instead of the remote origin board.
     fun resumeToStationView() {
         resumeFromInactive()
-        returnToNearbyIfLaunched()
+        if (launchedStationActive) {
+            returnToNearbyIfLaunched()
+            return
+        }
+        // The board is as old as the pause, so refresh now rather than on the
+        // next tick. The list dims while the answer is on its way.
+        currentStation?.id?.let { fetchDepartures(it) }
     }
 
     fun updateDefaultMode(mode: TransportMode) {

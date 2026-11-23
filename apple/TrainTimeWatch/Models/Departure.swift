@@ -3,7 +3,7 @@ import Foundation
 struct Departure: Identifiable {
     let id = UUID()
     let destination: String
-    let minutesUntil: Int
+    var minutesUntil: Int
     let departureTimestamp: Int?
     let delay: Int
     let platform: String
@@ -69,6 +69,16 @@ struct Departure: Identifiable {
     /// platform, which mutates across fetches (platformChanged) and would churn identity.
     var stableId: String { "\(departureTimestamp ?? 0)|\(lineNumber)|\(destination)|\(trainNumber ?? "")" }
 
+    /// The row as it reads at `now`, with the minute recounted the way the parser
+    /// counts it. A board kept across a pause is aged before it shows or takes a
+    /// tap, so a train that left meanwhile reads gone. Keeps `id`.
+    func at(_ now: Int) -> Departure {
+        guard let ts = departureTimestamp else { return self }
+        var aged = self
+        aged.minutesUntil = (ts - now) / 60
+        return aged
+    }
+
     /// Seconds until departure (more precise than minutesUntil for tracking)
     var secondsUntil: Int? {
         guard let ts = departureTimestamp else { return nil }
@@ -85,6 +95,13 @@ struct Departure: Identifiable {
 }
 
 extension Array where Element == Departure {
+    /// The board aged to `now`, or nil when no row's minute moved, so a caller
+    /// only republishes a list that changed.
+    func aged(at now: Int) -> [Departure]? {
+        let aged = map { $0.at(now) }
+        return zip(self, aged).contains { $0.minutesUntil != $1.minutesUntil } ? aged : nil
+    }
+
     /// OJP can publish the same physical train twice under different journey numbers
     /// (seen live: Léman Express RL4 → Coppet as 23153 and 93153, only one carrying
     /// the real-time delay). Collapse rows a passenger can't tell apart, keeping the

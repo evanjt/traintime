@@ -444,4 +444,41 @@ final class FormationLayoutTests: XCTestCase {
         XCTAssertNil(lane(["low_floor", "kw"]))
         XCTAssertNil(lane(["restaurant"], closed: true))
     }
+
+    // Scenario: a board fetched before a pause is shown again minutes later.
+    // Expected behaviour: its rows count down to the clock, so a train that left
+    // meanwhile reads gone and can't be tracked.
+    private func agedDeparture(departsInSec: Int, delay: Int = 0, fetchedAt: Int) -> Departure {
+        Departure(destination: "Brig", minutesUntil: departsInSec / 60, departureTimestamp: fetchedAt + departsInSec,
+                  delay: delay, platform: "1", platformChanged: false, lineNumber: "IC8", category: "IC",
+                  trainNumber: nil, operatorRef: nil)
+    }
+
+    func testTrainTwoMinutesOutIsGoneFiveMinutesLater() {
+        let fetchedAt = 1_800_000_000
+        let aged = agedDeparture(departsInSec: 120, fetchedAt: fetchedAt).at(fetchedAt + 300)
+        XCTAssertEqual(aged.minutesUntil, -3)
+        XCTAssertTrue(aged.isGone)
+        XCTAssertFalse(aged.isSelectable)
+    }
+
+    func testDelayedTrainStaysSelectableWhileDelayCoversThePause() {
+        let fetchedAt = 1_800_000_000
+        let aged = agedDeparture(departsInSec: 120, delay: 5, fetchedAt: fetchedAt).at(fetchedAt + 300)
+        XCTAssertFalse(aged.isGone)
+        XCTAssertTrue(aged.isSelectable)
+    }
+
+    func testAgingKeepsRowIdentity() {
+        let fetchedAt = 1_800_000_000
+        let row = agedDeparture(departsInSec: 630, fetchedAt: fetchedAt)
+        XCTAssertEqual(row.at(fetchedAt + 300).id, row.id)
+    }
+
+    func testAgedBoardIsNilUntilAMinuteMoves() {
+        let fetchedAt = 1_800_000_000
+        let board = [630, 930].map { agedDeparture(departsInSec: $0, fetchedAt: fetchedAt) }
+        XCTAssertNil(board.aged(at: fetchedAt + 10))
+        XCTAssertEqual(board.aged(at: fetchedAt + 70)?.map(\.minutesUntil), [9, 14])
+    }
 }

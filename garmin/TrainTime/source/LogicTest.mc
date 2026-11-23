@@ -502,3 +502,17 @@ function testLineChipNeverStartsLeftOfItsSlot(logger) {
     var chip = DrawUtils.lineChip(260, 400);
     return chip[0] == chip[1];
 }
+
+// Scenario: a board fetched before a pause is shown again minutes later.
+// Expected behaviour: rows count down to the clock, so a train that left
+// meanwhile reads gone, while a delay that covers the pause keeps it.
+(:test)
+function testAgedBoardRowsCountToTheClock(logger) {
+    var fetchedAt = 1800000000;
+    var onTime = { "min" => 2, "depTs" => fetchedAt + 120, "delay" => 0 };
+    var late = { "min" => 2, "depTs" => fetchedAt + 120, "delay" => 5 };
+    var noTs = { "min" => 4, "depTs" => null, "delay" => 0 };
+    DepartureLogic.ageRows([onTime, late, noTs], fetchedAt + 300);
+    return onTime["min"] == -3 && !DepartureLogic.isSelectable(onTime)
+        && DepartureLogic.isSelectable(late) && noTs["min"] == 4;
+}
