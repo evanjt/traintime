@@ -26,11 +26,10 @@ struct WidgetDeparture: Codable {
     /// stays in the widget until it has really left.
     func isGone(at date: Date) -> Bool { minutesUntil(at: date) + delay < 0 }
 
-    /// Absolute clock time "HH:mm", shown in the dormant view, where a stale minute count would mislead.
-    var clockTimeText: String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f.string(from: Date(timeIntervalSince1970: TimeInterval(departureTimestamp)))
+    /// Absolute clock time "HH:mm" in the station's region zone, shown in the dormant view, where a
+    /// stale minute count would mislead.
+    func clockTimeText(stationId: String?) -> String {
+        Region.clockTime(departureTimestamp, stationId: stationId)
     }
 
     var favKey: String { "\(lineNumber)|\(destination)" }
@@ -153,6 +152,7 @@ struct DepartureEntry: TimelineEntry {
     let stationCount: Int
     let hideFavouritesBlock: Bool
     let outsideSwitzerland: Bool
+    var stationId: String? = nil
 
     static func dormant(date: Date = .now, stationName: String? = nil) -> DepartureEntry {
         DepartureEntry(
@@ -182,7 +182,8 @@ struct DepartureEntry: TimelineEntry {
             stationIndex: min(result.selectedStationIndex, max(stns.count - 1, 0)),
             stationCount: stns.count,
             hideFavouritesBlock: hideFavouritesBlock,
-            outsideSwitzerland: outsideSwitzerland
+            outsideSwitzerland: outsideSwitzerland,
+            stationId: station?.id
         )
     }
 

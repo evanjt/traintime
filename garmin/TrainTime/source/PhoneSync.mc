@@ -94,7 +94,7 @@ module PhoneSync {
     }
 
     // Ask the phone to send its current location. Used as a GPS fallback when the
-    // watch's own signal is weak or it's outside Switzerland. The phone replies
+    // watch's own signal is weak or it's outside every region. The phone replies
     // with an {action:"loc", lat, lon} message handled by onPhoneLocation.
     function requestLocation() {
         transmit({ "kind" => "reqLoc" });

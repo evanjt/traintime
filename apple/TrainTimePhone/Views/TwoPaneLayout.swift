@@ -345,12 +345,7 @@ struct TrackingPeekSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if !lineNumber.isEmpty {
-                Text(lineNumber)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(lineColour))
+                LinePill(lineNumber, fill: lineColour, fontSize: 15, relativeTo: .subheadline)
             }
             Text(destination)
                 .font(.headline)

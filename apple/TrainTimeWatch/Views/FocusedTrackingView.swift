@@ -60,7 +60,7 @@ struct FocusedTrackingView: View {
                     Text("·")
                         .font(.system(size: 10))
                         .foregroundStyle(.quaternary)
-                    Text(Self.formatDepartureTime(f.departureTimestamp))
+                    Text(Region.clockTime(f.departureTimestamp, stationId: viewModel.currentStation?.id))
                         .font(.system(size: 10, weight: .medium, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(.tertiary)
@@ -177,13 +177,6 @@ struct FocusedTrackingView: View {
         }
     }
 
-    private static func formatDepartureTime(_ timestamp: Int) -> String {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
-    }
-
     private var countdownColor: Color {
         guard let focused = viewModel.focusedTrain else { return .primary }
         let minutesUntil = focused.minutesUntil
@@ -199,13 +192,6 @@ struct WatchOnwardConnectionCard: View {
     let onward: OnwardConnection
     let mode: TransportMode
     let onTap: () -> Void
-
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
-        return formatter
-    }()
 
     var body: some View {
         let leg = onward.leg
@@ -226,7 +212,7 @@ struct WatchOnwardConnectionCard: View {
                         .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                 }
-                Text("\(Self.timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))) · \(onward.changeMinutes) min")
+                Text("\(Region.clockTime(leg.depTs, stationId: leg.originId)) · \(onward.changeMinutes) min")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }

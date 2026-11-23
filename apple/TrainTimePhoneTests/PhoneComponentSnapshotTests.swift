@@ -58,6 +58,28 @@ final class PhoneComponentSnapshotTests: XCTestCase {
         assertLightDark(AnyView(rows), "phone_departure_rows")
     }
 
+    func testLinePillsShareOneWidthWhateverTheLabel() {
+        let labels = ["S3", "IR95", "BEG", "16", "V41", "RE33X", "ICE1234"]
+        let widths = labels.map { label -> CGFloat in
+            let pill = LinePill(label, fill: AppColors.linePill(label, mode: .train), fontSize: 12, relativeTo: .caption)
+            return UIHostingController(rootView: pill).sizeThatFits(in: CGSize(width: 1000, height: 1000)).width
+        }
+        XCTAssertEqual(widths, labels.map { _ in widths[0] })
+    }
+
+    func testMixedLineBoard() {
+        let rows = VStack(spacing: 0) {
+            PhoneDepartureRowView(departure: dep("S3", "Pfäffikon SZ", min: 2), mode: .train)
+            PhoneDepartureRowView(departure: dep("IR95", "Genève", min: 5), mode: .train)
+            PhoneDepartureRowView(departure: dep("BEG", "Belgrave", min: 7), mode: .train)
+            PhoneDepartureRowView(departure: dep("16", "Kew", min: 9), mode: .tram)
+        }
+        .padding(.horizontal, 12)
+        .frame(width: 360)
+        .background(Color(uiColor: .systemBackground))
+        assertLightDark(AnyView(rows), "phone_mixed_line_board")
+    }
+
     func testTrackingBar() {
         let bars = VStack(spacing: 14) {
             TrackingBarView(schedBuf: 4, effectBuf: 5, hasGPS: true)    // ahead

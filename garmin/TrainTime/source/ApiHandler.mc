@@ -1,5 +1,6 @@
 using Toybox.Communications;
 using Toybox.Lang;
+using Toybox.StringUtil;
 using Toybox.System;
 using Toybox.Time;
 using Toybox.Timer;
@@ -405,13 +406,38 @@ module ApiHandler {
     }
 
     function fetchDepartures(view, stationId) {
-        var path = "/v1/departures?id=" + stationId + "&limit=" + departureLimit(System.getSystemStats().totalMemory);
+        var path = departuresPath(stationId,
+            departureLimit(System.getSystemStats().totalMemory),
+            FavouritesManager.buildFavouritesParam(stationId));
+        request(view, KIND_DEPARTURES, path);
+    }
 
-        var favParam = FavouritesManager.buildFavouritesParam(stationId);
+    function departuresPath(stationId, limit, favParam) {
+        var path = "/v1/departures?id=" + encodeComponent(stationId) + "&limit=" + limit;
         if (favParam != null) {
             path = path + "&favourites=" + favParam;
         }
-        request(view, KIND_DEPARTURES, path);
+        return path;
+    }
+
+    // Percent-encodes a query value: every UTF-8 byte outside the unreserved
+    // set A-Z a-z 0-9 - . _ ~ becomes %XX.
+    function encodeComponent(value) {
+        var bytes = StringUtil.convertEncodedString(value.toString(), {
+            :fromRepresentation => StringUtil.REPRESENTATION_STRING_PLAIN_TEXT,
+            :toRepresentation => StringUtil.REPRESENTATION_BYTE_ARRAY,
+        }) as Lang.ByteArray;
+        var out = "";
+        for (var i = 0; i < bytes.size(); i++) {
+            var b = bytes[i];
+            if ((b >= 0x41 && b <= 0x5A) || (b >= 0x61 && b <= 0x7A) || (b >= 0x30 && b <= 0x39)
+                    || b == 0x2D || b == 0x2E || b == 0x5F || b == 0x7E) {
+                out = out + b.toChar();
+            } else {
+                out = out + "%" + b.format("%02X");
+            }
+        }
+        return out;
     }
 
     function parseDepartureArray(departures) {
@@ -569,7 +595,7 @@ module ApiHandler {
 
         var path = "/v1/formation?train=" + trainNumber
             + "&date=" + date
-            + "&stop=" + stationId;
+            + "&stop=" + encodeComponent(stationId);
         if (operatorRef != null) {
             path = path + "&operatorRef=" + operatorRef;
         }

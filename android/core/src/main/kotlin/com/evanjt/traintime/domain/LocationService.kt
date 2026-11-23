@@ -7,10 +7,10 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
 import androidx.core.content.ContextCompat
-import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.LatLon
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.region.Regions
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -151,8 +151,8 @@ class LocationService(context: Context, private val prefs: AppPrefs) {
         return dLat > 0.0045 || dLon > 0.006
     }
 
-    val isInSwitzerland: Boolean
-        get() = _coordinate.value?.let { SwissBounds.contains(it.lat, it.lon) } ?: false
+    val isCovered: Boolean
+        get() = _coordinate.value?.let { Regions.isCovered(it.lat, it.lon) } ?: false
 
     suspend fun saveLastKnownCoordinate() {
         _coordinate.value?.let { prefs.saveLastCoordinate(it.lat, it.lon) }

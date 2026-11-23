@@ -1,7 +1,22 @@
 package com.evanjt.traintime
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import com.evanjt.traintime.data.model.TransportMode
 
 // Adaptive accent palette, ported from apple/TrainTimeWatch/Constants.swift.
@@ -104,5 +119,36 @@ fun AppPalette.linePill(line: String, mode: TransportMode): Color {
     }
 }
 
-// SwissBounds / Timing / Thresholds moved to :core (com.evanjt.traintime,
-// shared with :wear). Imports are unchanged, same package, different module.
+// The line pill on every phone surface: a fixed width set by the chip font
+// (LinePillGeometry), the label centred and shrunk when it runs past five
+// characters, so "S3", "IR95" and "BEG" draw as one shape down a board.
+@Composable
+fun LinePill(
+    label: String,
+    fill: Color,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+    textColor: Color = Color.White,
+    corner: Dp = 6.dp,
+    verticalPadding: Dp = 2.dp,
+) {
+    val width = with(LocalDensity.current) { (fontSize * LinePillGeometry.WIDTH_EMS).toDp() }
+    Text(
+        label,
+        color = textColor,
+        fontSize = fontSize * LinePillGeometry.fontScale(label),
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        modifier = modifier
+            .width(width)
+            .clip(RoundedCornerShape(corner))
+            .background(fill)
+            .padding(vertical = verticalPadding),
+    )
+}
+
+// Timing / Thresholds live in :core (com.evanjt.traintime, shared with :wear),
+// the covered regions in :core com.evanjt.traintime.region.

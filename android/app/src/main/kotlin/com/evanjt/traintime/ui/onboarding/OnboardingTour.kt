@@ -76,6 +76,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
@@ -494,14 +495,12 @@ private fun TourTrackingSurface(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(top = 12.dp),
         ) {
-            Text(
+            LinePill(
                 focused.lineNumber,
-                color = Color.White,
+                palette.linePill(focused.lineNumber, mode),
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .background(palette.linePill(focused.lineNumber, mode), RoundedCornerShape(7.dp))
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                corner = 7.dp,
+                verticalPadding = 3.dp,
             )
             Text(
                 focused.destination,
@@ -934,16 +933,7 @@ private fun TourRouteLeg(line: String, path: String, times: String, tracked: Boo
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(bg).padding(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                line,
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(palette.linePill(line, TransportMode.TRAIN))
-                    .padding(horizontal = 7.dp, vertical = 2.dp),
-            )
+            LinePill(line, palette.linePill(line, TransportMode.TRAIN), fontSize = 13.sp)
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                 Text(path, fontWeight = FontWeight.Medium, maxLines = 1)
                 Text(times, color = secondary, fontSize = 12.sp)

@@ -31,11 +31,11 @@ struct RouteLeg: Codable, Equatable {
 
     var durationSec: Int { arrTs - depTs }
 
-    /// A leg can only be live-tracked if it's a Swiss ride with a station id.
-    /// Walk legs and connections outside Switzerland have no departure board.
+    /// A leg can only be live-tracked if it's a ride with a station id that starts in a region
+    /// shared trips come from. Walk legs and connections elsewhere have no departure board.
     var isTrackable: Bool {
         guard type == .ride, originId != nil, let lat = originLat, let lon = originLon else { return false }
-        return SwissBounds.contains(lat: lat, lon: lon)
+        return Region.at(lat: lat, lon: lon)?.sbbShare == true
     }
 }
 

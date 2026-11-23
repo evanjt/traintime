@@ -41,14 +41,12 @@ import com.evanjt.traintime.domain.Fix
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.domain.LocaleUtil
 import com.evanjt.traintime.domain.WalkEstimator
+import com.evanjt.traintime.region.Regions
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -371,9 +369,7 @@ class TrackingNotificationService : Service() {
         ensureChannels(ctx)
         val channel = alertChannel(snap)
         // Scheduled time plus a separate "+N", the same way the board reads it.
-        val time = HHMM.format(
-            Instant.ofEpochSecond(snap.focused.departureTimestamp).atZone(ZoneId.systemDefault()),
-        )
+        val time = Regions.clockTime(snap.focused.departureTimestamp, snap.stationId)
         val delay = if (snap.focused.delay > 0) {
             " · " + ctx.getString(R.string.delay_plus_fmt, snap.focused.delay)
         } else {
@@ -456,7 +452,7 @@ class TrackingNotificationService : Service() {
         }
         snap.stationName?.let { sub += it }
         if (focused.platform.isNotEmpty()) sub += ctx.getString(R.string.platform_full_fmt, focused.platform)
-        sub += HHMM.format(Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()))
+        sub += Regions.clockTime(focused.departureTimestamp, snap.stationId)
         if (focused.delay > 0) sub += ctx.getString(R.string.delay_plus_fmt, focused.delay)
         val subText = sub.joinToString(" · ")
         val detail = walkMin?.roundToInt()?.takeIf { it >= 1 }
@@ -522,9 +518,7 @@ class TrackingNotificationService : Service() {
             // shortCriticalText overrides it and can only update at our render
             // rate (5 s at BALANCED), so we only set it when there's no margin
             // to count: far out with no GPS, or after departure.
-            val clock = HHMM.format(
-                Instant.ofEpochSecond(focused.departureTimestamp).atZone(ZoneId.systemDefault()),
-            )
+            val clock = Regions.clockTime(focused.departureTimestamp, snap.stationId)
             // Countdown to the leave-by moment. Once it's passed but the train
             // hasn't gone, count negative: the chip then says how far behind the
             // walk you are, the same margin the bar and ahead/behind line show.
@@ -836,8 +830,6 @@ class TrackingNotificationService : Service() {
         // transaction budget (720x30 ARGB ≈ 86 KB).
         private const val BAR_BMP_W = 720
         private const val BAR_BMP_H = 30
-
-        private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 
         private const val CHANNEL_ID = "live_tracking"
         private const val CHIP_CHANNEL_ID = "live_tracking_chip"

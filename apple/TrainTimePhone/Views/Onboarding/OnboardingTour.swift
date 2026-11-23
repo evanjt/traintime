@@ -253,10 +253,8 @@ struct OnboardingTour: View {
                 }
                 Text(TourMockData.stationName).font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 8)
                 HStack(spacing: 6) {
-                    Text(focused.lineNumber)
-                        .font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(RoundedRectangle(cornerRadius: 7).fill(AppColors.linePill(focused.lineNumber, mode: mode)))
+                    LinePill(focused.lineNumber, fill: AppColors.linePill(focused.lineNumber, mode: mode),
+                             fontSize: 16, cornerRadius: 7, verticalPadding: 3)
                     Text(focused.destination).font(.system(size: 22, weight: .bold)).lineLimit(1)
                 }
                 .padding(.top, 12)

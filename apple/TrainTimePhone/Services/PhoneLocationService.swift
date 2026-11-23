@@ -22,9 +22,9 @@ class PhoneLocationService: NSObject, ObservableObject, CLLocationManagerDelegat
         loadedFromCache ? .lastKnown : GPSQuality.from(accuracy: horizontalAccuracy)
     }
 
-    var isInSwitzerland: Bool {
+    var isCovered: Bool {
         guard let coord = coordinate else { return false }
-        return SwissBounds.contains(lat: coord.latitude, lon: coord.longitude)
+        return Region.covers(lat: coord.latitude, lon: coord.longitude)
     }
 
     override init() {

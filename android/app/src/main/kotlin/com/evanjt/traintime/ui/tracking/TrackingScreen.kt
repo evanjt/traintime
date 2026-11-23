@@ -45,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -54,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.evanjt.traintime.AppPalette
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
@@ -62,22 +62,16 @@ import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.domain.GeoUtils
 import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.OnwardConnection
 import com.evanjt.traintime.ui.PhoneWatchType
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.evanjt.traintime.session.SessionMute
 import com.evanjt.traintime.session.SessionMutes
 import com.evanjt.traintime.session.TrackingSessionBus
 
-private val departureTimeFormat = DateTimeFormatter.ofPattern("HH:mm")
-
-private fun formatDepartureTime(timestamp: Long): String =
-    departureTimeFormat.format(Instant.ofEpochSecond(timestamp).atZone(ZoneId.systemDefault()))
 
 // onBack runs for system Back, so a card can close a stop before the screen is
 // left. showStop is false where the pane carries its own x.
@@ -145,15 +139,12 @@ fun TrackingScreen(
                 modifier = Modifier.padding(top = 12.dp),
             ) {
                 if (focused != null && focused.lineNumber.isNotEmpty()) {
-                    Text(
+                    LinePill(
                         focused.lineNumber,
-                        color = Color.White,
+                        palette.linePill(focused.lineNumber, viewModel.currentMode),
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(palette.linePill(focused.lineNumber, viewModel.currentMode))
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        corner = 7.dp,
+                        verticalPadding = 3.dp,
                     )
                 }
                 Text(
@@ -200,7 +191,7 @@ fun TrackingScreen(
                 if (focused != null) {
                     Text("·", color = secondary)
                     Text(
-                        formatDepartureTime(focused.departureTimestamp),
+                        Regions.clockTime(focused.departureTimestamp, viewModel.currentStation?.id),
                         color = secondary,
                         fontSize = 12.sp,
                     )
@@ -412,21 +403,12 @@ private fun OnwardConnectionCard(
                 modifier = Modifier.padding(top = 4.dp),
             ) {
                 if (line.isNotEmpty()) {
-                    Text(
-                        line,
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(palette.linePill(line, mode))
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                    )
+                    LinePill(line, palette.linePill(line, mode), fontSize = 14.sp, corner = 7.dp)
                 }
                 Text(leg.destName, fontWeight = FontWeight.Medium, maxLines = 1)
             }
             Text(
-                stringResource(CoreR.string.min_to_change_fmt, formatDepartureTime(leg.depTs), onward.changeMinutes),
+                stringResource(CoreR.string.min_to_change_fmt, Regions.clockTime(leg.depTs, leg.originId), onward.changeMinutes),
                 color = secondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 2.dp),

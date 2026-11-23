@@ -437,3 +437,68 @@ function testHapticsGateFollowsSettingAndWatch(logger) {
         && !Haptics.isEnabled(null, false)
         && !Haptics.isEnabled(true, false);
 }
+
+(:test)
+function testRegionAtTramStopIsMelbourne(logger) {
+    var r = Regions.at(-37.8213, 145.0364);
+    return r != null && r[:id].equals(Regions.MELBOURNE);
+}
+
+(:test)
+function testRegionAtCapitalIsSwitzerland(logger) {
+    var r = Regions.at(46.9480, 7.4474);
+    return r != null && r[:id].equals(Regions.SWITZERLAND);
+}
+
+(:test)
+function testRegionAtPointsOutsideEveryBoxIsNone(logger) {
+    return Regions.at(-38.1499, 144.3617) == null && Regions.at(-33.8688, 151.2093) == null;
+}
+
+(:test)
+function testRegionForStationIdByPrefix(logger) {
+    return Regions.forStationId("au-vic-1080")[:id].equals(Regions.MELBOURNE)
+        && Regions.forStationId("8503000")[:id].equals(Regions.SWITZERLAND)
+        && Regions.forStationId("zz-unknown-5")[:id].equals(Regions.SWITZERLAND);
+}
+
+(:test)
+function testFormationOnlyWhereTheRegionHasIt(logger) {
+    return Regions.forStationId("8503000")[:formation] == true
+        && Regions.forStationId("au-vic-1080")[:formation] == false;
+}
+
+(:test)
+function testDistanceOfOneDegreeLongitudeScalesByLatitude(logger) {
+    // 111000 m * cos(37.8°) is about 87 715 m.
+    var d = GeoMath.calculateDistance(-37.8, 145.0, -37.8, 146.0);
+    return d >= 87600 && d <= 87800;
+}
+
+(:test)
+function testDeparturesPathForPrefixedStation(logger) {
+    return ApiHandler.departuresPath("au-vic-1080", 8, null)
+        .equals("/v1/departures?id=au-vic-1080&limit=8");
+}
+
+(:test)
+function testDeparturesPathEncodesStationId(logger) {
+    return ApiHandler.departuresPath("a b&c=d", 20, "1:X")
+        .equals("/v1/departures?id=a%20b%26c%3Dd&limit=20&favourites=1:X");
+}
+
+(:test)
+function testLineChipKeepsOneSlotWhateverTheLabel(logger) {
+    // A short and a long line id at the same screen width: one slot, each centred in it.
+    var short = DrawUtils.lineChip(260, 12);
+    var long = DrawUtils.lineChip(260, 24);
+    if (short[1] != long[1] || short[2] != long[2]) { return false; }
+    return short[0] - short[1] == short[1] + short[2] - (short[0] + 12)
+        && long[0] - long[1] == long[1] + long[2] - (long[0] + 24);
+}
+
+(:test)
+function testLineChipNeverStartsLeftOfItsSlot(logger) {
+    var chip = DrawUtils.lineChip(260, 400);
+    return chip[0] == chip[1];
+}

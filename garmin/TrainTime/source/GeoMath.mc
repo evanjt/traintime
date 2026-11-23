@@ -1,10 +1,14 @@
 using Toybox.Math;
 
+(:glance)
 module GeoMath {
 
+    // Flat-earth distance in metres: a degree of longitude shrinks by the
+    // cosine of the mean latitude.
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        var dLat = (lat2 - lat1) * 111000;
-        var dLon = (lon2 - lon1) * 75700; // ~111000 * cos(47°)
+        var dLat = (lat2 - lat1) * 111000.0;
+        var meanLat = (lat1 + lat2) / 2.0 * Math.PI / 180.0;
+        var dLon = (lon2 - lon1) * 111000.0 * Math.cos(meanLat);
         return Math.sqrt(dLat * dLat + dLon * dLon).toNumber();
     }
 

@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.widget.TrainTimeWidgetReceiver
@@ -179,16 +180,7 @@ private fun WidgetRow(c: WidgetMockColors, row: MockRow) {
                 )
             }
         }
-        Text(
-            row.line,
-            color = Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .clip(RoundedCornerShape(5.dp))
-                .background(c.linePill(row.line))
-                .padding(horizontal = 5.dp, vertical = 1.dp),
-        )
+        LinePill(row.line, c.linePill(row.line), fontSize = 12.sp, corner = 5.dp, verticalPadding = 1.dp)
         Spacer(Modifier.width(6.dp))
         Text(
             row.destination,

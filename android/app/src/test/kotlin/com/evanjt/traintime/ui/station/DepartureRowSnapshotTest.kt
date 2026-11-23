@@ -9,7 +9,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.evanjt.traintime.DarkPalette
@@ -19,6 +21,7 @@ import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.TransportMode
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,6 +81,29 @@ class DepartureRowSnapshotTest {
         val TOLERANT = RoborazziOptions(
             compareOptions = RoborazziOptions.CompareOptions(changeThreshold = 0.01f),
         )
+    }
+
+    @Test
+    fun linePillsShareOneWidthWhateverTheLabel() {
+        val labels = listOf("S3", "IR95", "BEG", "16", "V41")
+        composeRule.setContent {
+            CompositionLocalProvider(LocalAppPalette provides LightPalette) {
+                MaterialTheme(colorScheme = lightColorScheme()) {
+                    Surface {
+                        Column(Modifier.width(360.dp)) {
+                            labels.forEachIndexed { i, line ->
+                                DepartureRow(dep(line, "Stop $i", 3 + i), isFavourite = false, mode = TransportMode.TRAIN)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val widths = labels.map { label ->
+            val bounds = composeRule.onNodeWithText(label).getBoundsInRoot()
+            bounds.right - bounds.left
+        }
+        assertEquals(labels.map { widths.first() }, widths)
     }
 
     @Test

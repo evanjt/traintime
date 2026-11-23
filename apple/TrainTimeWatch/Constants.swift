@@ -140,17 +140,6 @@ enum SharedDefaults {
     }
 }
 
-enum SwissBounds {
-    static let latMin = 45.8
-    static let latMax = 47.8
-    static let lonMin = 5.9
-    static let lonMax = 10.5
-
-    static func contains(lat: Double, lon: Double) -> Bool {
-        lat >= latMin && lat <= latMax && lon >= lonMin && lon <= lonMax
-    }
-}
-
 enum Timing {
     static let normalRefreshInterval: TimeInterval = 5.0
     static let trackingRefreshInterval: TimeInterval = 1.0
@@ -203,4 +192,71 @@ enum TrackingTiers {
         }
     }
 
+}
+
+// Credits a data licence requires, shared by the iPhone attribution screen and the watch settings
+// footer. The PTV line stays in English in every app language because the licensor words it so,
+// under the localized heading "Victoria, Australia". Android's DataCredits and Garmin's SettingsMenu carry the same line.
+enum DataCredits {
+    static let ptvLicence =
+        "Source: Licensed from Public Transport Victoria under a Creative Commons Attribution 4.0 International Licence."
+    static let ccBy4Name = "CC BY 4.0"
+    static let ccBy4Host = "creativecommons.org/licenses/by/4.0"
+    static let ccBy4URL = "https://creativecommons.org/licenses/by/4.0/"
+}
+
+/// Line pill geometry, one rule on every surface: the pill is a fixed width, in
+/// ems of the surface's chip font, that holds a `fitChars` label with the label
+/// centred. A longer label shrinks its font to fit rather than clip.
+enum LinePillGeometry {
+    static let fitChars = 5
+
+    /// Five bold capitals or digits plus the pill's side padding.
+    static let widthEms: CGFloat = 4.2
+
+    static func fontScale(_ label: String) -> CGFloat {
+        label.count <= fitChars ? 1 : CGFloat(fitChars) / CGFloat(label.count)
+    }
+}
+
+/// The line pill on every phone and widget surface: a fixed width set by the
+/// chip font (`LinePillGeometry`), scaled with Dynamic Type unless the surface's
+/// text is fixed, the label centred,
+/// so "S3", "IR95" and "BEG" draw as one shape down a board.
+struct LinePill: View {
+    let label: String
+    let fill: Color
+    var textColor: Color = .white
+    var cornerRadius: CGFloat = 6
+    var verticalPadding: CGFloat = 2
+    private let baseSize: CGFloat
+    private let scales: Bool
+    @ScaledMetric private var scaledSize: CGFloat
+
+    /// `relativeTo` nil keeps the chip font at `fontSize` whatever the text size,
+    /// for a surface whose other text is fixed too.
+    init(_ label: String, fill: Color, fontSize: CGFloat, relativeTo style: Font.TextStyle? = nil,
+         textColor: Color = .white, cornerRadius: CGFloat = 6, verticalPadding: CGFloat = 2) {
+        self.label = label
+        self.fill = fill
+        self.textColor = textColor
+        self.cornerRadius = cornerRadius
+        self.verticalPadding = verticalPadding
+        baseSize = fontSize
+        scales = style != nil
+        _scaledSize = ScaledMetric(wrappedValue: fontSize, relativeTo: style ?? .body)
+    }
+
+    private var fontSize: CGFloat { scales ? scaledSize : baseSize }
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: fontSize * LinePillGeometry.fontScale(label), weight: .bold))
+            .foregroundStyle(textColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .frame(width: fontSize * LinePillGeometry.widthEms)
+            .padding(.vertical, verticalPadding)
+            .background(RoundedRectangle(cornerRadius: cornerRadius).fill(fill))
+    }
 }

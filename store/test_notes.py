@@ -76,13 +76,12 @@ class PhoneNotes(unittest.TestCase):
 
 
 class AppStoreNotes(unittest.TestCase):
-    def test_every_locale_names_ipad_within_the_limit(self):
+    def test_every_language_has_release_notes_within_the_limit(self):
         locales = sorted(l for l in os.listdir(APPLE)
                          if os.path.isfile(os.path.join(APPLE, l, "release_notes.txt")))
         self.assertEqual({language(l) for l in locales}, LANGUAGES)
         for locale in locales:
             text = read(os.path.join(APPLE, locale, "release_notes.txt"))
-            self.assertIn("iPad", text, locale)
             self.assertLessEqual(len(text), APP_STORE_LIMIT, locale)
 
 

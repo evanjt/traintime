@@ -12,6 +12,12 @@ module SettingsMenu {
     const STORE_URL = "https://apps.garmin.com/apps/c70bbfae-846a-4d00-9e96-d485217035fb";
     const PRIVACY_URL = "https://traintime.ch/privacy";
 
+    // The credit Public Transport Victoria's CC BY 4.0 terms ask for, in English in every watch
+    // language because the licensor words it so. The same line is on the phone and Wear screens.
+    const PTV_CREDIT = "Source: Licensed from Public Transport Victoria under a Creative Commons Attribution 4.0 International Licence.";
+    const CC_BY_4_URL = "https://creativecommons.org/licenses/by/4.0/";
+    const CC_BY_4_HOST = "creativecommons.org/licenses/by/4.0";
+
     // The terms page exists in the four app languages; follow the watch language.
     function termsUrl() {
         var lang = System.getDeviceSettings().systemLanguage;
@@ -28,6 +34,10 @@ module SettingsMenu {
     }
 
     function open(view) {
+        WatchUi.pushView(build(view), new SettingsMenuDelegate(view), WatchUi.SLIDE_UP);
+    }
+
+    function build(view) {
         var menu = new WatchUi.Menu2({:title => Txt.t(Rez.Strings.SettingsTitle)});
 
         // Phone link status. The channel the phone uses to send departures here.
@@ -122,6 +132,13 @@ module SettingsMenu {
             :stationsSource,
             {}
         ));
+        // The full licence line does not fit a sublabel: select shows it on its own screen.
+        menu.addItem(new WatchUi.MenuItem(
+            Txt.t(Rez.Strings.VictoriaLabel),
+            "Public Transport Victoria",
+            :ptvSource,
+            {}
+        ));
         menu.addItem(new WatchUi.MenuItem(
             Txt.t(Rez.Strings.PrivacyPolicy),
             "traintime.ch/privacy",
@@ -134,8 +151,7 @@ module SettingsMenu {
             :terms,
             {}
         ));
-
-        WatchUi.pushView(menu, new SettingsMenuDelegate(view), WatchUi.SLIDE_UP);
+        return menu;
     }
 
     function openQuickLaunch(view) {
@@ -217,6 +233,12 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             openOnPhone(SettingsMenu.PRIVACY_URL);
         } else if (item.getId() == :terms) {
             openOnPhone(SettingsMenu.termsUrl());
+        } else if (item.getId() == :ptvSource) {
+            WatchUi.pushView(
+                new CreditView(SettingsMenu.PTV_CREDIT + "\n" + SettingsMenu.CC_BY_4_HOST),
+                new CreditDelegate(SettingsMenu.CC_BY_4_URL),
+                WatchUi.SLIDE_LEFT
+            );
         }
     }
 

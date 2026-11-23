@@ -26,15 +26,8 @@ struct PhoneFocusedTrackingView: View {
                     let platChanged = focused?.platformChanged == true
                     HStack(spacing: 6) {
                         if let f = focused, !f.lineNumber.isEmpty {
-                            Text(f.lineNumber)
-                                .font(.headline.weight(.bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 7)
-                                        .fill(AppColors.linePill(f.lineNumber, mode: viewModel.currentMode))
-                                )
+                            LinePill(f.lineNumber, fill: AppColors.linePill(f.lineNumber, mode: viewModel.currentMode),
+                                     fontSize: 17, relativeTo: .headline, cornerRadius: 7, verticalPadding: 3)
                         }
                         Text(focused?.destination ?? "?")
                             .font(.title2.weight(.bold))
@@ -69,7 +62,7 @@ struct PhoneFocusedTrackingView: View {
                         if let f = focused {
                             Text("·")
                                 .foregroundStyle(.quaternary)
-                            Text(Self.formatDepartureTime(f.departureTimestamp))
+                            Text(Region.clockTime(f.departureTimestamp, stationId: viewModel.currentStation?.id))
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundStyle(.tertiary)
@@ -248,13 +241,6 @@ struct PhoneFocusedTrackingView: View {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if tripHint == text { tripHint = nil }
         }
-    }
-
-    private static func formatDepartureTime(_ timestamp: Int) -> String {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f.string(from: date)
     }
 
     private var countdownColor: Color {
@@ -578,13 +564,6 @@ struct OnwardConnectionCard: View {
     let mode: TransportMode
     let onTap: () -> Void
 
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
-        return formatter
-    }()
-
     var body: some View {
         let leg = onward.leg
         let line = "\(leg.category ?? "")\(leg.lineNumber ?? "")"
@@ -595,18 +574,13 @@ struct OnwardConnectionCard: View {
                     .foregroundStyle(.secondary)
                 HStack(spacing: 8) {
                     if !line.isEmpty {
-                        Text(line)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 7).fill(AppColors.linePill(line, mode: mode)))
+                        LinePill(line, fill: AppColors.linePill(line, mode: mode), fontSize: 14, cornerRadius: 7)
                     }
                     Text(leg.destName)
                         .fontWeight(.medium)
                         .lineLimit(1)
                 }
-                Text("\(Self.timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs)))) · \(onward.changeMinutes) min to change")
+                Text("\(Region.clockTime(leg.depTs, stationId: leg.originId)) · \(onward.changeMinutes) min to change")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

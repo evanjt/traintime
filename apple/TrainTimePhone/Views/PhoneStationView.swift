@@ -108,7 +108,7 @@ struct PhoneStationView: View {
                 Spacer()
                 if viewModel.stations.isEmpty {
                     ZStack {
-                        if viewModel.status == PhoneViewModel.outOfBoundsStatus {
+                        if viewModel.isOutOfBounds {
                             SwissOutlineBackdrop()
                         }
                         Text(viewModel.status)
@@ -207,11 +207,8 @@ struct PhoneStationView: View {
         let minutes = max(0, Int(focused.minutesUntil.rounded(.down)))
         return HStack(spacing: 8) {
             Circle().fill(green).frame(width: 9, height: 9)
-            Text(focused.lineNumber)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 7).padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: 6).fill(AppColors.linePill(focused.lineNumber, mode: viewModel.currentMode)))
+            LinePill(focused.lineNumber, fill: AppColors.linePill(focused.lineNumber, mode: viewModel.currentMode),
+                     fontSize: 13)
             Text(focused.destination).lineLimit(1)
             Spacer()
             Text("\(minutes) min").fontWeight(.semibold).monospacedDigit()

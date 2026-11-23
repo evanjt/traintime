@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.core.sync.ReminderCommand
 import com.evanjt.traintime.core.sync.TrackCommand
@@ -18,6 +17,7 @@ import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearSync
 import com.evanjt.traintime.core.sync.WearSyncPort
 import com.evanjt.traintime.core.R as CoreR
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.wear.R
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
@@ -46,7 +46,6 @@ import com.evanjt.traintime.domain.PendingRouteLogic
 import com.evanjt.traintime.domain.TrackingLogic
 import com.evanjt.traintime.review.ReviewGate
 import java.time.LocalDate
-import java.time.ZoneId
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -342,7 +341,7 @@ class WearViewModel(
         departures = emptyList()
         favouriteDepartures = emptyList()
         val coord = location.coordinate.value ?: lastSearchCoordinate
-        if (coord != null && SwissBounds.contains(coord.lat, coord.lon)) {
+        if (coord != null && Regions.isCovered(coord.lat, coord.lon)) {
             fetchStations(coord.lat, coord.lon)
         }
     }
@@ -374,11 +373,11 @@ class WearViewModel(
         if (!gpsUsableInBounds()) searchFromPhoneLocation()
     }
 
-    // Our own fix is present, accurate enough, and inside Switzerland.
+    // Our own fix is present, accurate enough, and inside a covered region.
     private fun gpsUsableInBounds(): Boolean {
         val coord = location.coordinate.value ?: return false
         val usable = gpsQuality == GpsQuality.GOOD || gpsQuality == GpsQuality.POOR
-        return usable && SwissBounds.contains(coord.lat, coord.lon)
+        return usable && Regions.isCovered(coord.lat, coord.lon)
     }
 
     private fun phoneLocFresh(): Boolean = phoneLocTs > 0 && now() - phoneLocTs < 120_000
@@ -561,8 +560,10 @@ class WearViewModel(
             )
         }
         val trainNumber = focused.trainNumber
-        if (trainNumber != null && Formation.isRailCategory(focused.category) && formationStationId != null) {
-            val date = formationDateString()
+        if (trainNumber != null && Formation.isRailCategory(focused.category) && formationStationId != null &&
+            Regions.forStationId(formationStationId).formation
+        ) {
+            val date = formationDateString(formationStationId)
             viewModelScope.launch {
                 formation = runCatching {
                     api.fetchFormation(trainNumber, date, formationStationId, focused.operatorRef)
@@ -658,7 +659,7 @@ class WearViewModel(
             }
             return
         }
-        if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
+        if (Regions.outOfCoverage(coord.lat, coord.lon, hasStations = stations.isNotEmpty())) {
             status = str(CoreR.string.status_not_in_switzerland)
             return
         }
@@ -767,7 +768,7 @@ class WearViewModel(
             val current = currentStation
             if (current != null) {
                 fetchDepartures(current.id)
-            } else if (stations.isEmpty() && SwissBounds.contains(coord.lat, coord.lon)) {
+            } else if (stations.isEmpty() && Regions.isCovered(coord.lat, coord.lon)) {
                 fetchStations(coord.lat, coord.lon)
             }
         }
@@ -1251,8 +1252,9 @@ class WearViewModel(
         favouriteDepartures = emptyList()
     }
 
-    private fun formationDateString(): String =
-        LocalDate.now(ZoneId.of("Europe/Zurich")).toString()
+    // The service day at the station, in its region's zone.
+    private fun formationDateString(stationId: String): String =
+        LocalDate.now(Regions.forStationId(stationId).zone).toString()
 
     private suspend fun extractFavouritesFromCurrent(deps: List<Departure>): List<Departure> {
         val stationId = currentStation?.id ?: return emptyList()

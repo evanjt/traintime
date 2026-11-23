@@ -148,16 +148,7 @@ private fun RideLegRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (line.isNotEmpty()) {
-                Text(
-                    line,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(palette.linePill(line, mode))
-                        .padding(horizontal = 6.dp, vertical = 1.dp),
-                )
+                WearLinePill(line, palette.linePill(line, mode), fontSize = 11.sp)
             }
             Column(Modifier.weight(1f).padding(start = 6.dp)) {
                 Text(

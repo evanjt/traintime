@@ -27,11 +27,14 @@ import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.evanjt.traintime.LinePillGeometry
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.widget.actions.RefreshAction
 import com.evanjt.traintime.widget.actions.StopAction
 import com.evanjt.traintime.widget.actions.SwitchModeAction
@@ -121,7 +124,7 @@ private fun StaleDormantView(
                 modifier = GlanceModifier.defaultWeight(),
             )
             Text(
-                ctx.getString(R.string.as_of_fmt, asOfText(result.fetchTime)),
+                ctx.getString(R.string.as_of_fmt, Regions.clockTime(result.fetchTime, station.id)),
                 style = TextStyle(color = WidgetColors.secondary, fontSize = 10.sp),
             )
         }
@@ -130,7 +133,7 @@ private fun StaleDormantView(
         // to the bottom (and fully visible) instead of being pushed off-widget.
         Column(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
             rows.forEach { dep ->
-                StaleRow(dep, favKeys, nowEpochSeconds, isSmall(size.width), ctx)
+                StaleRow(dep, station.id, favKeys, nowEpochSeconds, isSmall(size.width), ctx)
             }
         }
         Box(modifier = GlanceModifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -140,13 +143,13 @@ private fun StaleDormantView(
 }
 
 @Composable
-private fun StaleRow(dep: WidgetDeparture, favKeys: Set<String>, now: Long, small: Boolean, ctx: Context) {
+private fun StaleRow(dep: WidgetDeparture, stationId: String, favKeys: Set<String>, now: Long, small: Boolean, ctx: Context) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
     ) {
         Text(
-            dep.clockTimeText,
+            dep.clockTimeText(stationId),
             style = TextStyle(color = WidgetColors.secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium),
             modifier = GlanceModifier.width(if (small) 40.dp else 70.dp),
         )
@@ -320,28 +323,30 @@ private fun DepartureRow(
             }
             Spacer(GlanceModifier.width(4.dp))
         }
-        // Line number as a filled pill (white text), in a fixed slot so the
-        // destination column still lines up.
-        Box(
-            modifier = GlanceModifier.width(if (small) 30.dp else 44.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            val label = lineLabel(dep, ctx)
-            if (label.isNotEmpty()) {
-                Text(
-                    label,
-                    style = TextStyle(
-                        color = ColorProvider(androidx.compose.ui.graphics.Color.White),
-                        fontSize = if (small) 11.sp else 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    ),
-                    maxLines = 1,
-                    modifier = GlanceModifier
-                        .background(WidgetColors.linePill(dep.lineNumber, mode))
-                        .cornerRadius(5.dp)
-                        .padding(horizontal = 5.dp, vertical = 1.dp),
-                )
-            }
+        // Line number as a fixed-width pill (white text, centred), so the
+        // destination column lines up. The width holds a five-character
+        // label at the chip font and follows the system font scale.
+        val chipFont = if (small) 11f else 12f
+        val pillWidth = (chipFont * LinePillGeometry.WIDTH_EMS * ctx.resources.configuration.fontScale).dp
+        val label = lineLabel(dep, ctx)
+        if (label.isEmpty()) {
+            Spacer(GlanceModifier.width(pillWidth))
+        } else {
+            Text(
+                label,
+                style = TextStyle(
+                    color = ColorProvider(androidx.compose.ui.graphics.Color.White),
+                    fontSize = (chipFont * LinePillGeometry.fontScale(label)).sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                ),
+                maxLines = 1,
+                modifier = GlanceModifier
+                    .width(pillWidth)
+                    .background(WidgetColors.linePill(dep.lineNumber, mode))
+                    .cornerRadius(5.dp)
+                    .padding(vertical = 1.dp),
+            )
         }
         Spacer(GlanceModifier.width(6.dp))
         Text(
@@ -434,7 +439,3 @@ private fun minutesLabel(dep: WidgetDeparture, now: Long, ctx: Context): String 
     }
 }
 
-private fun asOfText(fetchTimeSeconds: Long): String {
-    val time = java.time.Instant.ofEpochSecond(fetchTimeSeconds).atZone(java.time.ZoneId.systemDefault())
-    return "%02d:%02d".format(time.hour, time.minute)
-}

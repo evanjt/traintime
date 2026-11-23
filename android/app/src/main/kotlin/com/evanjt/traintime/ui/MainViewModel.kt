@@ -21,7 +21,6 @@ import com.evanjt.traintime.BuildConfig
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.GarminConnectIQService
-import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.data.api.ApiHost
@@ -50,6 +49,7 @@ import com.evanjt.traintime.core.sync.WearStateSync
 import com.evanjt.traintime.core.sync.WearCommand
 import com.evanjt.traintime.core.sync.WearLivenessBus
 import com.evanjt.traintime.data.prefs.AppPrefs
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.review.ReviewGate
 import com.evanjt.traintime.session.TrackingNotificationService
 import com.evanjt.traintime.session.TrackingSessionBus
@@ -78,10 +78,7 @@ import com.evanjt.traintime.notify.PendingRouteNotifier
 import com.evanjt.traintime.notify.RouteDistanceTracker
 import com.evanjt.traintime.widget.actions.toWidgetDepartures
 import java.io.IOException
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -344,8 +341,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val info = watchTrackingInfo
             val line = (info?.get("line") as? String).takeUnless { it.isNullOrEmpty() } ?: watchTrackingLine
             val dest = (info?.get("dest") as? String).takeUnless { it.isNullOrEmpty() }
-            val time = DateTimeFormatter.ofPattern("HH:mm")
-                .format(Instant.ofEpochSecond(depTs).atZone(ZoneId.systemDefault()))
+            val time = Regions.clockTime(depTs, currentStation?.id)
             val head = listOfNotNull(line.takeUnless { it.isNullOrEmpty() }, dest?.let { "→ $it" })
                 .joinToString(" ")
             return if (head.isEmpty()) time else "$head · $time"
@@ -803,7 +799,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Keep a connected watch fed with the phone's location as a GPS fallback.
         maybePushLocationToWatch(coord)
 
-        if (!SwissBounds.contains(coord.lat, coord.lon) && stations.isEmpty()) {
+        if (Regions.outOfCoverage(coord.lat, coord.lon, hasStations = stations.isNotEmpty())) {
             status = str(CoreR.string.status_not_in_switzerland)
             isOutOfBounds = true
             return
@@ -911,7 +907,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val current = currentStation
             if (current != null) {
                 fetchDepartures(current.id)
-            } else if (stations.isEmpty() && SwissBounds.contains(coord.lat, coord.lon)) {
+            } else if (stations.isEmpty() && Regions.isCovered(coord.lat, coord.lon)) {
                 fetchStations(coord.lat, coord.lon)
             }
         }
@@ -1043,8 +1039,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Fetch formation for rail departures
         val trainNumber = focused.trainNumber
         val stationId = currentStation?.id
-        if (trainNumber != null && Formation.isRailCategory(focused.category) && stationId != null) {
-            val date = formationDateString()
+        if (trainNumber != null && Formation.isRailCategory(focused.category) && stationId != null &&
+            Regions.forStationId(stationId).formation
+        ) {
+            val date = formationDateString(stationId)
             viewModelScope.launch {
                 formation = runCatching {
                     api.fetchFormation(trainNumber, date, stationId, focused.operatorRef)
@@ -2405,8 +2403,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Formation
 
-    private fun formationDateString(): String =
-        LocalDate.now(ZoneId.of("Europe/Zurich")).toString()
+    // The service day at the station, in its region's zone.
+    private fun formationDateString(stationId: String): String =
+        LocalDate.now(Regions.forStationId(stationId).zone).toString()
 
     private suspend fun extractFavouritesFromCurrent(deps: List<Departure>): List<Departure> {
         val stationId = currentStation?.id ?: return emptyList()
@@ -2768,7 +2767,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         departures = emptyList()
         favouriteDepartures = emptyList()
         val coord = location.coordinate.value ?: lastSearchCoordinate
-        if (coord != null && SwissBounds.contains(coord.lat, coord.lon)) {
+        if (coord != null && Regions.isCovered(coord.lat, coord.lon)) {
             fetchStations(coord.lat, coord.lon)
         }
         // No coord yet: stations are empty, so onLocationUpdate fetches once GPS arrives.

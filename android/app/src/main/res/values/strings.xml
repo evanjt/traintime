@@ -71,6 +71,7 @@
     <string name="stations_heading">Stations</string>
     <string name="stations_desc">Station locations from the Federal Office of Transport (FOT). Open use, source named.</string>
     <string name="stations_dataset_title">Public transport stops</string>
+    <string name="victoria_heading">Victoria, Australia</string>
     <string name="legal_heading">Legal</string>
     <string name="privacy_policy">Privacy policy</string>
 

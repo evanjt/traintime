@@ -7,13 +7,6 @@ struct ContentView: View {
     @State private var showRateHandoffHint = false
     @State private var showRouteDetail = false
 
-    private static let chipTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone(identifier: "Europe/Zurich")
-        return formatter
-    }()
-
     var body: some View {
         NavigationStack {
             Group {
@@ -63,7 +56,7 @@ struct ContentView: View {
                     Button {
                         showRouteDetail = true
                     } label: {
-                        Text("▶ \(route.finalDestination) · \(Self.chipTimeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(leg.depTs))))")
+                        Text("▶ \(route.finalDestination) · \(Region.clockTime(leg.depTs, stationId: leg.originId))")
                             .font(.caption2)
                             .lineLimit(1)
                     }

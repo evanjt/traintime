@@ -1,8 +1,8 @@
 package com.evanjt.traintime.data.sbb
 
-import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.Station
+import com.evanjt.traintime.region.Regions
 import kotlinx.serialization.Serializable
 
 enum class LegType { RIDE, WALK }
@@ -30,12 +30,13 @@ data class RouteLeg(
 ) {
     val durationSec: Long get() = arrTs - depTs
 
-    // A leg can only be live-tracked if it's a Swiss ride with a station id.
-    // Walk legs and connections outside Switzerland have no departure board.
+    // A leg can only be live-tracked if it's a ride with a station id, starting
+    // in a region that takes SBB shares. Walk legs and connections elsewhere
+    // have no departure board to match against.
     val isTrackable: Boolean
         get() = type == LegType.RIDE && originId != null &&
             originLat != null && originLon != null &&
-            SwissBounds.contains(originLat, originLon)
+            Regions.at(originLat, originLon)?.sbbShare == true
 }
 
 data class SharedRoute(

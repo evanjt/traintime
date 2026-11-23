@@ -1,12 +1,10 @@
 package com.evanjt.traintime.ui.tracking
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,14 +15,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
@@ -46,15 +43,12 @@ fun TrackingPeekSummary(focused: FocusedDeparture?, mode: TransportMode, nowSeco
     ) {
         if (focused == null) return@Column
         if (focused.lineNumber.isNotEmpty()) {
-            Text(
+            LinePill(
                 focused.lineNumber,
-                color = Color.White,
+                palette.linePill(focused.lineNumber, mode),
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(palette.linePill(focused.lineNumber, mode))
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                corner = 7.dp,
+                verticalPadding = 3.dp,
             )
         }
         Text(

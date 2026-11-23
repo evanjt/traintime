@@ -2,10 +2,12 @@ import Foundation
 import CoreLocation
 
 enum GeoUtils {
-    /// Approximate distance in meters using flat-earth approximation (matches Garmin implementation)
+    /// Approximate distance in meters using a flat-earth approximation, with longitude scaled by
+    /// the cosine of the mean latitude.
     static func haversineDistance(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> Double {
+        let meanLat = (from.latitude + to.latitude) / 2.0 * .pi / 180.0
         let dLat = (to.latitude - from.latitude) * 111000.0
-        let dLon = (to.longitude - from.longitude) * 75700.0
+        let dLon = (to.longitude - from.longitude) * 111000.0 * cos(meanLat)
         return (dLat * dLat + dLon * dLon).squareRoot()
     }
 

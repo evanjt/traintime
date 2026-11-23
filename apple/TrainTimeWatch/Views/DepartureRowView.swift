@@ -25,13 +25,10 @@ struct DepartureRowView: View {
                     .baselineOffset(4)
                     .frame(width: 14, alignment: .leading)
 
-                // Connection ID
-                if !departure.lineNumber.isEmpty {
-                    lineBadge
-                        .frame(width: 34, alignment: .leading)
-                } else {
-                    Spacer().frame(width: 34)
-                }
+                // Connection ID: the watch's own compact fixed column, the label
+                // centred and shrunk to fit rather than clipped.
+                lineBadge
+                    .frame(width: 34, alignment: .center)
 
                 // Destination
                 Text(departure.destination)
@@ -66,7 +63,7 @@ struct DepartureRowView: View {
             .font(.system(.caption2, weight: .medium))
             .foregroundStyle(departure.isSelectable ? AppColors.platform : .secondary)
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .minimumScaleFactor(0.5)
     }
 
 }

@@ -4,15 +4,22 @@ import XCTest
 
 final class GeoTests: XCTestCase {
     func testDistanceBetweenRealStationsIsDeterministicAndSymmetric() {
-        // Place de la Planta -> Gare de Sion, ~376 m by the flat-earth model.
+        // Place de la Planta -> Gare de Sion, ~377 m by the flat-earth model.
         let planta = CLLocationCoordinate2D(latitude: 46.2306, longitude: 7.3576)
         let sion = CLLocationCoordinate2D(latitude: 46.2275, longitude: 7.3596)
-        XCTAssertEqual(GeoUtils.haversineDistance(from: planta, to: sion), 376.0, accuracy: 1.0)
+        XCTAssertEqual(GeoUtils.haversineDistance(from: planta, to: sion), 376.8, accuracy: 0.5)
         XCTAssertEqual(
             GeoUtils.haversineDistance(from: sion, to: planta),
             GeoUtils.haversineDistance(from: planta, to: sion),
             accuracy: 0.001,
         )
+    }
+
+    func testLongitudeScalesWithLatitude() {
+        // One degree of longitude at -37.8° is 111 km * cos(37.8°).
+        let west = CLLocationCoordinate2D(latitude: -37.8, longitude: 145.0)
+        let east = CLLocationCoordinate2D(latitude: -37.8, longitude: 146.0)
+        XCTAssertEqual(GeoUtils.haversineDistance(from: west, to: east), 87_707, accuracy: 10)
     }
 
     func testWalkInfoFormatting() {

@@ -272,8 +272,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         // Fetch formation for rail departures
         if let tn = trainNumber, Formation.isRailCategory(category),
-           let stId = data["stId"] as? String {
-            let date = formationDateString()
+           let stId = data["stId"] as? String, Region.hasFormation(stationId: stId) {
+            let date = Region.serviceDate(Date(), stationId: stId)
             Task { @MainActor in
                 self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stId, operatorRef: operatorRef)
             }
@@ -351,7 +351,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         departures = []
         favouriteDepartures = []
         if let coord = effectivePosition(),
-           SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+           Region.covers(lat: coord.latitude, lon: coord.longitude) {
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
         // No position yet: stations are empty, so the next update fetches.
@@ -369,11 +369,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // Our own fix is present, accurate enough, and inside Switzerland.
+    // Our own fix is present, accurate enough, and inside a region.
     private func gpsUsableInBounds() -> Bool {
         guard let coord = location.coordinate else { return false }
         let usable = gpsQuality == .good || gpsQuality == .poor
-        return usable && SwissBounds.contains(lat: coord.latitude, lon: coord.longitude)
+        return usable && Region.covers(lat: coord.latitude, lon: coord.longitude)
     }
 
     private func phoneLocFresh() -> Bool {
@@ -469,10 +469,10 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
             return
         }
 
-        // Only gate initial search on Swiss bounds (border hysteresis)
-        guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
+        // Only gate initial search on region bounds (border hysteresis)
+        guard CoverageGate.onFix(lat: coord.latitude, lon: coord.longitude, hasStations: !stations.isEmpty) == .search else {
             if stations.isEmpty {
-                // Our own fix is outside Switzerland. Fall back to the phone's location.
+                // Our own fix is outside every region. Fall back to the phone's location.
                 if phoneLocFresh() {
                     searchFromPhoneLocation()
                 } else {
@@ -618,11 +618,11 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 fetchDepartures(stationId: id)
             } else if !stations.isEmpty {
                 // No valid station selected
-            } else if SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+            } else if Region.covers(lat: coord.latitude, lon: coord.longitude) {
                 loadedFromCache = location.loadedFromCache
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             } else {
-                // Out of Switzerland with no stations. Ask the phone for its location.
+                // Outside every region with no stations. Ask the phone for its location.
                 requestPhoneLocation()
             }
         }
@@ -695,8 +695,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         // Fetch formation for rail departures
         if let tn = focused.trainNumber, Formation.isRailCategory(focused.category),
-           let stationId = currentStation?.id {
-            let date = formationDateString()
+           let stationId = currentStation?.id, Region.hasFormation(stationId: stationId) {
+            let date = Region.serviceDate(Date(), stationId: stationId)
             let opRef = focused.operatorRef
             Task { @MainActor in
                 self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
@@ -837,13 +837,6 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         // A launched remote origin (favourite / shared route). Return to the
         // nearby list at the user's real position, not that origin.
         returnToNearbyIfLaunched()
-    }
-
-    private func formationDateString() -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
-        return fmt.string(from: Date())
     }
 
     // MARK: - API Calls

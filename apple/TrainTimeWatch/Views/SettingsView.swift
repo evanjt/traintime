@@ -106,7 +106,11 @@ struct SettingsView: View {
                     Label("Rate on iPhone", systemImage: "star")
                 }
             } footer: {
-                Text("Opens the review page on your paired iPhone.\nData: opentransportdata.swiss")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Opens the review page on your paired iPhone.\nData: opentransportdata.swiss")
+                    Text("Victoria, Australia")
+                    Text(verbatim: DataCredits.ptvLicence)
+                }
             }
 
             // Set on the iPhone, mirrored here. Shown so a self-hosted setup is visible.

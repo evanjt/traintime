@@ -470,7 +470,8 @@ class TrainTimeView extends WatchUi.View {
         clearFormation();
         var trainNum = t["trainNum"];
         var cat = t["cat"];
-        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null) {
+        if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null
+                && Regions.forStationId(mStationId)[:formation]) {
             ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
         }
     }
@@ -740,7 +741,7 @@ class TrainTimeView extends WatchUi.View {
     }
 
     // The phone pushed its current location. Supplemental only, recorded for use
-    // when the watch's own GPS is unusable or outside Switzerland.
+    // when the watch's own GPS is unusable or outside every region.
     function onPhoneLocation(data) {
         if (data == null) { return; }
         var lat = data.hasKey("lat") ? data["lat"] : null;
@@ -757,7 +758,7 @@ class TrainTimeView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    // True when the watch's own GPS is good enough AND inside Switzerland. A fix
+    // True when the watch's own GPS is good enough AND inside a covered region. A fix
     // like this is always preferred over the phone. The watch stays primary.
     function gpsUsableInBounds() {
         if (mLocationInfo == null || mLocationInfo.position == null) { return false; }
@@ -765,7 +766,7 @@ class TrainTimeView extends WatchUi.View {
         var c = mLocationInfo.position.toDegrees();
         var lat = c[0];
         var lon = c[1];
-        return lat >= 45.8 && lat <= 47.8 && lon >= 5.9 && lon <= 10.5;
+        return Regions.at(lat, lon) != null;
     }
 
     function phoneLocFresh() {
@@ -1177,10 +1178,10 @@ class TrainTimeView extends WatchUi.View {
         Storage.setValue("lastLat", lat.toFloat());
         Storage.setValue("lastLon", lon.toFloat());
 
-        // Switzerland bounding box check: don't clear loaded stations (border hysteresis)
-        if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
+        // Coverage check: don't clear loaded stations (border hysteresis)
+        if (Regions.at(lat, lon) == null) {
             if (mStationId == null) {
-                // Outside Switzerland with no station, fall back to the phone's
+                // Outside every region with no station, fall back to the phone's
                 // location if it has one, else ask for it.
                 if (!searchFromPhoneLocation()) {
                     mStatus = Txt.t(Rez.Strings.NotInSwitzerland);
@@ -1273,7 +1274,7 @@ class TrainTimeView extends WatchUi.View {
             }
         }
 
-        // Always poll for updated position (detects leaving Switzerland)
+        // Always poll for updated position (detects leaving coverage)
         // Only trust QUALITY_LAST_KNOWN or better. NOT_AVAILABLE gives garbage (0,0 or 180,180)
         var info = Position.getInfo();
         if (info != null && info.position != null
@@ -1287,7 +1288,7 @@ class TrainTimeView extends WatchUi.View {
             if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
                 mLocationInfo = info;
 
-                if (lat < 45.8 || lat > 47.8 || lon < 5.9 || lon > 10.5) {
+                if (Regions.at(lat, lon) == null) {
                     if (mStationId == null) {
                         if (!searchFromPhoneLocation()) {
                             mStatus = Txt.t(Rez.Strings.NotInSwitzerland);

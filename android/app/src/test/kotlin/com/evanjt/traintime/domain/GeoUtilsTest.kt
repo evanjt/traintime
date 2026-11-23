@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlin.math.cos
 
 // Pinned like the snapshot tests: Robolectric follows targetSdk by default, and
 // its API 36 sandbox needs Java 21 while the build runs on 17.
@@ -16,7 +17,12 @@ class GeoUtilsTest {
     fun `haversine uses flat-earth factors`() {
         // One degree of latitude → 111000 m, matching Garmin/iOS.
         assertEquals(111000.0, GeoUtils.haversineDistance(46.0, 6.0, 47.0, 6.0), 0.1)
-        assertEquals(75700.0, GeoUtils.haversineDistance(46.0, 6.0, 46.0, 7.0), 0.1)
+        assertEquals(111000.0 * cos(Math.toRadians(46.0)), GeoUtils.haversineDistance(46.0, 6.0, 46.0, 7.0), 0.1)
+    }
+
+    @Test
+    fun `longitude degree shrinks with latitude in the southern hemisphere`() {
+        assertEquals(111000.0 * cos(Math.toRadians(-37.8)), GeoUtils.haversineDistance(-37.8, 145.0, -37.8, 146.0), 0.1)
     }
 
     @Test

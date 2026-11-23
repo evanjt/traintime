@@ -11,6 +11,7 @@
     <string name="hold_fav_remove">Favorit halten, um ihn zu entfernen.</string>
     <string name="rate_traintime">TrainTime bewerten</string>
     <string name="data_attribution">Daten: opentransportdata.swiss</string>
+    <string name="victoria_heading">Victoria, Australien</string>
     <string name="platform_abbr_fmt">Gl. %1$s</string>
     <string name="remind_on_phone">Auf Handy erinnern</string>
     <string name="saved_on_phone">Auf Handy gespeichert</string>

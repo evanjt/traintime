@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import com.evanjt.traintime.LinePillGeometry
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
@@ -161,13 +163,18 @@ fun WearDepartureRow(
             maxLines = 1,
             modifier = Modifier.width(15.dp).padding(start = 1.dp),
         )
+        // The line in a fixed column that holds five characters at the row
+        // font, centred, a longer label shrunk to fit.
+        val lineFont = 11.sp
         Text(
             departure.lineNumber,
             color = if (dimmed) secondary else palette.platform,
-            fontSize = 11.sp,
+            fontSize = lineFont * LinePillGeometry.fontScale(departure.lineNumber),
             fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
             maxLines = 1,
-            modifier = Modifier.width(32.dp),
+            softWrap = false,
+            modifier = Modifier.width(with(LocalDensity.current) { (lineFont * LinePillGeometry.TEXT_WIDTH_EMS).toDp() }),
         )
         Spacer(Modifier.width(3.dp))
         Text(

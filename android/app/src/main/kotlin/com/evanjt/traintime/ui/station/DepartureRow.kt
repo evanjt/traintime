@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
@@ -114,29 +114,18 @@ fun DepartureRow(
 
         Spacer(Modifier.width(8.dp))
 
-        // Line number as a filled pill, kept in a fixed slot so destinations
-        // still align down the column.
-        Box(Modifier.width(52.dp), contentAlignment = Alignment.CenterStart) {
-            if (departure.lineNumber.isNotEmpty()) {
-                Text(
-                    departure.lineNumber,
-                    color = if (dimmed) secondary else Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(
-                            if (dimmed) {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            } else {
-                                palette.linePill(departure.lineNumber, mode)
-                            },
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-            }
-        }
+        // Line number as a fixed-width pill, so destinations align down the
+        // column. A row with no line keeps the slot empty.
+        LinePill(
+            departure.lineNumber,
+            fill = when {
+                departure.lineNumber.isEmpty() -> Color.Transparent
+                dimmed -> MaterialTheme.colorScheme.surfaceVariant
+                else -> palette.linePill(departure.lineNumber, mode)
+            },
+            fontSize = 12.sp,
+            textColor = if (dimmed) secondary else Color.White,
+        )
 
         Spacer(Modifier.width(10.dp))
 

@@ -43,6 +43,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.ToggleChip
 import androidx.wear.compose.material.ToggleChipDefaults
+import com.evanjt.traintime.DataCredits
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Favourite
 import com.evanjt.traintime.data.model.TransportMode
@@ -265,17 +266,29 @@ fun WearSettingsScreen(vm: WearViewModel, onNavigateHome: () -> Unit = {}) {
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
             }
-            item {
-                Text(
-                    stringResource(R.string.data_attribution),
-                    color = MaterialTheme.colors.onSurfaceVariant,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                )
-            }
+            item { Column(Modifier.fillMaxWidth()) { DataAttributionFooter() } }
         }
     }
+}
+
+// The data sources the licences require crediting: the Swiss platform, then Public Transport
+// Victoria under its heading, the licence line in English as the licensor words it.
+@Composable
+internal fun DataAttributionFooter() {
+    Text(
+        stringResource(R.string.data_attribution),
+        color = MaterialTheme.colors.onSurfaceVariant,
+        fontSize = 10.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+    )
+    Text(
+        "${stringResource(R.string.victoria_heading)}\n${DataCredits.PTV_LICENCE}",
+        color = MaterialTheme.colors.onSurfaceVariant,
+        fontSize = 10.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+    )
 }
 
 // "" = follow the watch language. Language names are endonyms, identical in

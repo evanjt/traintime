@@ -1,10 +1,25 @@
 package com.evanjt.traintime.wear
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.Text
+import com.evanjt.traintime.LinePillGeometry
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
 
@@ -99,6 +114,34 @@ fun WearPalette.linePill(line: String, mode: TransportMode): Color {
         prefix in LONG_DISTANCE_PREFIXES -> lineLongDistance
         else -> lineRegional
     }
+}
+
+// The watch line pill, the phone's rule at the watch chip font: a fixed width
+// that holds a five-character label, centred, shrunk when it runs longer.
+@Composable
+fun WearLinePill(
+    label: String,
+    fill: Color,
+    fontSize: TextUnit,
+    modifier: Modifier = Modifier,
+    verticalPadding: Dp = 1.dp,
+) {
+    val width = with(LocalDensity.current) { (fontSize * LinePillGeometry.WIDTH_EMS).toDp() }
+    Text(
+        label,
+        color = Color.White,
+        fontSize = fontSize * LinePillGeometry.fontScale(label),
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        modifier = modifier
+            .width(width)
+            .clip(RoundedCornerShape(6.dp))
+            .background(fill)
+            .padding(vertical = verticalPadding),
+    )
 }
 
 val GpsQuality.tint: Color

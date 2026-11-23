@@ -75,6 +75,20 @@ final class WidgetRowMetricsTests: XCTestCase {
         return (text as NSString).size(withAttributes: [.font: font]).width
     }
 
+    private func pillWidth(_ label: String, size: CGFloat, style: Font.TextStyle?) -> CGFloat {
+        let host = UIHostingController(rootView: LinePill(label, fill: .blue, fontSize: size, relativeTo: style))
+        return host.sizeThatFits(in: CGSize(width: 1000, height: 1000)).width
+    }
+
+    func testLinePillIsOneWidthForEveryLabelInEveryFamily() {
+        let labels = ["S3", "IR95", "BEG", "16", "V41", "RE33X", "ICE1234"]
+        for family in [WidgetFamily.systemSmall, .systemMedium, .systemLarge] {
+            let m = WidgetRowMetrics.of(family)
+            let widths = labels.map { pillWidth($0, size: m.lineSize, style: m.lineStyle) }
+            XCTAssertEqual(widths, labels.map { _ in widths[0] }, "\(family)")
+        }
+    }
+
     func testEveryMinutesLabelFitsItsColumnInEveryLanguage() {
         // A label measured within 2pt of its column still truncated on the home screen.
         let margin: CGFloat = 2

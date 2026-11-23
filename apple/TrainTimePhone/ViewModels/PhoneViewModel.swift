@@ -6,8 +6,7 @@ import Foundation
 import WidgetKit
 
 class PhoneViewModel: ObservableObject {
-    // Shown (and used as the gate for the faint Swiss-outline backdrop) when the phone is
-    // located outside Switzerland with no stations to show.
+    // Shown when the phone is located outside every region with no stations to show.
     static let outOfBoundsStatus = String(localized: "Not in Switzerland")
 
     // MARK: - Services
@@ -18,6 +17,9 @@ class PhoneViewModel: ObservableObject {
 
     // MARK: - App State
     @Published var appState: Int = 0 // 0=station view, 2=focused tracking, 3=inactive
+    /// Located outside every region with no stations to show; the board draws the faint
+    /// outline backdrop behind the out-of-coverage status.
+    @Published var isOutOfBounds = false
     /// The board row waiting on "Track instead", shown as a confirmation.
     @Published var pendingSwitch: Departure?
     /// The board picker waiting on "Stop tracking", shown as a confirmation.
@@ -474,9 +476,7 @@ class PhoneViewModel: ObservableObject {
         let infoLine = (watchTrackingInfo?["line"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let line = infoLine ?? watchTrackingLine.flatMap { $0.isEmpty ? nil : $0 }
         let dest = (watchTrackingInfo?["dest"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        let time = fmt.string(from: Date(timeIntervalSince1970: TimeInterval(depTs)))
+        let time = Region.clockTime(depTs, stationId: watchTrackingInfo?["stId"] as? String)
         var head: [String] = []
         if let line { head.append(line) }
         if let dest { head.append("→ \(dest)") }
@@ -847,6 +847,7 @@ class PhoneViewModel: ObservableObject {
 
         guard let coord = coord else {
             if stations.isEmpty {
+                isOutOfBounds = false
                 status = String(localized: "GPS: Searching...")
             }
             return
@@ -855,12 +856,12 @@ class PhoneViewModel: ObservableObject {
         // Keep a connected watch fed with the phone's location as a GPS fallback.
         maybePushLocationToWatch(coord)
 
-        guard SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) || !stations.isEmpty else {
-            if stations.isEmpty {
-                status = Self.outOfBoundsStatus
-            }
+        guard CoverageGate.onFix(lat: coord.latitude, lon: coord.longitude, hasStations: !stations.isEmpty) == .search else {
+            isOutOfBounds = true
+            status = Self.outOfBoundsStatus
             return
         }
+        isOutOfBounds = false
 
         // Skip station search in tracking/inactive (still update GPS above)
         if appState >= 2 { return }
@@ -1011,7 +1012,7 @@ class PhoneViewModel: ObservableObject {
             if let station = currentStation, let id = station.id {
                 fetchDepartures(stationId: id)
             } else if stations.isEmpty,
-                      SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+                      Region.covers(lat: coord.latitude, lon: coord.longitude) {
                 loadedFromCache = location.loadedFromCache
                 fetchStations(lat: coord.latitude, lon: coord.longitude)
             }
@@ -1149,8 +1150,8 @@ class PhoneViewModel: ObservableObject {
 
         // Fetch formation for rail departures
         if let tn = focused.trainNumber, Formation.isRailCategory(focused.category),
-           let stationId = currentStation?.id {
-            let date = formationDateString()
+           let stationId = currentStation?.id, Region.hasFormation(stationId: stationId) {
+            let date = Region.serviceDate(Date(), stationId: stationId)
             let opRef = focused.operatorRef
             Task { @MainActor in
                 self.formation = try? await TrainAPIService.fetchFormation(trainNumber: tn, date: date, stationId: stationId, operatorRef: opRef)
@@ -2184,15 +2185,6 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Formation
-
-    private func formationDateString() -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.timeZone = TimeZone(identifier: "Europe/Zurich")
-        return fmt.string(from: Date())
-    }
-
     private func extractFavouritesFromCurrent(_ deps: [Departure]) -> [Departure] {
         guard let stationId = currentStation?.id else { return [] }
         return favouritesStore.extractFavourites(from: deps, stationId: stationId)
@@ -2424,7 +2416,7 @@ class PhoneViewModel: ObservableObject {
         departures = []
         favouriteDepartures = []
         let coord = location.coordinate ?? lastSearchCoordinate
-        if let coord, SwissBounds.contains(lat: coord.latitude, lon: coord.longitude) {
+        if let coord, Region.covers(lat: coord.latitude, lon: coord.longitude) {
             fetchStations(lat: coord.latitude, lon: coord.longitude)
         }
         // No coord yet: stations are empty, so the next location update fetches.

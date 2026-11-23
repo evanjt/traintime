@@ -47,12 +47,7 @@ struct PhoneDepartureRowView: View {
                 }
 
                 // Connection ID
-                if !departure.lineNumber.isEmpty {
-                    lineBadge
-                        .frame(width: 52, alignment: .leading)
-                } else {
-                    Spacer().frame(width: 52)
-                }
+                lineBadge
 
                 // Destination
                 Text(departure.destination)
@@ -91,23 +86,16 @@ struct PhoneDepartureRowView: View {
         return AppColors.minutesSoon
     }
 
-    @ViewBuilder
+    // A fixed-width pill, so destinations align down the column; a row with
+    // no line keeps the slot empty, a gone or cancelled one drops the fill.
     private var lineBadge: some View {
-        if !departure.isSelectable {
-            Text(departure.lineNumber)
-                .font(.system(.caption, weight: .medium))
-                .foregroundStyle(.secondary)
-        } else {
-            Text(departure.lineNumber)
-                .font(.system(.caption, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(AppColors.linePill(departure.lineNumber, mode: mode))
-                )
-        }
+        let filled = departure.isSelectable && !departure.lineNumber.isEmpty
+        return LinePill(
+            departure.lineNumber,
+            fill: filled ? AppColors.linePill(departure.lineNumber, mode: mode) : .clear,
+            fontSize: 12, relativeTo: .caption,
+            textColor: departure.isSelectable ? .white : .secondary
+        )
     }
 
 }

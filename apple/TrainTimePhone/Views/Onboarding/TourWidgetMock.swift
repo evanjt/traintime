@@ -54,11 +54,8 @@ struct TourWidgetMock: View {
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Capsule().fill(AppColors.delay))
             }
-            Text(row.line)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 5).padding(.vertical, 1)
-                .background(RoundedRectangle(cornerRadius: 5).fill(AppColors.linePill(row.line, mode: .train)))
+            LinePill(row.line, fill: AppColors.linePill(row.line, mode: .train), fontSize: 12,
+                     cornerRadius: 5, verticalPadding: 1)
             Text(row.destination)
                 .font(.system(size: 14)).lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)

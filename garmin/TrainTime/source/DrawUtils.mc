@@ -47,6 +47,21 @@ module DrawUtils {
         return hw * 2;
     }
 
+    // Line id slot on a departure row: one fixed column, the same for every
+    // label, from 32% of the screen to a gap before the destination at 44%,
+    // with the label centred in it. Returns [labelX, slotX, slotW]. A label
+    // wider than the slot starts at the slot's left edge and the caller
+    // truncates it, FONT_XTINY being the smallest font there is to shrink to.
+    function lineChip(width, labelW) {
+        var slotX = width * 32 / 100;
+        var slotW = width * 44 / 100 - px(3, width) - slotX;
+        var labelX = slotX;
+        if (labelW < slotW) {
+            labelX = slotX + (slotW - labelW) / 2;
+        }
+        return [labelX, slotX, slotW];
+    }
+
     function truncateToFit(dc, text, font, maxWidth) {
         var dims = dc.getTextDimensions(text, font);
         if (dims[0] <= maxWidth) {

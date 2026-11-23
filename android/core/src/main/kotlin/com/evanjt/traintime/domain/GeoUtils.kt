@@ -7,10 +7,11 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 object GeoUtils {
-    // Flat-earth approximation, matches the Garmin and iOS implementations.
+    // Flat-earth approximation, matches the Garmin and iOS implementations. A
+    // degree of longitude shrinks by the cosine of the mean latitude.
     fun haversineDistance(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Double {
         val dLat = (toLat - fromLat) * 111000.0
-        val dLon = (toLon - fromLon) * 75700.0
+        val dLon = (toLon - fromLon) * 111000.0 * cos(Math.toRadians((fromLat + toLat) / 2))
         return sqrt(dLat * dLat + dLon * dLon)
     }
 

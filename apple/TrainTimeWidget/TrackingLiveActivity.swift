@@ -15,7 +15,7 @@ struct TrackingLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    LinePill(line: context.attributes.line)
+                    ActivityLinePill(line: context.attributes.line)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     PlatformLabel(state: context.state)
@@ -58,7 +58,7 @@ private struct TrackingActivityLockView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                LinePill(line: context.attributes.line)
+                ActivityLinePill(line: context.attributes.line)
                 Text(context.state.destination)
                     .font(.headline)
                     .lineLimit(1)
@@ -81,17 +81,12 @@ private struct TrackingActivityLockView: View {
     }
 }
 
-private struct LinePill: View {
+private struct ActivityLinePill: View {
     let line: String
 
     var body: some View {
-        Text(line)
-            .font(.caption.bold())
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(Capsule().fill(Color(red: 0.92, green: 0, blue: 0)))
-            .foregroundStyle(.white)
-            .lineLimit(1)
+        LinePill(line, fill: Color(red: 0.92, green: 0, blue: 0), fontSize: 12, relativeTo: .caption,
+                 cornerRadius: 10, verticalPadding: 3)
     }
 }
 

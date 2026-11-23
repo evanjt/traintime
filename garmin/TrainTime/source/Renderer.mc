@@ -571,7 +571,6 @@ module Renderer {
         // Fixed column X positions (absolute, so columns align across rows)
         var minRightX = width * 20 / 100;
         var delayX = width * 21 / 100;
-        var platX = width * 32 / 100;
         var destX = width * 44 / 100;
 
         // Right edge for this row on round display (for destination truncation)
@@ -616,11 +615,14 @@ module Renderer {
                 "+" + delay, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
-        // Connection ID column (FONT_XTINY)
+        // Connection ID column (FONT_XTINY), centred in one fixed slot
         if (lineNumber != null && lineNumber.length() > 0) {
             dc.setColor(isGone ? goneTint : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(platX, xtinyY, Graphics.FONT_XTINY,
-                lineNumber, Graphics.TEXT_JUSTIFY_LEFT);
+            var slotW = DrawUtils.lineChip(width, 0)[2];
+            var lineText = DrawUtils.truncateToFit(dc, lineNumber, Graphics.FONT_XTINY, slotW);
+            var chip = DrawUtils.lineChip(width, dc.getTextWidthInPixels(lineText, Graphics.FONT_XTINY));
+            dc.drawText(chip[0], xtinyY, Graphics.FONT_XTINY,
+                lineText, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
         // Destination column (FONT_XTINY, truncated to fit round edge)

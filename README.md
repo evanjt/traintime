@@ -98,6 +98,7 @@ cd garmin
 ./setup.sh           # Install Connect IQ SDK
 ./build.sh           # Build for fenix6pro (default)
 ./build.sh release   # Build .iq package for all devices
+./test.sh            # Run the unit tests in the simulator under Xvfb
 ```
 
 ## API

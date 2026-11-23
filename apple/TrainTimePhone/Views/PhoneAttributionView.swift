@@ -1,8 +1,9 @@
 import SwiftUI
 
 // Credits for the data and software TrainTime builds on, plus the legal pages, reached from the
-// bottom of Settings. Three sources require attribution (Open Transport Data Switzerland by a literal
-// clickable link, the FOT station dataset, the Garmin SDK); the rest is credited as good practice. On
+// bottom of Settings. Four sources require attribution (Open Transport Data Switzerland by a literal
+// clickable link, the FOT station dataset, Public Transport Victoria by its CC BY 4.0 line, the Garmin
+// SDK); the rest is credited as good practice. On
 // iOS almost nothing third-party ships beyond the Garmin SDK. The app is otherwise built on Apple's
 // own frameworks.
 struct PhoneAttributionView: View {
@@ -35,6 +36,13 @@ struct PhoneAttributionView: View {
                     .foregroundStyle(.secondary)
                 linkRow(String(localized: "Public transport stops"), "opendata.swiss",
                         "https://opendata.swiss/\(language)/dataset/haltestellen-des-offentlichen-verkehrs")
+            }
+
+            Section("Victoria, Australia") {
+                Text(verbatim: DataCredits.ptvLicence)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                linkRow(DataCredits.ccBy4Name, DataCredits.ccBy4Host, DataCredits.ccBy4URL)
             }
 
             Section("Map") {

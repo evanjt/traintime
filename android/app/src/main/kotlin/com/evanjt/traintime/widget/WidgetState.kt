@@ -8,6 +8,7 @@ import androidx.datastore.core.Serializer
 import androidx.datastore.dataStoreFile
 import androidx.glance.state.GlanceStateDefinition
 import com.evanjt.traintime.data.model.TransportMode
+import com.evanjt.traintime.region.Regions
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -38,13 +39,9 @@ data class WidgetDeparture(
     // train stays in the widget until it has really left.
     fun isGone(nowEpochSeconds: Long): Boolean = minutesUntil(nowEpochSeconds) + delay < 0
 
-    // Absolute clock time, shown in the dormant view where a stale minute count misleads.
-    val clockTimeText: String
-        get() {
-            val time = java.time.Instant.ofEpochSecond(departureTimestamp)
-                .atZone(java.time.ZoneId.systemDefault())
-            return "%02d:%02d".format(time.hour, time.minute)
-        }
+    // Absolute clock time in the station's zone, shown in the dormant view where
+    // a stale minute count misleads.
+    fun clockTimeText(stationId: String): String = Regions.clockTime(departureTimestamp, stationId)
 
     val favKey: String get() = "$lineNumber|$destination"
 }

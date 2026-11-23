@@ -10,7 +10,7 @@ struct RefreshIntent: AppIntent {
         FavouritesStore.shared.reload() // pick up app-side favourite changes in this process
         MyStationsStore.shared.reload()
         let coordinate = try await getLocation()
-        WidgetStorage.outsideSwitzerland = !SwissBounds.contains(lat: coordinate.latitude, lon: coordinate.longitude)
+        WidgetStorage.outsideSwitzerland = !Region.covers(lat: coordinate.latitude, lon: coordinate.longitude)
 
         let result = try await TrainAPIService.fetchStations(
             lat: coordinate.latitude,

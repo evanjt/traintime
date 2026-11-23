@@ -19,11 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.data.model.FocusedDeparture
@@ -64,16 +64,7 @@ fun NowTrackingCard(
             fontSize = 11.sp,
             modifier = Modifier.padding(start = 8.dp, end = 10.dp),
         )
-        Text(
-            text = focused.lineNumber,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(palette.linePill(focused.lineNumber, mode))
-                .padding(horizontal = 7.dp, vertical = 2.dp),
-        )
+        LinePill(focused.lineNumber, palette.linePill(focused.lineNumber, mode), fontSize = 13.sp)
         Text(
             text = focused.destination,
             color = MaterialTheme.colorScheme.onSurface,

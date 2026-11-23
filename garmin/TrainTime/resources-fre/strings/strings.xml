@@ -84,6 +84,7 @@
     <string id="PrivacyPolicy">Confidentialité</string>
     <string id="TermsOfUse">Conditions d'utilisation</string>
     <string id="StationsLabel">Arrêts</string>
+    <string id="VictoriaLabel">Victoria, Australie</string>
     <string id="StationLabel">Gare</string>
 
     <!-- Tracking options menu -->

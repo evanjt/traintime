@@ -6,13 +6,13 @@ import androidx.glance.appwidget.updateAll
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.evanjt.traintime.SwissBounds
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.model.LatLon
 import com.evanjt.traintime.data.model.Station
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.data.prefs.AppPrefs
 import com.evanjt.traintime.data.prefs.MyStationsStore
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.widget.TrainTimeWidget
 import com.evanjt.traintime.widget.WidgetFetchResult
 import com.evanjt.traintime.widget.WidgetStateDefinition
@@ -36,7 +36,7 @@ object WidgetRefresher {
                 finish(context)
                 return
             }
-            val outsideSwitzerland = !SwissBounds.contains(coordinate.lat, coordinate.lon)
+            val outsideSwitzerland = !Regions.isCovered(coordinate.lat, coordinate.lon)
 
             val result = runCatching {
                 TrainApi.shared.fetchStations(coordinate.lat, coordinate.lon)

@@ -6,8 +6,8 @@ using Toybox.Lang;
 using Toybox.Math;
 
 // Single glance tile: the nearest pinned station, by cached location only.
-// Deliberately self-contained (Toybox + inline Storage read + flat-earth
-// distance) so it stays well under the ~32 kB glance budget and never makes a
+// Deliberately self-contained (Toybox + inline Storage read + GeoMath's
+// flat-earth distance) so it stays well under the ~32 kB glance budget and never makes a
 // network request. Tapping it launches the app, which lands on that station
 // once GPS resolves (pinned stations are reordered to the front).
 (:glance)
@@ -55,9 +55,7 @@ class TrainTimeGlanceView extends WatchUi.GlanceView {
             for (var i = 0; i < pinned.size(); i++) {
                 var s = pinned[i] as Lang.Dictionary;
                 if (s == null || s["lat"] == null || s["lon"] == null) { continue; }
-                var dLat = (s["lat"] - lat) * 111000.0;
-                var dLon = (s["lon"] - lon) * 75700.0;
-                var d = Math.sqrt(dLat * dLat + dLon * dLon);
+                var d = GeoMath.calculateDistance(lat, lon, s["lat"], s["lon"]);
                 if (bestDist == null || d < bestDist) {
                     bestDist = d;
                     best = s;

@@ -78,12 +78,7 @@ struct RouteDetailView: View {
         let isCurrent = index == route.cursor
         HStack(spacing: 8) {
             if !line.isEmpty {
-                Text(line)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(AppColors.linePill(line, mode: viewModel.currentMode)))
+                LinePill(line, fill: AppColors.linePill(line, mode: viewModel.currentMode), fontSize: 13)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(leg.originName) to \(leg.destName)")

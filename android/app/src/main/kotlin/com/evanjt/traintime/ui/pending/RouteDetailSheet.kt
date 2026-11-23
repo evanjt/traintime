@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.evanjt.traintime.LinePill
 import com.evanjt.traintime.LocalAppPalette
 import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
@@ -146,16 +147,7 @@ private fun RideLegRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (line.isNotEmpty()) {
-            Text(
-                line,
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(palette.linePill(line, mode))
-                    .padding(horizontal = 7.dp, vertical = 2.dp),
-            )
+            LinePill(line, palette.linePill(line, mode), fontSize = 13.sp)
         }
         Column(Modifier.weight(1f).padding(start = 8.dp)) {
             Text(

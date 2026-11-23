@@ -3,16 +3,6 @@ package com.evanjt.traintime
 // Pure (non-Compose) constants shared across :app and :wear. The adaptive
 // colour palette stays in each UI module. These are the platform-neutral halves.
 
-object SwissBounds {
-    const val LAT_MIN = 45.8
-    const val LAT_MAX = 47.8
-    const val LON_MIN = 5.9
-    const val LON_MAX = 10.5
-
-    fun contains(lat: Double, lon: Double): Boolean =
-        lat in LAT_MIN..LAT_MAX && lon in LON_MIN..LON_MAX
-}
-
 // Seconds, matching the iOS TimeInterval values.
 object Timing {
     const val NORMAL_REFRESH_INTERVAL = 5.0
@@ -39,4 +29,20 @@ object Thresholds {
     const val MAX_STATIONS_PER_MODE = 5
     const val MAX_DEPARTURES = 20
     const val CONSECUTIVE_ERROR_LIMIT = 3
+}
+
+// Line pill geometry, one rule on every surface: the pill is a fixed width,
+// in ems of the surface's chip font, that holds a FIT_CHARS label with the
+// label centred. A longer label shrinks its font to fit rather than clip.
+object LinePillGeometry {
+    const val FIT_CHARS = 5
+
+    // Five bold capitals or digits plus the pill's side padding.
+    const val WIDTH_EMS = 4.2f
+
+    // An unpadded label in a fixed column (the watch row's line text).
+    const val TEXT_WIDTH_EMS = 3.4f
+
+    fun fontScale(label: String): Float =
+        if (label.length <= FIT_CHARS) 1f else FIT_CHARS.toFloat() / label.length
 }

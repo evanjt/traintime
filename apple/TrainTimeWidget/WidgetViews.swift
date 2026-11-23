@@ -133,16 +133,12 @@ struct WidgetEntryView: View {
         // Clock column spans minutes + delay so the line/destination columns line up with the active view.
         let clockWidth = m.minutesWidth + (m.showDelay ? m.hSpacing + m.delayWidth : 0)
         return HStack(spacing: m.hSpacing) {
-            Text(dep.clockTimeText)
+            Text(dep.clockTimeText(stationId: entry.stationId))
                 .font(m.clockFont)
                 .foregroundStyle(.secondary)
                 .frame(width: clockWidth, alignment: .trailing)
-            Text(lineLabel(dep))
-                .font(m.lineFont)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: m.lineWidth, alignment: .leading)
+            LinePill(lineLabel(dep), fill: .clear, fontSize: m.lineSize, relativeTo: m.lineStyle,
+                     textColor: .secondary, cornerRadius: 5, verticalPadding: 1)
             Text(dep.destination)
                 .font(m.destFont)
                 .foregroundStyle(.secondary)
@@ -345,29 +341,16 @@ struct WidgetEntryView: View {
                 }
             }
 
-            // Line, filled pill in a reserved column so destinations line up.
-            Group {
-                if !dep.lineNumber.isEmpty {
-                    Text(dep.lineNumber)
-                        .font(m.lineFont)
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(AppColors.linePill(dep.lineNumber, mode: entry.currentMode ?? .train))
-                        )
-                } else if !dep.platform.isEmpty {
-                    Text(lineLabel(dep))
-                        .font(m.lineFont)
-                        .foregroundStyle(lineColor(dep))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-            }
-            .frame(width: m.lineWidth, alignment: .leading)
+            // Line as a fixed-width pill so destinations line up; with no line,
+            // the platform takes the same slot unfilled.
+            LinePill(
+                lineLabel(dep),
+                fill: dep.lineNumber.isEmpty
+                    ? .clear : AppColors.linePill(dep.lineNumber, mode: entry.currentMode ?? .train),
+                fontSize: m.lineSize, relativeTo: m.lineStyle,
+                textColor: dep.lineNumber.isEmpty ? lineColor(dep) : .white,
+                cornerRadius: 5, verticalPadding: 1
+            )
 
             // Destination
             Text(dep.destination)
@@ -421,8 +404,10 @@ struct WidgetRowMetrics {
     var minutesWidth: CGFloat
     var showDelay: Bool
     var delayWidth: CGFloat
-    var lineFont: Font
-    var lineWidth: CGFloat
+    /// Line pill chip font, in points at the default text size.
+    var lineSize: CGFloat
+    /// Text style the chip font scales with; nil keeps it fixed.
+    var lineStyle: Font.TextStyle?
     var destFont: Font
     var starSize: CGFloat
     var hSpacing: CGFloat
@@ -436,21 +421,21 @@ struct WidgetRowMetrics {
                 minutesSize: 16, minutesMinScale: 0.55,
                 clockFont: .system(size: 13, weight: .semibold, design: .rounded),
                 minutesWidth: 27, showDelay: false, delayWidth: 0,
-                lineFont: .system(size: 12, weight: .semibold), lineWidth: 34,
+                lineSize: 12, lineStyle: nil,
                 destFont: .subheadline, starSize: 9, hSpacing: 5)
         case .systemLarge:
             return WidgetRowMetrics(
                 minutesSize: 19, minutesMinScale: 0.7,
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 40, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
+                lineSize: 15, lineStyle: .subheadline,
                 destFont: .body, starSize: 12, hSpacing: 8)
         default:
             return WidgetRowMetrics(
                 minutesSize: 20, minutesMinScale: 0.7,
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 42, showDelay: true, delayWidth: 34,
-                lineFont: .system(.subheadline, weight: .semibold), lineWidth: 46,
+                lineSize: 15, lineStyle: .subheadline,
                 destFont: .body, starSize: 12, hSpacing: 8)
         }
     }

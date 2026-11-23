@@ -84,6 +84,7 @@
     <string id="PrivacyPolicy">Datenschutz</string>
     <string id="TermsOfUse">Nutzungsbedingungen</string>
     <string id="StationsLabel">Haltestellen</string>
+    <string id="VictoriaLabel">Victoria, Australien</string>
     <string id="StationLabel">Station</string>
 
     <!-- Tracking options menu -->

@@ -71,6 +71,7 @@
     <string name="stations_heading">Haltestellen</string>
     <string name="stations_desc">Standorte der Haltestellen vom Bundesamt für Verkehr (BAV). Freie Nutzung mit Quellenangabe.</string>
     <string name="stations_dataset_title">Haltestellen des öffentlichen Verkehrs</string>
+    <string name="victoria_heading">Victoria, Australien</string>
     <string name="legal_heading">Rechtliches</string>
     <string name="privacy_policy">Datenschutz</string>
 

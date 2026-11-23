@@ -41,16 +41,10 @@ import com.evanjt.traintime.data.model.FocusedDeparture
 import com.evanjt.traintime.data.model.GpsQuality
 import com.evanjt.traintime.data.model.TransportMode
 import com.evanjt.traintime.domain.GeoUtils
+import com.evanjt.traintime.region.Regions
 import com.evanjt.traintime.wear.R
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
-private val departureTimeFormat = DateTimeFormatter.ofPattern("HH:mm")
-
-private fun formatDepartureTime(timestamp: Long): String =
-    departureTimeFormat.format(Instant.ofEpochSecond(timestamp).atZone(ZoneId.systemDefault()))
 
 @Composable
 fun WearTrackingScreen(vm: WearViewModel) {
@@ -146,7 +140,7 @@ fun WearTrackingScreen(vm: WearViewModel) {
                 }
                 if (focused != null) {
                     Text("·", color = secondary, fontSize = 10.sp)
-                    Text(formatDepartureTime(focused.departureTimestamp), color = secondary, fontSize = 10.sp)
+                    Text(Regions.clockTime(focused.departureTimestamp, vm.currentStation?.id), color = secondary, fontSize = 10.sp)
                 }
             }
 
@@ -276,16 +270,7 @@ private fun OnwardConnectionCardWear(
             modifier = Modifier.padding(top = 3.dp),
         ) {
             if (line.isNotEmpty()) {
-                Text(
-                    line,
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(palette.linePill(line, mode))
-                        .padding(horizontal = 6.dp, vertical = 1.dp),
-                )
+                WearLinePill(line, palette.linePill(line, mode), fontSize = 12.sp)
             }
             Text(
                 leg.destName,
@@ -299,7 +284,7 @@ private fun OnwardConnectionCardWear(
         Text(
             stringResource(
                 CoreR.string.min_to_change_fmt,
-                formatDepartureTime(leg.depTs),
+                Regions.clockTime(leg.depTs, leg.originId),
                 onward.changeMinutes.toInt(),
             ),
             color = secondary,

@@ -27,6 +27,11 @@
 		47A917B6CE811DEF0CC912A8 /* FormationStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */; };
 		490335BD08DD9D60D7F4D9AA /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = W0F100000000000000000003 /* WidgetViews.swift */; };
 		49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */; };
+		RE0A00000000000000000001 /* Region.swift in Sources */ = {isa = PBXBuildFile; fileRef = RE0F00000000000000000001 /* Region.swift */; };
+		RE0A00000000000000000002 /* Region.swift in Sources */ = {isa = PBXBuildFile; fileRef = RE0F00000000000000000001 /* Region.swift */; };
+		RE0A00000000000000000003 /* Region.swift in Sources */ = {isa = PBXBuildFile; fileRef = RE0F00000000000000000001 /* Region.swift */; };
+		RE0A00000000000000000004 /* Region.swift in Sources */ = {isa = PBXBuildFile; fileRef = RE0F00000000000000000001 /* Region.swift */; };
+		RE0A00000000000000000005 /* RegionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = RE0F00000000000000000002 /* RegionTests.swift */; };
 		501EF45BF70303C8F50A9A64 /* GeoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE4DE7715F97367EA34B9B9 /* GeoTests.swift */; };
 		5258B5558D984B74B36EE8E4 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C443CDA163B84305AC19B8D3 /* LocationService.swift */; };
 		55BF2A3B4C5D6E7F80910213 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C03B4C5D6E7F8091021324 /* HapticService.swift */; };
@@ -107,6 +112,7 @@
 		PC0A00000000000000000001 /* PlatformChangeAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = PC0F00000000000000000001 /* PlatformChangeAlert.swift */; };
 		A15D0A000000000000000002 /* silence.caf in Resources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000002 /* silence.caf */; };
 		A15D0A000000000000000003 /* AlertSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15D0F000000000000000003 /* AlertSettingsTests.swift */; };
+		AC0A00000000000000000001 /* AttributionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0F00000000000000000001 /* AttributionTests.swift */; };
 		P0A100000000000000000006 /* PhoneStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = P0F100000000000000000006 /* PhoneStationView.swift */; };
 		TP0A00000000000000000001 /* TwoPaneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP0F00000000000000000001 /* TwoPaneLayout.swift */; };
 		TP0A00000000000000000002 /* PaneLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP0F00000000000000000002 /* PaneLayoutTests.swift */; };
@@ -284,6 +290,8 @@
 		95C41E3FB709401C9161EB46 /* Departure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Departure.swift; sourceTree = "<group>"; };
 		9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLogicTests.swift; sourceTree = "<group>"; };
 		AAA47F80910213243546576F /* ModeIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeIndicatorView.swift; sourceTree = "<group>"; };
+		RE0F00000000000000000001 /* Region.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Region.swift; sourceTree = "<group>"; };
+		RE0F00000000000000000002 /* RegionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RegionTests.swift; sourceTree = "<group>"; };
 		AEE4DE7715F97367EA34B9B9 /* GeoTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GeoTests.swift; sourceTree = "<group>"; };
 		B0776EECB8D2496AA4A29C74 /* Station.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Station.swift; sourceTree = "<group>"; };
 		B2C3D4E5F678901234567890 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
@@ -324,6 +332,7 @@
 		PC0F00000000000000000001 /* PlatformChangeAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformChangeAlert.swift; sourceTree = "<group>"; };
 		A15D0F000000000000000002 /* silence.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = silence.caf; sourceTree = "<group>"; };
 		A15D0F000000000000000003 /* AlertSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertSettingsTests.swift; sourceTree = "<group>"; };
+		AC0F00000000000000000001 /* AttributionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionTests.swift; sourceTree = "<group>"; };
 		P0F100000000000000000006 /* PhoneStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStationView.swift; sourceTree = "<group>"; };
 		TP0F00000000000000000001 /* TwoPaneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwoPaneLayout.swift; sourceTree = "<group>"; };
 		TP0F00000000000000000002 /* PaneLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLayoutTests.swift; sourceTree = "<group>"; };
@@ -556,6 +565,7 @@
 				RG0F00000000000000000001 /* ReviewGate.swift */,
 				HP0F00000000000000000001 /* HapticsPreference.swift */,
 				S0F100000000000000000001 /* SharedRoute.swift */,
+				RE0F00000000000000000001 /* Region.swift */,
 				20205D496647508E81646995 /* ApiHost.swift */,
 				6375116DABF7BB891FFAFFD5 /* FormationStrip.swift */,
 			);
@@ -570,6 +580,7 @@
 				S0F100000000000000000008 /* sbb_trip_fixture.txt */,
 				02625399D810FA6B5C14FD14 /* MyStationsTests.swift */,
 				AEE4DE7715F97367EA34B9B9 /* GeoTests.swift */,
+				RE0F00000000000000000002 /* RegionTests.swift */,
 				6390A9C142D9AF015FE486CF /* ParsingTests.swift */,
 				17E82B7243363FF8FDBAC85C /* FavouritesTests.swift */,
 				9998A749F2DFE8813AE120DE /* WidgetLogicTests.swift */,
@@ -577,6 +588,7 @@
 				RG0F00000000000000000002 /* ReviewGateTests.swift */,
 				HP0F00000000000000000002 /* HapticsPreferenceTests.swift */,
 				A15D0F000000000000000003 /* AlertSettingsTests.swift */,
+				AC0F00000000000000000001 /* AttributionTests.swift */,
 				LT0F00000000000000000001 /* LiveActivityTests.swift */,
 				50D4C3F4FEBBB92F7C26A09A /* ApiHostTests.swift */,
 				HF0F00000000000000000002 /* APIFailoverTests.swift */,
@@ -939,6 +951,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				S0A100000000000000000001 /* SharedRoute.swift in Sources */,
+				RE0A00000000000000000001 /* Region.swift in Sources */,
 				S0A100000000000000000003 /* SBBShare.swift in Sources */,
 				2FD884A23B2F4EAA9E96D717 /* TrainTimeWatchApp.swift in Sources */,
 				FE0A00000000000000000301 /* WatchPhoneSync.swift in Sources */,
@@ -988,6 +1001,7 @@
 				1AD2F11980807139DEA59684 /* WidgetEntry.swift in Sources */,
 				490335BD08DD9D60D7F4D9AA /* WidgetViews.swift in Sources */,
 				E2A8F234BE630819E1031F1F /* RefreshIntent.swift in Sources */,
+				RE0A00000000000000000004 /* Region.swift in Sources */,
 				7E21A2FD80980B8821C505ED /* SwitchModeIntent.swift in Sources */,
 				1B060950AE09D88A3CF1B26A /* SwitchStationIntent.swift in Sources */,
 				2F8AA1586DEA526CA078D40E /* WidgetAccessoryViews.swift in Sources */,
@@ -1018,6 +1032,7 @@
 				S0A100000000000000000009 /* PendingRouteLogicTests.swift in Sources */,
 				2165730DFBA03FEFCC0DE59F /* MyStationsTests.swift in Sources */,
 				501EF45BF70303C8F50A9A64 /* GeoTests.swift in Sources */,
+				RE0A00000000000000000005 /* RegionTests.swift in Sources */,
 				DD85640342070AD0AB33CF75 /* ParsingTests.swift in Sources */,
 				6C1AB31CD092CDF147AAF318 /* FavouritesTests.swift in Sources */,
 				73830162210ABA67F402627C /* WidgetLogicTests.swift in Sources */,
@@ -1025,6 +1040,7 @@
 				RG0A00000000000000000003 /* ReviewGateTests.swift in Sources */,
 				HP0A00000000000000000003 /* HapticsPreferenceTests.swift in Sources */,
 				A15D0A000000000000000003 /* AlertSettingsTests.swift in Sources */,
+				AC0A00000000000000000001 /* AttributionTests.swift in Sources */,
 				LT0A00000000000000000001 /* LiveActivityTests.swift in Sources */,
 				49A1353A21480370BFC50041 /* ApiHostTests.swift in Sources */,
 				HF0A00000000000000000005 /* APIFailoverTests.swift in Sources */,
@@ -1040,6 +1056,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				S0A100000000000000000002 /* SharedRoute.swift in Sources */,
+				RE0A00000000000000000002 /* Region.swift in Sources */,
 				S0A100000000000000000004 /* SBBShare.swift in Sources */,
 				S0A100000000000000000005 /* PendingRouteNotifier.swift in Sources */,
 				S0A100000000000000000006 /* PendingRouteChip.swift in Sources */,
@@ -1111,6 +1128,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				W0A100000000000000000001 /* TrainTimeWidget.swift in Sources */,
+				RE0A00000000000000000003 /* Region.swift in Sources */,
 				W0A100000000000000000002 /* WidgetEntry.swift in Sources */,
 				W0A100000000000000000003 /* WidgetViews.swift in Sources */,
 				W0A100000000000000000004 /* RefreshIntent.swift in Sources */,
