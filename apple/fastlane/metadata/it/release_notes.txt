@@ -1,5 +1,5 @@
-- I treni soppressi ora mostrano «Soppresso» e non si possono più seguire né usare per un promemoria.
-- Toccando un'altra partenza durante il monitoraggio, l'app chiede prima di cambiare.
-- Stazione e modo restano fissi durante il monitoraggio. Toccali per interromperlo e cambiarli.
-- Ora anche su iPad. Su iPad o da aperto, il tabellone resta accanto al monitoraggio, così scegli un'altra partenza senza lasciarlo.
-- Apple Watch: le carrozze chiuse appaiono attenuate nella composizione del treno.
+- Se il servizio orari non è disponibile, l'app lo segnala e continua a mostrare le ultime partenze, con il tempo trascorso dall'ultimo aggiornamento.
+- I treni già partiti spariscono dal tabellone e non si possono più seguire.
+- Il tabellone si aggiorna appena torni nell'app.
+- Apple Watch mostra lo stesso messaggio e il tempo dall'ultimo aggiornamento.
+- Il widget piccolo mostra il nome della stazione per intero con l'orologio a 12 ore.

@@ -1,0 +1,3 @@
+- Se il servizio orari non è disponibile, l'app lo segnala e continua a mostrare le ultime partenze, con il tempo trascorso dall'ultimo aggiornamento.
+- I treni già partiti spariscono dal tabellone e non si possono più seguire.
+- Il tabellone si aggiorna appena torni nell'app.

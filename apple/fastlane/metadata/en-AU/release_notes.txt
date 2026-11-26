@@ -1,5 +1,5 @@
-- Cancelled trains now show as Cancelled, and can't be tracked or set as a reminder.
-- Tapping another departure while tracking asks before switching to it.
-- The station and mode stay put while tracking. Tap one to stop tracking and change it.
-- Now on iPad. On iPad or an unfolded iPhone, the board stays beside tracking, so you can pick another departure without leaving it.
-- Apple Watch: closed cars show dimmed in the train formation.
+- When the timetable service is down, the app says so and keeps the last departures on the board, with how long ago they were updated.
+- Trains already past their time drop off the board and can't be tracked.
+- The board refreshes as soon as you come back to the app.
+- Apple Watch shows the same message and update time.
+- The small widget keeps the station name whole with a 12-hour clock.

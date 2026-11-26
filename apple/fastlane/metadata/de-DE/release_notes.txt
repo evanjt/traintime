@@ -1,5 +1,5 @@
-- Ausfallende Züge zeigen jetzt «Fällt aus» und lassen sich weder verfolgen noch als Erinnerung setzen.
-- Tippst du beim Verfolgen auf eine andere Abfahrt, fragt die App, bevor sie wechselt.
-- Station und Modus bleiben beim Verfolgen fest. Tippe darauf, um die Verfolgung zu beenden und sie zu wechseln.
-- Jetzt auch auf dem iPad. Auf dem iPad oder aufgeklappt bleibt die Abfahrtstafel neben der Verfolgung, so wählst du eine andere Abfahrt, ohne sie zu verlassen.
-- Apple Watch: Geschlossene Wagen erscheinen in der Zugformation abgedunkelt.
+- Ist der Fahrplandienst gestört, sagt die App das und zeigt die letzten Abfahrten weiter, mit der Zeit seit der letzten Aktualisierung.
+- Bereits abgefahrene Züge verschwinden von der Tafel und lassen sich nicht mehr verfolgen.
+- Die Tafel aktualisiert sich, sobald du zur App zurückkehrst.
+- Die Apple Watch zeigt dieselbe Meldung und die Zeit seit der Aktualisierung.
+- Das kleine Widget zeigt den Stationsnamen auch mit 12-Stunden-Uhr vollständig.

@@ -1,0 +1,3 @@
+- Si le service d'horaires est indisponible, l'app l'indique et garde les derniers départs affichés, avec le temps écoulé depuis leur mise à jour.
+- Les trains déjà partis disparaissent du tableau et ne peuvent plus être suivis.
+- Le tableau se met à jour dès que vous revenez dans l'app.

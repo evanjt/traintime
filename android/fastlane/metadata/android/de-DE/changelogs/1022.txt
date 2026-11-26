@@ -1,0 +1,3 @@
+- Ist der Fahrplandienst gestört, sagt die App das und zeigt die letzten Abfahrten weiter, mit der Zeit seit der letzten Aktualisierung.
+- Bereits abgefahrene Züge verschwinden von der Tafel und lassen sich nicht mehr verfolgen.
+- Die Tafel aktualisiert sich, sobald du zur App zurückkehrst.

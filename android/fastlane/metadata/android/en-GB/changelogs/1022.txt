@@ -1,0 +1,3 @@
+- When the timetable service is down, the app says so and keeps the last departures on the board, with how long ago they were updated.
+- Trains already past their time drop off the board and can't be tracked.
+- The board refreshes as soon as you come back to the app.

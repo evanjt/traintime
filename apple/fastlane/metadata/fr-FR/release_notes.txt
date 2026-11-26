@@ -1,5 +1,5 @@
-- Les trains supprimés affichent désormais « Supprimé » et ne peuvent plus être suivis ni servir de rappel.
-- Toucher un autre départ pendant le suivi demande confirmation avant de changer.
-- La gare et le mode restent fixes pendant le suivi. Touchez-les pour arrêter le suivi et les changer.
-- Disponible sur iPad. Sur iPad ou déplié, le tableau reste à côté du suivi, pour choisir un autre départ sans le quitter.
-- Apple Watch : les voitures fermées apparaissent atténuées dans la composition du train.
+- Si le service d'horaires est indisponible, l'app l'indique et garde les derniers départs affichés, avec le temps écoulé depuis leur mise à jour.
+- Les trains déjà partis disparaissent du tableau et ne peuvent plus être suivis.
+- Le tableau se met à jour dès que vous revenez dans l'app.
+- L'Apple Watch affiche le même message et le temps écoulé depuis la mise à jour.
+- Le petit widget affiche le nom de la gare en entier avec l'horloge sur 12 heures.
