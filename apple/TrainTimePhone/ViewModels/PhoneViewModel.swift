@@ -51,6 +51,9 @@ class PhoneViewModel: ObservableObject {
     /// existing rows and shows a slim bar instead of blanking to a full-screen
     /// spinner, so a refresh freezes the board rather than hiding it.
     @Published var departuresRefreshing = false
+    /// The board's list served through an upstream outage, with its station and
+    /// fetch time. A live fetch clears it; another station's board ignores it.
+    @Published var staleBoard: StaleBoard?
 
     // MARK: - Favourites
     let favouritesStore = FavouritesStore.shared
@@ -171,6 +174,13 @@ class PhoneViewModel: ObservableObject {
         let s = stations
         guard !s.isEmpty, stationIndex < s.count else { return nil }
         return s[stationIndex]
+    }
+
+    /// Minutes since the shown list was fetched, while the API serves it
+    /// through an upstream outage; nil for a live list.
+    func staleMinutes(now: Int = Int(Date().timeIntervalSince1970)) -> Int? {
+        guard let board = staleBoard, board.stationId == currentStation?.id else { return nil }
+        return StaleBoard.minutes(fetchedAt: board.fetchedAt, now: now)
     }
 
     var walkInfo: String {
@@ -1431,8 +1441,12 @@ class PhoneViewModel: ObservableObject {
         }
     }
 
+    /// The tracking poll, the walk distance and the train match all read the
+    /// board's mode and station, so neither moves while a departure is tracked,
+    /// whoever asks. The locked pickers end the session first (`confirmPicker`).
     func selectMode(_ mode: TransportMode) {
         lastInteractionTime = Date()
+        guard !boardPickersLocked(appState: appState) else { return }
         guard mode != currentMode else { return }
         currentMode = mode
         stationIndex = 0
@@ -1454,6 +1468,11 @@ class PhoneViewModel: ObservableObject {
 
     func selectStation(index: Int) {
         lastInteractionTime = Date()
+        guard !boardPickersLocked(appState: appState) else {
+            // Only a sheet left open under a session that began meanwhile gets here.
+            showStationPicker = false
+            return
+        }
         guard index >= 0, index < stations.count else { return }
         stationIndex = index
         showStationPicker = false
@@ -1874,12 +1893,13 @@ class PhoneViewModel: ObservableObject {
         let favParam = favouritesStore.favouritesParam(forStation: stationId)
 
         do {
-            let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
+            let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam, showsAge: true)
             requestInFlight = false
             requestStartTime = nil
             departuresRefreshing = false
             lastFetchTime = Date()
             consecutiveErrors = 0
+            staleBoard = result.staleSince.map { StaleBoard(stationId: stationId, fetchedAt: $0) }
             departures = !result.favourites.isEmpty
                 ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
                 : result.departures
@@ -1933,6 +1953,8 @@ class PhoneViewModel: ObservableObject {
                 status = String(localized: "Rate limited")
             case .updateRequired:
                 status = String(localized: "Update TrainTime to keep using it")
+            case .upstreamUnavailable:
+                status = String(localized: "Timetable unavailable")
             case .httpError(let code):
                 status = String(localized: "\(context): \(code)")
             case .noData:
@@ -1945,6 +1967,7 @@ class PhoneViewModel: ObservableObject {
         }
         departures = []
         favouriteDepartures = []
+        staleBoard = nil
     }
 
     // MARK: - Watch Sending

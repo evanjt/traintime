@@ -22,6 +22,8 @@ import okhttp3.Request
 sealed class TrainApiException(message: String) : Exception(message) {
     class RateLimited : TrainApiException("Rate limited")
     class UpdateRequired : TrainApiException("Update required")
+    // The timetable source behind every host is down; no other host helps.
+    class UpstreamUnavailable : TrainApiException("Upstream unavailable")
     class Http(val code: Int) : TrainApiException("HTTP $code")
     class NoData : TrainApiException("No data")
     class Network : TrainApiException("Network error")
@@ -46,6 +48,9 @@ data class NearbyStations(
 data class DeparturesResult(
     val departures: List<Departure>,
     val favourites: List<Departure>,
+    // The unix time a list served through an upstream outage was fetched,
+    // null for a live one.
+    val staleSince: Long? = null,
 )
 
 // Port of apple/TrainTimeWatch/Services/TrainAPIService.swift.
@@ -92,12 +97,16 @@ class TrainApi(
         )
     }
 
-    suspend fun fetchDepartures(stationId: String, favourites: String? = null): DeparturesResult {
+    // showsAge opts in to a list served through an upstream outage past the
+    // short window. Only a caller that shows staleSince passes it: elsewhere
+    // that list would read as live.
+    suspend fun fetchDepartures(stationId: String, favourites: String? = null, showsAge: Boolean = false): DeparturesResult {
         val url = hosts[0].newBuilder()
             .addPathSegments("v1/departures")
             .addQueryParameter("id", stationId)
             .addQueryParameter("limit", Thresholds.MAX_DEPARTURES.toString())
             .apply { favourites?.let { addQueryParameter("favourites", it) } }
+            .apply { if (showsAge) addQueryParameter(STALE_PARAM, STALE_OPT_IN) }
             .build()
         val body = get(url)
         val dto = json.decodeFromString<DeparturesResponseDto>(body)
@@ -105,6 +114,7 @@ class TrainApi(
         return DeparturesResult(
             departures = dto.departures.take(Thresholds.MAX_DEPARTURES).map { it.toDeparture(now) }.dedupedForDisplay(),
             favourites = dto.favourites?.map { it.toDeparture(now) }?.dedupedForDisplay() ?: emptyList(),
+            staleSince = dto.staleSince,
         )
     }
 
@@ -131,8 +141,8 @@ class TrainApi(
     }
 
     // One attempt per host in failover order. A transport error, timeout,
-    // 5xx or 429 moves on to the next host, anything else is that host's
-    // answer. The last host gets the long budget.
+    // 5xx or 429 moves on to the next host, anything else, an upstream outage
+    // included, is that host's answer. The last host gets the long budget.
     private suspend fun get(url: HttpUrl): String = withContext(Dispatchers.IO) {
         val hosts = hosts
         if (hosts.size == 1) return@withContext attempt(url, Timing.LAST_ATTEMPT_TIMEOUT_SECONDS)
@@ -173,7 +183,7 @@ class TrainApi(
                 when {
                     it.code == 429 -> throw TrainApiException.RateLimited()
                     it.code == 401 -> throw TrainApiException.UpdateRequired()
-                    it.code != 200 -> throw TrainApiException.Http(it.code)
+                    it.code != 200 -> throw httpError(it.code, it.body?.string())
                     else -> it.body?.string() ?: throw TrainApiException.NoData()
                 }
             }
@@ -182,7 +192,20 @@ class TrainApi(
         }
     }
 
+    private fun httpError(code: Int, body: String?): TrainApiException =
+        if (HostFailover.isUpstreamUnavailable(body)) {
+            TrainApiException.UpstreamUnavailable()
+        } else {
+            TrainApiException.Http(code)
+        }
+
     companion object {
+        // Opts in to a departures list served through an upstream outage past
+        // the short window, marked with its age. The server keeps a request
+        // without it to the short window.
+        const val STALE_PARAM = "stale"
+        const val STALE_OPT_IN = "1"
+
         // Tried in order. api is the name a load balancer could later sit on,
         // the others are its two backends reached directly.
         val HOSTS: List<HttpUrl> = listOf(

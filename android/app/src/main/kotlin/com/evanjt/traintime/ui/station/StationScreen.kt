@@ -68,6 +68,7 @@ import com.evanjt.traintime.R
 import com.evanjt.traintime.core.R as CoreR
 import com.evanjt.traintime.data.model.Departure
 import com.evanjt.traintime.data.model.GpsQuality
+import com.evanjt.traintime.data.model.staleMinutes
 import com.evanjt.traintime.domain.ConnectIqStore
 import com.evanjt.traintime.ui.MainViewModel
 import com.evanjt.traintime.ui.PhoneWatchType
@@ -295,6 +296,18 @@ fun StationScreen(
                     LazyColumn(
                         modifier = Modifier.alpha(if (viewModel.departuresRefreshing) 0.5f else 1f),
                     ) {
+                        // A list served through an upstream outage says how old it is.
+                        staleMinutes(viewModel.departuresStaleSince, System.currentTimeMillis() / 1000)?.let { minutes ->
+                            item(key = "stale-age") {
+                                Text(
+                                    stringResource(CoreR.string.board_updated_ago_fmt, minutes),
+                                    color = secondary,
+                                    fontSize = 13.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                                )
+                            }
+                        }
                         // Live session continuing in the background, pinned above
                         // everything: tap to re-open full tracking, X to stop.
                         val nowTracking = viewModel.backgroundTracked

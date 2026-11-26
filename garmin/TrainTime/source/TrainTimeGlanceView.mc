@@ -10,7 +10,7 @@ using Toybox.Math;
 // flat-earth distance) so it stays well under the ~32 kB glance budget and never makes a
 // network request. Tapping it launches the app, which lands on that station
 // once GPS resolves (pinned stations are reordered to the front).
-(:glance)
+(:glance :glanceview)
 class TrainTimeGlanceView extends WatchUi.GlanceView {
 
     function initialize() {

@@ -1,5 +1,6 @@
 using Toybox.WatchUi;
 
+(:maps)
 class TrainTimeMapDelegate extends WatchUi.BehaviorDelegate {
     private var mView;
 

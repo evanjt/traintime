@@ -88,10 +88,15 @@ export FONTCONFIG_FILE="$SCRATCH/fonts.conf"
 
 cd "$SCRIPT_DIR/$APP_NAME" || exit 1
 echo "Building tests for $DEVICE..."
-if ! monkeyc -f monkey.jungle -d "$DEVICE" -o "$SCRATCH/app.prg" -y "$REAL_HOME/.Garmin/developer_key.der" -t; then
+monkeyc -f monkey.jungle -d "$DEVICE" -o "$SCRATCH/app.prg" -y "$REAL_HOME/.Garmin/developer_key.der" -t
+built=$?
+# Also run on a failed build, so the member limit reads as a plain message.
+"$SCRIPT_DIR/check-test-runner.sh" "$SCRATCH" || exit 1
+if [ "$built" -ne 0 ]; then
     echo "Test build failed!"
     exit 1
 fi
+"$SCRIPT_DIR/check-memory.sh" || exit 1
 
 # The simulator keeps a PID lock in $HOME/Sim-root, device storage under
 # $TMPDIR and rewrites ~/.Garmin/ConnectIQ/simulator.ini on exit. A run gets

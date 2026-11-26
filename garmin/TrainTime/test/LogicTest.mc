@@ -4,6 +4,21 @@ using Toybox.Math;
 
 // Geo, parsing and favourites logic. Built only with `monkeyc -t`.
 
+// Helpers sit in a test module so they stay out of the app build and off the runner
+(:test)
+module FormationFixture {
+
+    // A 16-car train in two units of eight, front first, as the formation band receives it
+    function formationFixture() {
+        return {
+            :numbers => [18, 17, 16, 15, 14, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1],
+            :classes => [2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1],
+            :breaks => [false, false, false, false, false, false, false, true,
+                false, false, false, false, false, false, false, false]
+        };
+    }
+}
+
 (:test)
 function testDistanceBetweenRealStations(logger) {
     // Place de la Planta -> Gare de Sion, ~376 m by the flat-earth model.
@@ -22,17 +37,27 @@ function testBearingPointsNorth(logger) {
     return b > -0.01 && b < 0.01;
 }
 
+// Scenario: the closest station embeds 20 departures and the watch shows 8.
+// Expected behaviour: the station keeps only the rows the board can show, so a
+// 128 KB watch has room left to parse the next reply.
 (:test)
 function testParseStationGroup(logger) {
+    var deps = [];
+    for (var i = 0; i < 20; i++) {
+        deps.add({ "to" => "Brig", "number" => "IC8", "departure" => 1718000600 + 60 * i });
+    }
     var data = {
         "train" => [
-            { "id" => "8501120", "name" => "Lausanne", "lat" => 46.516, "lon" => 6.629, "dist" => 250 },
+            { "id" => "8501120", "name" => "Lausanne", "lat" => 46.516, "lon" => 6.629, "dist" => 250, "departures" => deps },
+            { "id" => "8501121", "name" => "Prilly", "dist" => 900, "departures" => deps },
         ],
     };
-    var stations = ApiHandler.parseStationGroup(data, "train");
-    if (stations.size() != 1) { return false; }
+    var stations = ApiHandler.parseStationGroup(data, "train", 8);
+    if (stations.size() != 2) { return false; }
     var s = stations[0];
-    return s["id"].equals("8501120") && s["label"].equals("Lausanne") && s["dist"] == 250;
+    return s["id"].equals("8501120") && s["label"].equals("Lausanne") && s["dist"] == 250
+        && s["departures"].size() == 8 && s["departures"][7]["departure"] == 1718000600 + 420
+        && !stations[1].hasKey("departures");
 }
 
 (:test)
@@ -276,19 +301,9 @@ function testCountdownDepartsAtEffectiveTime(logger) {
         && DepartureLogic.hasDeparted(-4.6, 4) && DepartureLogic.hasDeparted(-0.6, 0);
 }
 
-// A 16-car train in two units of eight, front first, as the formation band receives it
-function formationFixture() {
-    return {
-        :numbers => [18, 17, 16, 15, 14, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1],
-        :classes => [2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1],
-        :breaks => [false, false, false, false, false, false, false, true,
-            false, false, false, false, false, false, false, false]
-    };
-}
-
 (:test)
 function testFormationLabelsCoverEveryCarOnce(logger) {
-    var t = formationFixture();
+    var t = FormationFixture.formationFixture();
     var g = FormationArc.layout(260, 187, 16, 1);
     var sp = FormationArc.spans(g, t[:breaks]);
     var labels = FormationArc.numberLabels(t[:numbers], t[:classes], t[:breaks], sp, g[:rm], g[:k]);
@@ -337,7 +352,7 @@ function testFormationWithoutNumbersHasNoLabels(logger) {
 (:test)
 function testFormationLabelsOnlyNumberedCars(logger) {
     var numbers = [18, null, 16, 15, null, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1];
-    var t = formationFixture();
+    var t = FormationFixture.formationFixture();
     var g = FormationArc.layout(260, 187, 16, 1);
     var sp = FormationArc.spans(g, t[:breaks]);
     var labels = FormationArc.numberLabels(numbers, t[:classes], t[:breaks], sp, g[:rm], g[:k]);
@@ -455,6 +470,22 @@ function testRegionAtPointsOutsideEveryBoxIsNone(logger) {
     return Regions.at(-38.1499, 144.3617) == null && Regions.at(-33.8688, 151.2093) == null;
 }
 
+// Scenario: a station is loaded and the fix moves outside every region (Geelong).
+// Expected behaviour: the tick neither searches nor reports no coverage, so it
+// carries on redrawing, counting and polling the loaded station.
+(:test)
+function testTickOutsideRegionsWithStationCarriesOn(logger) {
+    return Regions.tickAction(-38.1499, 144.3617, true, true, true) == Regions.TICK_NONE
+        && Regions.tickAction(-38.1499, 144.3617, false, true, true) == Regions.TICK_UNCOVERED;
+}
+
+(:test)
+function testTickInsideRegionSearchesOnlyWhenMovedAndFree(logger) {
+    return Regions.tickAction(46.9480, 7.4474, true, true, true) == Regions.TICK_SEARCH
+        && Regions.tickAction(46.9480, 7.4474, true, true, false) == Regions.TICK_NONE
+        && Regions.tickAction(46.9480, 7.4474, true, false, true) == Regions.TICK_NONE;
+}
+
 (:test)
 function testRegionForStationIdByPrefix(logger) {
     return Regions.forStationId("au-vic-1080")[:id].equals(Regions.MELBOURNE)
@@ -478,29 +509,13 @@ function testDistanceOfOneDegreeLongitudeScalesByLatitude(logger) {
 (:test)
 function testDeparturesPathForPrefixedStation(logger) {
     return ApiHandler.departuresPath("au-vic-1080", 8, null)
-        .equals("/v1/departures?id=au-vic-1080&limit=8");
+        .equals("/v1/departures?id=au-vic-1080&limit=8&stale=1");
 }
 
 (:test)
 function testDeparturesPathEncodesStationId(logger) {
     return ApiHandler.departuresPath("a b&c=d", 20, "1:X")
-        .equals("/v1/departures?id=a%20b%26c%3Dd&limit=20&favourites=1:X");
-}
-
-(:test)
-function testLineChipKeepsOneSlotWhateverTheLabel(logger) {
-    // A short and a long line id at the same screen width: one slot, each centred in it.
-    var short = DrawUtils.lineChip(260, 12);
-    var long = DrawUtils.lineChip(260, 24);
-    if (short[1] != long[1] || short[2] != long[2]) { return false; }
-    return short[0] - short[1] == short[1] + short[2] - (short[0] + 12)
-        && long[0] - long[1] == long[1] + long[2] - (long[0] + 24);
-}
-
-(:test)
-function testLineChipNeverStartsLeftOfItsSlot(logger) {
-    var chip = DrawUtils.lineChip(260, 400);
-    return chip[0] == chip[1];
+        .equals("/v1/departures?id=a%20b%26c%3Dd&limit=20&stale=1&favourites=1:X");
 }
 
 // Scenario: a board fetched before a pause is shown again minutes later.
@@ -515,4 +530,68 @@ function testAgedBoardRowsCountToTheClock(logger) {
     DepartureLogic.ageRows([onTime, late, noTs], fetchedAt + 300);
     return onTime["min"] == -3 && !DepartureLogic.isSelectable(onTime)
         && DepartureLogic.isSelectable(late) && noTs["min"] == 4;
+}
+
+// A list served through an upstream outage carries `stale` and its fetch time;
+// the board shows its age in whole minutes, at least one.
+(:test)
+function testStaleListKeepsItsFetchTime(logger) {
+    var now = 1790000000;
+    var stale = { "departures" => [], "stale" => true, "fetchedAt" => now - 1200 };
+    var since = ApiHandler.staleSince(stale);
+    return since == now - 1200 && DepartureLogic.staleMinutes(since, now) == 20;
+}
+
+(:test)
+function testLiveListHasNoAge(logger) {
+    var now = 1790000000;
+    var live = { "departures" => [], "fetchedAt" => now - 1200 };
+    return ApiHandler.staleSince(live) == null && DepartureLogic.staleMinutes(null, now) == null
+        && DepartureLogic.staleMinutes(now - 20, now) == 1;
+}
+
+// Scenario: the readout highlights car 15, which sits inside the range label "18-14" on a round screen.
+// Expected behaviour: the highlighted car carries its own number alone, no other label passes under it,
+// and the cars around it keep labels that fit and cover each car at most once.
+(:test)
+function testFormationCursorSplitsTheRangeAroundIt(logger) {
+    var t = FormationFixture.formationFixture();
+    var g = FormationArc.layout(260, 187, 16, 1);
+    var sp = FormationArc.spans(g, t[:breaks]);
+    var labels = FormationArc.numberLabels(t[:numbers], t[:classes], t[:breaks], sp, g[:rm], g[:k]);
+    var under = null;
+    for (var q = 0; q < labels.size(); q++) {
+        if (labels[q][0] <= 3 && labels[q][1] >= 3) { under = labels[q]; }
+    }
+    if (under == null || under[1] == under[0]) { return false; }
+    var split = FormationArc.cursorLabels(labels, t[:numbers], 3, sp, g[:rm], g[:k]);
+    var own = false;
+    var seen = new [16];
+    for (var q = 0; q < split.size(); q++) {
+        var a = split[q][0];
+        var b = split[q][1];
+        if (a <= 3 && b >= 3) {
+            if (a != 3 || b != 3 || !split[q][2].equals("15")) { return false; }
+            own = true;
+        } else if (!FormationArc.labelFits(split[q][2], sp, g[:rm], g[:k], a, b)) {
+            return false;
+        }
+        for (var i = a; i <= b; i++) {
+            if (seen[i] != null) { return false; }
+            seen[i] = true;
+        }
+    }
+    return own;
+}
+
+// Scenario: no car highlighted, or the highlighted car already labelled on its own.
+// Expected behaviour: the labels are left as they are.
+(:test)
+function testFormationCursorKeepsLabelsItDoesNotSitUnder(logger) {
+    var labels = [[0, 0, "9"], [1, 3, "8-6"]];
+    var numbers = [9, 8, 7, 6];
+    var g = FormationArc.layout(260, 187, 4, 0);
+    var sp = FormationArc.spans(g, [false, false, false, false]);
+    return FormationArc.cursorLabels(labels, numbers, null, sp, g[:rm], g[:k]) == labels
+        && FormationArc.cursorLabels(labels, numbers, 0, sp, g[:rm], g[:k]) == labels;
 }

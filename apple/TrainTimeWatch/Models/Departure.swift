@@ -123,3 +123,17 @@ extension Array where Element == Departure {
         return result
     }
 }
+
+/// A departures list the API served through an upstream outage: the station it
+/// belongs to and the unix time it was fetched. The board labels its rows with
+/// the list's age.
+struct StaleBoard: Equatable {
+    let stationId: String
+    let fetchedAt: Int
+
+    /// Whole minutes since a list was fetched, at least one, or nil for a live list.
+    static func minutes(fetchedAt: Int?, now: Int) -> Int? {
+        guard let fetchedAt else { return nil }
+        return max(1, (now - fetchedAt) / 60)
+    }
+}

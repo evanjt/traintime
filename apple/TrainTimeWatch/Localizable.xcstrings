@@ -1189,6 +1189,28 @@
         }
       }
     },
+    "Timetable unavailable": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrplan nicht abrufbar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horaires indisponibles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orari non disponibili"
+          }
+        }
+      }
+    },
     "Track now": {
       "localizations": {
         "de": {
@@ -1317,6 +1339,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aggiorna TrainTime per continuare"
+          }
+        }
+      }
+    },
+    "Updated %lld min ago": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vor %lld Min. aktualisiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mis à jour il y a %lld min"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiornato %lld min fa"
           }
         }
       }

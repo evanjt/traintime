@@ -84,7 +84,14 @@ data class NearbyResponseDto(
 data class DeparturesResponseDto(
     val departures: List<DepartureDto> = emptyList(),
     val favourites: List<DepartureDto>? = null,
-)
+    // Set when the API served the station's last list through an upstream
+    // outage, with the unix time that list was fetched.
+    val stale: Boolean = false,
+    val fetchedAt: Long? = null,
+) {
+    val staleSince: Long?
+        get() = fetchedAt.takeIf { stale }
+}
 
 @Serializable
 data class FormationWagonDto(

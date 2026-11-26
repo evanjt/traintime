@@ -24,6 +24,7 @@ import com.evanjt.traintime.GarminConnectIQService
 import com.evanjt.traintime.Thresholds
 import com.evanjt.traintime.Timing
 import com.evanjt.traintime.data.api.ApiHost
+import com.evanjt.traintime.data.api.NearbyStations
 import com.evanjt.traintime.data.api.TrainApi
 import com.evanjt.traintime.data.api.TrainApiException
 import com.evanjt.traintime.data.model.Departure
@@ -59,6 +60,7 @@ import com.evanjt.traintime.session.TrackingSnapshot
 import com.evanjt.traintime.ui.adaptive.BoardPicker
 import com.evanjt.traintime.ui.adaptive.BoardTap
 import com.evanjt.traintime.ui.adaptive.PickerTap
+import com.evanjt.traintime.ui.adaptive.boardPickersLocked
 import com.evanjt.traintime.ui.adaptive.boardTap
 import com.evanjt.traintime.ui.adaptive.confirmedPickerTap
 import com.evanjt.traintime.ui.adaptive.confirmedSwitch
@@ -178,6 +180,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var departures by mutableStateOf(listOf<Departure>())
         private set
     var favouriteDepartures by mutableStateOf(listOf<Departure>())
+        private set
+    // When the board's list was fetched, set only while the API serves it
+    // through an upstream outage.
+    var departuresStaleSince by mutableStateOf<Long?>(null)
         private set
     var favouritesList by mutableStateOf(listOf<Favourite>())
         private set
@@ -2042,8 +2048,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Mode navigation
 
+    // The tracking poll, the walk distance and the train match all read the
+    // board's mode and station, so neither moves while a departure is tracked,
+    // whoever asks. The locked pickers end the session first (confirmPicker).
     fun selectMode(mode: TransportMode) {
         lastInteractionTime = now()
+        if (boardPickersLocked(appState)) return
         if (mode == currentMode) return
         currentMode = mode
         stationIndex = 0
@@ -2084,6 +2094,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectStation(index: Int) {
         lastInteractionTime = now()
+        if (boardPickersLocked(appState)) {
+            // Only a sheet left open under a session that began meanwhile gets here.
+            showStationPicker = false
+            return
+        }
         if (index < 0 || index >= stations.size) return
         stationIndex = index
         showStationPicker = false
@@ -2313,14 +2328,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val result = api.fetchStations(lat, lon, defaultMode)
                 requestInFlight = false
                 requestStartTime = null
-                val prevStationId = currentStation?.id
-                trainStations = MyStationsStore.reorder(result.train, pinnedStationIds)
-                busStations = MyStationsStore.reorder(result.bus, pinnedStationIds)
-                tramStations = MyStationsStore.reorder(result.tram, pinnedStationIds)
-                specialStations = MyStationsStore.reorder(result.special, pinnedStationIds)
                 lastSearchCoordinate = LatLon(lat, lon)
                 location.saveLastKnownCoordinate()
-                rebuildModesAndSelect(preserveStationId = prevStationId)
+                showNearby(result)
 
                 if (stations.isEmpty()) {
                     status = str(CoreR.string.status_no_stations_nearby)
@@ -2332,6 +2342,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 handleError(e, str(CoreR.string.ctx_stations))
             }
         }
+    }
+
+    // A nearby search's result becomes the board, pinned stations first. The
+    // shown station stays selected while the result still lists it.
+    internal fun showNearby(result: NearbyStations) {
+        val prevStationId = currentStation?.id
+        trainStations = MyStationsStore.reorder(result.train, pinnedStationIds)
+        busStations = MyStationsStore.reorder(result.bus, pinnedStationIds)
+        tramStations = MyStationsStore.reorder(result.tram, pinnedStationIds)
+        specialStations = MyStationsStore.reorder(result.special, pinnedStationIds)
+        rebuildModesAndSelect(preserveStationId = prevStationId)
     }
 
     // True while a departures fetch is in flight. The station screen dims the
@@ -2352,12 +2373,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         try {
             val favParam = favouritesStore.favouritesParam(stationId)
-            val result = api.fetchDepartures(stationId, favParam)
+            val result = api.fetchDepartures(stationId, favParam, showsAge = true)
             requestInFlight = false
             requestStartTime = null
             departuresRefreshing = false
             lastFetchTime = now()
             consecutiveErrors = 0
+            departuresStaleSince = result.staleSince
             departures = if (result.favourites.isNotEmpty()) {
                 FavouritesStore.merge(result.favourites, result.departures)
             } else {
@@ -2409,6 +2431,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         status = when (error) {
             is TrainApiException.RateLimited -> str(CoreR.string.err_rate_limited)
             is TrainApiException.UpdateRequired -> str(CoreR.string.err_update_required)
+            is TrainApiException.UpstreamUnavailable -> str(CoreR.string.err_upstream_unavailable)
             is TrainApiException.Http -> str(CoreR.string.err_code_fmt, context, error.code)
             is TrainApiException.NoData -> str(CoreR.string.err_generic_fmt, context)
             is TrainApiException.Network -> str(CoreR.string.err_no_connection)

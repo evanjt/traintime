@@ -1,10 +1,22 @@
 import Foundation
 
 enum FailoverPolicy {
-    /// A 429 or a 5xx is the host's problem, so the next host gets the request.
+    /// The error code the API puts in the body when the timetable source behind
+    /// it failed. Every host shares that source, so another host would answer the same.
+    static let upstreamUnavailable = "upstream_unavailable"
+
+    /// A 429 or a 5xx is the host's problem, so the next host gets the request,
+    /// unless the body says the timetable source behind every host is down.
     /// 4xx below that is our own request and would fail the same way anywhere.
-    static func shouldFailover(status: Int) -> Bool {
-        status == 429 || status >= 500
+    static func shouldFailover(status: Int, body: Data? = nil) -> Bool {
+        (status == 429 || status >= 500) && !isUpstreamUnavailable(body)
+    }
+
+    static func isUpstreamUnavailable(_ body: Data?) -> Bool {
+        guard let body, !body.isEmpty,
+              let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any]
+        else { return false }
+        return json["error"] as? String == upstreamUnavailable
     }
 
     /// A cancelled request is the caller's doing and never fails over.

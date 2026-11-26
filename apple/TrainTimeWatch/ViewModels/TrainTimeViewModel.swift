@@ -34,6 +34,9 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
     /// True while a departures fetch is in flight. The station list dims the
     /// rows rather than blanking, so a refresh freezes the board in place.
     @Published var departuresRefreshing = false
+    /// The board's list served through an upstream outage, with its station and
+    /// fetch time. A live fetch clears it; another station's board ignores it.
+    @Published var staleBoard: StaleBoard?
 
     // MARK: - Favourites
     let favouritesStore = FavouritesStore.shared
@@ -107,6 +110,13 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         let s = stations
         guard !s.isEmpty, stationIndex < s.count else { return nil }
         return s[stationIndex]
+    }
+
+    /// Minutes since the shown list was fetched, while the API serves it
+    /// through an upstream outage; nil for a live list.
+    func staleMinutes(now: Int = Int(Date().timeIntervalSince1970)) -> Int? {
+        guard let board = staleBoard, board.stationId == currentStation?.id else { return nil }
+        return StaleBoard.minutes(fetchedAt: board.fetchedAt, now: now)
     }
 
     var walkInfo: String {
@@ -907,13 +917,14 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
 
         Task {
             do {
-                let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam)
+                let result = try await TrainAPIService.fetchDepartures(stationId: stationId, favourites: favParam, showsAge: true)
                 await MainActor.run {
                     requestInFlight = false
                     requestStartTime = nil
                     departuresRefreshing = false
                     lastFetchTime = Date()
                     consecutiveErrors = 0
+                    staleBoard = result.staleSince.map { StaleBoard(stationId: stationId, fetchedAt: $0) }
                     departures = !result.favourites.isEmpty
                         ? favouritesStore.merging(favourites: result.favourites, into: result.departures)
                         : result.departures
@@ -1067,6 +1078,8 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
                 status = String(localized: "Rate limited")
             case .updateRequired:
                 status = String(localized: "Update TrainTime to keep using it")
+            case .upstreamUnavailable:
+                status = String(localized: "Timetable unavailable")
             case .httpError(let code):
                 status = String(localized: "\(context): \(code)")
             case .noData:
@@ -1079,6 +1092,7 @@ class TrainTimeViewModel: NSObject, ObservableObject, WCSessionDelegate {
         }
         departures = []
         favouriteDepartures = []
+        staleBoard = nil
     }
 
 }

@@ -61,4 +61,24 @@ class HostFailoverTest {
         assertFalse(HostFailover.shouldFailover(401))
         assertFalse(HostFailover.shouldFailover(404))
     }
+
+    @Test
+    fun `upstream_unavailable ends failover, a bare 503 does not`() {
+        val upstream = """{"error":"upstream_unavailable"}"""
+        assertFalse(HostFailover.shouldFailover(503, upstream))
+        assertFalse(HostFailover.shouldFailover(504, upstream))
+        assertTrue(HostFailover.shouldFailover(503, null))
+        assertTrue(HostFailover.shouldFailover(503, "<html>Service Unavailable</html>"))
+        assertTrue(HostFailover.shouldFailover(500, """{"error":"Internal error"}"""))
+    }
+
+    @Test
+    fun `upstream_unavailable is read from the error field only`() {
+        assertTrue(HostFailover.isUpstreamUnavailable("""{"error": "upstream_unavailable"}"""))
+        assertFalse(HostFailover.isUpstreamUnavailable("""{"message":"upstream_unavailable"}"""))
+        assertFalse(HostFailover.isUpstreamUnavailable("""{"error":"OJP API error: 502"}"""))
+        assertFalse(HostFailover.isUpstreamUnavailable("not json"))
+        assertFalse(HostFailover.isUpstreamUnavailable(""))
+        assertFalse(HostFailover.isUpstreamUnavailable(null))
+    }
 }

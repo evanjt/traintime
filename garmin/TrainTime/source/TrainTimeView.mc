@@ -30,7 +30,6 @@ class TrainTimeView extends WatchUi.View {
     var mSpecialStations;
     var mCurrentMode;
     var mModeChangedTime;  // drives the transient mode-name label
-    var mHintTime;         // drives the transient button labels next to the arcs
     var mAvailableModes;
     var mGpsQuality;
     var mLoadedFromCache;
@@ -47,7 +46,7 @@ class TrainTimeView extends WatchUi.View {
     var mConsecutiveErrors;
     var mLastVibeTick;
     var mMaxVisibleTrains;
-    var mScrollOffset;  // first visible row index for scrolling in State 1
+    var mScrollOffset;  // first visible row on the board and in selection
     var mMapActive;  // true when MapTrackView is pushed
     var mLastInteractionTime;
     var mFormationClasses;  // Array of Number (1 or 2) per wagon
@@ -59,7 +58,9 @@ class TrainTimeView extends WatchUi.View {
     var mFormationClosed;   // Array of Boolean: locked, not open to passengers
     var mFormationCursor = null;     // Highlighted car while Up/Down steps through them
     var mFormationCursorTime = 0;
+    var mTrackTaps = null;           // [walk target top or null, strip or null] as tracking last drew
     var mFavouriteData; // favourite departures from API (separate from mTrainData)
+    var mStaleSince;    // fetch time of a list served through an upstream outage, else null
     var mToast;             // short-lived message overlay in the tracking view
     var mToastTick;         // timestamp when the toast was set
     var mReminderQueuedTs;  // when the pending reminder was queued (escalation timer)
@@ -76,6 +77,7 @@ class TrainTimeView extends WatchUi.View {
         View.initialize();
         mLocationInfo = null;
         mTrainData = null;
+        mStaleSince = null;
         mStatus = Txt.t(Rez.Strings.Loading);
         mStationId = null;
         mStationName = null;
@@ -126,7 +128,6 @@ class TrainTimeView extends WatchUi.View {
         mReminderNotified = true;
         mManualStation = false;
         mPendingFavTrack = null;
-        mHintTime = null;
     }
 
     function onLayout(dc) {
@@ -134,6 +135,7 @@ class TrainTimeView extends WatchUi.View {
     }
 
     function onShow() {
+        DrawUtils.refreshTouch();
         PhoneSync.activate();
 
         // Check for cached last-known position BEFORE enabling continuous GPS,
@@ -171,7 +173,6 @@ class TrainTimeView extends WatchUi.View {
         // (onShow is called each time the display wakes, which would reset the inactivity timer)
         if (mLastInteractionTime == 0) {
             mLastInteractionTime = Time.now().value();
-            mHintTime = mLastInteractionTime;
         }
         mTimer = new Timer.Timer();
         mTimer.start(method(:onTimerTick), 5000, true);
@@ -215,6 +216,7 @@ class TrainTimeView extends WatchUi.View {
         mTramStations = null;
         mSpecialStations = null;
         mTrainData = null;
+        mStaleSince = null;
         mFavouriteData = null;
         mWalkInfo = null;
         mStationIndex = 0;
@@ -245,6 +247,7 @@ class TrainTimeView extends WatchUi.View {
         mFocusedTrain = null;
         mPendingFavTrack = null;
         mTrainData = null;
+        mStaleSince = null;
         mFavouriteData = null;
     }
 
@@ -268,14 +271,7 @@ class TrainTimeView extends WatchUi.View {
             }
         }
         idx = (idx + 1) % mAvailableModes.size();
-        mCurrentMode = mAvailableModes[idx];
-        mModeChangedTime = Time.now().value();
-        mHintTime = mModeChangedTime;
-        mStations = getStationsForMode(mCurrentMode);
-        if (mStations != null && mStations.size() > 0) {
-            mStationIndex = 0;
-            selectStation(0);
-        }
+        applyMode(mAvailableModes[idx]);
     }
 
     function cycleModeReverse() {
@@ -291,13 +287,82 @@ class TrainTimeView extends WatchUi.View {
         }
         idx = idx - 1;
         if (idx < 0) { idx = mAvailableModes.size() - 1; }
-        mCurrentMode = mAvailableModes[idx];
+        applyMode(mAvailableModes[idx]);
+    }
+
+    function applyMode(mode) {
+        mCurrentMode = mode;
         mModeChangedTime = Time.now().value();
-        mHintTime = mModeChangedTime;
         mStations = getStationsForMode(mCurrentMode);
         if (mStations != null && mStations.size() > 0) {
             mStationIndex = 0;
             selectStation(0);
+        }
+    }
+
+    // A mode picked from the mode list jumps straight to it, back on the board
+    (:touch)
+    function selectMode(mode) {
+        if (mode == mCurrentMode || !Renderer.isModeAvailable(self, mode)) { return; }
+        mAppState = 0;
+        applyMode(mode);
+    }
+
+    // What a tap at (x, y) lands on, as [BoardLayout.HIT_*, index], on the board
+    // or the tracking screen as last drawn. Anywhere else is HIT_NONE.
+    (:touch)
+    function tapHit(x, y) {
+        var ds = System.getDeviceSettings();
+        var height = ds.screenHeight;
+        if (mAppState == 2) {
+            var t = (mTrackTaps != null) ? mTrackTaps : [null, null];
+            return TrackLayout.hit(x, y, ds.screenWidth, height, t[0], t[1]);
+        }
+        if (mAppState > 1 || mStationName == null) { return [BoardLayout.HIT_NONE, 0]; }
+        var rows = 0;
+        if (mTrainData != null && mTrainData.size() > 0) {
+            rows = BoardLayout.visibleRows(getSelectableCount(), mScrollOffset, height);
+        }
+        return BoardLayout.hit(x, y, ds.screenWidth, height, rows);
+    }
+
+    // Track the departure in the given visible row
+    function trackRow(row) {
+        mAppState = 1;
+        mCursorIndex = mScrollOffset + row;
+        // A gone row stays highlighted instead
+        confirmTrainSelection();
+        WatchUi.requestUpdate();
+    }
+
+    // Page the board by a screen of rows. Swipes on the board never change
+    // mode, so this owns them in states 0 and 1 even with nothing to page.
+    function scrollBoard(step) {
+        if (mAppState > 1) { return false; }
+        var total = getSelectableCount();
+        var maxOffset = total - mMaxVisibleTrains;
+        if (maxOffset < 0) { maxOffset = 0; }
+        var offset = mScrollOffset + step * mMaxVisibleTrains;
+        if (offset > maxOffset) { offset = maxOffset; }
+        if (offset < 0) { offset = 0; }
+        if (offset != mScrollOffset) {
+            mScrollOffset = offset;
+            WatchUi.requestUpdate();
+        }
+        return true;
+    }
+
+    // Move the board as a finger travels dy pixels from a drag that started
+    // at fromOffset, in states 0 and 1. The tap hit-test and the renderer both
+    // read the offset it leaves, so a tap after a drag lands on the row drawn.
+    (:touch)
+    function dragBoard(fromOffset, dy) {
+        if (mAppState > 1) { return; }
+        var offset = BoardLayout.scrollOffset(fromOffset, dy,
+            System.getDeviceSettings().screenHeight, getSelectableCount());
+        if (offset != mScrollOffset) {
+            mScrollOffset = offset;
+            WatchUi.requestUpdate();
         }
     }
 
@@ -473,7 +538,7 @@ class TrainTimeView extends WatchUi.View {
         var cat = t["cat"];
         if (trainNum != null && cat != null && isRailCategory(cat) && mStationId != null
                 && Regions.forStationId(mStationId)[:formation]) {
-            ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"]);
+            ApiHandler.fetchFormation(self, trainNum, mStationId, t["opRef"], t["depTs"]);
         }
     }
 
@@ -482,10 +547,16 @@ class TrainTimeView extends WatchUi.View {
         if (mFormationClasses == null || mFormationClasses.size() == 0) { return; }
         var n = mFormationClasses.size();
         if (formationCursor() == null) {
-            mFormationCursor = step > 0 ? 0 : n - 1;
+            showFormationCar(step > 0 ? 0 : n - 1);
         } else {
-            mFormationCursor = (mFormationCursor + step + n) % n;
+            showFormationCar((mFormationCursor + step + n) % n);
         }
+    }
+
+    // Highlight a car and show its readout, from Up/Down or a tap on it
+    function showFormationCar(i) {
+        if (mFormationClasses == null || i >= mFormationClasses.size()) { return; }
+        mFormationCursor = i;
         mFormationCursorTime = Time.now().value();
         WatchUi.requestUpdate();
     }
@@ -600,7 +671,19 @@ class TrainTimeView extends WatchUi.View {
             }
         }
 
-        // Fallback: MapTrackView with polyline
+        showMapTrack(stationLoc);
+    }
+
+    // Watches without maps have no MapTrackView, so the fallback stays out of
+    // their build
+    (:nomaps)
+    function showMapTrack(stationLoc) {
+        showToast(Txt.t(Rez.Strings.NavUnavailable));
+    }
+
+    // Fallback: MapTrackView with polyline
+    (:maps)
+    function showMapTrack(stationLoc) {
         if (!(WatchUi has :MapTrackView)) {
             showToast(Txt.t(Rez.Strings.NavUnavailable));
             return;
@@ -994,17 +1077,9 @@ class TrainTimeView extends WatchUi.View {
     function formatWalkInfo(distanceMeters) {
         var dist = distanceMeters.toNumber();
         mLastWalkDist = dist;
-        var walkMinutes = (dist / 83.0).toNumber();
-        var timeStr;
-        if (walkMinutes < 1) {
-            timeStr = Txt.t(Rez.Strings.WalkUnder1);
-        } else {
-            timeStr = Lang.format(Txt.t(Rez.Strings.MinutesFmt), [walkMinutes]);
-        }
-
         // Station counter lives in the header carousel, not here
-        mWalkInfoShort = Lang.format(Txt.t(Rez.Strings.WalkInfoShortFmt), [timeStr, dist]);
-        return Lang.format(Txt.t(Rez.Strings.WalkInfoFmt), [timeStr, dist]);
+        mWalkInfoShort = WalkInfo.brief(dist);
+        return WalkInfo.full(dist);
     }
 
     // --- Station navigation ---
@@ -1020,6 +1095,16 @@ class TrainTimeView extends WatchUi.View {
         nextStation();
     }
 
+    // A station picked from the list: the board shows it from the top, and in
+    // selection the cursor goes back to the name, as stepping to it would
+    (:touch)
+    function pickStation(index) {
+        if (mStations == null || index < 0 || index >= mStations.size()) { return; }
+        mStationIndex = index;
+        if (mAppState == 1) { mCursorIndex = -1; }
+        selectStation(index);
+    }
+
     function selectStation(index) {
         var station = mStations[index];
         mStationId = station["id"];
@@ -1029,7 +1114,9 @@ class TrainTimeView extends WatchUi.View {
         var distance = station.hasKey("dist") ? station["dist"] : 0;
         mWalkInfo = formatWalkInfo(distance);
         mStatus = mStationName;
+        mScrollOffset = 0;
         mTrainData = null;
+        mStaleSince = null;
         mFavouriteData = null;
 
         // Use embedded departures if available (closest station per mode)
@@ -1073,6 +1160,7 @@ class TrainTimeView extends WatchUi.View {
         mStationIndex = 0;
         mAvailableModes = [ mCurrentMode ];
         mTrainData = null;
+        mStaleSince = null;
         mFavouriteData = null;
         mWalkInfo = "";
         if (mLocationInfo != null) { updateWalkDistance(); }
@@ -1098,6 +1186,7 @@ class TrainTimeView extends WatchUi.View {
         mStationIndex = 0;
         mAvailableModes = [ mCurrentMode ];
         mTrainData = null;
+        mStaleSince = null;
         mFavouriteData = null;
         mStatus = (name != null) ? name : Txt.t(Rez.Strings.StationLabel);
         mPendingFavTrack = { "line" => line, "dest" => dest };
@@ -1307,22 +1396,19 @@ class TrainTimeView extends WatchUi.View {
             if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
                 mLocationInfo = info;
 
-                if (Regions.at(lat, lon) == null) {
-                    if (mStationId == null) {
-                        if (!searchFromPhoneLocation()) {
-                            mStatus = Txt.t(Rez.Strings.NotInSwitzerland);
-                            requestPhoneLocation();
-                        }
-                        WatchUi.requestUpdate();
-                    }
-                    return;
-                }
-
                 // Re-search stations if moved >500m from last search (only in
                 // station/selection view). Loaded stations stay until the
                 // response is adopted
-                if (mAppState <= 1 && !mManualStation && !mRequestInFlight
-                        && hasMovedSignificantly(lat, lon)) {
+                var action = Regions.tickAction(lat, lon, mStationId != null,
+                    mAppState <= 1 && !mManualStation && !mRequestInFlight,
+                    hasMovedSignificantly(lat, lon));
+                if (action == Regions.TICK_UNCOVERED) {
+                    if (!searchFromPhoneLocation()) {
+                        mStatus = Txt.t(Rez.Strings.NotInSwitzerland);
+                        requestPhoneLocation();
+                    }
+                    WatchUi.requestUpdate();
+                } else if (action == Regions.TICK_SEARCH) {
                     mRequestInFlight = true;
                     mRequestStartTime = Time.now().value();
                     ApiHandler.fetchStations(self, lat, lon);

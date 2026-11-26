@@ -38,6 +38,7 @@ import androidx.wear.compose.material.TimeText
 import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
 import com.evanjt.traintime.core.R as CoreR
+import com.evanjt.traintime.data.model.staleMinutes
 import com.evanjt.traintime.wear.R
 
 // Flat, dense list (like the Apple watch) rather than a ScalingLazyColumn, so
@@ -113,6 +114,20 @@ fun WearStationListScreen(
                 item {
                     Text(
                         vm.walkInfo,
+                        color = MaterialTheme.colors.onSurfaceVariant,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    )
+                }
+            }
+
+            // A list served through an upstream outage says how old it is.
+            staleMinutes(vm.departuresStaleSince, System.currentTimeMillis() / 1000)?.let { minutes ->
+                item {
+                    Text(
+                        stringResource(CoreR.string.board_updated_ago_fmt, minutes),
                         color = MaterialTheme.colors.onSurfaceVariant,
                         fontSize = 9.sp,
                         maxLines = 1,

@@ -119,6 +119,25 @@ class TrainApiFailoverTest {
     }
 
     @Test
+    fun `503 upstream_unavailable on the primary never reaches the fallback`() = runTest {
+        primary.enqueue(
+            MockResponse().setResponseCode(503).setBody("""{"error":"upstream_unavailable"}"""),
+        )
+        primary.enqueue(MockResponse().setBody(empty))
+
+        try {
+            fetch()
+            throw AssertionError("expected UpstreamUnavailable")
+        } catch (e: TrainApiException.UpstreamUnavailable) {
+            // expected
+        }
+        fetch()
+
+        assertEquals(2, primary.requestCount)
+        assertEquals(0, fallback.requestCount)
+    }
+
+    @Test
     fun `the call after a failure goes to the fallback only`() = runTest {
         primary.enqueue(MockResponse().setResponseCode(503))
         fallback.enqueue(MockResponse().setBody(empty))

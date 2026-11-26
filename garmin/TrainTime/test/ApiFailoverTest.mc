@@ -89,3 +89,32 @@ function testAttemptWalksHostsThenStops(logger) {
     var single = new ApiAttempt(null, ApiHandler.KIND_STATIONS, "/x", ["https://example.com"], 0);
     return ok && single.isLast();
 }
+
+// Scenario: a host answers 503 with the upstream code in the body.
+// Expected behaviour: every host shares the timetable source, so the request
+// stays on that host; a bare 503 or another error code still fails over.
+(:test)
+function testUpstreamUnavailableEndsFailover(logger) {
+    var upstream = { "error" => "upstream_unavailable" };
+    return !ApiHandler.shouldFailoverFor(ApiHandler.KIND_DEPARTURES, 503, upstream)
+        && !ApiHandler.shouldFailoverFor(ApiHandler.KIND_STATIONS, 504, upstream)
+        && ApiHandler.shouldFailoverFor(ApiHandler.KIND_DEPARTURES, 503, null)
+        && ApiHandler.shouldFailoverFor(ApiHandler.KIND_DEPARTURES, 503, { "error" => "Internal error" })
+        && ApiHandler.shouldFailoverFor(ApiHandler.KIND_DEPARTURES, 503, "Service Unavailable");
+}
+
+(:test)
+function testUpstreamUnavailableIsReadFromTheErrorField(logger) {
+    return ApiHandler.isUpstreamUnavailable({ "error" => "upstream_unavailable" })
+        && !ApiHandler.isUpstreamUnavailable({ "message" => "upstream_unavailable" })
+        && !ApiHandler.isUpstreamUnavailable({ "error" => 503 })
+        && !ApiHandler.isUpstreamUnavailable("upstream_unavailable")
+        && !ApiHandler.isUpstreamUnavailable(null);
+}
+
+(:test)
+function testUpstreamUnavailableHasItsOwnMessage(logger) {
+    var upstream = ApiHandler.decodeError(503, { "error" => "upstream_unavailable" });
+    return upstream.equals(Txt.t(Rez.Strings.UpstreamUnavailable))
+        && ApiHandler.decodeError(500, null).equals(Txt.t(Rez.Strings.ServerError));
+}

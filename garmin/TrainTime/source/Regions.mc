@@ -35,6 +35,21 @@ module Regions {
         return null;
     }
 
+    enum {
+        TICK_NONE,
+        TICK_SEARCH,
+        TICK_UNCOVERED
+    }
+
+    // What a timer tick does with a fresh fix. Outside every region only the
+    // nearby search stops, so a loaded station keeps counting and polling.
+    function tickAction(lat, lon, hasStation, searchable, moved) {
+        if (at(lat, lon) == null) {
+            return hasStation ? TICK_NONE : TICK_UNCOVERED;
+        }
+        return (searchable && moved) ? TICK_SEARCH : TICK_NONE;
+    }
+
     // The region a station id belongs to: the longest matching prefix, so a
     // bare id falls back to Switzerland.
     function forStationId(id) {

@@ -97,6 +97,13 @@ module FormationArc {
         };
     }
 
+    // Cars with no passage to the next one
+    function breakCount(breaks) {
+        var n = 0;
+        for (var i = 0; i < breaks.size() - 1; i++) { if (breaks[i]) { n++; } }
+        return n;
+    }
+
     // Car spans as [startAngle, endAngle] pairs, front first (angles decrease to the right)
     function spans(g, breaks) {
         var rm = g[:rm];
@@ -120,8 +127,10 @@ module FormationArc {
         return byX < byY ? byX : byY;
     }
 
-    // Whether label fits over cars a..b
+    // Whether label fits over cars a..b. rm is 0 for the straight strip, whose spans
+    // are pixel edges and whose labels are set as one string.
     function labelFits(label, sp, rm, k, a, b) {
+        if (rm == 0) { return label.length() * 6 * k - k <= sp[b][1] - sp[a][0] - 4; }
         var mid = (sp[a][0] + sp[b][1]) / 2;
         return label.length() * stepAt(mid, k) - 1 <= (sp[a][0] - sp[b][1]) * rm - 2;
     }
@@ -191,6 +200,31 @@ module FormationArc {
             i = u + 1;
         }
         return out;
+    }
+
+    // Labels while a car is highlighted: a range running under the highlight frame splits
+    // around it and the frame holds the car's own number. A side that no longer fits its
+    // cars is left out, since the readout above the band names the car.
+    function cursorLabels(labels, numbers, cursor, sp, rm, k) {
+        if (cursor == null) { return labels; }
+        for (var q = 0; q < labels.size(); q++) {
+            var a = labels[q][0];
+            var b = labels[q][1];
+            if (b == a || cursor < a || cursor > b) { continue; }
+            var out = labels.slice(0, q);
+            if (cursor > a) {
+                var left = rangeLabel(numbers, a, cursor - 1);
+                if (labelFits(left, sp, rm, k, a, cursor - 1)) { out.add([a, cursor - 1, left]); }
+            }
+            out.add([cursor, cursor, numbers[cursor].toString()]);
+            if (cursor < b) {
+                var right = rangeLabel(numbers, cursor + 1, b);
+                if (labelFits(right, sp, rm, k, cursor + 1, b)) { out.add([cursor + 1, b, right]); }
+            }
+            out.addAll(labels.slice(q + 1, null));
+            return out;
+        }
+        return labels;
     }
 
     // Draws label centred on angle mid at radius r, characters stepped along the curve

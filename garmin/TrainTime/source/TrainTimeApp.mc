@@ -10,27 +10,29 @@ class TrainTimeApp extends Application.AppBase {
         AppBase.initialize();
     }
 
+    // The glance runs onStart and onStop too, with only (:glance) code loaded,
+    // so app-only work starts in getInitialView. The hello announce lives in
+    // TrainTimeView.onShow: transmitting from here hangs the sim's test harness.
     function onStart(state) {
-        Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
-        // The hello announce lives in TrainTimeView.onShow (PhoneSync.activate):
-        // transmitting from onStart hangs the sim's unit-test harness.
-        // Storage writes are safe here.
-        ReviewPrompt.ensureFirstLaunchTimestamp();
     }
 
     function onStop(state) {
         // Best-effort "closing" notice for the phone link indicator. Covers exits
         // that go through the lifecycle rather than the Back-button System.exit path.
-        PhoneSync.sendClosing();
+        if (mView != null) {
+            PhoneSync.sendClosing();
+        }
     }
 
     function getInitialView() {
+        Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
+        ReviewPrompt.ensureFirstLaunchTimestamp();
         mView = new TrainTimeView();
         return [ mView, new TrainTimeDelegate(mView) ];
     }
 
     // Glance: a single tile showing the nearest pinned station (no network).
-    (:glance)
+    (:glance :glanceview)
     function getGlanceView() {
         return [ new TrainTimeGlanceView() ];
     }

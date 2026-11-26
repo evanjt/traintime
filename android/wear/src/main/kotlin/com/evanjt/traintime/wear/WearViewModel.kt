@@ -119,6 +119,10 @@ class WearViewModel(
         private set
     var favouriteDepartures by mutableStateOf(listOf<Departure>())
         private set
+    // When the board's list was fetched, set only while the API serves it
+    // through an upstream outage.
+    var departuresStaleSince by mutableStateOf<Long?>(null)
+        private set
     var favouritesList by mutableStateOf(listOf<Favourite>())
         private set
 
@@ -1215,12 +1219,13 @@ class WearViewModel(
 
         try {
             val favParam = favouritesStore.favouritesParam(stationId)
-            val result = api.fetchDepartures(stationId, favParam)
+            val result = api.fetchDepartures(stationId, favParam, showsAge = true)
             requestInFlight = false
             requestStartTime = null
             departuresRefreshing = false
             lastFetchTime = now()
             consecutiveErrors = 0
+            departuresStaleSince = result.staleSince
             departures = if (result.favourites.isNotEmpty()) {
                 FavouritesStore.merge(result.favourites, result.departures)
             } else {
@@ -1261,6 +1266,7 @@ class WearViewModel(
         status = when (error) {
             is TrainApiException.RateLimited -> str(CoreR.string.err_rate_limited)
             is TrainApiException.UpdateRequired -> str(CoreR.string.err_update_required)
+            is TrainApiException.UpstreamUnavailable -> str(CoreR.string.err_upstream_unavailable)
             is TrainApiException.Http -> str(CoreR.string.err_code_fmt, context, error.code)
             is TrainApiException.NoData -> str(CoreR.string.err_generic_fmt, context)
             is TrainApiException.Network -> str(CoreR.string.err_no_connection)

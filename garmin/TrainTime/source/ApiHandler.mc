@@ -181,6 +181,23 @@ module ApiHandler {
         return code >= Communications.BLE_SERVER_TIMEOUT && code <= Communications.BLE_ERROR;
     }
 
+    // A formation 503 means the formation service has nothing for that train
+    // and date, which says nothing about the host. It is read as no car data:
+    // no retry on the next host and no mark against this one. An
+    // upstream_unavailable body means the timetable source every host shares
+    // is down, so another host would answer the same.
+    function shouldFailoverFor(kind, code, data) {
+        if (kind == KIND_FORMATION && code == 503) { return false; }
+        if (isUpstreamUnavailable(data)) { return false; }
+        return shouldFailover(code);
+    }
+
+    function isUpstreamUnavailable(data) {
+        if (!(data instanceof Lang.Dictionary)) { return false; }
+        var error = data.get("error");
+        return error instanceof Lang.String && error.equals("upstream_unavailable");
+    }
+
     function request(view, kind, path) {
         var now = Time.now().value();
         var hostList = hosts();
@@ -227,7 +244,7 @@ module ApiHandler {
         var now = Time.now().value();
         if (responseCode == 200) {
             if (a.hosts.size() > 1) { recordHostSuccess(a.hostIdx); }
-        } else if (shouldFailover(responseCode)) {
+        } else if (shouldFailoverFor(a.kind, responseCode, data)) {
             if (!a.isLast()) {
                 failover(a, now);
                 return;
@@ -265,7 +282,8 @@ module ApiHandler {
         }
     }
 
-    function decodeError(responseCode) {
+    function decodeError(responseCode, data) {
+        if (isUpstreamUnavailable(data)) { return Txt.t(Rez.Strings.UpstreamUnavailable); }
         if (responseCode == 429) { return Txt.t(Rez.Strings.RateLimited); }
         if (responseCode == 401) { return Txt.t(Rez.Strings.UpdateRequired); }
         if (responseCode == 500) { return Txt.t(Rez.Strings.ServerError); }
@@ -293,10 +311,11 @@ module ApiHandler {
         view.mRequestStartTime = null;
 
         if (responseCode == 200 && data != null && data instanceof Lang.Dictionary) {
-            var trains = parseStationGroup(data, "train");
-            var buses = parseStationGroup(data, "bus");
-            var trams = parseStationGroup(data, "tram");
-            var specials = parseStationGroup(data, "special");
+            var limit = departureLimit(System.getSystemStats().totalMemory);
+            var trains = parseStationGroup(data, "train", limit);
+            var buses = parseStationGroup(data, "bus", limit);
+            var trams = parseStationGroup(data, "tram", limit);
+            var specials = parseStationGroup(data, "special", limit);
 
             if (trains.size() == 0 && buses.size() == 0
                     && trams.size() == 0 && specials.size() == 0) {
@@ -314,7 +333,7 @@ module ApiHandler {
         } else {
             // A failed re-search keeps the loaded stations; only a first search
             // with nothing on screen surfaces the error state
-            view.mStatus = decodeError(responseCode);
+            view.mStatus = decodeError(responseCode, data);
             if (view.mStationId == null) {
                 view.mTrainData = null;
             }
@@ -322,7 +341,9 @@ module ApiHandler {
         WatchUi.requestUpdate();
     }
 
-    function parseStationGroup(data, key) {
+    // The closest station keeps its embedded departures for a step back to it,
+    // cut to the rows the board shows: the rest would sit in memory unread.
+    function parseStationGroup(data, key, limit) {
         var result = [];
         if (!data.hasKey(key)) { return result; }
         var arr = data[key];
@@ -337,9 +358,9 @@ module ApiHandler {
                 "lat" => s.hasKey("lat") ? s["lat"] : null,
                 "lon" => s.hasKey("lon") ? s["lon"] : null
             };
-            // Embed departures for closest station (first entry per mode)
             if (result.size() == 0 && s.hasKey("departures") && s["departures"] != null) {
-                station["departures"] = s["departures"];
+                var deps = s["departures"];
+                station["departures"] = deps.size() > limit ? deps.slice(0, limit) : deps;
             }
             result.add(station);
         }
@@ -412,8 +433,10 @@ module ApiHandler {
         request(view, KIND_DEPARTURES, path);
     }
 
+    // stale=1 opts in to a list served through an outage past the short
+    // window, marked with its age, which the board shows.
     function departuresPath(stationId, limit, favParam) {
-        var path = "/v1/departures?id=" + encodeComponent(stationId) + "&limit=" + limit;
+        var path = "/v1/departures?id=" + encodeComponent(stationId) + "&limit=" + limit + "&stale=1";
         if (favParam != null) {
             path = path + "&favourites=" + favParam;
         }
@@ -438,6 +461,14 @@ module ApiHandler {
             }
         }
         return out;
+    }
+
+    // The fetch time of a list the API served through an upstream outage,
+    // null for a live list.
+    function staleSince(data) {
+        if (data["stale"] != true) { return null; }
+        var at = data["fetchedAt"];
+        return (at instanceof Lang.Number) ? at : null;
     }
 
     function parseDepartureArray(departures) {
@@ -588,13 +619,16 @@ module ApiHandler {
         return trainData;
     }
 
-    function fetchFormation(view, trainNumber, stationId, operatorRef) {
-        // Format today's date as YYYY-MM-DD
-        var now = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var date = now.year + "-" + now.month.format("%02d") + "-" + now.day.format("%02d");
+    // Formations are keyed by the Swiss date the train leaves on, not by the
+    // watch's clock: a train after midnight tracked the evening before is
+    // tomorrow's. Only Swiss stations have formations.
+    function formationDate(depTs, nowTs) {
+        return SwissTime.date(depTs != null ? depTs : nowTs);
+    }
 
+    function fetchFormation(view, trainNumber, stationId, operatorRef, depTs) {
         var path = "/v1/formation?train=" + trainNumber
-            + "&date=" + date
+            + "&date=" + formationDate(depTs, Time.now().value())
             + "&stop=" + encodeComponent(stationId);
         if (operatorRef != null) {
             path = path + "&operatorRef=" + operatorRef;
@@ -675,6 +709,7 @@ module ApiHandler {
         if (responseCode == 200 && data != null && data instanceof Lang.Dictionary && data.hasKey("departures")) {
             view.mConsecutiveErrors = 0;
             view.mTrainData = parseDepartureArray(data["departures"]);
+            view.mStaleSince = staleSince(data);
 
             // Use server-side favourites if present, fall back to client-side extraction
             if (data.hasKey("favourites") && data["favourites"] != null
@@ -703,10 +738,12 @@ module ApiHandler {
                 } else if (view.mCursorIndex >= total) {
                     view.mCursorIndex = total - 1;
                 }
-                // Clamp scroll offset
-                if (view.mScrollOffset > total - view.mMaxVisibleTrains) {
-                    view.mScrollOffset = total - view.mMaxVisibleTrains;
-                    if (view.mScrollOffset < 0) { view.mScrollOffset = 0; }
+            }
+            // A paged board keeps a full screen when the list shrinks
+            if (view.mAppState <= 1) {
+                var maxOffset = view.getSelectableCount() - view.mMaxVisibleTrains;
+                if (view.mScrollOffset > maxOffset) {
+                    view.mScrollOffset = (maxOffset < 0) ? 0 : maxOffset;
                 }
             }
 
@@ -718,8 +755,9 @@ module ApiHandler {
                 // Delay/platform won't update but depTs-based countdown still works
                 view.mConsecutiveErrors = view.mConsecutiveErrors + 1;
             } else {
-                view.mStatus = decodeError(responseCode);
+                view.mStatus = decodeError(responseCode, data);
                 view.mTrainData = null;
+                view.mStaleSince = null;
                 if (view.mAppState > 0) {
                     view.exitToStationView();
                 }

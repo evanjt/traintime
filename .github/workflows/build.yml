@@ -302,7 +302,15 @@ jobs:
           export DISPLAY=:1
           Xvfb :1 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
           mkdir -p bin
-          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t
+          built=0
+          monkeyc -f monkey.jungle -d fenix6pro -o bin/app.prg -y ~/.Garmin/developer_key.der -t || built=$?
+          if ! ../check-test-runner.sh bin; then
+            echo "::error::Garmin test runner is past its member ceiling"; exit 1
+          fi
+          if [ "$built" -ne 0 ]; then exit "$built"; fi
+          if ! ../check-memory.sh; then
+            echo "::error::Garmin app is past the fenix 6S memory budget"; exit 1
+          fi
 
           # matco bakes the CIQ devices under /root/.Garmin, but GitHub forces
           # HOME=/github/home for container jobs, so the simulator looks there and

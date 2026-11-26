@@ -16,7 +16,7 @@ module Renderer {
         var height = dc.getHeight();
         var centerX = width / 2;
 
-        view.mMaxVisibleTrains = (height < 240) ? 3 : 4;
+        view.mMaxVisibleTrains = BoardLayout.maxRows(height);
 
         // GPS quality indicator. Tracking draws its own next to the clock,
         // centred, so the two never collide in the top-right arc
@@ -31,21 +31,28 @@ module Renderer {
                 Txt.t(Rez.Strings.Inactive), Graphics.TEXT_JUSTIFY_CENTER);
             dc.setColor(0x666666, Graphics.COLOR_TRANSPARENT);
             dc.drawText(centerX, height * 55 / 100, Graphics.FONT_TINY,
-                Txt.t(Rez.Strings.PressResume), Graphics.TEXT_JUSTIFY_CENTER);
+                Txt.t(BoardLayout.resumeHint(DrawUtils.isTouch())), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
 
         // State 2: focused tracking
         if (view.mAppState == 2 && view.mFocusedTrain != null) {
-            // The band is drawn after drawFocusedMode returns: its large frame leaves too
-            // little stack for the band's geometry underneath it
+            drawBackChevron(dc, width);
+            // The formation is drawn after drawFocusedMode returns: its large frame leaves
+            // too little stack for the formation's geometry underneath it
             var band = drawFocusedMode(dc, view, width, height);
             if (band != null) {
-                drawWalkAndBand(dc, view, width, band[0], band[1], band[2]);
+                drawWalkAndFormation(dc, view, width, height, band[0], band[1], band[2]);
                 drawToast(dc, view, width, height);
             }
             return;
         }
+
+        // Where the station name ends, for the touch hint beside it
+        var nameRight = null;
+        var nameMidY = 0;
+        var touchHints = view.mAppState == 0
+            && BoardLayout.hintKind(DrawUtils.isTouch()) == BoardLayout.HINT_CHEVRONS;
 
         if (view.mStationName != null) {
             // Mode indicators (above walk info)
@@ -53,30 +60,40 @@ module Renderer {
 
             // Walking info line / station indicator. Just after a mode change the
             // line announces the new mode instead, so cycling is self-explanatory
-            var walkY = height * 13 / 100;
+            var walkY = BoardLayout.walkY(height);
             var modeLabel = null;
+            var staleMinutes = DepartureLogic.staleMinutes(view.mStaleSince, Time.now().value());
             if (view.mAppState == 0 && view.mModeChangedTime != null
                     && Time.now().value() - view.mModeChangedTime < 3) {
-                if (view.mCurrentMode == 0) { modeLabel = Txt.t(Rez.Strings.ModeTrains); }
-                else if (view.mCurrentMode == 1) { modeLabel = Txt.t(Rez.Strings.ModeBuses); }
-                else if (view.mCurrentMode == 2) { modeLabel = Txt.t(Rez.Strings.ModeTrams); }
-                else { modeLabel = Txt.t(Rez.Strings.ModeSpecials); }
+                modeLabel = ModeMenu.label(view.mCurrentMode);
             }
             if (modeLabel != null) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                     modeLabel, Graphics.TEXT_JUSTIFY_CENTER);
-            } else if (view.mWalkInfo != null) {
+            } else if (view.mWalkInfo != null || staleMinutes != null) {
                 dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
-                var walkText = DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW);
+                var gpsRoom = 2 * (gpsIndicatorLeft(view, width, height) - DrawUtils.px(3, width) - centerX);
+                if (gpsRoom < walkMaxW) { walkMaxW = gpsRoom; }
+                // A list served through an upstream outage says how old it is
+                // in place of the walk line. A narrow slot takes the shorter
+                // wording, which keeps the distance or what the age means.
+                var walkTexts = [view.mWalkInfo];
+                if (staleMinutes != null) {
+                    walkTexts = [Lang.format(Txt.t(Rez.Strings.UpdatedAgoFmt), [staleMinutes]),
+                        Lang.format(Txt.t(Rez.Strings.UpdatedAgoShortFmt), [staleMinutes])];
+                } else if (view.mWalkInfoShort != null) {
+                    walkTexts.add(view.mWalkInfoShort);
+                }
+                var walkFit = DrawUtils.fitText(dc, walkTexts, [Graphics.FONT_XTINY], walkMaxW, 1);
                 dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
-                    walkText, Graphics.TEXT_JUSTIFY_CENTER);
+                    walkFit[1][0], Graphics.TEXT_JUSTIFY_CENTER);
             }
 
             // Station name. With the cursor on the header it becomes a carousel:
             // chevrons + counter show that START cycles the nearby stations
-            var stationY = height * 22 / 100;
+            var stationY = BoardLayout.stationY(height);
             var stationMaxW = DrawUtils.getUsableWidth(stationY + 12, width, height) - 10;
             var onHeader = (view.mAppState == 1 && view.mCursorIndex == -1);
             var counter = null;
@@ -98,6 +115,9 @@ module Renderer {
                     counterW = dc.getTextDimensions(counter, Graphics.FONT_XTINY)[0] + gap;
                 }
                 nameMaxW = stationMaxW - 2 * (triW + gap) - counterW;
+            } else if (touchHints) {
+                // Room for the chevron on both sides keeps the name centred
+                nameMaxW = stationMaxW - 2 * (chevronSize(width) * 2 + DrawUtils.px(6, width));
             }
             var dims = dc.getTextDimensions(stationText, stationFont);
             if (dims[0] > nameMaxW) {
@@ -137,113 +157,61 @@ module Renderer {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(centerX, stationY, stationFont,
                     stationText, Graphics.TEXT_JUSTIFY_CENTER);
+                nameRight = centerX + dims[0] / 2;
+                nameMidY = stationY + dc.getFontHeight(stationFont) / 2;
             }
 
             if (view.mTrainData != null && view.mTrainData.size() > 0) {
-                // Train rows (favourites first, then regular)
-                var maxTrains = 4;
-                if (height < 240) {
-                    maxTrains = 3;
+                // Favourites first, then regular departures, from the scroll offset
+                var startY = BoardLayout.rowsTop(height);
+                var rowSpacing = BoardLayout.rowSpacing(height);
+                var favCount = (view.mFavouriteData != null) ? view.mFavouriteData.size() : 0;
+                var total = view.getSelectableCount();
+                var startIdx = view.mScrollOffset;
+                var endIdx = startIdx + BoardLayout.visibleRows(total, startIdx, height);
+                var cols = rowColumns(dc, width, height);
+                for (var i = startIdx; i < endIdx; i++) {
+                    var item = view.getSelectableItem(i);
+                    var isFav = i < favCount;
+                    if (!isFav && view.mStationId != null) {
+                        isFav = FavouritesManager.isFavourite(view.mStationId,
+                            item["line"], item["dest"]);
+                    }
+                    var highlighted = (view.mAppState == 1 && i == view.mCursorIndex);
+                    drawTrainRow(dc, item, startY + (i - startIdx) * rowSpacing,
+                        width, height, highlighted, isFav, cols);
                 }
-                var startY = height * 36 / 100;
-                var rowSpacing = height * 14 / 100;
-
-                // Build combined list: favourites + separator marker + regular departures
-                var favCount = 0;
-                if (view.mFavouriteData != null) {
-                    favCount = view.mFavouriteData.size();
+                // Gold line under the last favourite when regular rows follow
+                var sepIdx = favCount - 1;
+                if (favCount > 0 && total > favCount && sepIdx >= startIdx && sepIdx < endIdx) {
+                    var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+                    var sepY = startY + (sepIdx - startIdx) * rowSpacing + tinyH + 1;
+                    var sepUsable = DrawUtils.getUsableWidth(sepY, width, height) - 20;
+                    var sepX = (width - sepUsable) / 2;
+                    dc.setColor(0x998800, Graphics.COLOR_TRANSPARENT);
+                    dc.fillRectangle(sepX, sepY, sepUsable, 2);
                 }
-
-                if (view.mAppState == 1) {
-                    // Selection mode: favourites first, then regular departures
-                    var selectTotal = view.getSelectableCount();
-                    var startIdx = view.mScrollOffset;
-                    var endIdx = selectTotal;
-                    if (endIdx > startIdx + maxTrains) {
-                        endIdx = startIdx + maxTrains;
-                    }
-                    for (var i = startIdx; i < endIdx; i++) {
-                        var row = i - startIdx;
-                        var highlighted = (i == view.mCursorIndex);
-                        var item = view.getSelectableItem(i);
-                        var isFav = false;
-                        if (view.mStationId != null) {
-                            isFav = FavouritesManager.isFavourite(view.mStationId,
-                                item["line"], item["dest"]);
-                        }
-                        drawTrainRow(dc, item,
-                            startY + row * rowSpacing, width, height, highlighted, isFav);
-                    }
-                    // Draw separator line after favourites section (if visible)
-                    if (favCount > 0 && selectTotal > favCount) {
-                        var sepIdx = favCount - 1;  // last favourite index
-                        if (sepIdx >= startIdx && sepIdx < endIdx) {
-                            var sepRow = sepIdx - startIdx;
-                            var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
-                            var sepY2 = startY + sepRow * rowSpacing + tinyH + 1;
-                            var sepUsable2 = DrawUtils.getUsableWidth(sepY2, width, height) - 20;
-                            var sepX2 = (width - sepUsable2) / 2;
-                            dc.setColor(0x998800, Graphics.COLOR_TRANSPARENT);
-                            dc.fillRectangle(sepX2, sepY2, sepUsable2, 2);
-                        }
-                    }
-                } else {
-                    // Station view: favourites first, then separator, then regular
-                    var rowIdx = 0;
-
-                    // Draw favourite rows
-                    for (var f = 0; f < favCount && rowIdx < maxTrains; f++) {
-                        drawTrainRow(dc, view.mFavouriteData[f],
-                            startY + rowIdx * rowSpacing, width, height, false, true);
-                        rowIdx = rowIdx + 1;
-                    }
-
-                    // Horizontal line under favourites section
-                    if (favCount > 0 && rowIdx < maxTrains && view.mTrainData.size() > 0) {
-                        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
-                        var sepY = startY + (rowIdx - 1) * rowSpacing + tinyH + 1;
-                        var sepUsable = DrawUtils.getUsableWidth(sepY, width, height) - 20;
-                        var sepX = (width - sepUsable) / 2;
-                        dc.setColor(0x998800, Graphics.COLOR_TRANSPARENT);
-                        dc.fillRectangle(sepX, sepY, sepUsable, 2);
-                    }
-
-                    // Draw regular departure rows (favourites in list get gold bg too)
-                    for (var t = 0; t < view.mTrainData.size() && rowIdx < maxTrains; t++) {
-                        var regFav = false;
-                        if (view.mStationId != null) {
-                            regFav = FavouritesManager.isFavourite(view.mStationId,
-                                view.mTrainData[t]["line"], view.mTrainData[t]["dest"]);
-                        }
-                        drawTrainRow(dc, view.mTrainData[t],
-                            startY + rowIdx * rowSpacing, width, height, false, regFav);
-                        rowIdx = rowIdx + 1;
-                    }
-                }
+                drawScrollPosition(dc, width, height, startIdx, endIdx - startIdx, total);
             } else if (view.mTrainData != null) {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                    Txt.t(Rez.Strings.NoDepartures), Graphics.TEXT_JUSTIFY_CENTER);
+                drawStatus(dc, Txt.t(Rez.Strings.NoDepartures), width, height);
             } else {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
                 var bodyMsg = Txt.t(Rez.Strings.Loading);
                 if (!view.mRequestInFlight) {
                     bodyMsg = view.mStatus;
                 }
-                dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                    bodyMsg, Graphics.TEXT_JUSTIFY_CENTER);
+                drawStatus(dc, bodyMsg, width, height);
             }
         } else {
             // No station yet, show status or loading indicator
-            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             var loadMsg = view.mRequestInFlight ? Txt.t(Rez.Strings.Loading) : view.mStatus;
-            dc.drawText(centerX, height * 45 / 100, Graphics.FONT_SMALL,
-                loadMsg, Graphics.TEXT_JUSTIFY_CENTER);
+            drawStatus(dc, loadMsg, width, height);
         }
 
         // Primary action label at the bottom; the accent arc marks the button
         if (view.mStationName != null && (view.mAppState == 1 || (view.mTrainData != null && view.mTrainData.size() > 0))) {
             var hintY = height * 92 / 100;
+            var hintLimit = height - dc.getFontHeight(Graphics.FONT_XTINY) - DrawUtils.px(2, width);
+            if (hintY > hintLimit) { hintY = hintLimit; }
             var hintMaxW = DrawUtils.getUsableWidth(hintY + 6, width, height) - 10;
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
             var hint;
@@ -259,14 +227,36 @@ module Renderer {
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
+        if (touchHints) {
+            drawTouchHints(dc, view, width, height, nameRight, nameMidY);
+        }
         drawButtonHints(dc, view, width, height);
     }
 
+    // The board's status message, centred where a single line sits. Measured
+    // at the bottom of a two-line block, the narrowest chord it may meet.
+    function drawStatus(dc, text, width, height) {
+        if (text == null) { return; }
+        var y = height * 45 / 100;
+        var smallH = dc.getFontHeight(Graphics.FONT_SMALL);
+        var maxW = DrawUtils.getUsableWidth(y + smallH * 3 / 2, width, height)
+            - DrawUtils.px(16, width);
+        var fit = DrawUtils.fitText(dc, [text], [Graphics.FONT_SMALL, Graphics.FONT_TINY], maxW, 2);
+        var lines = fit[1];
+        var lineH = dc.getFontHeight(fit[0]);
+        var top = y + lineH / 2 - lines.size() * lineH / 2;
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < lines.size(); i++) {
+            dc.drawText(width / 2, top + i * lineH, fit[0], lines[i], Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
     // Arc ticks on the bezel at each physical button that does something in the
-    // current state. Gated per button via inputButtons, so two-button touch
-    // watches only show the buttons they actually have
+    // current state, or chevrons at the tap targets when touch is on. Gated per
+    // button via inputButtons, so two-button watches only show the buttons they have
     function drawButtonHints(dc, view, width, height) {
         if (!DrawUtils.isRound() || view.mAppState == 3) { return; }
+        if (BoardLayout.hintKind(DrawUtils.isTouch()) != BoardLayout.HINT_ARCS) { return; }
         var ib = System.getDeviceSettings().inputButtons;
         var hasUpDown = (ib & System.BUTTON_INPUT_UP) != 0
             && (ib & System.BUTTON_INPUT_DOWN) != 0;
@@ -290,26 +280,104 @@ module Renderer {
         if (view.mAppState == 1 && hasBack) {
             drawButtonHint(dc, width, height, 330, false);
         }
-
-        // Just after launch or a mode change, name the buttons next to their arcs
-        if (view.mAppState == 0 && view.mHintTime != null
-                && Time.now().value() - view.mHintTime < 3) {
-            if (hasStart) { drawHintLabel(dc, width, height, 30, Txt.t(Rez.Strings.HintSelect)); }
-            if (hasUpDown && upDownActive) {
-                drawHintLabel(dc, width, height, 195, Txt.t(Rez.Strings.HintMode));
-            }
-        }
     }
 
-    function drawHintLabel(dc, width, height, centreDeg, text) {
-        var r = width / 2 - DrawUtils.px(14, width);
-        var rad = centreDeg * Math.PI / 180.0;
-        var x = width / 2 + r * Math.cos(rad);
-        var y = height / 2 - r * Math.sin(rad) - dc.getFontHeight(Graphics.FONT_XTINY) / 2;
-        var just = (centreDeg < 90 || centreDeg > 270)
-            ? Graphics.TEXT_JUSTIFY_RIGHT : Graphics.TEXT_JUSTIFY_LEFT;
+    // Where the visible rows sit in the list, on the right edge, only when
+    // more rows exist than fit
+    function drawScrollPosition(dc, width, height, offset, visible, total) {
+        if (total <= visible || visible <= 0) { return; }
+        var pen = DrawUtils.px(3, width);
+        if (!DrawUtils.isRound()) {
+            var top = BoardLayout.rowsTop(height);
+            var len = visible * BoardLayout.rowSpacing(height);
+            var x = width - pen - DrawUtils.px(2, width);
+            dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x, top, pen, len);
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x, top + len * offset / total, pen, len * visible / total);
+            return;
+        }
+        // 28 degrees centred on 3 o'clock, clear of the START and Back arcs
+        var r = width / 2 - DrawUtils.px(4, width);
+        var span = 28;
+        var hi = span / 2 - span * offset / total;
+        var lo = hi - span * visible / total;
+        if (lo < -span / 2) { lo = -span / 2; }
+        dc.setPenWidth(pen);
+        dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(width / 2, height / 2, r, Graphics.ARC_COUNTER_CLOCKWISE, 360 - span / 2, span / 2);
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_XTINY, text, just);
+        dc.drawArc(width / 2, height / 2, r, Graphics.ARC_COUNTER_CLOCKWISE,
+            (lo + 360) % 360, (hi + 360) % 360);
+        dc.setPenWidth(1);
+    }
+
+    function chevronSize(width) {
+        return DrawUtils.px(4, width);
+    }
+
+    // Down chevrons at the two board targets a tap opens as a list: beside the
+    // station name, and beside the active mode on the side facing the centre,
+    // where the round edge always leaves room
+    (:touch)
+    function drawTouchHints(dc, view, width, height, nameRight, nameMidY) {
+        var s = chevronSize(width);
+        var gap = DrawUtils.px(6, width);
+        dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(DrawUtils.px(2, width));
+        if (nameRight != null) {
+            drawChevron(dc, nameRight + gap + s, nameMidY, s);
+        }
+        if (view.mStationName != null && view.mAvailableModes.size() > 1) {
+            var i = view.mCurrentMode;
+            var off = DrawUtils.px(5, width) + DrawUtils.px(3, width) + gap / 2 + s;
+            var x = BoardLayout.modeX(i, width) + ((i < 2) ? off : -off);
+            drawChevron(dc, x, BoardLayout.modeY(height), s);
+        }
+        dc.setPenWidth(1);
+    }
+
+    (:notouch)
+    function drawTouchHints(dc, view, width, height, nameRight, nameMidY) {
+    }
+
+    // A back chevron at the left edge of the tracking screen, in the board
+    // chevrons' style, where a tap leaves tracking
+    (:touch)
+    function drawBackChevron(dc, width) {
+        if (BoardLayout.hintKind(DrawUtils.isTouch()) != BoardLayout.HINT_CHEVRONS) { return; }
+        var s = chevronSize(width);
+        var cx = TrackLayout.backX(width);
+        var midY = dc.getHeight() / 2;
+        dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(DrawUtils.px(2, width));
+        dc.drawLine(cx + s / 2, midY - s, cx - s / 2, midY);
+        dc.drawLine(cx - s / 2, midY, cx + s / 2, midY + s);
+        dc.setPenWidth(1);
+    }
+
+    (:notouch)
+    function drawBackChevron(dc, width) {
+    }
+
+    // Keeps the tracking screen's tap targets as drawn: the walk target's top, and
+    // the round band (r null) or straight strip, sp null with no formation
+    (:touch)
+    function recordTaps(view, walkTop, g, r, sp) {
+        var strip = null;
+        if (sp != null) {
+            strip = (r == null) ? TrackLayout.roundStrip(g, sp) : TrackLayout.rectStrip(r, sp);
+        }
+        view.mTrackTaps = [walkTop, strip];
+    }
+
+    (:notouch)
+    function recordTaps(view, walkTop, g, r, sp) {
+    }
+
+    function drawChevron(dc, cx, midY, s) {
+        dc.drawLine(cx - s, midY - s / 2, cx, midY + s / 2);
+        dc.drawLine(cx, midY + s / 2, cx + s, midY - s / 2);
     }
 
     function drawButtonHint(dc, width, height, centreDeg, accent) {
@@ -331,10 +399,7 @@ module Renderer {
     }
 
     function drawModeIndicators(dc, view, width, height) {
-        var cy = height * 7 / 100;
-        var iconSpacing = width * 14 / 100;
-        var totalWidth = 3 * iconSpacing;  // 4 icons, 3 gaps
-        var startX = width / 2 - totalWidth / 2;
+        var cy = BoardLayout.modeY(height);
 
         // Shared glyph metrics: s is the icon half-width, everything derives from it
         var s = DrawUtils.px(5, width);
@@ -346,7 +411,7 @@ module Renderer {
         var underY = cy + s + 2 * wr + DrawUtils.px(2, width);
 
         for (var i = 0; i < 4; i++) {
-            var cx = startX + i * iconSpacing;
+            var cx = BoardLayout.modeX(i, width);
             var isActive = (i == view.mCurrentMode);
             var available = isModeAvailable(view, i);
 
@@ -426,14 +491,16 @@ module Renderer {
 
     function drawGpsIndicator(dc, view, width, height) {
         var maxH = DrawUtils.px(13, width);
-
-        // Position: top-right (same area as former dot)
         var midY = height * 14 / 100;
-        var usable = DrawUtils.getUsableWidth(midY, width, height);
-        var rightEdge = (width + usable) / 2 - DrawUtils.px(4, width);
-        var startX = rightEdge - gpsIndicatorWidth(view, width);
         var baseY = midY + maxH / 2;  // bottom of tallest bar
-        drawGpsBars(dc, view, startX, baseY, width);
+        drawGpsBars(dc, view, gpsIndicatorLeft(view, width, height), baseY, width);
+    }
+
+    // Top-right, against the edge of the circle
+    function gpsIndicatorLeft(view, width, height) {
+        var usable = DrawUtils.getUsableWidth(height * 14 / 100, width, height);
+        var rightEdge = (width + usable) / 2 - DrawUtils.px(4, width);
+        return rightEdge - gpsIndicatorWidth(view, width);
     }
 
     function gpsBarsWidth(width) {
@@ -531,7 +598,26 @@ module Renderer {
         dc.setPenWidth(1);
     }
 
-    function drawTrainRow(dc, train, y, width, height, highlighted, isFav) {
+    // Columns for this device's fonts: the minutes column starts inside the
+    // circle at the last row, and fits the widest localised word or minute count
+    function rowColumns(dc, width, height) {
+        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+        var lastMid = BoardLayout.rowsTop(height)
+            + (BoardLayout.maxRows(height) - 1) * BoardLayout.rowSpacing(height) + tinyH / 2;
+        var gap = DrawUtils.px(3, width);
+        var leftEdge = (width - DrawUtils.getUsableWidth(lastMid, width, height)) / 2 + gap;
+        var minW = dc.getTextWidthInPixels("88'", Graphics.FONT_TINY);
+        var words = [Txt.t(Rez.Strings.RowNow), Txt.t(Rez.Strings.RowGone)];
+        for (var i = 0; i < words.size(); i++) {
+            var w = dc.getTextWidthInPixels(words[i], Graphics.FONT_TINY);
+            if (w > minW) { minW = w; }
+        }
+        return BoardLayout.columns(width, leftEdge, minW,
+            dc.getTextWidthInPixels("+88", Graphics.FONT_XTINY),
+            dc.getTextWidthInPixels("IR95", Graphics.FONT_XTINY), gap);
+    }
+
+    function drawTrainRow(dc, train, y, width, height, highlighted, isFav, cols) {
         var minutesUntil = train["min"];
         var delay = train["delay"];
         var platform = train["plat"];
@@ -569,14 +655,15 @@ module Renderer {
         }
 
         // Fixed column X positions (absolute, so columns align across rows)
-        var minRightX = width * 20 / 100;
-        var delayX = width * 21 / 100;
-        var destX = width * 44 / 100;
+        var minRightX = cols[0];
+        var delayX = cols[1];
+        var destX = cols[4];
 
         // Right edge for this row on round display (for destination truncation)
         var rowCenterY = y + tinyH / 2;
         var usable = DrawUtils.getUsableWidth(rowCenterY, width, height);
-        var rightEdge = (width + usable) / 2 - 4;
+        // Clear of the scroll arc on the bezel
+        var rightEdge = (width + usable) / 2 - DrawUtils.px(9, width);
 
         // Departed rows dim to dark grey, but on the highlight fill that becomes
         // unreadable, so the cursor lifts them to light grey
@@ -618,10 +705,10 @@ module Renderer {
         // Connection ID column (FONT_XTINY), centred in one fixed slot
         if (lineNumber != null && lineNumber.length() > 0) {
             dc.setColor(isGone ? goneTint : 0x55AAFF, Graphics.COLOR_TRANSPARENT);
-            var slotW = DrawUtils.lineChip(width, 0)[2];
-            var lineText = DrawUtils.truncateToFit(dc, lineNumber, Graphics.FONT_XTINY, slotW);
-            var chip = DrawUtils.lineChip(width, dc.getTextWidthInPixels(lineText, Graphics.FONT_XTINY));
-            dc.drawText(chip[0], xtinyY, Graphics.FONT_XTINY,
+            var lineText = DrawUtils.truncateToFit(dc, lineNumber, Graphics.FONT_XTINY, cols[3]);
+            var chipX = BoardLayout.chipX(cols[2], cols[3],
+                dc.getTextWidthInPixels(lineText, Graphics.FONT_XTINY));
+            dc.drawText(chipX, xtinyY, Graphics.FONT_XTINY,
                 lineText, Graphics.TEXT_JUSTIFY_LEFT);
         }
 
@@ -658,7 +745,8 @@ module Renderer {
 
         // Status row centred in the top arc: [GPS bars] HH:MM. Centred placement
         // keeps it clear of the round-display chord on every diameter
-        var yTop = height * 3 / 100;
+        var round = DrawUtils.isRound();
+        var yTop = TrackLayout.top(height, round);
         var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
         var clockInfo = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var timeStr = clockInfo.hour.format("%02d") + ":" + clockInfo.min.format("%02d");
@@ -673,14 +761,14 @@ module Renderer {
 
         // Station name below the status row
         dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        var stationY = yTop + xtinyH;
+        var stationY = TrackLayout.stationY(width, height, round, xtinyH);
         var stationMaxW = DrawUtils.getUsableWidth(stationY + 4, width, height) - 10;
         dc.drawText(centerX, stationY, Graphics.FONT_XTINY,
             DrawUtils.truncateToFit(dc, view.mStationName, Graphics.FONT_XTINY, stationMaxW),
             Graphics.TEXT_JUSTIFY_CENTER);
 
         // Destination gets the whole line; the line ID rides on the platform row
-        var destY = stationY + xtinyH + DrawUtils.px(2, width);
+        var destY = TrackLayout.destY(width, height, round, xtinyH);
         var dest = view.mFocusedTrain["dest"];
         var destMaxW = DrawUtils.getUsableWidth(destY, width, height) - 10;
         var destFont = Graphics.FONT_SMALL;
@@ -695,30 +783,22 @@ module Renderer {
         // Following a saved route: the journey's final stop, dim and in brackets
         // under the train's real terminus (which we always show verbatim from the
         // board). Space-permitting; drops out for a plain track.
-        var rowTopY = destY + dc.getFontHeight(destFont) + 1;
         var routeDest = view.mFocusedTrain.hasKey("routeDest") ? view.mFocusedTrain["routeDest"] : null;
-        // The row pushes the whole lower block (platform, countdown, bar, status)
-        // down by its own height, which runs off the bottom of a small screen.
-        // Measure that block against the space the formation needs and drop the
-        // row rather than clipping anything below it.
-        var lowerBlockH = xtinyH + 2
-            + dc.getFontHeight(Graphics.FONT_MEDIUM) + DrawUtils.px(2, width)
-            + DrawUtils.px(14, width) + DrawUtils.px(4, width)
-            + dc.getFontHeight(Graphics.FONT_TINY);
-        var bottomReserve = xtinyH + (xtinyH + 3) + DrawUtils.px(4, width);
-        var routeFits = rowTopY + xtinyH + lowerBlockH <= height - bottomReserve;
-        if (routeFits && routeDest != null && !routeDest.equals("") && !routeDest.equals(dest)) {
+        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
+        var rows = TrackLayout.rows(width, height, round, xtinyH, tinyH, dc.getFontHeight(destFont),
+            dc.getFontHeight(Graphics.FONT_MEDIUM),
+            routeDest != null && !routeDest.equals("") && !routeDest.equals(dest));
+        if (rows[:route] != null) {
             var routeStr = Lang.format(Txt.t(Rez.Strings.RouteDestFmt), [routeDest]);
-            var routeMaxW = DrawUtils.getUsableWidth(rowTopY, width, height) - 10;
+            var routeMaxW = DrawUtils.getUsableWidth(rows[:route], width, height) - 10;
             dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, rowTopY, Graphics.FONT_XTINY,
+            dc.drawText(centerX, rows[:route], Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, routeStr, Graphics.FONT_XTINY, routeMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
-            rowTopY = rowTopY + dc.getFontHeight(Graphics.FONT_XTINY);
         }
 
         // Line ID (blue) + platform + departure time on one row, centred as drawn
-        var platY = rowTopY;
+        var platY = rows[:plat];
         var line = view.mFocusedTrain["line"];
         var plat = view.mFocusedTrain["plat"];
         var platChg = view.mFocusedTrain["platChg"];
@@ -773,7 +853,7 @@ module Renderer {
         }
 
         // Countdown + delay
-        var minY = platY + dc.getFontHeight(Graphics.FONT_XTINY) + 2;
+        var minY = rows[:countdown];
         var minutesUntil = view.getFocusedMinutesUntil();
         var delay = view.mFocusedTrain["delay"];
         if (delay == null) { delay = 0; }
@@ -811,11 +891,11 @@ module Renderer {
         }
 
         // Tracking bar
-        var barY = minY + dc.getFontHeight(Graphics.FONT_MEDIUM) + DrawUtils.px(2, width);
+        var barY = rows[:bar];
         drawTrackingBar(dc, view, width, height, barY);
 
         // Status text
-        var statusY = barY + DrawUtils.px(14, width) + DrawUtils.px(4, width);
+        var statusY = rows[:status];
         var walkMin = view.getWalkMinutes();
         if (walkMin == null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
@@ -854,34 +934,20 @@ module Renderer {
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Walk info at bottom. On short screens the formation needs the room,
-        // so the walk line is the first thing to go
-        var tinyH = dc.getFontHeight(Graphics.FONT_TINY);
-        var walkY = statusY + tinyH + DrawUtils.px(2, width);
-        var hasFormation = view.mFormationClasses != null
-            && view.mFormationClasses.size() > 0;
-        if (hasFormation && DrawUtils.isRound() && view.mFormationBreaks != null) {
+        // The formation and the row above it are drawn by the caller
+        var walkY = rows[:walk];
+        if (view.mFormationClasses != null && view.mFormationClasses.size() > 0) {
             drawDirectionArrow(dc, view, width, height, minY);
             drawButtonHints(dc, view, width, height);
             return [statusY + tinyH, walkY, xtinyH];
         }
-        var showWalk = view.mWalkInfo != null;
-        if (showWalk && hasFormation) {
-            var formTop = height - xtinyH - (xtinyH + 3) - DrawUtils.px(4, width);
-            if (walkY + xtinyH > formTop) { showWalk = false; }
-        }
-        if (showWalk) {
+        recordTaps(view, (view.mWalkInfo != null) ? statusY + tinyH : null, null, null, null);
+        if (view.mWalkInfo != null) {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             var walkMaxW = DrawUtils.getUsableWidth(walkY + 8, width, height) - 10;
             dc.drawText(centerX, walkY, Graphics.FONT_XTINY,
                 DrawUtils.truncateToFit(dc, view.mWalkInfo, Graphics.FONT_XTINY, walkMaxW),
                 Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // Visual formation diagram, anchored to the bottom edge
-        if (hasFormation) {
-            var minTop = showWalk ? walkY + xtinyH : statusY + tinyH;
-            drawFormation(dc, view, width, height, minTop);
         }
 
         // Direction arrow (only visible when walking)
@@ -893,14 +959,15 @@ module Renderer {
         return null;
     }
 
-    // Walk line (or the car readout while Up/Down is in use) above the formation band.
+    // Walk line (or the car readout while a car is highlighted) above the formation band.
     // The walk line never goes: where the band is tight it falls back to its short form.
-    function drawWalkAndBand(dc, view, width, statusBottom, walkY, xtinyH) {
+    (:round)
+    function drawWalkAndFormation(dc, view, width, height, statusBottom, walkY, xtinyH) {
         var breaks = view.mFormationBreaks;
-        var nBreaks = 0;
-        for (var i = 0; i < breaks.size() - 1; i++) { if (breaks[i]) { nBreaks++; } }
-        var g = FormationArc.layout(width, statusBottom, breaks.size(), nBreaks);
+        var g = FormationArc.layout(width, statusBottom, breaks.size(), FormationArc.breakCount(breaks));
         var cursor = view.formationCursor();
+        var sp = FormationArc.spans(g, breaks);
+        recordTaps(view, (cursor == null && view.mWalkInfo != null) ? statusBottom : null, g, null, sp);
         if (cursor != null) {
             FormationArc.drawReadout(dc, g, view, cursor, walkY, xtinyH,
                 Time.now().value() - view.mFormationCursorTime);
@@ -913,11 +980,37 @@ module Renderer {
             dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
             dc.drawText(width / 2, walkY, Graphics.FONT_XTINY, walk, Graphics.TEXT_JUSTIFY_CENTER);
         }
-        var sp = FormationArc.spans(g, breaks);
+        var numbers = FormationArc.shownNumbers(view.mFormationNumbers, view.mFormationClosed);
+        var labels = FormationArc.cursorLabels(
+            FormationArc.numberLabels(numbers, view.mFormationClasses, breaks, sp, g[:rm], g[:k]),
+            numbers, cursor, sp, g[:rm], g[:k]);
+        FormationArc.draw(dc, g, view, cursor, sp, labels);
+    }
+
+    // The same row above the straight strip of a rectangular screen
+    (:rect)
+    function drawWalkAndFormation(dc, view, width, height, statusBottom, walkY, xtinyH) {
+        var breaks = view.mFormationBreaks;
+        var g = FormationStrip.layout(width, width - 10, breaks.size(), FormationArc.breakCount(breaks));
+        var r = FormationStrip.rows(width, height, walkY, xtinyH);
+        var cursor = view.formationCursor();
+        var sp = FormationStrip.spans(g, breaks);
+        recordTaps(view, (cursor == null && view.mWalkInfo != null) ? statusBottom : null, g, r, sp);
+        if (cursor != null) {
+            FormationArc.drawReadout(dc, g, view, cursor, r[:row], xtinyH,
+                Time.now().value() - view.mFormationCursorTime);
+        } else if (view.mWalkInfo != null) {
+            var walk = view.mWalkInfo;
+            if (dc.getTextWidthInPixels(walk, Graphics.FONT_XTINY) > width - 10 && view.mWalkInfoShort != null) {
+                walk = view.mWalkInfoShort;
+            }
+            dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(width / 2, r[:row], Graphics.FONT_XTINY, walk, Graphics.TEXT_JUSTIFY_CENTER);
+        }
         var labels = FormationArc.numberLabels(
             FormationArc.shownNumbers(view.mFormationNumbers, view.mFormationClosed), view.mFormationClasses, breaks,
-            sp, g[:rm], g[:k]);
-        FormationArc.draw(dc, g, view, cursor, sp, labels);
+            sp, 0, g[:k]);
+        FormationStrip.draw(dc, g, r, view, cursor, sp, labels);
     }
 
     function drawToast(dc, view, width, height) {
@@ -1031,137 +1124,6 @@ module Renderer {
         var w = DrawUtils.px(2, width);
         var over = DrawUtils.px(2, width);
         dc.fillRectangle(midX - w / 2, barY - over, w, barH + 2 * over);
-    }
-
-    function drawFormation(dc, view, width, height, minTop) {
-        var count = view.mFormationClasses.size();
-        if (count == 0) { return; }
-
-        var fontH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var wagonH = fontH;
-        var wagonW = DrawUtils.px(8, width);
-        var gap = DrawUtils.px(1, width);
-        var locoW = DrawUtils.px(6, width);
-        var margin = DrawUtils.px(4, width);
-
-        // Anchor to the bottom edge; reclaim the sector-label row, then give
-        // up entirely, before overlapping whatever sits above
-        var drawLabels = true;
-        var formY = height - wagonH - (fontH + 3) - margin;
-        if (formY < minTop + DrawUtils.px(2, width)) {
-            drawLabels = false;
-            formY = height - wagonH - margin;
-            if (formY < minTop + DrawUtils.px(2, width)) { return; }
-        }
-
-        // Total width needed
-        var totalW = locoW + gap + count * wagonW + (count - 1) * gap;
-
-        // Available width at the formation Y position
-        var usable = DrawUtils.getUsableWidth(formY + wagonH / 2, width, height) - 10;
-
-        // Scale down wagon width if formation doesn't fit
-        if (totalW > usable) {
-            wagonW = (usable - locoW - gap - (count - 1) * gap) / count;
-            if (wagonW < DrawUtils.px(4, width)) {
-                // Too many wagons even at min size, drop locomotive
-                locoW = 0;
-                wagonW = (usable - (count - 1) * gap) / count;
-                var minW = DrawUtils.px(3, width);
-                if (wagonW < minW) { wagonW = minW; }
-            }
-            totalW = locoW + (locoW > 0 ? gap : 0) + count * wagonW + (count - 1) * gap;
-        }
-
-        var startX = (width - totalW) / 2;
-        var x = startX;
-
-        // Loco space
-        if (locoW > 0) {
-            x = x + locoW + gap;
-        }
-
-        // Vertical center for text inside wagon
-        var textY = formY + (wagonH - fontH) / 2;
-        var wagonStartX = x;
-
-        // Draw wagon contents (yellow stripes + numbers)
-        for (var i = 0; i < count; i++) {
-            var cls = view.mFormationClasses[i];
-            var closed = FormationArc.isClosed(view, i);
-            var num = closed ? null : view.mFormationNumbers[i];
-
-            // 1st class: yellow stripe at top
-            if (cls == 1 && !closed) {
-                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(x, formY + 1, wagonW, 3);
-            }
-
-            // Wagon number inside box (only if wide enough)
-            if (wagonW >= 7 && num != null) {
-                dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(x + wagonW / 2, textY, Graphics.FONT_XTINY,
-                    num.toString(), Graphics.TEXT_JUSTIFY_CENTER);
-            }
-
-            x = x + wagonW + gap;
-        }
-
-        // Single outline around entire train (loco + wagons)
-        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-        var trainEndX = x - gap;
-        // Loco tapered nose on the left
-        if (locoW > 0) {
-            var noseW = locoW / 3;
-            dc.drawLine(startX, formY + wagonH, startX + noseW, formY);
-            dc.drawLine(startX + noseW, formY, trainEndX, formY);
-        } else {
-            dc.drawLine(startX, formY, trainEndX, formY);
-        }
-        // Right side, bottom, left bottom
-        dc.drawLine(trainEndX, formY, trainEndX, formY + wagonH);
-        dc.drawLine(trainEndX, formY + wagonH, startX, formY + wagonH);
-
-        // Direction arrow below locomotive
-        if (!drawLabels) { return; }
-        var lineY = formY + wagonH + 2;
-        var sectorTextY = lineY + 1;
-        if (locoW > 0) {
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            var arrowX = startX + locoW / 2;
-            dc.drawText(arrowX, sectorTextY, Graphics.FONT_XTINY,
-                "<", Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // Sector labels below wagons
-        if (view.mFormationSectors == null) { return; }
-
-        // Group consecutive wagons by sector
-        var sectorStart = 0;
-        while (sectorStart < count) {
-            var sector = view.mFormationSectors[sectorStart];
-            var sectorEnd = sectorStart + 1;
-            while (sectorEnd < count && view.mFormationSectors[sectorEnd].equals(sector)) {
-                sectorEnd = sectorEnd + 1;
-            }
-
-            if (!sector.equals("")) {
-                var gx1 = wagonStartX + sectorStart * (wagonW + gap);
-                var gx2 = wagonStartX + sectorEnd * (wagonW + gap) - gap;
-                var gmid = (gx1 + gx2) / 2;
-
-                // Horizontal line spanning sector group
-                dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(gx1, lineY, gx2, lineY);
-
-                // Sector letter centered below line
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(gmid, sectorTextY, Graphics.FONT_XTINY,
-                    sector, Graphics.TEXT_JUSTIFY_CENTER);
-            }
-
-            sectorStart = sectorEnd;
-        }
     }
 
     function drawDirectionArrow(dc, view, width, height, countdownY) {

@@ -4,6 +4,8 @@ import CoreLocation
 enum TrainAPIError: Error {
     case rateLimited
     case updateRequired
+    /// The timetable source behind every host is down; no other host helps.
+    case upstreamUnavailable
     case httpError(Int)
     case noData
     case networkError
@@ -28,7 +30,7 @@ struct TrainAPIService {
         }
 
         let (data, response) = try await makeRequest(path: path)
-        try checkHTTPResponse(response)
+        try checkHTTPResponse(response, data: data)
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
 
@@ -42,19 +44,37 @@ struct TrainAPIService {
 
     // MARK: - Departures
 
-    static func fetchDepartures(stationId: String, favourites: String? = nil) async throws -> (departures: [Departure], favourites: [Departure]) {
+    /// The departures a station's board shows. `staleSince` is the unix time
+    /// the list was fetched when the API served it through an upstream outage,
+    /// nil for a live list.
+    typealias DeparturesBoard = (departures: [Departure], favourites: [Departure], staleSince: Int?)
+
+    /// `showsAge` opts in to a list served through an upstream outage past the
+    /// short window. Only a caller that shows `staleSince` passes it: elsewhere
+    /// that list would read as live.
+    static func fetchDepartures(stationId: String, favourites: String? = nil, showsAge: Bool = false) async throws -> DeparturesBoard {
+        let path = departuresPath(stationId: stationId, favourites: favourites, showsAge: showsAge)
+        let (data, response) = try await makeRequest(path: path)
+        try checkHTTPResponse(response, data: data)
+        return try parseDepartures(data)
+    }
+
+    static func departuresPath(stationId: String, favourites: String?, showsAge: Bool) -> String {
         let encoded = stationId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stationId
         var path = "/v1/departures?id=\(encoded)&limit=\(Thresholds.maxDepartures)"
         if let favParam = favourites?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
             path += "&favourites=\(favParam)"
         }
+        if showsAge {
+            path += "&stale=1"
+        }
+        return path
+    }
 
-        let (data, response) = try await makeRequest(path: path)
-        try checkHTTPResponse(response)
-
+    static func parseDepartures(_ data: Data) throws -> DeparturesBoard {
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let departureArray = json?["departures"] as? [[String: Any]] else {
-            return ([], [])
+            return ([], [], nil)
         }
 
         let deps = departureArray.prefix(Thresholds.maxDepartures).map { Departure.from(json: $0) }.dedupedForDisplay()
@@ -64,7 +84,9 @@ struct TrainAPIService {
         } else {
             favDeps = []
         }
-        return (deps, favDeps)
+        let stale = json?["stale"] as? Bool ?? false
+        let staleSince = stale ? (json?["fetchedAt"] as? NSNumber)?.intValue : nil
+        return (deps, favDeps, staleSince)
     }
 
     // MARK: - Formation
@@ -91,7 +113,8 @@ struct TrainAPIService {
     }
 
     /// Tries the hosts in the failover order. A transport error, a timeout,
-    /// a 429 or a 5xx moves to the next host; any other answer is returned as is.
+    /// a 429 or a 5xx moves to the next host; any other answer, an upstream
+    /// outage included, is returned as is.
     private static func makeRequest(path: String) async throws -> (Data, URLResponse) {
         let hosts = ApiHost.hosts
         let order = await HostFailover.shared.order(hostCount: hosts.count)
@@ -105,7 +128,7 @@ struct TrainAPIService {
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 200
-                if FailoverPolicy.shouldFailover(status: status) {
+                if FailoverPolicy.shouldFailover(status: status, body: data) {
                     await HostFailover.shared.recordFailure(index, hostCount: hosts.count)
                     if last { return (data, response) }
                     continue
@@ -121,10 +144,13 @@ struct TrainAPIService {
         throw TrainAPIError.networkError
     }
 
-    private static func checkHTTPResponse(_ response: URLResponse) throws {
+    private static func checkHTTPResponse(_ response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else { return }
         if http.statusCode == 429 { throw TrainAPIError.rateLimited }
         if http.statusCode == 401 { throw TrainAPIError.updateRequired }
+        if http.statusCode != 200 && FailoverPolicy.isUpstreamUnavailable(data) {
+            throw TrainAPIError.upstreamUnavailable
+        }
         if http.statusCode != 200 { throw TrainAPIError.httpError(http.statusCode) }
     }
 }

@@ -3875,6 +3875,28 @@
         }
       }
     },
+    "Updated %lld min ago": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vor %lld Min. aktualisiert"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mis à jour il y a %lld min"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiornato %lld min fa"
+          }
+        }
+      }
+    },
     "Victoria, Australia": {
       "localizations": {
         "de": {
@@ -5817,6 +5839,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Interrompere il monitoraggio per cambiare modo?"
+          }
+        }
+      }
+    },
+    "Timetable unavailable": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrplan nicht abrufbar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horaires indisponibles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orari non disponibili"
           }
         }
       }

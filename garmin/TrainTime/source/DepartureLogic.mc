@@ -45,6 +45,14 @@ module DepartureLogic {
         }
     }
 
+    // Whole minutes since a list served through an upstream outage was
+    // fetched, at least one, or null for a live list.
+    function staleMinutes(fetchedAt as Lang.Number?, nowSec as Lang.Number) as Lang.Number? {
+        if (fetchedAt == null) { return null; }
+        var minutes = (nowSec - fetchedAt) / 60;
+        return minutes < 1 ? 1 : minutes;
+    }
+
     function nz(delay as Lang.Number?) as Lang.Number {
         return delay == null ? 0 : delay;
     }

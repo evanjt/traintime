@@ -73,5 +73,8 @@ android/captures/
 /store/out/
 # The App Store header and search videos rebuild from tracked inputs (board.py --video).
 /store/manual/app-store/*/*.mp4
+# The walking video's footage and photos stay out of the repository (walk.py), and so do its renders.
+/store/walk/
+/store/manual/play/
 /*.png
 .*

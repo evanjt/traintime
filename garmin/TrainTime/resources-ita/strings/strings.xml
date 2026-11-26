@@ -4,16 +4,18 @@
     <!-- Station view -->
     <string id="Inactive">Inattivo</string>
     <string id="PressResume">Premi per riprendere</string>
+    <string id="TapResume">Tocca per riprendere</string>
     <string id="ModeTrains">Treni</string>
     <string id="ModeBuses">Bus</string>
     <string id="ModeTrams">Tram</string>
     <string id="ModeSpecials">Battelli &amp; impianti</string>
+    <string id="ModeCurrent">Attuale</string>
     <string id="NoDepartures">Nessuna partenza</string>
     <string id="Loading">Carico...</string>
+    <string id="HintMode">Modo</string>
     <string id="HintSelect">Scegli</string>
     <string id="HintNextStation">Prossima fermata</string>
     <string id="HintTrack">Segui</string>
-    <string id="HintMode">Modo</string>
     <string id="RowGone">perso</string>
     <string id="RowNow">ora</string>
 
@@ -39,6 +41,7 @@
     <string id="RateLimited">Troppe richieste</string>
     <string id="UpdateRequired">Aggiorna l'app</string>
     <string id="ServerError">Errore server</string>
+    <string id="UpstreamUnavailable">Orari non disponibili</string>
     <string id="TimeoutError">Timeout</string>
     <string id="NoConnection">Nessuna connessione</string>
     <string id="ConnectionError">Errore connessione</string>
@@ -57,6 +60,8 @@
     <string id="WalkUnder1">&lt;1 min</string>
     <string id="WalkInfoFmt">$1$ a piedi - $2$m</string>
     <string id="WalkInfoShortFmt">$1$ · $2$m</string>
+    <string id="UpdatedAgoFmt">Aggiornato $1$ min fa</string>
+    <string id="UpdatedAgoShortFmt">Dati di $1$ min fa</string>
 
     <!-- Settings menu -->
     <string id="SettingsTitle">Impostazioni</string>
@@ -85,7 +90,7 @@
     <string id="TermsOfUse">Condizioni d'uso</string>
     <string id="StationsLabel">Fermate</string>
     <string id="VictoriaLabel">Victoria, Australia</string>
-    <string id="StationLabel">Stazione</string>
+    <string id="StationLabel" scope="glance">Stazione</string>
 
     <!-- Tracking options menu -->
     <string id="OptionsTitle">Opzioni</string>
@@ -100,5 +105,5 @@
     <string id="DontAskAgain">Non chiedere più</string>
 
     <!-- Glance -->
-    <string id="PinAStation">Fissa una stazione</string>
+    <string id="PinAStation" scope="glance">Fissa una stazione</string>
 </strings>

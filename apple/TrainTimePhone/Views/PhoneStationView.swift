@@ -124,6 +124,19 @@ struct PhoneStationView: View {
                 Spacer()
             } else {
                 List {
+                    // A list served through an upstream outage says how old it is.
+                    if viewModel.staleMinutes() != nil {
+                        TimelineView(.periodic(from: .now, by: 30)) { context in
+                            if let minutes = viewModel.staleMinutes(now: Int(context.date.timeIntervalSince1970)) {
+                                Text("Updated \(minutes) min ago")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
                     // Live session continuing in the background, pinned above
                     // everything: tap to re-open full tracking, X to stop.
                     if let tracked = viewModel.backgroundTracked {

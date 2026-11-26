@@ -481,4 +481,46 @@ final class FormationLayoutTests: XCTestCase {
         XCTAssertNil(board.aged(at: fetchedAt + 10))
         XCTAssertEqual(board.aged(at: fetchedAt + 70)?.map(\.minutesUntil), [9, 14])
     }
+
+    // Scenario: through an upstream outage the API serves a station's last list
+    // with `"stale": true` and the unix time it was fetched.
+    // Expected behaviour: the board keeps the rows and knows their age in whole
+    // minutes, at least one; a list without the flag carries no age.
+    func testStaleDeparturesKeepTheirFetchTime() throws {
+        let now = 1_790_000_000
+        let body = """
+        {"departures": [{"to": "Thun", "number": "IC61", "departure": \(now + 300)}],
+         "stale": true, "fetchedAt": \(now - 1200)}
+        """
+        let board = try TrainAPIService.parseDepartures(Data(body.utf8))
+        XCTAssertEqual(board.departures.count, 1)
+        XCTAssertEqual(board.staleSince, now - 1200)
+        XCTAssertEqual(StaleBoard.minutes(fetchedAt: board.staleSince, now: now), 20)
+    }
+
+    func testLiveDeparturesHaveNoAge() throws {
+        let now = 1_790_000_000
+        let body = #"{"departures": [], "fetchedAt": \#(now - 1200)}"#
+        let board = try TrainAPIService.parseDepartures(Data(body.utf8))
+        XCTAssertNil(board.staleSince)
+        XCTAssertNil(StaleBoard.minutes(fetchedAt: board.staleSince, now: now))
+    }
+
+    // Scenario: the board asks for a station's departures, and so does a
+    // caller that does not show the list's age.
+    // Expected behaviour: only the board opts in to a list served through an
+    // outage past the short window.
+    func testOnlyACallerThatShowsTheAgeOptsInToAStaleList() {
+        let board = URLComponents(string: TrainAPIService.departuresPath(stationId: "8507000", favourites: "IC61:Thun", showsAge: true))
+        XCTAssertEqual(board?.path, "/v1/departures")
+        XCTAssertEqual(board?.queryItems?.first { $0.name == "stale" }?.value, "1")
+        XCTAssertEqual(board?.queryItems?.first { $0.name == "favourites" }?.value, "IC61:Thun")
+
+        let other = URLComponents(string: TrainAPIService.departuresPath(stationId: "8507000", favourites: nil, showsAge: false))
+        XCTAssertNil(other?.queryItems?.first { $0.name == "stale" })
+    }
+
+    func testStaleListUnderOneMinuteReadsAsOneMinute() {
+        XCTAssertEqual(StaleBoard.minutes(fetchedAt: 1_790_000_000 - 20, now: 1_790_000_000), 1)
+    }
 }

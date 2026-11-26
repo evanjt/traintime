@@ -2,8 +2,24 @@ import SwiftUI
 import WidgetKit
 
 struct WidgetEntryView: View {
-    @Environment(\.widgetFamily) var family
+    @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetContentMargins) private var hostMargins
     let entry: DepartureEntry
+
+    var body: some View {
+        WidgetFamilyView(entry: entry, family: family, hostMargin: min(hostMargins.leading, hostMargins.trailing))
+    }
+}
+
+/// The widget drawn for one family. The family and the host's content margin are parameters
+/// because `widgetFamily` and `widgetContentMargins` are read-only environment values that only
+/// WidgetKit sets: outside a widget host they read as their defaults, so a view that reads
+/// them there draws the medium family with no host margin, whatever is asked for.
+struct WidgetFamilyView: View {
+    let entry: DepartureEntry
+    let family: WidgetFamily
+    /// Inset the host already puts around the content, in points.
+    var hostMargin: CGFloat = 0
 
     var body: some View {
         if isAccessory {
@@ -40,7 +56,7 @@ struct WidgetEntryView: View {
         }
     }
 
-    private var rowMetrics: WidgetRowMetrics { .of(family) }
+    private var inset: CGFloat { WidgetRowMetrics.inset(family, hostMargin: hostMargin) }
 
     private var headerFont: Font {
         family == .systemSmall ? .subheadline.weight(.bold) : .headline
@@ -90,62 +106,68 @@ struct WidgetEntryView: View {
             refreshButton
             Spacer()
         }
-        .padding(12)
+        .padding(inset)
     }
 
     private var staleDormantView: some View {
-        let limit = max(1, maxDepartureRows - 1)
-        let rows = entry.hideFavouritesBlock ? entry.regularRows(limit: limit) : entry.displayDepartures(limit: limit)
-        return GeometryReader { geo in
+        GeometryReader { geo in
+            let m = WidgetRowMetrics.of(family, rowWidth: geo.size.width)
+            let limit = max(1, maxDepartureRows(m) - 1)
+            let rows = entry.hideFavouritesBlock ? entry.regularRows(limit: limit) : entry.displayDepartures(limit: limit)
             VStack(spacing: 0) {
                 HStack(spacing: 6) {
-                    Image(systemName: "tram.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    // No room for the icon on small, as in the active header.
+                    if family != .systemSmall {
+                        Image(systemName: "tram.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(entry.stationName ?? "TrainTime")
                         .font(headerFont)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Spacer()
+                    Spacer(minLength: 0)
                     if let asOf = entry.asOf {
                         // Clock time, not a stale minute count. A dormant widget can sit for hours.
+                        // It keeps its width, so a long station name truncates instead of it.
                         Text("as of \(asOf, style: .time)")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .fixedSize()
                     }
                 }
 
                 Divider().padding(.vertical, 4)
 
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, dep in
-                    staleRow(dep).frame(maxHeight: .infinity)
+                    staleRow(dep, m).frame(maxHeight: .infinity)
                 }
 
                 refreshButton.padding(.top, 6)
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .padding(12)
+        .padding(inset)
     }
 
-    private func staleRow(_ dep: WidgetDeparture) -> some View {
-        let m = rowMetrics
+    private func staleRow(_ dep: WidgetDeparture, _ m: WidgetRowMetrics) -> some View {
         // Clock column spans minutes + delay so the line/destination columns line up with the active view.
         let clockWidth = m.minutesWidth + (m.showDelay ? m.hSpacing + m.delayWidth : 0)
-        return HStack(spacing: m.hSpacing) {
+        return rowStack(m) {
             Text(dep.clockTimeText(stationId: entry.stationId))
                 .font(m.clockFont)
                 .foregroundStyle(.secondary)
-                .frame(width: clockWidth, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(m.minutesMinScale)
+                .frame(width: clockWidth, alignment: m.leadAlignment)
             LinePill(lineLabel(dep), fill: .clear, fontSize: m.lineSize, relativeTo: m.lineStyle,
                      textColor: .secondary, cornerRadius: 5, verticalPadding: 1)
-            Text(dep.destination)
-                .font(m.destFont)
+        } destination: {
+            destinationText(dep, m)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer(minLength: 0)
-            if entry.isFavourite(dep) {
+        } trailing: {
+            if m.showStar && entry.isFavourite(dep) {
                 Image(systemName: "star.fill")
                     .font(.system(size: m.starSize))
                     .foregroundStyle(.secondary)
@@ -166,12 +188,13 @@ struct WidgetEntryView: View {
     // MARK: - Active View
 
     private var activeView: some View {
-        let maxRows = maxDepartureRows
-        // Classic mode: no favourites block, just the next departures in time order
-        // (favourites among them stay starred). Otherwise favourites are pulled to the top.
-        let favShown = entry.hideFavouritesBlock ? [] : entry.favouriteRows(limit: maxRows)
-        let regularShown = entry.regularRows(limit: maxRows - favShown.count)
-        return GeometryReader { geo in
+        GeometryReader { geo in
+            let m = WidgetRowMetrics.of(family, rowWidth: geo.size.width)
+            let maxRows = maxDepartureRows(m)
+            // Classic mode: no favourites block, just the next departures in time order
+            // (favourites among them stay starred). Otherwise favourites are pulled to the top.
+            let favShown = entry.hideFavouritesBlock ? [] : entry.favouriteRows(limit: maxRows)
+            let regularShown = entry.regularRows(limit: maxRows - favShown.count)
             VStack(spacing: 0) {
                 headerRow
 
@@ -186,7 +209,7 @@ struct WidgetEntryView: View {
                     Spacer()
                 } else {
                     ForEach(Array(favShown.enumerated()), id: \.offset) { _, dep in
-                        departureRow(dep, isFavourite: true)
+                        departureRow(dep, m, isFavourite: true)
                             .frame(maxHeight: .infinity)
                     }
                     if !favShown.isEmpty && !regularShown.isEmpty {
@@ -196,14 +219,14 @@ struct WidgetEntryView: View {
                             .padding(.vertical, 2)
                     }
                     ForEach(Array(regularShown.enumerated()), id: \.offset) { _, dep in
-                        departureRow(dep, isFavourite: entry.isFavourite(dep))
+                        departureRow(dep, m, isFavourite: entry.isFavourite(dep))
                             .frame(maxHeight: .infinity)
                     }
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .padding(12)
+        .padding(inset)
         // systemSmall honours only one tap region, so the whole tile opens the next departure;
         // medium/large get a per-row Link instead (set in departureRow).
         .widgetURL(family == .systemSmall ? entry.displayDepartures(limit: 1).first?.trackURL : nil)
@@ -298,8 +321,8 @@ struct WidgetEntryView: View {
     }
 
     @ViewBuilder
-    private func departureRow(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
-        let row = departureRowContent(dep, isFavourite: isFavourite)
+    private func departureRow(_ dep: WidgetDeparture, _ m: WidgetRowMetrics, isFavourite: Bool) -> some View {
+        let row = departureRowContent(dep, m, isFavourite: isFavourite)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background {
                 if isFavourite {
@@ -314,16 +337,15 @@ struct WidgetEntryView: View {
         }
     }
 
-    private func departureRowContent(_ dep: WidgetDeparture, isFavourite: Bool) -> some View {
-        let m = rowMetrics
-        return HStack(spacing: m.hSpacing) {
+    private func departureRowContent(_ dep: WidgetDeparture, _ m: WidgetRowMetrics, isFavourite: Bool) -> some View {
+        rowStack(m) {
             // Minutes
             Text(dep.minutesText(at: entry.date))
                 .font(m.minutesFont)
                 .foregroundStyle(minutesColor(dep))
                 .lineLimit(1)
                 .minimumScaleFactor(m.minutesMinScale)
-                .frame(width: m.minutesWidth, alignment: .trailing)
+                .frame(width: m.minutesWidth, alignment: m.leadAlignment)
 
             // Delay capsule, reserved column with an explicit spacer when on time, so the
             // line + destination columns line up whether or not a row has a delay.
@@ -351,22 +373,54 @@ struct WidgetEntryView: View {
                 textColor: dep.lineNumber.isEmpty ? lineColor(dep) : .white,
                 cornerRadius: 5, verticalPadding: 1
             )
-
-            // Destination
-            Text(dep.destination)
-                .font(m.destFont)
+        } destination: {
+            destinationText(dep, m)
                 .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-
-            Spacer(minLength: 0)
-
-            if isFavourite {
+        } trailing: {
+            if m.showStar && isFavourite {
                 Image(systemName: "star.fill")
                     .font(.system(size: m.starSize))
                     .foregroundStyle(AppColors.favouriteStar)
             }
         }
+    }
+
+    // One row: the fixed columns, the destination, then what trails it. A row too narrow to
+    // hold a name beside the columns puts the destination on a line of its own under them.
+    @ViewBuilder
+    private func rowStack<Columns: View, Destination: View, Trailing: View>(
+        _ m: WidgetRowMetrics,
+        @ViewBuilder columns: () -> Columns,
+        @ViewBuilder destination: () -> Destination,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        if m.stacksDestination {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: m.hSpacing) {
+                    columns()
+                    Spacer(minLength: 0)
+                    trailing()
+                }
+                destination()
+            }
+        } else {
+            HStack(spacing: m.hSpacing) {
+                columns()
+                destination()
+                trailing()
+            }
+        }
+    }
+
+    // The destination takes every point the fixed columns leave, shrinks before it truncates
+    // and truncates at the tail, so a narrow row still shows the start of the name.
+    private func destinationText(_ dep: WidgetDeparture, _ m: WidgetRowMetrics) -> some View {
+        Text(dep.destination)
+            .font(m.destFont)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(m.destMinScale)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func lineLabel(_ dep: WidgetDeparture) -> String {
@@ -386,9 +440,10 @@ struct WidgetEntryView: View {
         return AppColors.minutesSoon
     }
 
-    private var maxDepartureRows: Int {
+    // A row with the destination on its own line is two lines high, so one row fewer fits.
+    private func maxDepartureRows(_ m: WidgetRowMetrics) -> Int {
         switch family {
-        case .systemSmall: return 3
+        case .systemSmall: return m.stacksDestination ? 2 : 3
         case .systemMedium: return 3
         case .systemLarge: return 7
         default: return 4
@@ -409,10 +464,49 @@ struct WidgetRowMetrics {
     /// Text style the chip font scales with; nil keeps it fixed.
     var lineStyle: Font.TextStyle?
     var destFont: Font
+    /// Smallest scale the destination shrinks to before it truncates.
+    var destMinScale: CGFloat
+    /// Whether a favourite row carries a star besides its tinted background.
+    var showStar: Bool
     var starSize: CGFloat
     var hSpacing: CGFloat
+    /// Whether the destination sits on a line of its own under the other columns.
+    var stacksDestination = false
+
+    /// The countdown or clock leads its line when the destination is stacked under it, and is
+    /// a right-aligned column otherwise.
+    var leadAlignment: Alignment { stacksDestination ? .leading : .trailing }
 
     var minutesFont: Font { .system(size: minutesSize, weight: .bold, design: .rounded) }
+
+    /// Row width the destination never gets: the fixed columns before it and their gaps.
+    var fixedRowWidth: CGFloat {
+        minutesWidth + hSpacing + (showDelay ? delayWidth + hSpacing : 0)
+            + lineSize * LinePillGeometry.widthEms + hSpacing
+    }
+
+    /// Inset the view adds around its content, on top of the host's own content margin.
+    /// The small family has no width to spare, so there the host's margin counts towards it.
+    static func inset(_ family: WidgetFamily, hostMargin: CGFloat) -> CGFloat {
+        let wanted: CGFloat = 12
+        return family == .systemSmall ? max(0, wanted - hostMargin) : wanted
+    }
+
+    /// Narrowest destination column a single-line row may have, in points: room for a name of
+    /// about seven letters at `destMinScale`.
+    static let minDestinationWidth: CGFloat = 40
+
+    /// The metrics for a row `rowWidth` wide. A small row that leaves the destination less
+    /// than `minDestinationWidth` beside the fixed columns stacks it instead.
+    static func of(_ family: WidgetFamily, rowWidth: CGFloat) -> WidgetRowMetrics {
+        var m = of(family)
+        if family == .systemSmall, rowWidth - m.fixedRowWidth < minDestinationWidth {
+            m.stacksDestination = true
+            m.minutesSize = 15
+            m.destFont = .footnote
+        }
+        return m
+    }
 
     static func of(_ family: WidgetFamily) -> WidgetRowMetrics {
         switch family {
@@ -421,22 +515,25 @@ struct WidgetRowMetrics {
                 minutesSize: 16, minutesMinScale: 0.55,
                 clockFont: .system(size: 13, weight: .semibold, design: .rounded),
                 minutesWidth: 27, showDelay: false, delayWidth: 0,
-                lineSize: 12, lineStyle: nil,
-                destFont: .subheadline, starSize: 9, hSpacing: 5)
+                lineSize: 11, lineStyle: nil,
+                destFont: .subheadline, destMinScale: 0.7,
+                showStar: false, starSize: 9, hSpacing: 4)
         case .systemLarge:
             return WidgetRowMetrics(
                 minutesSize: 19, minutesMinScale: 0.7,
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 40, showDelay: true, delayWidth: 34,
                 lineSize: 15, lineStyle: .subheadline,
-                destFont: .body, starSize: 12, hSpacing: 8)
+                destFont: .body, destMinScale: 1,
+                showStar: true, starSize: 12, hSpacing: 8)
         default:
             return WidgetRowMetrics(
                 minutesSize: 20, minutesMinScale: 0.7,
                 clockFont: .system(size: 15, weight: .semibold, design: .rounded),
                 minutesWidth: 42, showDelay: true, delayWidth: 34,
                 lineSize: 15, lineStyle: .subheadline,
-                destFont: .body, starSize: 12, hSpacing: 8)
+                destFont: .body, destMinScale: 1,
+                showStar: true, starSize: 12, hSpacing: 8)
         }
     }
 }

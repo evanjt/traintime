@@ -1,1 +1,18 @@
 project.manifest = manifest.xml
+
+# The straight formation strip is drawn only on a rectangular screen, the bezel band only on a round one.
+# Every watch but fenix 6 and 6S takes the text fit and the map fallback
+base.excludeAnnotations = rect;notouch;plaintext;nomaps
+rectangle.excludeAnnotations = round;notouch;plaintext;nomaps
+
+# fenix 6 and 6S give a watch app 128 KB with the code inside it. They have no
+# touch screen, no glance and no maps, so that code stays out of their build.
+# Status text takes a plain cut there in place of the fit to one or two lines
+fenix6.excludeAnnotations = rect;touch;glanceview;maps;textfit
+fenix6s.excludeAnnotations = rect;touch;glanceview;maps;textfit
+
+# Unit tests compile last. The generated runner lists a test once for every file compiled after it
+base.sourcePath = source;test
+
+# The code counts against that 128 KB, so the build optimises for size
+project.optimization = 3z

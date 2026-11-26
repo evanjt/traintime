@@ -15,8 +15,10 @@
 
     <string name="ctx_stations">Stationen</string>
     <string name="ctx_departures">Abfahrten</string>
+    <string name="board_updated_ago_fmt">Vor %1$d Min. aktualisiert</string>
     <string name="err_rate_limited">Zu viele Anfragen</string>
     <string name="err_update_required">Aktualisiere TrainTime, um es weiter zu nutzen</string>
+    <string name="err_upstream_unavailable">Fahrplan nicht abrufbar</string>
     <string name="err_code_fmt">%1$s: %2$d</string>
     <string name="err_generic_fmt">%1$s: Fehler</string>
     <string name="err_no_connection">Keine Verbindung</string>

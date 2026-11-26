@@ -13,6 +13,24 @@ final class APIFailoverTests: XCTestCase {
         }
     }
 
+    func testUpstreamUnavailableEndsFailover() {
+        let upstream = Data(#"{"error":"upstream_unavailable"}"#.utf8)
+        XCTAssertFalse(FailoverPolicy.shouldFailover(status: 503, body: upstream))
+        XCTAssertFalse(FailoverPolicy.shouldFailover(status: 504, body: upstream))
+        XCTAssertTrue(FailoverPolicy.shouldFailover(status: 503, body: nil))
+        XCTAssertTrue(FailoverPolicy.shouldFailover(status: 503, body: Data("<html>Service Unavailable</html>".utf8)))
+        XCTAssertTrue(FailoverPolicy.shouldFailover(status: 500, body: Data(#"{"error":"Internal error"}"#.utf8)))
+    }
+
+    func testUpstreamUnavailableIsReadFromTheErrorField() {
+        XCTAssertTrue(FailoverPolicy.isUpstreamUnavailable(Data(#"{"error": "upstream_unavailable"}"#.utf8)))
+        XCTAssertFalse(FailoverPolicy.isUpstreamUnavailable(Data(#"{"message":"upstream_unavailable"}"#.utf8)))
+        XCTAssertFalse(FailoverPolicy.isUpstreamUnavailable(Data(#"{"error":"OJP API error: 502"}"#.utf8)))
+        XCTAssertFalse(FailoverPolicy.isUpstreamUnavailable(Data("not json".utf8)))
+        XCTAssertFalse(FailoverPolicy.isUpstreamUnavailable(Data()))
+        XCTAssertFalse(FailoverPolicy.isUpstreamUnavailable(nil))
+    }
+
     func testCancellationNeverFailsOver() {
         XCTAssertFalse(FailoverPolicy.shouldFailover(error: CancellationError()))
         XCTAssertFalse(FailoverPolicy.shouldFailover(error: URLError(.cancelled)))

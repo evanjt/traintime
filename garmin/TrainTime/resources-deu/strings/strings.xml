@@ -4,16 +4,18 @@
     <!-- Station view -->
     <string id="Inactive">Inaktiv</string>
     <string id="PressResume">Zum Fortsetzen drücken</string>
+    <string id="TapResume">Zum Fortsetzen tippen</string>
     <string id="ModeTrains">Züge</string>
     <string id="ModeBuses">Busse</string>
     <string id="ModeTrams">Trams</string>
     <string id="ModeSpecials">Schiffe &amp; Bahnen</string>
+    <string id="ModeCurrent">Aktuell</string>
     <string id="NoDepartures">Keine Abfahrten</string>
     <string id="Loading">Lade...</string>
+    <string id="HintMode">Modus</string>
     <string id="HintSelect">Wählen</string>
     <string id="HintNextStation">Nächste Station</string>
     <string id="HintTrack">Verfolgen</string>
-    <string id="HintMode">Modus</string>
     <string id="RowGone">weg</string>
     <string id="RowNow">jetzt</string>
 
@@ -39,6 +41,7 @@
     <string id="RateLimited">Zu viele Anfragen</string>
     <string id="UpdateRequired">App aktualisieren</string>
     <string id="ServerError">Serverfehler</string>
+    <string id="UpstreamUnavailable">Fahrplan nicht abrufbar</string>
     <string id="TimeoutError">Zeitüberschreitung</string>
     <string id="NoConnection">Keine Verbindung</string>
     <string id="ConnectionError">Verbindungsfehler</string>
@@ -57,6 +60,8 @@
     <string id="WalkUnder1">&lt;1 min</string>
     <string id="WalkInfoFmt">$1$ zu Fuss - $2$m</string>
     <string id="WalkInfoShortFmt">$1$ · $2$m</string>
+    <string id="UpdatedAgoFmt">Vor $1$ Min. aktualisiert</string>
+    <string id="UpdatedAgoShortFmt">Stand vor $1$ Min.</string>
 
     <!-- Settings menu -->
     <string id="SettingsTitle">Einstellungen</string>
@@ -85,7 +90,7 @@
     <string id="TermsOfUse">Nutzungsbedingungen</string>
     <string id="StationsLabel">Haltestellen</string>
     <string id="VictoriaLabel">Victoria, Australien</string>
-    <string id="StationLabel">Station</string>
+    <string id="StationLabel" scope="glance">Station</string>
 
     <!-- Tracking options menu -->
     <string id="OptionsTitle">Optionen</string>
@@ -100,5 +105,5 @@
     <string id="DontAskAgain">Nicht mehr fragen</string>
 
     <!-- Glance -->
-    <string id="PinAStation">Station anpinnen</string>
+    <string id="PinAStation" scope="glance">Station anpinnen</string>
 </strings>

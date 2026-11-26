@@ -68,6 +68,20 @@ struct StationView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 0) {
+                        // A list served through an upstream outage says how old it is.
+                        if viewModel.staleMinutes() != nil {
+                            TimelineView(.periodic(from: .now, by: 30)) { context in
+                                if let minutes = viewModel.staleMinutes(now: Int(context.date.timeIntervalSince1970)) {
+                                    Text("Updated \(minutes) min ago")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.bottom, 2)
+                                }
+                            }
+                        }
                         // Favourite departures at top
                         ForEach(Array(viewModel.favouriteDepartures.enumerated()), id: \.offset) { _, departure in
                             DepartureRowView(

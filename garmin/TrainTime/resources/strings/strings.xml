@@ -4,16 +4,18 @@
     <!-- Station view -->
     <string id="Inactive">Inactive</string>
     <string id="PressResume">Press to resume</string>
+    <string id="TapResume">Tap to resume</string>
     <string id="ModeTrains">Trains</string>
     <string id="ModeBuses">Buses</string>
     <string id="ModeTrams">Trams</string>
     <string id="ModeSpecials">Boats &amp; lifts</string>
+    <string id="ModeCurrent">Current</string>
     <string id="NoDepartures">No departures</string>
     <string id="Loading">Loading...</string>
+    <string id="HintMode">Mode</string>
     <string id="HintSelect">Select</string>
     <string id="HintNextStation">Next station</string>
     <string id="HintTrack">Track</string>
-    <string id="HintMode">Mode</string>
     <string id="RowGone">gone</string>
     <string id="RowNow">now</string>
 
@@ -39,6 +41,7 @@
     <string id="RateLimited">Rate limited</string>
     <string id="UpdateRequired">Update the app</string>
     <string id="ServerError">Server error</string>
+    <string id="UpstreamUnavailable">Timetable unavailable</string>
     <string id="TimeoutError">Timeout</string>
     <string id="NoConnection">No connection</string>
     <string id="ConnectionError">Connection error</string>
@@ -57,6 +60,8 @@
     <string id="WalkUnder1">&lt;1 min</string>
     <string id="WalkInfoFmt">$1$ walk - $2$m</string>
     <string id="WalkInfoShortFmt">$1$ · $2$m</string>
+    <string id="UpdatedAgoFmt">Updated $1$ min ago</string>
+    <string id="UpdatedAgoShortFmt">As of $1$ min ago</string>
 
     <!-- Settings menu -->
     <string id="SettingsTitle">Settings</string>
@@ -85,7 +90,7 @@
     <string id="TermsOfUse">Terms of use</string>
     <string id="StationsLabel">Stations</string>
     <string id="VictoriaLabel">Victoria, Australia</string>
-    <string id="StationLabel">Station</string>
+    <string id="StationLabel" scope="glance">Station</string>
 
     <!-- Tracking options menu -->
     <string id="OptionsTitle">Options</string>
@@ -100,5 +105,5 @@
     <string id="DontAskAgain">Don't ask again</string>
 
     <!-- Glance -->
-    <string id="PinAStation">Pin a station</string>
+    <string id="PinAStation" scope="glance">Pin a station</string>
 </strings>

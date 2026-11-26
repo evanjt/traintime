@@ -123,7 +123,7 @@ class TrainApiTest {
             ),
         )
 
-        val result = api.fetchDepartures("8501120", favourites = "IR90:Genève")
+        val result = api.fetchDepartures("8501120", favourites = "IR90:Genève", showsAge = true)
 
         assertEquals(2, result.departures.size)
         val first = result.departures[0]
@@ -138,6 +138,7 @@ class TrainApiTest {
         assertEquals("8501120", request.requestUrl!!.queryParameter("id"))
         assertEquals("20", request.requestUrl!!.queryParameter("limit"))
         assertEquals("IR90:Genève", request.requestUrl!!.queryParameter("favourites"))
+        assertEquals("1", request.requestUrl!!.queryParameter("stale"))
     }
 
     @Test
@@ -184,6 +185,16 @@ class TrainApiTest {
 
         assertEquals(1, embedded.size)
         assertEquals("93153", embedded.first().trainNumber)
+    }
+
+    @Test
+    fun `departures opts in to a stale list only for a caller that shows its age`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"departures": []}"""))
+        server.enqueue(MockResponse().setBody("""{"departures": []}"""))
+        api.fetchDepartures("8501120", showsAge = true)
+        api.fetchDepartures("8501120")
+        assertEquals("1", server.takeRequest().requestUrl!!.queryParameter("stale"))
+        assertNull(server.takeRequest().requestUrl!!.queryParameter("stale"))
     }
 
     @Test
