@@ -69,11 +69,16 @@ final class WidgetEntrySnapshotTests: XCTestCase {
         )
     }
 
+    // Clock text follows the locale and zone, so both are fixed rather than taken from the machine
     private func assertLightDark(_ view: AnyView, _ name: String, _ width: CGFloat, _ height: CGFloat,
+                                 locale: String = "en_GB",
                                  file: StaticString = #file, testName: String = #function, line: UInt = #line) {
+        let pinned = AnyView(view
+            .environment(\.locale, Locale(identifier: locale))
+            .environment(\.timeZone, TimeZone(identifier: "Europe/Zurich")!))
         for (suffix, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
             assertSnapshot(
-                of: view,
+                of: pinned,
                 as: .image(precision: 0.99, perceptualPrecision: 0.97,
                            layout: .fixed(width: width, height: height),
                            traits: .init(userInterfaceStyle: style)),
@@ -96,6 +101,13 @@ final class WidgetEntrySnapshotTests: XCTestCase {
 
     func testSmallDormantNarrowestCanvas() {
         assertLightDark(hostedSmall(dormant: true), "widget_small_narrowest_dormant", WidgetCanvas.narrowestSmall, WidgetCanvas.narrowestSmall)
+    }
+
+    // Scenario: a 12-hour clock on the narrowest small canvas.
+    // Expected behaviour: the station name stays whole and the time drops its "as of" words.
+    func testSmallDormantNarrowestCanvasTwelveHourClock() {
+        assertLightDark(hostedSmall(dormant: true), "widget_small_narrowest_dormant_12h", WidgetCanvas.narrowestSmall,
+                        WidgetCanvas.narrowestSmall, locale: "en_US")
     }
 }
 

@@ -115,27 +115,11 @@ struct WidgetFamilyView: View {
             let limit = max(1, maxDepartureRows(m) - 1)
             let rows = entry.hideFavouritesBlock ? entry.regularRows(limit: limit) : entry.displayDepartures(limit: limit)
             VStack(spacing: 0) {
-                HStack(spacing: 6) {
-                    // No room for the icon on small, as in the active header.
-                    if family != .systemSmall {
-                        Image(systemName: "tram.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(entry.stationName ?? "TrainTime")
-                        .font(headerFont)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    if let asOf = entry.asOf {
-                        // Clock time, not a stale minute count. A dormant widget can sit for hours.
-                        // It keeps its width, so a long station name truncates instead of it.
-                        Text("as of \(asOf, style: .time)")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .fixedSize()
-                    }
+                // A 12-hour clock is longer, so the "as of" words go before the name is cut
+                ViewThatFits(in: .horizontal) {
+                    dormantHeader(asOfWords: true, nameFits: true)
+                    dormantHeader(asOfWords: false, nameFits: true)
+                    dormantHeader(asOfWords: false, nameFits: false)
                 }
 
                 Divider().padding(.vertical, 4)
@@ -149,6 +133,37 @@ struct WidgetFamilyView: View {
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .padding(inset)
+    }
+
+    private func dormantHeader(asOfWords: Bool, nameFits: Bool) -> some View {
+        HStack(spacing: 6) {
+            // No room for the icon on small, as in the active header.
+            if family != .systemSmall {
+                Image(systemName: "tram.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Text(entry.stationName ?? "TrainTime")
+                .font(headerFont)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: nameFits, vertical: false)
+            Spacer(minLength: 0)
+            if let asOf = entry.asOf {
+                // Clock time, not a stale minute count. A dormant widget can sit for hours.
+                Group {
+                    if asOfWords {
+                        Text("as of \(asOf, style: .time)")
+                    } else {
+                        Text(asOf, style: .time)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .fixedSize()
+            }
+        }
     }
 
     private func staleRow(_ dep: WidgetDeparture, _ m: WidgetRowMetrics) -> some View {
