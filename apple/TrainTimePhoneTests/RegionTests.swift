@@ -67,7 +67,11 @@ final class RegionClockTests: XCTestCase {
     }
 
     func testUnknownStationReadsInTheDeviceZone() {
-        XCTAssertEqual(Region.clockTime(departure, stationId: nil), "11:38")
+        let device = DateFormatter()
+        device.dateFormat = "HH:mm"
+        device.timeZone = .current
+        XCTAssertEqual(Region.clockTime(departure, stationId: nil),
+                       device.string(from: Date(timeIntervalSince1970: TimeInterval(departure))))
     }
 
     func testServiceDateFollowsTheStationZone() {

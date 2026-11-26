@@ -30,10 +30,14 @@ if ! echo "$stats" | grep -q 'BUILD SUCCESSFUL'; then
     exit 1
 fi
 
-# The stats list Data then Code, each with its Foreground size.
-sizes=($(echo "$stats" | awk '/Foreground:/ { print $2 }'))
-data=${sizes[0]:-0}
-code=${sizes[1]:-0}
+# SDK 8 lists Data and Code each with a Foreground line under it. SDK 9 lists
+# Foreground with Code and Data lines under it.
+read -r code data < <(echo "$stats" | awk '
+    /^ *(Data|Code|Foreground):$/ { section = $1 }
+    /^ *Foreground: [0-9]/ { if (section == "Code:") c = $2; if (section == "Data:") d = $2 }
+    /^ *Code: [0-9]/ { if (section == "Foreground:") c = $2 }
+    /^ *Data: [0-9]/ { if (section == "Foreground:") d = $2 }
+    END { print c + 0, d + 0 }')
 total=$((data + code))
 if [ "$code" -eq 0 ] || [ "$total" -gt "$CEILING" ]; then
     echo "Error: $DEVICE code $code + data $data = $total bytes, past the ceiling of $CEILING."

@@ -394,6 +394,18 @@ jobs:
           path: android/app/build/outputs/roborazzi/**
           retention-days: 7
 
+      # A coroutine leaked from an earlier test fails a later one, and only the
+      # report names the exception
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: |
+            android/*/build/test-results/**
+            android/*/build/reports/tests/**
+          retention-days: 7
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
