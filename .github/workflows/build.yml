@@ -380,6 +380,15 @@ jobs:
 
           echo "Version: $VERSION | SHA: $SHORT_SHA"
 
+      # Robolectric fetches its Android jars from Maven at test time, and a failed
+      # fetch fails every Robolectric test
+      - name: Cache Robolectric jars
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml', 'android/**/build.gradle.kts') }}
+          restore-keys: robolectric-
+
       - name: Build and test
         env:
           TRAINTIME_API_KEY: ${{ secrets.TRAINTIME_API_KEY_ANDROID || secrets.TRAINTIME_API_KEY }}
